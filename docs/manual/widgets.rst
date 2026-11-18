@@ -249,6 +249,9 @@ the key or the click to the widgets above it.
 ``DropDown(..., border=True)`` draws a box around the open list, in the
 attribute of ``attr_map``, with the scroll bar outside the box when the list
 scrolls; without it the list has no border.
+The ``scrollbar_`` keyword arguments, such as ``scrollbar_side``,
+``scrollbar_width``, ``scrollbar_thumb_char``, ``scrollbar_end_markers`` and
+``scrollbar_attr``, are passed to the :class:`ScrollBar` of the open list.
 
 The :attr:`DropDown.selected` property holds the index of the selected
 option, and :attr:`DropDown.options` holds the markup of every option.
@@ -316,6 +319,8 @@ click outside closes the list without a choice.
 - ``align="right"`` lines up the right edges of the list and the launcher,
   for a menu at the right edge or a right-to-left interface.
 - ``border=False`` draws the list without its box.
+- The ``scrollbar_`` keyword arguments are passed to the :class:`ScrollBar`
+  of each list, as for :class:`DropDown`.
 
 The launcher is a label with :attr:`ActionMenu.menu_indicator` after it, or
 any widget given as ``launcher``, such as a row of a :class:`ListBox`.  The

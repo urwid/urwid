@@ -37,7 +37,7 @@ from .widget import AbstractBoxWidget, AbstractWidget
 from .widget_decoration import WidgetDecoration, WidgetError
 
 if typing.TYPE_CHECKING:
-    from collections.abc import Hashable, Iterator
+    from collections.abc import Hashable, Iterator, Mapping
     from typing import Literal
 
     from urwid import Canvas, CompositeCanvas
@@ -75,6 +75,44 @@ SCROLL_TO_END = "to end"
 # Scrollbar positions
 SCROLLBAR_LEFT: typing.Final = "left"
 SCROLLBAR_RIGHT: typing.Final = "right"
+
+
+class _ScrollBarOptions(typing.TypedDict, total=False):
+    """The :class:`ScrollBar` parameters, prefixed with ``scrollbar_``, of a widget that builds its own scroll bar.
+
+    ``visible`` and ``delegate_selectable`` are left out:
+    the widget decides when its scroll bar is drawn, and whether it is selectable.
+    """
+
+    scrollbar_thumb_char: str
+    scrollbar_trough_char: str
+    scrollbar_side: Literal["left", "right"]
+    scrollbar_width: int
+    scrollbar_scroll_by_focus: bool
+    scrollbar_end_markers: tuple[str, str] | None
+    scrollbar_attr: Hashable
+    scrollbar_focus_attr: Hashable
+    scrollbar_thumb_attr: Hashable
+    scrollbar_thumb_focus_attr: Hashable
+    scrollbar_marker_dim_attr: Hashable
+
+
+_SCROLLBAR_OPTIONS: typing.Final = frozenset(_ScrollBarOptions.__optional_keys__)
+
+
+def _scrollbar_arguments(owner: str, options: Mapping[str, typing.Any]) -> dict[str, typing.Any]:
+    """Return the :class:`ScrollBar` keyword arguments of the ``scrollbar_`` keyword arguments `options`.
+
+    :param owner: name of the class that took `options`, for the error message.
+    :raises TypeError: a key of `options` is not a key of :class:`_ScrollBarOptions`.
+    """
+    arguments: dict[str, typing.Any] = {}
+    for name, value in options.items():
+        if name not in _SCROLLBAR_OPTIONS:
+            raise TypeError(f"{owner}() got an unexpected keyword argument {name!r}")
+        arguments[name.removeprefix("scrollbar_")] = value
+    return arguments
+
 
 # Mouse wheel buttons, vertical and horizontal: they send no release, so they never start or follow a drag.
 _WHEEL_BUTTONS: typing.Final = frozenset(

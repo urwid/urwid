@@ -23,7 +23,9 @@ from .constants import Align, Sizing, WHSettings, WrapMode
 from .container import WidgetContainerMixin, _WeakCallback
 from .list_walker import SimpleFocusListWalker
 from .listbox import ListBox
-from .scrollable import SCROLLBAR_LEFT, ScrollBar
+
+# _ScrollBarOptions is imported at run time, so code that imports it from this module keeps working.
+from .scrollable import SCROLLBAR_LEFT, ScrollBar, _scrollbar_arguments, _ScrollBarOptions
 from .text import Text
 from .widget import Widget, WidgetError, WidgetWrap
 
@@ -43,28 +45,6 @@ if typing.TYPE_CHECKING:
 
 __all__ = ("Table", "TableColumn", "TableError", "TableLayout", "TableRow")
 
-
-class _ScrollBarOptions(typing.TypedDict, total=False):
-    """The :class:`ScrollBar` parameters, prefixed with ``scrollbar_`` as :class:`Table` takes them.
-
-    ``visible`` and ``delegate_selectable`` are left out:
-    the table decides when the scrollbar is drawn, and :meth:`Table.selectable` asks the rows.
-    """
-
-    scrollbar_thumb_char: str
-    scrollbar_trough_char: str
-    scrollbar_side: Literal["left", "right"]
-    scrollbar_width: int
-    scrollbar_scroll_by_focus: bool
-    scrollbar_end_markers: tuple[str, str] | None
-    scrollbar_attr: Hashable
-    scrollbar_focus_attr: Hashable
-    scrollbar_thumb_attr: Hashable
-    scrollbar_thumb_focus_attr: Hashable
-    scrollbar_marker_dim_attr: Hashable
-
-
-_SCROLLBAR_OPTIONS: typing.Final = frozenset(_ScrollBarOptions.__optional_keys__)
 
 # The number of maxcol values whose allocated widths a layout keeps:
 # a table renders at one width, and a dialog asks for the natural width beside it.
@@ -890,11 +870,7 @@ class Table(Widget, WidgetContainerMixin[int]):
             also while *scrollbar* is ``False``.
         :raises ValueError: :class:`ScrollBar` rejects the value of a ``scrollbar_`` parameter.
         """
-        bar_options: dict[str, typing.Any] = {}
-        for name, value in scrollbar_options.items():
-            if name not in _SCROLLBAR_OPTIONS:
-                raise TypeError(f"Table() got an unexpected keyword argument {name!r}")
-            bar_options[name.removeprefix("scrollbar_")] = value
+        bar_options = _scrollbar_arguments("Table", scrollbar_options)
         if max_rows is not None and (not isinstance(max_rows, int) or isinstance(max_rows, bool) or max_rows < 0):
             raise TableError(f"max_rows must be None or an int >= 0, not {max_rows!r}")
         for name, threshold in (("header_drop", header_drop), ("footer_drop", footer_drop)):

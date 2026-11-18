@@ -20,6 +20,8 @@
 
 from __future__ import annotations
 
+import dataclasses
+import types
 import typing
 import weakref
 
@@ -32,13 +34,14 @@ from .divider import Divider
 from .frame import Frame
 from .list_walker import SimpleFocusListWalker
 from .listbox import ListBox
-from .scrollable import ScrollBar
+from .scrollable import SCROLLBAR_LEFT, ScrollBar, _scrollbar_arguments
 from .text import Text
 from .widget import Widget
 from .wimp import SelectableIcon
 
 if typing.TYPE_CHECKING:
-    from collections.abc import Callable, Iterable
+    from collections.abc import Callable, Iterable, Mapping
+    from typing import Literal
 
     from urwid.canvas import Canvas
     from urwid.util import _TagMarkup
@@ -46,6 +49,31 @@ if typing.TYPE_CHECKING:
     from .widget import AbstractFlowWidget, AbstractWidget
 
 _Choice = typing.TypeVar("_Choice")
+
+
+@dataclasses.dataclass(frozen=True, slots=True, weakref_slot=True)
+class _BarSettings:
+    """Settings of the scroll bar of a pop-up list.
+
+    They are the :class:`ScrollBar` arguments, and the columns and the side those arguments give.
+    """
+
+    arguments: Mapping[str, typing.Any]
+    width: int
+    side: Literal["left", "right"]
+
+
+def _bar_settings(owner: str, options: Mapping[str, typing.Any]) -> _BarSettings:
+    """Return the settings of the ``scrollbar_`` keyword arguments `options` given to `owner`.
+
+    :raises TypeError: a key of `options` is not a ``scrollbar_`` parameter.
+    :raises ValueError: :class:`ScrollBar` rejects one of the values.
+    """
+    arguments = _scrollbar_arguments(owner, options)
+    # A bar over an empty list checks the values now rather than when the list opens,
+    # and applies ScrollBar's own defaults and limits to the width and the side.
+    probe = ScrollBar(ListBox(SimpleFocusListWalker([])), **arguments)
+    return _BarSettings(types.MappingProxyType(arguments), probe.scrollbar_width, probe.scrollbar_side)
 
 
 class _PopUpListItem(SelectableIcon, typing.Generic[_Choice]):
@@ -97,17 +125,19 @@ def _boxed_list(
     focus: int,
     *,
     border: bool,
+    bar: _BarSettings,
     separator: str = BOX_SYMBOLS.LIGHT.HORIZONTAL,
 ) -> tuple[ListBox[int], AbstractWidget]:
     """Return the list box of `rows` and the pop-up widget around it.
 
     With `border`, each row is drawn between box sides, and a separator line joins them with tees.
     The scroll bar is drawn whenever the list has more rows than the height it is drawn at shows,
-    outside the right side of the box when there is one.
+    outside the box on the side `bar` gives when there is one.
     A list that fits gets no bar column.
 
     :param rows: the rows in list order, ``None`` for a separator line of `separator` characters.
     :param focus: index of the focused row.
+    :param bar: the scroll bar.
     :returns: the list box, and the widget that shows it with its border and scroll bar.
     """
     light = BOX_SYMBOLS.LIGHT
@@ -119,21 +149,21 @@ def _boxed_list(
         else:
             framed.append(Columns([(1, Text(light.VERTICAL)), row, (1, Text(light.VERTICAL))]) if border else row)
     list_box = _focused_list(framed, focus)
+    scroll_bar = ScrollBar(list_box, **bar.arguments)
     if not border:
-        return list_box, ScrollBar(list_box)
+        return list_box, scroll_bar
 
-    def box(body: AbstractWidget, pad: list[tuple[int, Text]]) -> Frame[typing.Any, typing.Any, typing.Any]:
+    def box(body: AbstractWidget, pad_width: int) -> Frame[typing.Any, typing.Any, typing.Any]:
+        # The top and bottom edges leave the scroll bar's columns blank.
+        pad = [(pad_width, Text(""))] if pad_width else []
+        before, after = (pad, []) if bar.side == SCROLLBAR_LEFT else ([], pad)
         return Frame(
             body,
-            header=Columns([_edge(light.TOP_LEFT, light.HORIZONTAL, light.TOP_RIGHT), *pad]),
-            footer=Columns([_edge(light.BOTTOM_LEFT, light.HORIZONTAL, light.BOTTOM_RIGHT), *pad]),
+            header=Columns([*before, _edge(light.TOP_LEFT, light.HORIZONTAL, light.TOP_RIGHT), *after]),
+            footer=Columns([*before, _edge(light.BOTTOM_LEFT, light.HORIZONTAL, light.BOTTOM_RIGHT), *after]),
         )
 
-    return list_box, _HeightChoice(
-        len(framed) + 2,
-        box(list_box, []),
-        box(ScrollBar(list_box), [(1, Text(" "))]),
-    )
+    return list_box, _HeightChoice(len(framed) + 2, box(list_box, 0), box(scroll_bar, bar.width))
 
 
 class _HeightChoice(Widget):

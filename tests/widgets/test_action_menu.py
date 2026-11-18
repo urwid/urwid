@@ -95,9 +95,16 @@ class MenuItemTest(unittest.TestCase):
             ("submenu of separators", lambda: MenuItem("Send", submenu=[None])),
             ("label with a line break", lambda: MenuItem("one\ntwo")),
             ("markup with a line break", lambda: urwid.ActionMenu("A", [("attr", "one\ntwo")])),
+            ("unknown scroll bar side", lambda: urwid.ActionMenu("A", ["x"], scrollbar_side="top")),
+            ("end markers not a pair", lambda: urwid.ActionMenu("A", ["x"], scrollbar_end_markers=("^",))),
         ):
             with self.subTest(description), self.assertRaises(ValueError):
                 build()
+
+    def test_unknown_scroll_bar_option(self) -> None:
+        """A ScrollBar parameter the pop-up list decides itself is not a keyword argument of the menu."""
+        with self.assertRaises(TypeError):
+            urwid.ActionMenu("A", ["x"], scrollbar_visible=True)
 
     def test_empty_submenu_is_no_submenu(self) -> None:
         self.assertEqual(MenuItem("x"), MenuItem("x", submenu=[]))
@@ -173,6 +180,79 @@ class LayoutTest(unittest.TestCase):
             lines(target, (30, 12))[2:10],
         )
         self.assertIn("focus", attributes(target, (30, 12), 8, range(1, 17)))
+
+    def test_scroll_bar_options(self) -> None:
+        """A wide bar on the left of each list; a child list opens beside its parent, covering neither its bar nor its rows."""
+        items = (*WITH_SUBMENU, MenuItem("(C)opy", key="c"), MenuItem("(M)ove", key="m"))
+        for description, kwargs, right, opening, expected in (
+            (
+                "child on the right",
+                {},
+                False,
+                "right",
+                [
+                    "  ┌────────────┐                        ",
+                    "##│(O)pen      │  ┌────────────┐        ",
+                    "##│(S)end to  >│##│(M)ail      │        ",
+                    "..├────────────┤##│(P)rinter   │        ",
+                    "  └────────────┘..├────────────┤        ",
+                    "                  └────────────┘        ",
+                ],
+            ),
+            (
+                "child on the left",
+                {"align": "right"},
+                True,
+                "left",
+                [
+                    "status: -              ┌────────────┐   ",
+                    "       ┌────────────┐##│(O)pen      │   ",
+                    "     ##│(M)ail      │##│(S)end to  >│   ",
+                    "     ##│(P)rinter   │..├────────────┤   ",
+                    "     ..├────────────┤  └────────────┘   ",
+                    "       └────────────┘                   ",
+                ],
+            ),
+            (
+                "without a border",
+                {"border": False},
+                False,
+                "right",
+                [
+                    "##(O)pen                                ",
+                    "##(S)end to  >##(M)ail                  ",
+                    "..────────────##(P)rinter               ",
+                    "              ..────────────            ",
+                    "                                        ",
+                    "                                        ",
+                ],
+            ),
+        ):
+            with self.subTest(description):
+                menu = urwid.ActionMenu(
+                    "Actions",
+                    items,
+                    max_visible_items=3,
+                    scrollbar_side="left",
+                    scrollbar_width=2,
+                    scrollbar_thumb_char="#",
+                    scrollbar_trough_char=".",
+                    **kwargs,
+                )
+                target = screen(menu, right=right)
+                keys(target, (40, 10), "enter", "down", opening)
+                self.assertEqual(expected, lines(target, (40, 10))[2:8])
+
+    def test_scroll_bar_end_markers(self) -> None:
+        menu = urwid.ActionMenu(
+            "Actions", [f"Item {index}" for index in range(6)], max_visible_items=4, scrollbar_end_markers=("^", "v")
+        )
+        target = screen(menu)
+        keys(target, (20, 9), "enter")
+        self.assertEqual(
+            ["│Item 0 │^", "│Item 1 │█", "│Item 2 │ ", "│Item 3 │v"],
+            [line[:10] for line in lines(target, (20, 9))[3:7]],
+        )
 
     def test_key_column(self) -> None:
         """D3: show_keys draws each item's key before its label."""
