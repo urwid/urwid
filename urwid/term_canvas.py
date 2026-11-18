@@ -1003,8 +1003,19 @@ class TermCanvas(Canvas):
                     return
             else:
                 self.utf8_eat_bytes = None
+                if (
+                    continuation
+                    and not self.within_escape
+                    and byte != 0x9B
+                    and not (self.modes.display_ctrl and byte < 0xA0)
+                ):
+                    # A lone continuation byte is not valid UTF-8, and is dropped like an invalid multibyte sequence.
+                    # The C1 controls in that range stay controls: CSI, and every one shown in display control mode.
+                    return
                 char = bytes([byte])
         else:
+            # a sequence pending when urwid's encoding stopped being UTF-8 is not continued by bytes read in another one
+            self.utf8_eat_bytes = None
             char = bytes([byte])
 
         self.process_char(char)
