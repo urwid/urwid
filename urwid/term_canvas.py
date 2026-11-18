@@ -246,20 +246,26 @@ CSI_COMMANDS: dict[bytes, CSIAlias | CSICommand] = {
     b"h": CSICommand(1, 0, lambda s, modes, q: s.csi_set_modes(modes, q)),
     b"l": CSICommand(1, 0, lambda s, modes, q: s.csi_set_modes(modes, q, reset=True)),
     b"m": CSICommand(1, 0, lambda s, attrs, q: s.csi_set_attr(attrs)),
-    b"n": CSICommand(1, 0, lambda s, mode, q: s.csi_status_report(mode[0])),
+    b"n": CSICommand(1, 0, lambda s, mode, q: s.csi_status_report(mode[0], private=q)),
     # DECRQM (CSI ? Ps $ p, CSI Ps $ p) and DECSTR (CSI ! p) are run in parse_csi; DECSCL (CSI Ps ; Ps " p) is accepted
     # and not applied, and the other forms are not implemented
     b"p": CSICommand(0, 0, lambda s, none, q: None),
     b"q": CSICommand(1, 0, lambda s, mode, q: s.csi_set_keyboard_leds(mode[0])),
     b"r": CSICommand(2, 0, lambda s, t_b, q: s.csi_set_scroll(t_b[0], t_b[1])),
-    b"s": CSICommand(0, 0, lambda s, none, q: s.save_cursor()),
-    b"u": CSICommand(0, 0, lambda s, none, q: s.restore_cursor()),
+    # SCOSC and SCORC save and restore what DECSC and DECRC do, as in xterm and the Linux console
+    b"s": CSICommand(0, 0, lambda s, none, q: s.save_cursor(with_attrs=True)),
+    b"u": CSICommand(0, 0, lambda s, none, q: s.restore_cursor(with_attrs=True)),
     b"`": CSIAlias("alias", b"G"),
 }
 
-#: the final bytes whose "?" form is run: the DEC private modes, the linux cursor style CSI ? Ps c (not answered), and
-#: the DEC forms of the erase and status commands, which act like their ECMA-48 forms here; any other "?" form, such as
-#: the kitty keyboard protocol query CSI ? u, is a different command than the one without it
+#: the replies to the DEC status reports of a VT220 that are not about the cursor, by mode: no printer (15), the
+#: user-defined keys unlocked (25), and a North American keyboard (1) that is ready (0) and an LK201 (0) (26)
+_PRIVATE_STATUS_REPORTS: typing.Final = types.MappingProxyType({15: "13", 25: "20", 26: "27;1;0;0"})
+
+#: the final bytes whose "?" form is run: the DEC private modes, the linux cursor style CSI ? Ps c (not answered), the
+#: DEC forms of the erase commands, which act like their ECMA-48 forms here, and the DEC status reports, which
+#: csi_status_report() answers with their own replies; any other "?" form, such as the kitty keyboard protocol query
+#: CSI ? u, is a different command than the one without it
 _CSI_PRIVATE_FINAL_BYTES: typing.Final = frozenset((b"J", b"K", b"c", b"h", b"l", b"n"))
 
 CHARSET_DEFAULT: Literal[1] = 1  # type annotated exclusively for buggy IDE
@@ -344,6 +350,7 @@ class _Screen:
     keyboard_flags: list[int] = field(default_factory=list)
     #: the row the cursor was on when the screen was hidden, moved with the rows a resize keeps
     cursor_row: int = 0
+    saved_flags: tuple[bool, bool] | None = None
 
 
 class TermCharset:
@@ -515,6 +522,8 @@ class TermCanvas(Canvas):
 
         self.saved_cursor: tuple[int, int] | None = None
         self.saved_attrs: tuple[AttrSpec | None, TermCharset] | None = None
+        #: origin mode and a pending autowrap, saved with the attributes by DECSC, or None when nothing is saved
+        self.saved_flags: tuple[bool, bool] | None = None
 
         self.is_rotten_cursor = False
 
@@ -615,6 +624,7 @@ class TermCanvas(Canvas):
 
         self.saved_cursor = None
         self.saved_attrs = None
+        self.saved_flags = None
 
         self.is_rotten_cursor = False
 
@@ -643,11 +653,13 @@ class TermCanvas(Canvas):
             self.saved_attrs,
             self.modes.keyboard_flags,
             self.term_cursor[1],
+            self.saved_flags,
         )
         self.term = hidden.term
         self.scrollback_buffer = hidden.scrollback_buffer
         self.saved_cursor = hidden.saved_cursor
         self.saved_attrs = hidden.saved_attrs
+        self.saved_flags = hidden.saved_flags
         self.modes.keyboard_flags = hidden.keyboard_flags
         self.modes.alternate_screen = not self.modes.alternate_screen
         self.scroll_buffer(reset=True)
@@ -1402,22 +1414,43 @@ class TermCanvas(Canvas):
             self.push_char(char, x, y, dec_special=dec_special)
 
     def save_cursor(self, with_attrs: bool = False) -> None:
-        """Save the current cursor position, and its attributes/charset when *with_attrs* is set."""
+        """Save the current cursor position.
+
+        With *with_attrs*, as DECSC, the attributes, the character sets, origin mode and a pending autowrap are saved
+        too.
+        """
         self.saved_cursor = self.term_cursor
         if with_attrs:
             self.saved_attrs = (copy.copy(self.attrspec), copy.copy(self.charset))
+            self.saved_flags = (self.modes.constrain_scrolling, self.is_rotten_cursor)
 
     def restore_cursor(self, with_attrs: bool = False) -> None:
-        """Restore the cursor position saved by :meth:`save_cursor`, and its attributes/charset when *with_attrs*."""
-        if self.saved_cursor is None:
+        """Restore the cursor position saved by :meth:`save_cursor`.
+
+        Without *with_attrs* only the position is restored, a pending autowrap ends, and nothing happens when no
+        position was saved.
+
+        With *with_attrs*, as DECRC, the attributes, the character sets, origin mode and a pending autowrap are restored
+        too.
+        Whatever :meth:`save_cursor` did not save with them is reset instead, as in xterm: the cursor moves home when no
+        position was saved, and the attributes, the character sets and origin mode take their startup values.
+        """
+        if self.saved_cursor is None and not with_attrs:
             return
+        x, y = (0, 0) if self.saved_cursor is None else self.saved_cursor
+        origin, wrap = (False, False) if self.saved_flags is None else self.saved_flags
 
-        x, y = self.saved_cursor
-        self.is_rotten_cursor = False
+        if with_attrs:
+            if self.saved_attrs is None:
+                self.csi_set_attr([0])
+                self.charset = TermCharset()
+            else:
+                self.attrspec, self.charset = (copy.copy(self.saved_attrs[0]), copy.copy(self.saved_attrs[1]))
+            # origin mode first, since it decides how the position is constrained
+            self.modes.constrain_scrolling = origin
+
         self.set_term_cursor(x, y)
-
-        if with_attrs and self.saved_attrs is not None:
-            self.attrspec, self.charset = (copy.copy(self.saved_attrs[0]), copy.copy(self.saved_attrs[1]))
+        self.is_rotten_cursor = with_attrs and wrap
 
     def tab(self, tabstop: int = 8) -> None:
         """Move cursor to the next 'tabstop', leaving the cells it passes unchanged."""
@@ -1792,7 +1825,8 @@ class TermCanvas(Canvas):
         The cursor is shown, insert, origin, cursor key and keypad application modes are reset, and autowrap is set.
         The scrolling region is the whole screen again, without moving the cursor.
         The attributes are reset as by SGR 0, and the character sets are the startup ones.
-        The cursor saved by DECSC is the home position with these attributes and character sets.
+        The cursor saved by DECSC is the home position with these attributes and character sets, origin mode off and no
+        pending autowrap.
         """
         modes = self.modes
         modes.visible_cursor = True
@@ -1806,6 +1840,7 @@ class TermCanvas(Canvas):
         self.charset = TermCharset()
         self.saved_cursor = (0, 0)
         self.saved_attrs = (copy.copy(self.attrspec), TermCharset())
+        self.saved_flags = (False, False)
         self.set_term_cursor()
 
     def dcs_request_setting(self, request: bytes) -> None:
@@ -1913,19 +1948,27 @@ class TermCanvas(Canvas):
             msg = f"Not a kitty keyboard protocol marker: {marker!r}"
             raise ValueError(msg)
 
-    def csi_status_report(self, mode: int) -> None:
-        """Report various information about the terminal status.
+    def csi_status_report(self, mode: int, *, private: bool = False) -> None:
+        """Answer a device status report (DSR) query for *mode*, as xterm does.
 
         Information is queried by 'mode', where possible values are:
-            5 -> device status report
-            6 -> cursor position report
+            5 -> device status report: the terminal is OK
+            6 -> cursor position report, with the row counted from the top margin in origin mode, as CUP takes it
+
+        :param private: the DEC form, ``CSI ? Ps n``, was sent.
+            Its cursor position report (DECXCPR) adds page 1, and it also answers 15 (no printer), 25 (user-defined
+            keys unlocked) and 26 (a North American keyboard, ready, an LK201).
         """
+        prefix = "?" if private else ""
         if mode == 5:
-            # terminal OK
-            self.widget.respond(f"{ESC}[0n")
+            self.widget.respond(f"{ESC}[{prefix}0n")
         elif mode == 6:
             x, y = self.term_cursor
-            self.widget.respond(ESC + f"[{y + 1:d};{x + 1:d}R")
+            if self.modes.constrain_scrolling:
+                y -= self.scrollregion_start
+            self.widget.respond(f"{ESC}[{prefix}{y + 1:d};{x + 1:d}{';1' if private else ''}R")
+        elif private and mode in _PRIVATE_STATUS_REPORTS:
+            self.widget.respond(f"{ESC}[?{_PRIVATE_STATUS_REPORTS[mode]}n")
 
     def csi_erase_line(self, mode: int) -> None:
         """Erase current line.
