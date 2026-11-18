@@ -211,20 +211,31 @@ class TestStartStop(unittest.TestCase):
         self.assertEqual((s._input_fileno(), termios.TCSADRAIN), restored[:2])
         self.assertEqual(cc, restored[2][6])
 
-    def test_alternate_buffer_flag_is_set_before_later_start_steps_can_fail(self):
-        """`stop()` still calls `_stop()` after `_start()` raises (`_started` is set first), so
-        `_alternate_buffer` has to already be correct by the time the write happens, not after
-        later steps -- here `signal_init()` -- that could still fail."""
+    def test_failed_start_leaves_the_alternate_screen_and_a_stopped_screen(self):
+        """A start that fails after entering the alternate screen leaves it again and marks the screen stopped.
+
+        A title set afterwards is not sent, as for any stopped screen.
+        """
         s = _make_screen()
-        s.write = lambda *_a: None
+        written: list[str] = []
+        s.write = written.append
         s.flush = lambda: None
         s.signal_init = mock.Mock(side_effect=RuntimeError("boom"))
 
         with self.assertRaises(RuntimeError):
             s.start()
 
-        self.assertTrue(s._alternate_buffer)
-        s.stop()  # must not raise: signal_restore() only reads what __init__ already set
+        self.assertFalse(s.started)
+        output = "".join(written)
+        self.assertIn(escape.PrivateMode.ALTERNATE_SCREEN_BUFFER.disable_seq, output)
+        self.assertGreater(
+            output.rindex(escape.PrivateMode.ALTERNATE_SCREEN_BUFFER.disable_seq),
+            output.index(escape.PrivateMode.ALTERNATE_SCREEN_BUFFER.enable_seq),
+        )
+        written.clear()
+        s.set_title("app")
+        s.stop()  # nothing left to undo
+        self.assertEqual([], written)
 
     def test_stop_moves_below_the_frame_before_leaving_the_alternate_screen(self):
         """Stop works whether or not the terminal switched screens, and before any DECRQM reply."""
@@ -337,6 +348,83 @@ class TestStartStop(unittest.TestCase):
         self.assertEqual(previous_tstp, signal.getsignal(signal.SIGTSTP))
         # SIGCONT belongs to the application: neither start() nor stop() replaces it.
         self.assertEqual(signal.SIG_IGN, signal.getsignal(signal.SIGCONT))
+
+    @mock.patch("os.kill")  # guard: the gpm helper must be stopped through its Popen object only
+    @mock.patch("termios.tcsetattr")
+    @mock.patch("termios.tcgetattr", return_value=[0, 0, 0, 0, 0, 0, [b"\0"] * 32])
+    @mock.patch("tty.setcbreak")
+    @mock.patch("os.isatty", return_value=True)
+    def test_failed_start_undoes_only_what_it_changed(
+        self,
+        mock_isatty: mock.Mock,
+        mock_setcbreak: mock.Mock,
+        mock_tcgetattr: mock.Mock,
+        mock_tcsetattr: mock.Mock,
+        mock_kill: mock.Mock,
+    ) -> None:
+        """Undo a failed start as far as it got, and nothing an earlier start and stop already undid.
+
+        A restart that fails before changing anything restores no signal handler, no terminal settings saved by the
+        earlier start, and no screen.
+        A failed signal_init() still restores the terminal settings and leaves the alternate screen.
+        """
+        disable_alternate = escape.PrivateMode.ALTERNATE_SCREEN_BUFFER.disable_seq
+        with self.subTest("restart fails before any change"):
+            s = _make_screen()
+            written: list[str] = []
+            s.write = written.append
+            s.flush = lambda: None
+            s.signal_handler_setter = setter = mock.Mock(return_value=None)
+            s.start()
+            s.stop()
+            written.clear()
+            setter.reset_mock()
+            mock_tcsetattr.reset_mock()
+
+            with self.assertRaises(TypeError):
+                s.start(unexpected=True)
+
+            self.assertFalse(s.started)
+            setter.assert_not_called()
+            # the signal keys saved by the first start are set back at every stop, so only the settings are checked
+            self.assertNotIn(termios.TCSAFLUSH, [call.args[1] for call in mock_tcsetattr.mock_calls])
+            self.assertNotIn(disable_alternate, "".join(written))
+
+        with self.subTest("start fails after signal_init()"):
+            s = _make_screen()
+            s.write = lambda *_a: None
+            s.flush = lambda: None
+            s.signal_handler_setter = setter = mock.Mock(return_value=None)
+
+            with (
+                mock.patch.object(s, "tty_signal_keys", side_effect=termios.error(5, "signal keys")),
+                self.assertRaises(termios.error),
+            ):
+                s.start()
+
+            self.assertFalse(s.started)
+            self.assertEqual(
+                [signal.SIGWINCH, signal.SIGTSTP, signal.SIGTSTP, signal.SIGWINCH],
+                [call.args[0] for call in setter.call_args_list],
+            )
+
+        with self.subTest("signal_init() fails"):
+            s = _make_screen()
+            written = []
+            s.write = written.append
+            s.flush = lambda: None
+            s.signal_handler_setter = setter = mock.Mock(side_effect=ValueError("not the main thread"))
+            mock_tcsetattr.reset_mock()
+
+            with self.assertRaisesRegex(ValueError, "not the main thread"):
+                s.start()
+
+            self.assertFalse(s.started)
+            setter.assert_called_once()
+            self.assertIn(disable_alternate, "".join(written))
+            self.assertIn(
+                mock.call(s._input_fileno(), termios.TCSAFLUSH, mock_tcgetattr.return_value), mock_tcsetattr.mock_calls
+            )
 
     @mock.patch.dict(os.environ, {"TERM": "xterm"})  # fbterm has no palette reset to flush
     @mock.patch("os.kill")  # guard: the gpm helper must be stopped through its Popen object only
@@ -1529,13 +1617,16 @@ class TestGetColsRows(unittest.TestCase):
 
     @mock.patch("fcntl.ioctl")
     def test_falls_back_to_80x24_for_ansi_vt100_when_ioctl_gives_non_positive(self, mock_ioctl):
+        """TERM names the terminal in any case."""
         mock_ioctl.return_value = struct.pack("hhhh", 0, 0, 0, 0)
-        s = _make_screen()
-        s.term = "ansi"
+        for term in ("ansi", "VT100"):
+            with self.subTest(term=term):
+                s = _make_screen()
+                s.term = term
 
-        cols, rows = s.get_cols_rows()
+                cols, rows = s.get_cols_rows()
 
-        self.assertEqual((80, 24), (cols, rows))
+                self.assertEqual((80, 24), (cols, rows))
 
     @mock.patch("fcntl.ioctl")
     def test_reported_size_is_used_until_the_next_sigwinch(self, mock_ioctl):

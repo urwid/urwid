@@ -105,6 +105,8 @@ class Screen(_raw_display_base.Screen):
         self._in_band_resize = self._send_input is not None
         # The console implements no mode 2048, so it is not queried: the console reader is what sends the reports.
         self.modes.in_band_resize = False
+        # A start failed before writing to a console without VT processing, so _stop() must not write escape sequences.
+        self._console_without_vt = False
 
     _dwOriginalOutMode: DWORD | None = None
     _dwOriginalInMode: DWORD | None = None
@@ -167,31 +169,24 @@ class Screen(_raw_display_base.Screen):
         :raises TypeError: unexpected positional or keyword arguments were given.
         :raises RuntimeError: the console mode could not be set.
         """
-        if args or kwargs:
-            raise TypeError(f"start() got unexpected arguments: {args=!r}, {kwargs=!r}")
-
-        if alternate_buffer:
-            # A terminal that reported no alternate screen on an earlier start ignores the switch, and the frames are
-            # drawn the same either way.
-            if self.modes.alternate_buffer is not False:
-                self.write(escape.PrivateMode.ALTERNATE_SCREEN_BUFFER.enable_seq)
-            self._rows_used = None
-        else:
-            self._rows_used = 0
-        # Set as soon as the buffer is actually switched, not after: _stop() (e.g. from cleanup
-        # after a later exception in this method) has to know to restore the normal buffer.
-        self._alternate_buffer = alternate_buffer
-
         handle_out = _win32.GetStdHandle(_win32.STD_OUTPUT_HANDLE)
         handle_in = _win32.GetStdHandle(_win32.STD_INPUT_HANDLE)
         original_out_mode = DWORD(0)
         original_in_mode = DWORD(0)
+        # Read before anything can fail: until VT processing is enabled below,
+        # undoing a failed start must not write escape sequences that such a console prints as text.
+        output_is_console = bool(_win32.GetConsoleMode(handle_out, byref(original_out_mode)))
+        self._console_without_vt = output_is_console and not (
+            original_out_mode.value & _win32.ENABLE_VIRTUAL_TERMINAL_PROCESSING
+        )
 
+        if args or kwargs:
+            raise TypeError(f"start() got unexpected arguments: {args=!r}, {kwargs=!r}")
+
+        # The console mode comes first: a console that cannot enable VT processing would print escape sequences as text.
         # The standard handles are not consoles when the process runs detached or with redirected streams.
         # In that case there is no console mode to negotiate, same as a POSIX terminal which is not a tty.
-        if _win32.GetConsoleMode(handle_out, byref(original_out_mode)) and _win32.GetConsoleMode(
-            handle_in, byref(original_in_mode)
-        ):
+        if output_is_console and _win32.GetConsoleMode(handle_in, byref(original_in_mode)):
             dword_out_mode = DWORD(
                 original_out_mode.value | _win32.ENABLE_VIRTUAL_TERMINAL_PROCESSING | _win32.DISABLE_NEWLINE_AUTO_RETURN
             )
@@ -209,6 +204,21 @@ class Screen(_raw_display_base.Screen):
             self._dwOriginalOutMode = original_out_mode
             self._dwOriginalInMode = original_in_mode
             self._console_mode_active = True
+
+        # from the first escape sequence written on, a stop writes the ones that undo it
+        self._console_without_vt = False
+
+        if alternate_buffer:
+            # A terminal that reported no alternate screen on an earlier start ignores the switch, and the frames are
+            # drawn the same either way.
+            if self.modes.alternate_buffer is not False:
+                self.write(escape.PrivateMode.ALTERNATE_SCREEN_BUFFER.enable_seq)
+            self._rows_used = None
+        else:
+            self._rows_used = 0
+        # Set as soon as the buffer is actually switched, not after: _stop() (e.g. from cleanup
+        # after a later exception in this method) has to know to restore the normal buffer.
+        self._alternate_buffer = alternate_buffer
 
         self._start_input_thread()
         self._detect_terminal_modes()
@@ -242,25 +252,28 @@ class Screen(_raw_display_base.Screen):
         :raises OSError: writing to the output failed; the reader is stopped and the console modes are set back first.
         """
         try:
-            self.clear()
+            # a start that did not enable VT processing wrote nothing, and the console would print these as text
+            if not self._console_without_vt:
+                self.clear()
 
-            if self.modes.bracketed_paste:
-                self.write(escape.PrivateMode.BRACKETED_PASTE.disable_seq)
+                if self.modes.bracketed_paste:
+                    self.write(escape.PrivateMode.BRACKETED_PASTE.disable_seq)
 
-            if self.modes.focus_reporting:
-                self.write(escape.PrivateMode.FOCUS_REPORTING.disable_seq)
+                if self.modes.focus_reporting:
+                    self.write(escape.PrivateMode.FOCUS_REPORTING.disable_seq)
 
-            # before the alternate screen is left: the kitty keyboard flags are kept per screen
-            self._disable_keyboard_protocol()
+                # before the alternate screen is left: the kitty keyboard flags are kept per screen
+                self._disable_keyboard_protocol()
 
-            # before the last writes, so keys typed meanwhile stay in the console for whatever reads it next
-            self._stop_input_thread()
+                # before the last writes, so keys typed meanwhile stay in the console for whatever reads it next
+                self._stop_input_thread()
 
-            self._stop_restore_palette()
-            # before the console mode is restored: the title is saved through the console API while it is active
-            self._restore_title()
-            self._stop_mouse_restore_buffer()
+                self._stop_restore_palette()
+                # before the console mode is restored: the title is saved through the console API while it is active
+                self._restore_title()
+                self._stop_mouse_restore_buffer()
         finally:
+            self._console_without_vt = False
             # the reader is stopped and the console modes are set back also when a step above failed
             self._stop_input_thread()
             self._restore_console_modes()

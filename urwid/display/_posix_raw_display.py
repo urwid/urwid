@@ -173,6 +173,8 @@ class Screen(_raw_display_base.Screen):
         # These store the previous signal handlers after setting ours
         self._prev_sigtstp_handler: SignalHandler = None
         self._prev_sigwinch_handler: SignalHandler = None
+        # signal_init() completed in the current start, so _stop() has handlers to restore
+        self._signal_handlers_set = False
         # Set by the SIGTSTP handler, carried out by get_available_raw_input().
         self._suspend_requested = False
 
@@ -356,6 +358,7 @@ class Screen(_raw_display_base.Screen):
         self._show_title()
 
         self.signal_init()
+        self._signal_handlers_set = True
 
         if not self._signal_keys_set:
             self._old_signal_keys = self.tty_signal_keys(fileno=fd)
@@ -369,7 +372,9 @@ class Screen(_raw_display_base.Screen):
     def _stop(self) -> None:
         """Restore the screen."""
         self.clear()
-        self.signal_restore()
+        if self._signal_handlers_set:
+            self._signal_handlers_set = False
+            self.signal_restore()
         # the terminal may be resized while stopped, and SIGWINCH is what reports that then
         self._reported_cols_rows = None
 
@@ -404,6 +409,8 @@ class Screen(_raw_display_base.Screen):
             try:
                 if fd is not None and os.isatty(fd) and self._old_termios_settings is not None:
                     termios.tcsetattr(fd, termios.TCSAFLUSH, self._old_termios_settings)
+                    # a later start that fails before saving the settings has none of its own to restore
+                    self._old_termios_settings = None
 
                 if self._old_signal_keys:
                     self.tty_signal_keys(*self._old_signal_keys, fd)
@@ -636,7 +643,7 @@ class Screen(_raw_display_base.Screen):
 
         # Provide some lightweight fallbacks in case the TIOCWINSZ doesn't
         # give sane answers
-        if (x <= 0 or y <= 0) and self.term in {"ansi", "vt100"}:
+        if (x <= 0 or y <= 0) and self.term.lower() in {"ansi", "vt100"}:
             y, x = 24, 80
         self.maxrow = y
         self._last_cols_rows = x, y

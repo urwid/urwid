@@ -1027,6 +1027,8 @@ class Screen(BaseScreen, RealTerminal):
         close = escape.HYPERLINK_CLOSE if self.hyperlinks else ""
         self.write(close + self._attrspec_to_escape(AttrSpec("", "")) + escape.SI + move_cursor + escape.SHOW_CURSOR)
         self.flush()
+        # a later start that fails before switching screens has no alternate screen to leave
+        self._alternate_buffer = False
         # leaving the alternate screen restores the G1 the terminal had before, and whatever runs before the next
         # start can reset the character sets, so G1 is designated again then
         self._setup_G1_done = False
@@ -1047,7 +1049,7 @@ class Screen(BaseScreen, RealTerminal):
             self.flush()
             self._modified_palette_entries.clear()
             return
-        if self.term == "fbterm":
+        if self.term.lower() == "fbterm":
             # fbterm's palette-modification escape (used in modify_terminal_palette) has no
             # known reset counterpart, so there is nothing safe to send here.
             self._modified_palette_entries.clear()
@@ -1866,7 +1868,7 @@ class Screen(BaseScreen, RealTerminal):
             + "7;" * a.standout
             + "9;" * a.strikethrough
         )
-        if self.term == "fbterm":
+        if self.term.lower() == "fbterm":
             # fbterm takes a palette color from its own sequences, after SGR for the default colors and the settings;
             # an unset color has no palette entry, as entry 0 is black. Its 39 also ends underline, so it comes first.
             escapes = f"{escape.CSI}0;39;49;{st}".removesuffix(";") + "m"
@@ -2004,7 +2006,7 @@ class Screen(BaseScreen, RealTerminal):
                     applied.append((index, red, green, blue))
             entries = applied
             self.write("".join(sequences))
-        elif self.term == "fbterm":
+        elif self.term.lower() == "fbterm":
             modify = [f"{index:d};{red:d};{green:d};{blue:d}" for index, red, green, blue in entries]
             self.write(f"{escape.CSI}3;{';'.join(modify)}}}")
         else:

@@ -1430,10 +1430,24 @@ class BaseScreen(abc.ABC, metaclass=signals.MetaSignals):
 
         You shouldn't override this method in a subclass; instead, override
         :meth:`_start`.
+
+        When :meth:`_start` raises, :meth:`_stop` undoes what it set up and the screen is left stopped,
+        so nothing that only a started screen sends, such as a window title, reaches a terminal left unprepared.
+
+        :raises BaseException: whatever :meth:`_start` raises,
+            or whatever :meth:`_stop` raises while undoing it, with the error of :meth:`_start` as its context.
         """
         if not self._started:
             self._started = True
-            self._start(*args, **kwargs)
+            try:
+                self._start(*args, **kwargs)
+            except BaseException:
+                try:
+                    self._stop()
+                finally:
+                    self._started = False
+                    signals.emit_signal(self, INPUT_DESCRIPTORS_CHANGED)
+                raise
         return StoppingContext(self)
 
     def _start(self, *args: typing.Any, **kwargs: typing.Any) -> None:
@@ -1454,7 +1468,10 @@ class BaseScreen(abc.ABC, metaclass=signals.MetaSignals):
         signals.emit_signal(self, INPUT_DESCRIPTORS_CHANGED)
 
     def _stop(self) -> None:
-        """Perform actual teardown of the screen. Subclasses should override this method."""
+        """Perform actual teardown of the screen. Subclasses should override this method.
+
+        It also runs after a :meth:`_start` that raised, so it undoes only the setup that was done.
+        """
 
     def set_mouse_tracking(self, enable: bool = True) -> None:
         """Enable or disable tracking of mouse movement events. A no-op here; subclasses override it."""

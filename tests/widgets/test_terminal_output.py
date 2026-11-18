@@ -106,14 +106,33 @@ class TerminalOutputTest(unittest.TestCase):
                 self.assertEqual(_state(from_bytes, bytes_events), _state(from_text, text_events))
 
     def test_bytes_in_another_encoding_are_decoded_by_the_caller(self) -> None:
-        """Show Latin-1 bytes under UTF-8 only once the caller decodes them."""
-        as_bytes, _events = _recording()
-        as_bytes.write(b"caf\xe9")
-        decoded, _events = _recording()
-        decoded.write(b"caf\xe9".decode("latin-1"))
+        """Show Latin-1 bytes under UTF-8 only once the caller decodes them.
 
-        self.assertEqual([b"caf", b"", b"", b""], _text(as_bytes, (20, 4)))
-        self.assertEqual([b"caf\xc3\xa9", b"", b"", b""], _text(decoded, (20, 4)))
+        Under UTF-8 a byte that cannot start a character, such as a lone continuation byte, shows nothing,
+        also one in the C1 control range that is no control the terminal acts on.
+        """
+        for data in (b"caf\xe9", b"caf\xa9", b"caf\x81"):
+            with self.subTest(data=data):
+                as_bytes, _events = _recording()
+                as_bytes.write(data)
+                decoded, _events = _recording()
+                decoded.write(data.decode("latin-1"))
+
+                self.assertEqual([b"caf", b"", b"", b""], _text(as_bytes, (20, 4)))
+                self.assertEqual(
+                    [data.decode("latin-1").encode(), b"", b"", b""],
+                    _text(decoded, (20, 4)),
+                )
+
+    def test_character_pending_when_the_encoding_changes_is_dropped(self) -> None:
+        """Do not complete a UTF-8 character with bytes written after the encoding stopped being UTF-8 and came back."""
+        output, _events = _recording()
+        output.write(b"\xc3")
+        with set_temporary_encoding("iso8859-1"):
+            output.write(b"x")
+        output.write(b"\xa9")
+
+        self.assertEqual([b"x", b"", b"", b""], _text(output, (20, 4)))
 
     def test_single_byte_encoding(self) -> None:
         """Under ISO 8859-1, show text and the encoding's bytes, and fall back for a character it lacks."""
@@ -319,6 +338,30 @@ class TerminalOutputTest(unittest.TestCase):
         )
 
         self.assertEqual([b"8x1"], _text(output, (8, 1)))
+
+    def test_resize_handler_renders_the_widget_again(self) -> None:
+        """A "resize" handler that renders the widget at another size gets the terminal cut or padded to it.
+
+        The terminal keeps the size being reported, and the render that resized it returns that size.
+        A later render at the handler's size still resizes the terminal, also while the handler's canvas is alive.
+        """
+        output, events = _recording(size=(10, 2))
+        nested: list[urwid.Canvas] = []
+
+        def render_again(widget: urwid.TerminalOutput, size: tuple[int, int]) -> None:
+            widget.write(f"\x1b[2J\x1b[H{size[0]}x{size[1]}")
+            if not nested:
+                nested.append(widget.render((3, 3)))
+
+        urwid.connect_signal(output, "resize", render_again)
+
+        self.assertEqual([b"6x2", b""], _text(output, (6, 2)))
+        self.assertEqual([b"6x2", b"", b""], [line.rstrip() for line in nested[0].text])
+        self.assertEqual([("resize", (6, 2))], events)
+
+        output.render((3, 3))
+        self.assertEqual((3, 3), (output._term.width, output._term.height))
+        self.assertEqual([("resize", (6, 2)), ("resize", (3, 3))], events)
 
     def test_scrolling(self) -> None:
         """Scroll on the page keys and the mouse wheel, and leave other input to the parent."""
