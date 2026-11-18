@@ -440,7 +440,7 @@ class ActionMenu(_MenuOwner):
     """Launcher that opens a list of actions; choosing one closes the list and sends ``"action"``.
 
     The list opens below the launcher and moves above it when it does not fit there.
-    :kbd:`up` and :kbd:`down` skip separators and disabled items.
+    :kbd:`up`, :kbd:`down`, :kbd:`home` and :kbd:`end` skip separators and disabled items.
     :kbd:`enter`, :kbd:`space`, a click, or an item's own `key` chooses it.
     An item with a `submenu` opens its child menu beside the list instead: a child of the top list on the side
     `align` prefers, a deeper one in the direction its parent list went, and either on the other side near a

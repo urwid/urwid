@@ -113,9 +113,46 @@ class _PopUpListItem(SelectableIcon, typing.Generic[_Choice]):
         return True
 
 
+class _PopUpListBox(ListBox[int]):
+    """List box of a pop-up list.
+
+    :kbd:`home` and :kbd:`end` move to the first or last row that can be chosen.
+    Separators and disabled rows are not selectable, so they never take the focus.
+    The rows before the first such row, or after the last one, stay in view.
+    """
+
+    def __init__(self, rows: Iterable[AbstractFlowWidget]) -> None:
+        self._rows = tuple(rows)
+        super().__init__(SimpleFocusListWalker(self._rows))
+
+    def _focus_end(self, size: tuple[int, int], *, last: bool) -> None:
+        """Focus the first selectable row, or the last one, with the rows beyond it in view."""
+        maxcol, maxrow = size
+        # The rows of a pop-up list never change.
+        # The tuple is read because `body` is typed as a walker, which has no indexing.
+        heights = [row.rows((maxcol,)) for row in self._rows]
+        positions = range(len(heights) - 1, -1, -1) if last else range(len(heights))
+        position = next((index for index in positions if self._rows[index].selectable()), None)
+        if position is None:
+            return
+        # Rows from the top of the list to the focused row, or from the bottom of the list after it.
+        offset = maxrow - sum(heights[position:]) if last else sum(heights[:position])
+        # change_focus() rather than the focus_position setter: the setter leaves a pending focus that the next
+        # render resolves, which would replace this offset.
+        self.change_focus(size, position, offset_inset=max(0, min(offset, maxrow - heights[position])))
+
+    def _keypress_max_left(self, size: tuple[int, int]) -> None:
+        """Focus the first selectable row, with the rows above it shown at the top."""
+        self._focus_end(size, last=False)
+
+    def _keypress_max_right(self, size: tuple[int, int]) -> None:
+        """Focus the last selectable row, with the rows below it shown at the bottom."""
+        self._focus_end(size, last=True)
+
+
 def _focused_list(rows: Iterable[AbstractFlowWidget], focus: int) -> ListBox[int]:
     """Return a list box of `rows` with the row at index `focus` focused."""
-    list_box: ListBox[int] = ListBox(SimpleFocusListWalker(rows))
+    list_box: ListBox[int] = _PopUpListBox(rows)
     list_box.focus_position = focus
     return list_box
 

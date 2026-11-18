@@ -331,6 +331,31 @@ class ChoosingTest(unittest.TestCase):
         self.assertEqual([("open", None), ("close", None), ("action", "delete")], sent)
         self.assertIsNone(menu.pop_up_widget)
 
+    def test_home_and_end_skip_disabled_and_separators(self) -> None:
+        """Home and End focus the first or last enabled item, with the rows beyond it in the scrolled view."""
+        items = (MenuItem("A", "a", enabled=False), *(MenuItem(label, label.lower()) for label in "BCDEFG"), None)
+        for pressed, view, expected in (
+            (
+                ("end",),
+                [
+                    "\u2502F     \u2502 ",
+                    "\u2502G     \u2502 ",
+                    "\u251c\u2500\u2500\u2500\u2500\u2500\u2500\u2524\u2588",
+                ],
+                "g",
+            ),
+            (("end", "home"), ["\u2502A     \u2502\u2588", "\u2502B     \u2502 ", "\u2502C     \u2502 "], "b"),
+        ):
+            with self.subTest(pressed=pressed):
+                menu = urwid.ActionMenu("A", items)
+                sent = record(menu)
+                target = screen(menu, 0)
+                # Six rows leave three for the list inside its box, so it scrolls.
+                keys(target, (20, 6), "enter", *pressed)
+                self.assertEqual(view, [line[:9] for line in lines(target, (20, 6))[2:5]])
+                keys(target, (20, 6), "enter")
+                self.assertEqual([("open", None), ("close", None), ("action", expected)], sent)
+
     def test_choose_by_click(self) -> None:
         menu = urwid.ActionMenu("A", MARKED)
         sent = record(menu)
