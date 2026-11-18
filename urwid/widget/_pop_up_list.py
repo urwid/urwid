@@ -155,8 +155,8 @@ def _boxed_list(
 
     def box(body: AbstractWidget, pad_width: int) -> Frame[typing.Any, typing.Any, typing.Any]:
         # The top and bottom edges leave the scroll bar's columns blank.
-        pad = [(pad_width, Text(""))] if pad_width else []
-        before, after = (pad, []) if bar.side == SCROLLBAR_LEFT else ([], pad)
+        pad: tuple[tuple[int, Text], ...] = ((pad_width, Text("")),) if pad_width else ()
+        before, after = (pad, ()) if bar.side == SCROLLBAR_LEFT else ((), pad)
         return Frame(
             body,
             header=Columns([*before, _edge(light.TOP_LEFT, light.HORIZONTAL, light.TOP_RIGHT), *after]),
