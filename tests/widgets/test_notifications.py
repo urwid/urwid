@@ -85,6 +85,7 @@ class NotificationsConstructionTest(unittest.TestCase):
             ("negative timeout", {"timeout": -1.5}, ValueError),
             ("NaN timeout", {"timeout": math.nan}, ValueError),
             ("infinite timeout", {"timeout": math.inf}, ValueError),
+            ("int timeout too large for a float", {"timeout": 10**400}, ValueError),
             ("bool timeout", {"timeout": True}, TypeError),
             ("str timeout", {"timeout": "5"}, TypeError),
             ("zero max_count", {"max_count": 0}, ValueError),
