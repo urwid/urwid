@@ -921,7 +921,16 @@ its own focus colour.
 
 When the columns do not fit, the weighted columns are at their minimum
 first, then the ``PACK`` columns shrink towards their ``min_width``, and as the
-last resort the rightmost column is hidden.  A given width never shrinks.
+last resort a column is hidden.  A given width never shrinks.
+The column hidden first is the one with the lowest ``priority``, the rightmost
+of equal priorities first, so with every column at the default of 0 the
+rightmost one goes first.
+A negative priority hides a column of details before the others::
+
+    urwid.TableColumn("Size", align=urwid.RIGHT, priority=-1)
+
+A hidden column stays hidden at that width even when hiding another one later
+leaves room for it.
 A hidden column is skipped by the keyboard.
 
 Cells are measured once, when their row is built.  A text cell the table

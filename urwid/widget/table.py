@@ -85,6 +85,7 @@ class TableColumn(typing.NamedTuple):
 
     *align* and *wrap* apply to the cells given as text; a cell given as a widget keeps its own.
     *attr* maps every cell of the column; :class:`TableRow` gives the order in which it and the row maps apply.
+    *priority* decides which column a lack of room hides first, see :meth:`TableLayout.widths`.
     A :class:`TableLayout` validates the specification when it takes it.
     """
 
@@ -97,6 +98,8 @@ class TableColumn(typing.NamedTuple):
     wrap: Literal[WrapMode.SPACE, WrapMode.CLIP, WrapMode.ELLIPSIS] = WrapMode.CLIP
     #: Attribute map of the column's cells; the header label, a footer built from cells and a span row do not use it.
     attr: _AttrMapLike | None = None
+    #: Columns are hidden for lack of room in ascending order of this value; equal values go rightmost first.
+    priority: int = 0
 
 
 class _TableText(Text):
@@ -176,6 +179,13 @@ class TableLayout:
         self._amounts = tuple(amounts)
         self._attrs = tuple(attrs)
         self._label_widths = tuple(Text(column.label).pack(())[0] for column in self._columns)
+        # the columns in the order a lack of room hides them; a given width of 0 is never visible, so never in it
+        self._drop_sequence = tuple(
+            sorted(
+                (index for index, kind in enumerate(kinds) if kind != WHSettings.GIVEN or amounts[index]),
+                key=lambda index: (self._columns[index].priority, -index),
+            )
+        )
         # the widest measured cell of each PACK column (0 for the other columns) over the registered rows
         self._pack_max = [0] * len(self._columns)
         self._natural = self._natural_from_maxima()
@@ -225,6 +235,8 @@ class TableLayout:
             not isinstance(column.min_width, int) or isinstance(column.min_width, bool) or column.min_width < 1
         ):
             raise TableError(f"column {index}: min_width must be an int >= 1, not {column.min_width!r}")
+        if not isinstance(column.priority, int) or isinstance(column.priority, bool):
+            raise TableError(f"column {index}: priority must be an int, not {column.priority!r}")
         if column.align not in _TEXT_ALIGNS:
             raise TableError(f"column {index}: invalid align {column.align!r}")
         if column.wrap not in _TEXT_WRAPS:
@@ -276,7 +288,11 @@ class TableLayout:
         A width of 0 hides the column.
         When the natural widths do not fit, the weighted columns are at their minimum first,
         then the PACK columns shrink in proportion to how far they are above their minimum,
-        and as the last resort the rightmost visible column is hidden. A given width never shrinks.
+        and as the last resort a visible column is hidden: the lowest :attr:`TableColumn.priority` first,
+        the rightmost of equal priorities first.
+        The remaining columns are then laid out again from their natural widths.
+        A hidden column stays hidden at that width even when hiding a later one leaves room for it.
+        A given width never shrinks.
 
         :raises TableError: *maxcol* is negative.
         """
@@ -348,6 +364,7 @@ class TableLayout:
         kinds = self._kinds
         minimums = [column.min_width for column in self._columns]
         visible = [index for index, kind in enumerate(kinds) if kind != WHSettings.GIVEN or natural[index]]
+        drops = iter(self._drop_sequence)
         while visible:
             widths = [0] * len(natural)
             for index in visible:
@@ -364,7 +381,7 @@ class TableLayout:
                 return tuple(widths)
 
             # the last resort: a row wider than maxcol is the only alternative
-            visible.pop()
+            visible.remove(next(drops))
         return (0,) * len(natural)
 
     def _grow(self, weighted: list[int], widths: list[int], extra: int) -> None:
@@ -1109,7 +1126,8 @@ class Table(Widget, WidgetContainerMixin[int]):
         """The header column that has the focus, or ``None`` while the rows have it.
 
         Set a column index to focus the header there, or ``None`` to give the focus back to the rows.
-        A size that hides the column shows the focus on the nearest visible column on its left.
+        A size that hides the column shows the focus on the nearest visible column on its left,
+        or on its right when none is on the left.
         A size that drops the header, or hides every column, leaves the focus with the rows while it lasts.
 
         :raises TableError: the table is not sortable, or it has no rows.
@@ -1142,8 +1160,8 @@ class Table(Widget, WidgetContainerMixin[int]):
     def _header_target(self, arrangement: _Arrangement) -> int | None:
         """Return the header column the focus is shown on at *arrangement*, or ``None`` when it cannot be shown.
 
-        It is the stored column when it is visible, otherwise the nearest visible column on its left;
-        the first visible column when none is stored.
+        It is the stored column when it is visible, otherwise the nearest visible column on its left,
+        or on its right when none is on the left; the first visible column when none is stored.
         """
         if not self._rows or not arrangement.header_rows:
             return None
@@ -1155,9 +1173,8 @@ class Table(Widget, WidgetContainerMixin[int]):
             return visible[0]
         if stored in visible:
             return stored
-        # the stored column never has a given width of 0, and a size hides the rightmost columns first,
-        # so a visible column is on the left of a hidden stored one
-        return max(index for index in visible if index < stored)
+        left = [index for index in visible if index < stored]
+        return left[-1] if left else min(index for index in visible if index > stored)
 
     @property
     def body(self) -> _TableRows:

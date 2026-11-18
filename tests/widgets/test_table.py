@@ -64,7 +64,14 @@ class TableLayoutTest(unittest.TestCase):
             with self.subTest(columns=columns, kwargs=kwargs), self.assertRaises(urwid.TableError):
                 TableLayout(columns, **kwargs)
 
-        for invalid in (Column(width=-1), Column(attr={"a": []})):
+        for invalid in (
+            Column(width=-1),
+            Column(attr={"a": []}),
+            Column(priority=True),
+            Column(priority=1.0),
+            Column(priority="1"),
+            Column(priority=None),
+        ):
             with (
                 self.subTest("the index is named", column=invalid),
                 self.assertRaisesRegex(urwid.TableError, "column 1"),
@@ -214,6 +221,72 @@ class TableLayoutTest(unittest.TestCase):
         layout = TableLayout([Column(width=9), Column(width=(WEIGHT, 1), min_width=4)], dividechars=0)
         self.assertEqual((9, 0), layout.widths(10))
 
+    def test_priority(self) -> None:
+        """A lack of room hides the lowest priority first, the rightmost of equal ones first."""
+        packed = ["aaaa", "bbbb", "cccc"]
+        cases: tuple[tuple[str, list[urwid.TableColumn], list[str], dict[int, tuple[int, ...]]], ...] = (
+            # (label, columns, cells, {maxcol: widths})
+            (
+                "a lower priority in the middle goes first",
+                [Column(min_width=4), Column(min_width=4, priority=-1), Column(min_width=4)],
+                packed,
+                {14: (4, 4, 4), 13: (4, 0, 4), 9: (4, 0, 4), 8: (4, 0, 0), 4: (4, 0, 0), 3: (0, 0, 0), 0: (0, 0, 0)},
+            ),
+            (
+                "equal priorities go rightmost first",
+                [Column(min_width=4, priority=2), Column(min_width=4, priority=2), Column(min_width=4, priority=2)],
+                packed,
+                {13: (4, 4, 0), 8: (4, 0, 0), 3: (0, 0, 0)},
+            ),
+            (
+                "a higher priority outlives the defaults",
+                [Column(min_width=4), Column(min_width=4), Column(min_width=4, priority=1)],
+                packed,
+                {13: (4, 0, 4), 8: (0, 0, 4), 3: (0, 0, 0)},
+            ),
+            (
+                "a given width of the lowest priority goes before PACK and weighted columns",
+                [Column(width=3, priority=-1), Column(width=(WEIGHT, 1), min_width=3), Column(min_width=4)],
+                ["a", "b", "bbbb"],
+                {12: (3, 3, 4), 11: (0, 6, 4), 8: (0, 3, 4), 7: (0, 7, 0), 2: (0, 0, 0)},
+            ),
+            (
+                "the remaining columns are laid out again from their natural widths",
+                [Column(min_width=2), Column(width=4, priority=-1), Column(min_width=4)],
+                ["x" * 8, "y", "zzzz"],
+                {18: (8, 4, 4), 12: (2, 4, 4), 11: (6, 0, 4), 7: (2, 0, 4), 6: (6, 0, 0)},
+            ),
+        )
+        for label, columns, cells, expected in cases:
+            layout = TableLayout(columns, dividechars=1)
+            row = layout.row(cells)
+            for maxcol, widths in expected.items():
+                with self.subTest(label, maxcol=maxcol):
+                    self.assertEqual(widths, layout.widths(maxcol))
+            self.assertIsNotNone(row)
+
+    def test_priority_strict_order(self) -> None:
+        """A hidden column stays hidden when hiding a later one leaves room for it."""
+        layout = TableLayout(
+            [Column(width=2, priority=-2), Column(width=8, priority=-1), Column(width=2)],
+            dividechars=1,
+        )
+        # column 0 goes first, column 1 next; 2 + 1 + 2 would fit in 5, but column 0 is not shown again
+        self.assertEqual((0, 8, 2), layout.widths(11))
+        self.assertEqual((0, 0, 2), layout.widths(5))
+
+    def test_priority_of_zero_width_column(self) -> None:
+        """A column of given width 0 never uses up a hiding step, whatever its priority."""
+        cells = ["", "aaaa", "bbbb"]
+        lowest = TableLayout([Column(width=0, priority=-5), Column(min_width=4), Column(min_width=4)])
+        default = TableLayout([Column(width=0), Column(min_width=4), Column(min_width=4)])
+        rows = [lowest.row(cells), default.row(cells)]
+        for maxcol in range(12):
+            with self.subTest(maxcol=maxcol):
+                self.assertEqual(default.widths(maxcol), lowest.widths(maxcol))
+        self.assertEqual((0, 4, 0), lowest.widths(8))
+        self.assertEqual(2, len(rows))
+
     def test_hidden_column_removes_divider(self) -> None:
         """A column of given width 0 has no divider, and neither has a column hidden for lack of room."""
         layout = TableLayout([Column(), Column(width=0), Column()], dividechars=2)
@@ -221,6 +294,12 @@ class TableLayoutTest(unittest.TestCase):
         self.assertEqual(["a  b"], render_text(pile, (4,)))
         self.assertEqual(4, layout.natural_width())
         self.assertEqual(["a  "], render_text(pile, (3,)))
+
+        with self.subTest("a middle column hidden by priority"):
+            layout = TableLayout([Column(), Column(min_width=2, priority=-1), Column()], dividechars=2)
+            pile = urwid.Pile([layout.row(["a", "bb", "c"])])
+            self.assertEqual(["a  bb  c"], render_text(pile, (8,)))
+            self.assertEqual(["a  c   "], render_text(pile, (7,)))
 
     def test_shrunk_space_and_clip(self) -> None:
         """A shrunk SPACE column wraps its row onto more lines; a shrunk CLIP column keeps one line."""
@@ -1406,6 +1485,20 @@ class TableTest(unittest.TestCase):
             self.assertEqual(2, table.header_column)
             self.assertEqual((4, 0), table.get_cursor_coords((7, 2)))
 
+        with self.subTest("the first column hidden first"):
+            first = urwid.Table(
+                [Column("A", width=3, priority=-1), Column("B", width=3), Column("C", width=3)],
+                [["a", "b", "c"]],
+                sortable=True,
+            )
+            first.header_column = 0
+            # nothing visible on the left of column 0: the focus shows on column 1, at the start of the row
+            self.assertEqual((0, 0), first.get_cursor_coords((7, 2)))
+            self.assertEqual(0, first.header_column)
+            self.assertEqual((0, 0), first.get_cursor_coords((11, 2)))
+            self.assertEqual([], press(first, (7, 2), "right"))
+            self.assertEqual(2, first.header_column)
+
         with self.subTest("header dropped"):
             dropped = self.make(sortable=True, header_drop=3)
             dropped.header_column = 0
@@ -1413,6 +1506,47 @@ class TableTest(unittest.TestCase):
             self.assertEqual([(None, "r0   0    ")], render_runs(dropped, (10, 3), focus=True)[0])
             self.assertEqual(["x"], press(dropped, (10, 3), "x"))
             self.assertIsNone(dropped.header_column)
+
+    def test_header_with_middle_column_hidden(self) -> None:
+        """Header keys, cursor and clicks skip a middle column hidden by priority."""
+        narrow, wide = (7, 2), (11, 2)
+        table = urwid.Table(
+            [Column("A", width=3), Column("B", width=3, priority=-1), Column("C", width=3)],
+            [["a", "b", "c"]],
+            sortable=True,
+        )
+        activated: list[int] = []
+        urwid.connect_signal(table, "header activated", lambda _w, column: (activated.append(column), True)[1])
+        self.assertEqual((3, 0, 3), table.layout.widths(narrow[0]))
+        table.header_column = 0
+        self.assertEqual([], press(table, narrow, "right"))
+        self.assertEqual(2, table.header_column)
+        self.assertEqual((4, 0), table.get_cursor_coords(narrow))
+        self.assertEqual(["right"], press(table, narrow, "right"))
+        self.assertEqual([], press(table, narrow, "left"))
+        self.assertEqual(0, table.header_column)
+        self.assertEqual(["left"], press(table, narrow, "left"))
+        self.assertEqual(0, table.header_column)
+
+        with self.subTest("click and activate"):
+            self.assertFalse(click(table, narrow, 3, 0))
+            self.assertEqual([], activated)
+            self.assertTrue(click(table, narrow, 4, 0))
+            self.assertEqual([2], activated)
+            self.assertEqual(2, table.header_column)
+            self.assertEqual([], press(table, narrow, "enter"))
+            self.assertEqual([2, 2], activated)
+
+        with self.subTest("the stored column hidden"):
+            table.header_column = 1
+            self.assertEqual((0, 0), table.get_cursor_coords(narrow))
+            self.assertEqual([], press(table, narrow, "right"))
+            self.assertEqual(2, table.header_column)
+
+        with self.subTest("every column visible"):
+            table.header_column = 0
+            self.assertEqual([], press(table, wide, "right"))
+            self.assertEqual(1, table.header_column)
 
     def test_header_round_trip_in_pile(self) -> None:
         """Leaving the header by shift tab and coming back by tab lands in the rows; a plain focus move does not."""
@@ -1583,15 +1717,20 @@ class TableSelectNavigationTest(unittest.TestCase):
         self.assertEqual([[(c, "x"), (None, " "), (cf, "y")]], render_runs(table, (3, 1), focus=True))
 
     def test_hidden_cells_skipped(self) -> None:
-        """Tab skips a cell of a hidden column."""
-        table = urwid.Table(
-            [Column("A"), Column("B", width=0), Column("C")],
-            [[urwid.Edit("", "a"), urwid.Edit("", "b"), urwid.Edit("", "c")]],
-            select_navigation=True,
-        )
-        table.render((10, 3), focus=True)
-        self.assertEqual([], press(table, (10, 3), "tab"))
-        self.assertEqual(2, table.focus._w.focus_position)
+        """Tab skips a cell of a column hidden by a given width of 0, or by priority for lack of room."""
+        for label, middle, size in (
+            ("width 0", Column("B", width=0), (10, 3)),
+            ("priority", Column("B", min_width=3, priority=-1), (5, 3)),
+        ):
+            with self.subTest(label):
+                table = urwid.Table(
+                    [Column("A"), middle, Column("C")],
+                    [[urwid.Edit("", "a"), urwid.Edit("", "b"), urwid.Edit("", "c")]],
+                    select_navigation=True,
+                )
+                table.render(size, focus=True)
+                self.assertEqual([], press(table, size, "tab"))
+                self.assertEqual(2, table.focus._w.focus_position)
 
     def test_entered_from_parent(self) -> None:
         """A parent with select navigation enters the table at its first or last selectable cell."""

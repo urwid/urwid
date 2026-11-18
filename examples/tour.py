@@ -220,8 +220,9 @@ def main() -> None:
             " widget lines up rows of cells between a fixed header and footer: every column is as wide as its "
             "widest cell, a number, or a share of the rest.  This one shows at most four rows at a time, with a "
             "scrollbar while they do not all fit, a footer row of totals, and keeps the focused row marked while the "
-            "focus is elsewhere.  Click a column label, or press UP at the first row and ENTER on a label, to sort by "
-            "that column; again to reverse the order."
+            "focus is elsewhere.  A narrow window hides the Size column first, since its priority is the lowest.  "
+            "Click a column label, or press UP at the first row and ENTER on a label, to sort by that column; again "
+            "to reverse the order."
         ),
     ]
     # (name, size, size in bytes for sorting, note)
@@ -326,7 +327,7 @@ def main() -> None:
     table = urwid.Table(
         [
             urwid.TableColumn("Name"),
-            urwid.TableColumn("Size", align=urwid.RIGHT, attr="bright"),
+            urwid.TableColumn("Size", align=urwid.RIGHT, attr="bright", priority=-1),
             urwid.TableColumn("Note", width=(urwid.WEIGHT, 1), wrap=urwid.ELLIPSIS),
         ],
         header_attr="important",
