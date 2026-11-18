@@ -28,11 +28,12 @@ from urwid.command_map import Command
 from urwid.signals import connect_signal
 from urwid.util import is_mouse_press
 
-from ._pop_up_list import _boxed_list, _PopUpListItem
+from ._pop_up_list import _bar_settings, _BarSettings, _boxed_list, _PopUpListItem
 from .attr_map import AttrMap
 from .columns import Columns
 from .constants import BOX_SYMBOLS, MouseButton, WrapMode
 from .popup import PopUpLauncher
+from .scrollable import SCROLLBAR_LEFT
 from .text import Text
 from .widget import WidgetWrap
 from .wimp import SelectableIcon
@@ -46,6 +47,7 @@ if typing.TYPE_CHECKING:
 
     from .attr_map import _AttrMapLike
     from .popup import PopUpParametersModel
+    from .scrollable import _ScrollBarOptions
     from .widget import AbstractFlowWidget, AbstractWidget
 
     # One entry of an item list: an item, markup for an item with that label, or None for a separator.
@@ -126,13 +128,14 @@ class _MenuStyle:
     disabled_map: _AttrMapLike
     separator: str
     menu_indicator: Text
+    bar: _BarSettings
 
 
 @dataclasses.dataclass(frozen=True, slots=True)
 class _ListLayout:
     """Size of one open list of a menu."""
 
-    #: Columns of the pop-up: the rows, the border, and the scroll bar column when the list scrolls.
+    #: Columns of the pop-up: the rows, the border, and the scroll bar columns when the list scrolls.
     width: int
     #: Rows of the pop-up, the border included.
     height: int
@@ -155,7 +158,7 @@ def _list_layout(items: tuple[MenuItem | None, ...], style: _MenuStyle) -> _List
     scrolls = len(items) > style.max_visible_items
     # One blank column after the widest row keeps the text off the right border.
     return _ListLayout(
-        width=content + 1 + border + int(scrolls),
+        width=content + 1 + border + (style.bar.width if scrolls else 0),
         height=min(len(items), style.max_visible_items) + border,
         scrolls=scrolls,
         key_width=key_width,
@@ -214,6 +217,7 @@ class _MenuList(WidgetWrap[typing.Any]):
         self._on_close = None if on_close is None else weakref.WeakMethod(on_close)
         self._back_command = weakref.WeakMethod(back_command)
         self._items = items
+        self._style = style
         layout = _list_layout(items, style)
         rows: list[AbstractFlowWidget | None] = []
         # Submenu rows by item index, so an accelerator key can open one.
@@ -227,10 +231,11 @@ class _MenuList(WidgetWrap[typing.Any]):
                 self._submenu_rows[index] = row
             rows.append(row)
         focus = next((index for index, item in enumerate(items) if _is_usable(item)), 0)
-        self._list_box, body = _boxed_list(rows, focus, border=style.border, separator=style.separator)
+        self._list_box, body = _boxed_list(rows, focus, border=style.border, bar=style.bar, separator=style.separator)
         super().__init__(AttrMap(body, style.attr_map))
         # Columns the list was last drawn in, which its launcher can make wider than the layout.
         self._drawn_width = layout.width
+        self._rows_left = self._left_of_rows(layout.height)
 
     @property
     def back_command(self) -> Command | None:
@@ -243,9 +248,25 @@ class _MenuList(WidgetWrap[typing.Any]):
         """Columns of the list as last drawn, the border and the scroll bar included."""
         return self._drawn_width
 
+    @property
+    def rows_left(self) -> int:
+        """Columns left of the rows of the list as last drawn.
+
+        They are the border, and the scroll bar when it is on the left.
+        """
+        return self._rows_left
+
+    def _left_of_rows(self, height: int) -> int:
+        """Return the columns left of the rows when the list is drawn `height` rows high."""
+        border = 1 if self._style.border else 0
+        # Every entry is one row, so the bar is drawn when the entries and the border edges do not fit.
+        bar_drawn = len(self._items) + 2 * border > height
+        return border + (self._style.bar.width if bar_drawn and self._style.bar.side == SCROLLBAR_LEFT else 0)
+
     def render(self, size: tuple[int, int], focus: bool = False) -> Canvas:  # type: ignore[override]
-        """Render the list, and remember its width for the submenus opened from its rows."""
+        """Render the list, and remember where its rows are for the submenus opened from them."""
         self._drawn_width = size[0]
+        self._rows_left = self._left_of_rows(size[1])
         return super().render(size, focus)
 
     @staticmethod
@@ -395,13 +416,14 @@ class _SubmenuRow(_MenuOwner):
         inset = 1 if self._style.border else 0
         parent_list = self._parent_list()
         parent_width = parent_list.drawn_width if parent_list is not None else 0
+        rows_left = parent_list.rows_left if parent_list is not None else inset
         back = None if parent_list is None else parent_list.back_command
         prefer_left = self._style.align == "right" if back is None else back == Command.RIGHT
-        # The parent list starts `inset` columns left of this row, and is `parent_width` columns wide.
+        # The parent list starts `rows_left` columns left of this row, and is `parent_width` columns wide.
         if prefer_left:
-            left, side = -inset, "right"
+            left, side = -rows_left, "right"
         else:
-            left, side = parent_width - inset, "left"
+            left, side = parent_width - rows_left, "left"
         return {
             "left": left,
             # The first item of the child is level with this row.
@@ -475,6 +497,7 @@ class ActionMenu(_MenuOwner):
         attr_map: _AttrMapLike = ...,
         focus_map: _AttrMapLike = ...,
         disabled_map: _AttrMapLike = ...,
+        **scrollbar_options: typing.Unpack[_ScrollBarOptions],
     ) -> None: ...
 
     @typing.overload
@@ -495,6 +518,7 @@ class ActionMenu(_MenuOwner):
         attr_map: _AttrMapLike = ...,
         focus_map: _AttrMapLike = ...,
         disabled_map: _AttrMapLike = ...,
+        **scrollbar_options: typing.Unpack[_ScrollBarOptions],
     ) -> None: ...
 
     def __init__(
@@ -514,6 +538,7 @@ class ActionMenu(_MenuOwner):
         attr_map: _AttrMapLike = None,
         focus_map: _AttrMapLike = None,
         disabled_map: _AttrMapLike = None,
+        **scrollbar_options: typing.Unpack[_ScrollBarOptions],
     ) -> None:
         """Create a menu of `items`, opened from a label or from the `launcher` widget.
 
@@ -527,7 +552,8 @@ class ActionMenu(_MenuOwner):
         :param user_data: passed to `on_action`.
         :param open_keys: keys that open the list at the launcher's edge; ``None`` for the keys of the ``activate``
             command.
-        :param open_buttons: mouse buttons whose press opens the list at the pointer.
+        :param open_buttons: mouse buttons whose press on the launcher opens the list at the launcher's edge,
+            as an opening key does.
         :param align: ``"right"`` lines up the right edge of the list with the launcher's, and opens submenus to the
             left; ``"left"`` does the opposite.
         :param border: draw a box around each list, with separators joined to it.
@@ -537,10 +563,15 @@ class ActionMenu(_MenuOwner):
         :param focus_map: display attribute of the focused item, and of a submenu row while its child is open.
         :param disabled_map: display attribute of a disabled item, and of the default launcher with no item that
             can be chosen.
+        :param scrollbar_options: the :class:`ScrollBar <urwid.ScrollBar>` parameters of the scroll bar of each list,
+            with a ``scrollbar_`` prefix, such as ``scrollbar_thumb_char``, ``scrollbar_end_markers``,
+            ``scrollbar_side`` and ``scrollbar_attr``; ``visible`` and ``delegate_selectable`` are left out.
         :raises ValueError: there is no item, `max_visible_items` is less than 1, two items of one list have the
             same key, an item label given as markup holds a line break, `align` is neither ``"left"`` nor
-            ``"right"``, or `label` and `launcher` are both given or both ``None``.
-        :raises TypeError: `open_keys` is a single string rather than a collection of keys.
+            ``"right"``, `label` and `launcher` are both given or both ``None``,
+            or :class:`ScrollBar <urwid.ScrollBar>` rejects the value of a ``scrollbar_`` parameter.
+        :raises TypeError: `open_keys` is a single string rather than a collection of keys,
+            or a keyword argument is neither a parameter of the menu nor one of `scrollbar_options`.
         """
         if max_visible_items < 1:
             raise ValueError(f"max_visible_items must be at least 1, got {max_visible_items!r}")
@@ -557,6 +588,7 @@ class ActionMenu(_MenuOwner):
             disabled_map=disabled_map,
             separator=self.separator,
             menu_indicator=self.menu_indicator,
+            bar=_bar_settings(type(self).__name__, scrollbar_options),
         )
         if isinstance(open_keys, str):
             raise TypeError(f"open_keys must be a collection of keys, not one string, got {open_keys!r}")
@@ -599,9 +631,10 @@ class ActionMenu(_MenuOwner):
             super().open_pop_up()
 
     def open_at(self, col: int, row: int) -> None:
-        """Open the list at column `col` of row `row` of the launcher, as a mouse opening does.
+        """Open the list below column `col` of row `row` of the launcher.
 
-        An application that opens the menu from its own key or mouse handler uses it.
+        An application that opens the menu from its own key or mouse handler uses it,
+        for example to open a context menu at the pointer.
         With no item that can be chosen, it does nothing.
         """
         if self._usable:
@@ -614,7 +647,7 @@ class ActionMenu(_MenuOwner):
         self._emit("action", item)
 
     def get_pop_up_parameters(self) -> PopUpParametersModel:
-        """Return the list below the launcher's edge, or below the pointer for a mouse opening or :meth:`open_at`.
+        """Return the list below the launcher's edge, or below the cell given to :meth:`open_at`.
 
         The launcher rows above it are the vertical anchor, so it moves above them when it does not fit below.
         """
@@ -683,13 +716,14 @@ class ActionMenu(_MenuOwner):
         row: int,
         focus: bool,
     ) -> bool | None:
-        """Open the list at the pointer on a press of an opening button; pass every other event to the launcher.
+        """Open the list on a press of an opening button; pass every other event to the launcher.
 
+        The list opens at the launcher's edge, as it does for an opening key.
         The opening press also asks the containers around the menu for the focus, see :meth:`Widget.request_focus`.
         With no item that can be chosen, every event goes to the launcher.
         """
         if self._usable and button in self._open_buttons and is_mouse_press(event):
             self.request_focus()
-            self.open_at(col, row)
+            self.open_pop_up()
             return True
         return super().mouse_event(size, event, button, col, row, focus)

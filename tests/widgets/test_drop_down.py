@@ -29,6 +29,9 @@ class DropDownConstructionTest(unittest.TestCase):
             ("selected past the end", (COLOURS,), {"selected": 3}, IndexError),
             ("negative selected", (COLOURS,), {"selected": -1}, IndexError),
             ("multi-line option with a border", (["a\nb", "c"],), {"border": True}, ValueError),
+            ("unknown scroll bar side", (COLOURS,), {"scrollbar_side": "top"}, ValueError),
+            ("end markers not a pair", (COLOURS,), {"scrollbar_end_markers": ("^",)}, ValueError),
+            ("unknown scroll bar option", (COLOURS,), {"scrollbar_visible": True}, TypeError),
         ):
             with self.subTest(description), self.assertRaises(error):
                 urwid.DropDown(*args, **kwargs)
@@ -123,6 +126,59 @@ class DropDownListTest(unittest.TestCase):
                 target.keypress((9, 7), "down")
                 target.keypress((9, 7), "enter")
                 self.assertEqual(1, drop_down.selected)
+
+    def test_scroll_bar_options(self) -> None:
+        """A wide bar on the left, outside the box when there is one."""
+        for border, expected in (
+            (True, ["n00      v", "  ┌──────┐", "##│n00   │", "##│n01   │", "..│n02   │", "  └──────┘"]),
+            (False, ["n00      v", "##n00     ", "##n01     ", "..n02     ", "          ", "          "]),
+        ):
+            with self.subTest(border=border):
+                drop_down = urwid.DropDown(
+                    numbers(4),
+                    border=border,
+                    max_visible_items=3,
+                    scrollbar_side="left",
+                    scrollbar_width=2,
+                    scrollbar_thumb_char="#",
+                    scrollbar_trough_char=".",
+                )
+                target = drop_down_at_row(drop_down, 0)
+                target.keypress((10, 7), "enter")
+                self.assertEqual(expected, urwid.testing.render_text(target, (10, 7), focus=True)[:6])
+
+    def test_scroll_bar_end_markers(self) -> None:
+        """End markers take the first and last bar rows; the one whose end is visible is drawn dim."""
+        drop_down = urwid.DropDown(
+            numbers(6),
+            border=True,
+            max_visible_items=4,
+            scrollbar_end_markers=("^", "v"),
+            scrollbar_marker_dim_attr="dim",
+        )
+        target = drop_down_at_row(drop_down, 0)
+        target.keypress((10, 8), "enter")
+        self.assertEqual(
+            ["┌───────┐ ", "│n00    │^", "│n01    │█", "│n02    │ ", "│n03    │v", "└───────┘ "],
+            urwid.testing.render_text(target, (10, 8), focus=True)[1:7],
+        )
+        rows = list(target.render((10, 8), focus=True).content())
+        self.assertEqual("dim", rows[2][-1][0])
+        self.assertIsNone(rows[5][-1][0])
+
+    def test_scroll_bar_click_scrolls_by_focus(self) -> None:
+        """With scrollbar_scroll_by_focus, a click low on the bar scrolls the list; without it, it does nothing."""
+        for scroll_by_focus, expected, handled in (
+            (False, ["n00    █", "n01    █", "n02     ", "n03     ", "n04     "], False),
+            (True, ["n05     ", "n06     ", "n07     ", "n08    █", "n09    █"], True),
+        ):
+            with self.subTest(scroll_by_focus=scroll_by_focus):
+                drop_down = urwid.DropDown(numbers(10), max_visible_items=5, scrollbar_scroll_by_focus=scroll_by_focus)
+                target = drop_down_at_row(drop_down, 0)
+                target.keypress((8, 8), "enter")
+                target.render((8, 8), focus=True)
+                self.assertEqual(handled, target.mouse_event((8, 8), "mouse press", 1, 7, 5, True))
+                self.assertEqual(expected, urwid.testing.render_text(target, (8, 8), focus=True)[1:6])
 
     def test_border_cursor_reaches_the_target(self) -> None:
         drop_down = urwid.DropDown(COLOURS, border=True, selected=1)

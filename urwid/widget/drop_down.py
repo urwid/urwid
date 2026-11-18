@@ -25,12 +25,11 @@ import typing
 from urwid.command_map import Command
 from urwid.util import is_mouse_press
 
-from ._pop_up_list import _boxed_list, _focused_list, _PopUpListItem
+from ._pop_up_list import _bar_settings, _boxed_list, _PopUpListItem
 from .attr_map import AttrMap
 from .columns import Columns
 from .constants import MouseButton, WrapMode
 from .popup import PopUpLauncher
-from .scrollable import ScrollBar
 from .text import Text
 from .wimp import SelectableIcon
 
@@ -42,6 +41,7 @@ if typing.TYPE_CHECKING:
 
     from .attr_map import _AttrMapLike
     from .popup import PopUpParametersModel
+    from .scrollable import _ScrollBarOptions
     from .widget import AbstractWidget
 
 
@@ -89,6 +89,7 @@ class DropDown(PopUpLauncher[Columns]):
         attr_map: _AttrMapLike = None,
         focus_map: _AttrMapLike = None,
         border: bool = False,
+        **scrollbar_options: typing.Unpack[_ScrollBarOptions],
     ) -> None:
         """Create a drop-down over `options`, with the option at index `selected` shown.
 
@@ -99,10 +100,16 @@ class DropDown(PopUpLauncher[Columns]):
         :param focus_map: display attribute of the focused option in the open list.
         :param border: draw a box around the open list, with its scroll bar outside the box,
             in the display attribute of `attr_map`; every option must then be one line.
-        :raises ValueError: `options` is empty, `max_visible_items` is less than 1, or `border` is set and an
-            option takes more than one line.
+        :param scrollbar_options: the :class:`ScrollBar <urwid.ScrollBar>` parameters of the open list's scroll bar,
+            with a ``scrollbar_`` prefix, such as ``scrollbar_thumb_char``, ``scrollbar_end_markers``,
+            ``scrollbar_side`` and ``scrollbar_attr``; ``visible`` and ``delegate_selectable`` are left out.
+        :raises ValueError: `options` is empty, `max_visible_items` is less than 1, `border` is set and an
+            option takes more than one line, or :class:`ScrollBar <urwid.ScrollBar>` rejects the value of a
+            ``scrollbar_`` parameter.
+        :raises TypeError: a keyword argument is neither a parameter of the drop-down nor one of `scrollbar_options`.
         :raises IndexError: `selected` is not an index of `options`.
         """
+        self._bar = _bar_settings(type(self).__name__, scrollbar_options)
         self._options: tuple[_TagMarkup, ...] = tuple(options)
         if not self._options:
             raise ValueError("DropDown needs at least one option")
@@ -173,10 +180,8 @@ class DropDown(PopUpLauncher[Columns]):
             AttrMap(_PopUpListItem(option, index, self._choose), self._attr_map, self._focus_map)
             for index, option in enumerate(self._options)
         ]
-        if not self._border:
-            return ScrollBar(_focused_list(items, self._selected))
-        _list_box, body = _boxed_list(items, self._selected, border=True)
-        return AttrMap(body, self._attr_map)
+        _list_box, body = _boxed_list(items, self._selected, border=self._border, bar=self._bar)
+        return AttrMap(body, self._attr_map) if self._border else body
 
     def get_pop_up_parameters(self) -> PopUpParametersModel:
         """Return the list position directly below this widget, anchored to it so it can move above it."""
@@ -185,11 +190,11 @@ class DropDown(PopUpLauncher[Columns]):
         visible = min(len(self._options), self._max_visible_items)
         if self._border:
             # A blank column after the widest option, the box sides, and the scroll bar outside the box.
-            list_width = self._options_width + 3 + int(len(self._options) > visible)
+            list_width = self._options_width + 3 + (self._bar.width if len(self._options) > visible else 0)
             visible += 2
         else:
-            # One column more than the widest option leaves room for the scroll bar.
-            list_width = self._options_width + 1
+            # Room for the scroll bar beside the widest option.
+            list_width = self._options_width + self._bar.width
         return {
             "left": 0,
             "top": rows,
