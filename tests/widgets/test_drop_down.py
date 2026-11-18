@@ -9,6 +9,8 @@ import urwid
 import urwid.testing
 
 COLOURS = ("red", "green", "blue")
+# A separator after "any", and "large" disabled.
+SIZES = ("any", None, "small", "large")
 
 
 def numbers(count: int) -> list[str]:
@@ -32,6 +34,12 @@ class DropDownConstructionTest(unittest.TestCase):
             ("unknown scroll bar side", (COLOURS,), {"scrollbar_side": "top"}, ValueError),
             ("end markers not a pair", (COLOURS,), {"scrollbar_end_markers": ("^",)}, ValueError),
             ("unknown scroll bar option", (COLOURS,), {"scrollbar_visible": True}, TypeError),
+            ("selected separator", (SIZES,), {"selected": 1}, ValueError),
+            ("selected disabled option", (SIZES,), {"selected": 3, "disabled": {3}}, ValueError),
+            ("disabled separator", (SIZES,), {"disabled": {1}}, ValueError),
+            ("disabled past the end", (SIZES,), {"disabled": {4}}, IndexError),
+            ("nothing choosable", ([None, "a"],), {"disabled": {1}}, ValueError),
+            ("unhashable disabled map", (COLOURS,), {"disabled_map": {"a": []}}, urwid.AttrMapError),
         ):
             with self.subTest(description), self.assertRaises(error):
                 urwid.DropDown(*args, **kwargs)
@@ -45,6 +53,12 @@ class DropDownConstructionTest(unittest.TestCase):
         drop_down = urwid.DropDown(["a", "longest", "b"])
         self.assertEqual((9, 1), drop_down.pack())
         self.assertEqual([b"a       v"], drop_down.render(()).text)
+
+    def test_default_selected_is_the_first_choosable_option(self) -> None:
+        drop_down = urwid.DropDown([None, "off", "on"], disabled={1})
+        self.assertEqual(2, drop_down.selected)
+        self.assertEqual(frozenset({1}), drop_down.disabled)
+        self.assertEqual([b"on  v"], drop_down.render(()).text)
 
     def test_flow_render_clips_the_label(self) -> None:
         drop_down = urwid.DropDown(["a very long option"])
@@ -85,6 +99,13 @@ class DropDownSelectionTest(unittest.TestCase):
         drop_down = urwid.DropDown(COLOURS)
         with self.assertRaises(IndexError):
             drop_down.selected = 3
+        self.assertEqual(0, drop_down.selected)
+
+    def test_selected_separator_or_disabled(self) -> None:
+        drop_down = urwid.DropDown(SIZES, disabled={3})
+        for index in (1, 3):
+            with self.subTest(index=index), self.assertRaises(ValueError):
+                drop_down.selected = index
         self.assertEqual(0, drop_down.selected)
 
     def test_other_keys_are_not_handled(self) -> None:
@@ -261,6 +282,86 @@ class DropDownListTest(unittest.TestCase):
         self.assertFalse(target.mouse_event((6, 6), "mouse press", 1, 0, 0, True))
 
         self.assertIsNone(drop_down._pop_up_widget)
+
+    def test_single_choosable_option_is_read_only(self) -> None:
+        """A read-only drop-down is drawn with ``disabled_map``, and one with a choice is not."""
+        read_only = urwid.DropDown(["only", None, "off"], disabled={2}, disabled_map="disabled")
+        choice = urwid.DropDown(SIZES, disabled={3}, disabled_map="disabled")
+
+        self.assertFalse(read_only.selectable())
+        self.assertTrue(choice.selectable())
+        for drop_down, expected in ((read_only, {"disabled"}), (choice, {None})):
+            with self.subTest(selectable=drop_down.selectable()):
+                content = drop_down.render(()).content()
+                self.assertEqual(expected, {attr for row in content for attr, _cs, _text in row})
+
+    def test_separator_and_disabled_option(self) -> None:
+        """A separator and a disabled option are drawn in the list, and up and down skip them."""
+        for description, border, expected in (
+            ("plain", False, ["any    v", "any     ", "────────", "small   ", "large   "]),
+            ("border", True, ["any    v", "┌──────┐", "│any   │", "├──────┤", "│small │", "│large │", "└──────┘"]),
+        ):
+            with self.subTest(description):
+                drop_down = urwid.DropDown(SIZES, disabled={3}, border=border)
+                target = drop_down_at_row(drop_down, 0)
+                target.keypress((8, 7), "enter")
+                self.assertEqual(expected, urwid.testing.render_text(target, (8, 7), focus=True)[: len(expected)])
+
+                # Down passes the separator to "small", and stops there, before the disabled "large".
+                target.keypress((8, 7), "down")
+                target.keypress((8, 7), "down")
+                target.keypress((8, 7), "enter")
+                self.assertEqual(2, drop_down.selected)
+
+    def test_home_and_end_skip_separators_and_disabled_options(self) -> None:
+        """Home and End focus the first or last option that can be chosen, with the rows beyond it in view."""
+        for border, top, bottom in (
+            (False, ["───────█", "a      █", "b       "], ["b       ", "c      █", "───────█"]),
+            (True, ["├─────┤█", "│a    │█", "│b    │ "], ["│b    │ ", "│c    │█", "├─────┤█"]),
+        ):
+            with self.subTest(border=border):
+                drop_down = urwid.DropDown(
+                    [None, "a", "b", "c", None], disabled={3}, border=border, max_visible_items=3
+                )
+                target = drop_down_at_row(drop_down, 0)
+                target.keypress((8, 9), "enter")
+                # The list starts below the drop-down row, after the top edge of the box when there is one.
+                first = 2 if border else 1
+
+                target.keypress((8, 9), "end")
+                self.assertEqual(bottom, urwid.testing.render_text(target, (8, 9), focus=True)[first : first + 3])
+                target.keypress((8, 9), "home")
+                self.assertEqual(top, urwid.testing.render_text(target, (8, 9), focus=True)[first : first + 3])
+
+                target.keypress((8, 9), "end")
+                target.keypress((8, 9), "enter")
+                self.assertEqual(2, drop_down.selected)
+
+    def test_click_on_separator_or_disabled_option_does_nothing(self) -> None:
+        # Rows of the separator and of the disabled option, without and with a border.
+        for border, row in ((False, 2), (False, 4), (True, 3), (True, 5)):
+            with self.subTest(border=border, row=row):
+                drop_down = urwid.DropDown(SIZES, disabled={3}, border=border)
+                target = drop_down_at_row(drop_down, 0)
+                target.keypress((7, 6), "enter")
+
+                target.mouse_event((7, 6), "mouse press", 1, 1, row, True)
+
+                self.assertIsNotNone(drop_down.pop_up_widget)
+                self.assertEqual(0, drop_down.selected)
+
+    def test_disabled_option_attribute(self) -> None:
+        drop_down = urwid.DropDown(SIZES, disabled={3}, attr_map="option", disabled_map="disabled")
+        target = drop_down_at_row(drop_down, 0)
+        target.keypress((7, 6), "enter")
+
+        content = list(target.render((7, 6), focus=True).content())
+
+        # The disabled attribute is layered over the attribute of the options, as for an AttrMap inside another.
+        self.assertEqual(
+            [["option"], [urwid.LayeredAttr("disabled", "option")]],
+            [[attr for attr, _cs, _text in row] for row in content[3:5]],
+        )
 
     def test_other_mouse_buttons_do_not_open(self) -> None:
         drop_down = urwid.DropDown(COLOURS)
