@@ -243,9 +243,14 @@ of all the options with the selected one in focus.  Activating an option in
 the list selects it and closes the list, and :kbd:`esc` closes the list
 without a change.  The list opens below the widget, or above it when it does
 not fit below, and it shows at most ``max_visible_items`` options at once and
-scrolls through the rest.  A drop-down with a single option has nothing to
-choose, so it is read-only: it is not selectable, opens no list, and leaves
-the key or the click to the widgets above it.
+scrolls through the rest.  ``None`` in the options draws a separator line, and
+the indexes given as ``disabled`` are options shown in the list, in the
+attribute of ``disabled_map``, that cannot be chosen.  :kbd:`up`, :kbd:`down`,
+:kbd:`home` and :kbd:`end` skip both, and :attr:`DropDown.selected` cannot
+name either; it starts on the first option that can be chosen unless
+``selected`` names another.  A drop-down with a single option that can be
+chosen has nothing to choose, so it is read-only: it is not selectable, opens
+no list, and leaves the key or the click to the widgets above it.
 ``DropDown(..., border=True)`` draws a box around the open list, in the
 attribute of ``attr_map``, with the scroll bar outside the box when the list
 scrolls; without it the list has no border.
@@ -254,7 +259,8 @@ The ``scrollbar_`` keyword arguments, such as ``scrollbar_side``,
 ``scrollbar_attr``, are passed to the :class:`ScrollBar` of the open list.
 
 The :attr:`DropDown.selected` property holds the index of the selected
-option, and :attr:`DropDown.options` holds the markup of every option.
+option, and :attr:`DropDown.options` holds the markup of every option,
+``None`` for a separator.
 The ``'change'`` signal is sent with the new index before
 :attr:`DropDown.selected` changes, so a callback still reads the previous
 value from the widget:

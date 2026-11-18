@@ -26,8 +26,13 @@ Shows many of the standard widget types and features.
 
 from __future__ import annotations
 
+import typing
+
 import urwid
 from urwid.command_map import Command
+
+if typing.TYPE_CHECKING:
+    from collections.abc import Sequence
 
 PORTS = range(1, 65536)
 PRIVILEGED_PORTS = range(1, 1024)
@@ -233,11 +238,13 @@ def main() -> None:
             " widget shows the selected option.  ENTER, SPACE or a mouse click "
             "opens a list of all the options below it, or above it when there is no room "
             "below; ESC or a click outside closes the list without a change.  A long list scrolls.  "
+            "A line separates groups of options, and a disabled option is shown but cannot be chosen.  "
             "The list is a pop-up, so the MainLoop is created with pop_ups=True."
         ),
     ]
     text_drop_down_cap1 = "Color:"
-    text_drop_down_list1 = ["Red", "Green", "Blue", "Cyan", "Magenta", "Yellow"]
+    # The separator splits the primary colours from the secondary ones; "Yellow" is disabled.
+    text_drop_down_list1 = ["Red", "Green", "Blue", None, "Cyan", "Magenta", "Yellow"]
     text_drop_down_cap2 = "Month:"
     text_drop_down_list2 = [
         "January",
@@ -290,7 +297,7 @@ def main() -> None:
 
     radio_button_group: list[urwid.RadioButton] = []
 
-    drop_down_options = (text_drop_down_list1, text_drop_down_list2)
+    drop_down_options: tuple[Sequence[str | None], ...] = (text_drop_down_list1, text_drop_down_list2)
     drop_down_selected = urwid.Text("")
 
     def show_drop_down_selection(changed: urwid.DropDown | None = None, new_index: int = 0) -> None:
@@ -300,11 +307,12 @@ def main() -> None:
             index = new_index if drop_down is changed else drop_down.selected
             if number:
                 markup.append(", ")
-            markup.append(("important", options[index]))
+            # The selected option is never a separator.
+            markup.append(("important", typing.cast("str", options[index])))
         drop_down_selected.set_text(markup)
 
     drop_downs = [
-        urwid.DropDown(drop_down_options[0], attr_map="buttn", focus_map="buttnf"),
+        urwid.DropDown(drop_down_options[0], disabled={6}, attr_map="buttn", focus_map="buttnf", disabled_map="tab"),
         urwid.DropDown(drop_down_options[1], selected=5, max_visible_items=5, attr_map="buttn", focus_map="buttnf"),
     ]
     for drop_down in drop_downs:
