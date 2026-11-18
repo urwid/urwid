@@ -1062,6 +1062,391 @@ class TableTest(unittest.TestCase):
         self.assertLessEqual(iter_rows.call_count, 2)
         self.assertEqual((4, 2), table.layout.widths(20))
 
+    def make_unsorted(self, **kwargs: typing.Any) -> urwid.Table:
+        """Return a sortable two-column table whose rows are not in order of either column."""
+        return urwid.Table(
+            self.columns,
+            [["b", "2"], ["a", "10"], ["c", "1"]],
+            **{"sortable": True, **kwargs},
+        )
+
+    @staticmethod
+    def names(table: urwid.Table) -> list[str]:
+        """Return the text of the first cell of each row."""
+        return [typing.cast("urwid.Text", row.cells[0]).text for row in table.body]
+
+    @staticmethod
+    def labels(table: urwid.Table) -> list[str]:
+        """Return the text of each header label."""
+        header = table._header
+        assert header is not None
+        return [typing.cast("urwid.Text", cell).text for cell in header.cells]
+
+    def test_not_sortable_header_inert(self) -> None:
+        """Without sortable the header sends nothing, never takes the focus and shows no mark."""
+        table = self.make()
+        activated: list[int] = []
+        urwid.connect_signal(table, "header activated", lambda _w, column: (activated.append(column), True)[1])
+        self.assertFalse(table.sortable)
+        self.assertFalse(click(table, (10, 4), 0, 0))
+        self.assertEqual(["up"], press(table, (10, 4), "up"))
+        self.assertEqual([], activated)
+        self.assertIsNone(table.header_column)
+        with self.assertRaises(urwid.TableError):
+            table.header_column = 0
+        table.focus_position = 2
+        table.sort(1, reverse=True)
+        self.assertEqual(["r2", "r1", "r0"], self.names(table))
+        self.assertEqual((1, True), (table.sort_column, table.sort_reverse))
+        self.assertEqual(["Name", "N"], self.labels(table))
+        self.assertEqual(0, table.focus_position)
+
+    def test_sortable_options_validated(self) -> None:
+        """A sortable table needs a header; sort_marks and header_focus_attr are checked even when unused."""
+        kwargs: dict[str, typing.Any]
+        for kwargs in (
+            {"sortable": True, "header": False},
+            {"sort_marks": ("^",)},
+            {"sort_marks": ["^", "v"]},
+            {"sort_marks": ("^", 1)},
+            {"header_focus_attr": {"a": []}},
+        ):
+            with self.subTest(**kwargs), self.assertRaises(urwid.TableError):
+                self.make(**kwargs)
+
+    def test_sort(self) -> None:
+        """Sort by the text of a column or by a key, keeping the focus on the same row."""
+        table = self.make_unsorted()
+        events: list[tuple[int | None, int | None]] = []
+        urwid.connect_signal(table, "focus changed", lambda _w, old, new: events.append((old, new)))
+        focused = table.body[1]
+        table.focus_position = 1
+        events.clear()
+        cases: tuple[tuple[str, dict[str, typing.Any], list[str], int | None, bool], ...] = (
+            ("by text", {"column": 0}, ["a", "b", "c"], 0, False),
+            ("by text, reversed", {"column": 0, "reverse": True}, ["c", "b", "a"], 0, True),
+            ("numbers as text", {"column": 1}, ["c", "a", "b"], 1, False),
+            (
+                "by key with a column",
+                {"column": 1, "key": lambda row: int(row.cells[1].text)},
+                ["c", "b", "a"],
+                1,
+                False,
+            ),
+            ("by key alone", {"key": lambda row: row.cells[0].text, "reverse": True}, ["c", "b", "a"], None, True),
+        )
+        for label, kwargs, expected, column, reverse in cases:
+            with self.subTest(label):
+                table.sort(**kwargs)
+                self.assertEqual(expected, self.names(table))
+                self.assertEqual((column, reverse), (table.sort_column, table.sort_reverse))
+                self.assertIs(focused, table.focus)
+                self.assertEqual(table.focus_position, focused.index)
+        self.assertEqual([(1, 0), (0, 2), (2, 1), (1, 2)], events)
+
+    def test_sort_errors(self) -> None:
+        """A sort that cannot be made leaves the rows, the state and the mark as they were."""
+        table = self.make_unsorted()
+        table.body.append(table.layout.row(["span"], span=True))
+        table.body.append([urwid.Button("x"), "3"])
+        table.sort(1, key=lambda row: row.index)
+        before = (list(table.body), table.sort_column, table.sort_reverse, self.labels(table))
+
+        def failing(_row: urwid.TableRow) -> int:
+            raise ZeroDivisionError
+
+        cases: tuple[tuple[str, dict[str, typing.Any], type[Exception]], ...] = (
+            ("neither column nor key", {}, urwid.TableError),
+            ("column out of range", {"column": 2}, IndexError),
+            ("negative column", {"column": -1}, IndexError),
+            ("bool column", {"column": True}, IndexError),
+            ("span row and widget cell", {"column": 0}, urwid.TableError),
+            ("widget cell", {"column": 0, "key": None}, urwid.TableError),
+            ("raising key", {"column": 0, "key": failing}, ZeroDivisionError),
+            ("keys that do not compare", {"column": 0, "key": lambda row: row.data if row.span else 1}, TypeError),
+        )
+        for label, kwargs, error in cases:
+            with self.subTest(label), self.assertRaises(error):
+                table.sort(**kwargs)
+            self.assertEqual(before, (list(table.body), table.sort_column, table.sort_reverse, self.labels(table)))
+        del table.body[3]
+        with self.assertRaisesRegex(urwid.TableError, "row 3: column 0 has no text"):
+            table.sort(0)
+
+    def test_sort_state_seen_by_handlers(self) -> None:
+        """A "modified" or "focus changed" handler reads the new state and mark; a raising one keeps them."""
+        table = self.make_unsorted()
+        seen: list[tuple[str, int | None, bool, list[str]]] = []
+
+        def record(name: str) -> None:
+            seen.append((name, table.sort_column, table.sort_reverse, self.labels(table)))
+
+        urwid.connect_signal(table.body, "modified", lambda: record("modified"))
+        urwid.connect_signal(table, "focus changed", lambda _w, _old, _new: record("focus changed"))
+        table.sort(0, reverse=True)
+        self.assertEqual(
+            [
+                ("modified", 0, True, ["Name v", "N"]),
+                ("focus changed", 0, True, ["Name v", "N"]),
+            ],
+            seen,
+        )
+
+        def fail() -> None:
+            raise ZeroDivisionError
+
+        urwid.connect_signal(table.body, "modified", fail)
+        with self.assertRaises(ZeroDivisionError):
+            table.sort(1)
+        self.assertEqual(["c", "a", "b"], self.names(table))
+        self.assertEqual((1, False, ["Name", "N ^"]), (table.sort_column, table.sort_reverse, self.labels(table)))
+
+    def test_sort_marks(self) -> None:
+        """The sorted column's label carries the mark of its direction, and its PACK width follows the mark."""
+        table = self.make_unsorted()
+        self.assertEqual(["Name  N   ", "b     2   ", "a    10   ", "c     1   "], render_text(table, (10,)))
+        table.sort(1)
+        self.assertEqual(["Name N ^  ", "c      1  ", "a     10  ", "b      2  "], render_text(table, (10,)))
+        table.sort(0, reverse=True)
+        self.assertEqual(["Name v  N ", "c       1 ", "b       2 ", "a      10 "], render_text(table, (10,)))
+        table.sort(key=lambda row: row.index)
+        self.assertEqual(["Name  N   ", "c     1   ", "b     2   ", "a    10   "], render_text(table, (10,)))
+        for marks, expected in (
+            (None, ["Name", "N"]),
+            (("+", "-"), ["Name", "N+"]),
+            ((urwid.ScrollBar.Symbols.ARROW_TRIANGLE_UP, "v"), ["Name", "N▲"]),
+        ):
+            with self.subTest(marks=marks):
+                marked = self.make_unsorted(sort_marks=marks)
+                marked.sort(1)
+                self.assertEqual(expected, self.labels(marked))
+
+    def test_header_click(self) -> None:
+        """A press of button 1 on a label sends its column; a handler's true result consumes it."""
+        table = urwid.Table([Column("A", width=3), Column("B", width=2)], [["a", "b"]], sortable=True)
+        activated: list[int] = []
+        self.assertFalse(click(table, (10, 2), 0, 0))
+        self.assertEqual(0, table.header_column)
+        urwid.connect_signal(table, "header activated", lambda _w, column: (activated.append(column), True)[1])
+        for col, column in ((0, 0), (2, 0), (3, None), (4, 1), (5, 1), (6, None), (9, None)):
+            with self.subTest(col=col):
+                activated.clear()
+                self.assertEqual(column is not None, click(table, (10, 2), col, 0))
+                self.assertEqual([] if column is None else [column], activated)
+        self.assertEqual(1, table.header_column)
+        for kwargs in ({"button": 3}, {"event": "mouse release"}, {"event": "mouse drag"}):
+            with self.subTest(**kwargs):
+                self.assertFalse(click(table, (10, 2), 0, 0, **kwargs))
+        self.assertEqual([], activated)
+        self.assertEqual(1, table.header_column)
+
+    def test_header_click_scrollbar(self) -> None:
+        """A click on the scrollbar column sends nothing; on the left side the labels start after it."""
+        sides: tuple[tuple[typing.Literal["left", "right"], int, int], ...] = (("right", 0, 2), ("left", 1, 0))
+        for side, label_col, bar_col in sides:
+            with self.subTest(side=side):
+                table = urwid.Table([Column("A")], [["a"]] * 5, sortable=True, scrollbar=True, scrollbar_side=side)
+                activated: list[int] = []
+                urwid.connect_signal(table, "header activated", lambda _w, column, a=activated: a.append(column))
+                click(table, (3, 3), bar_col, 0)
+                click(table, (3, 3), label_col, 0)
+                self.assertEqual([0], activated)
+                self.assertEqual((label_col, 0), table.get_cursor_coords((3, 3)))
+
+    def test_header_click_empty_table(self) -> None:
+        """A click on the header of an empty table sends the signal and focuses nothing."""
+        table = urwid.Table(self.columns, sortable=True)
+        activated: list[int] = []
+        urwid.connect_signal(table, "header activated", lambda _w, column: activated.append(column))
+        self.assertFalse(click(table, (10, 3), 5, 0))
+        self.assertEqual([1], activated)
+        self.assertIsNone(table.header_column)
+        self.assertIsNone(table.get_cursor_coords((10, 3)))
+        with self.assertRaises(urwid.TableError):
+            table.header_column = 0
+
+    def test_header_keys(self) -> None:
+        """Up at the first row focuses the header, which takes left, right, activate and down."""
+        cases: tuple[tuple[str, dict[str, typing.Any], tuple[str, ...], list[str], int | None, list[int]], ...] = (
+            # (label, table options, keys after up, keys returned, header column after, columns activated)
+            ("first column", {}, (), [], 0, []),
+            ("right", {}, ("right",), [], 1, []),
+            ("right at the edge", {}, ("right", "right"), ["right"], 1, []),
+            ("left at the edge", {}, ("left",), ["left"], 0, []),
+            ("activate", {}, ("right", "enter"), [], 1, [1]),
+            ("down", {}, ("down",), [], None, []),
+            ("up leaves", {}, ("up",), ["up"], 0, []),
+            ("tab without select navigation", {}, ("tab",), ["tab"], 0, []),
+            ("tab with select navigation", {"select_navigation": True}, ("tab",), [], None, []),
+            ("shift tab leaves", {"select_navigation": True}, ("shift tab",), ["shift tab"], 0, []),
+            ("other key", {}, ("x",), ["x"], 0, []),
+        )
+        for label, kwargs, keys, returned, column, expected_activated in cases:
+            with self.subTest(label):
+                table = self.make(sortable=True, **kwargs)
+                table.focus_position = 1
+                activated: list[int] = []
+                urwid.connect_signal(table, "header activated", lambda _w, c, a=activated: (a.append(c), True)[1])
+                self.assertEqual([], press(table, (10, 4), "up", "up"))
+                self.assertEqual(0, table.focus_position)
+                self.assertEqual(returned, press(table, (10, 4), *keys))
+                self.assertEqual(column, table.header_column)
+                self.assertEqual(expected_activated, activated)
+                self.assertEqual(0, table.focus_position)
+
+    def test_header_activate_unhandled(self) -> None:
+        """Activate on the header is returned when no handler consumes it."""
+        table = self.make(sortable=True)
+        table.header_column = 1
+        self.assertEqual(["enter"], press(table, (10, 4), "enter"))
+        urwid.connect_signal(table, "header activated", lambda _w, _column: None)
+        self.assertEqual([" "], press(table, (10, 4), " "))
+        self.assertEqual(1, table.header_column)
+
+    def test_header_focus_rendering(self) -> None:
+        """The focused label has the cursor and header_focus_attr only while the table renders in focus."""
+        table = self.make(sortable=True, header_focus_attr="hf", focus_attr="rf")
+        table.header_column = 1
+        self.assertEqual((5, 0), table.get_cursor_coords((10, 4)))
+        canvas = table.render((10, 4), focus=True)
+        self.assertEqual((5, 0), canvas.cursor)
+        runs = render_runs(table, (10, 4), focus=True)
+        self.assertEqual([(None, "Name "), ("hf", "N"), (None, "    ")], runs[0])
+        self.assertEqual([(None, "r0   0    ")], runs[1])
+        self.assertIsNone(table.render((10, 4)).cursor)
+        self.assertEqual([(None, "Name N    ")], render_runs(table, (10, 4))[0])
+        self.assertEqual(1, table.header_column)
+        self.assertEqual([(None, "Name "), ("hf", "N"), (None, "    ")], render_runs(table, (10, 4), focus=True)[0])
+        table.header_column = None
+        self.assertEqual([(None, "Name N    ")], render_runs(table, (10, 4), focus=True)[0])
+        self.assertEqual([("rf", "r0   0    ")], render_runs(table, (10, 4), focus=True)[1])
+
+    def test_header_focus_ends(self) -> None:
+        """A body click, a focus change, the entry hook and an emptied table give the focus back to the rows."""
+
+        def set_focus(table: urwid.Table) -> None:
+            table.set_focus(2)
+
+        def set_position(table: urwid.Table) -> None:
+            table.focus_position = 2
+
+        def click_body(table: urwid.Table) -> None:
+            click(table, (10, 4), 0, 3)
+            self.assertEqual(2, table.focus_position)
+
+        def enter(table: urwid.Table) -> None:
+            table.enter_selectable()
+
+        def clear(table: urwid.Table) -> None:
+            table.body.clear()
+
+        def unset(table: urwid.Table) -> None:
+            table.header_column = None
+
+        for action in (set_focus, set_position, click_body, enter, clear, unset):
+            with self.subTest(action.__name__):
+                table = self.make(sortable=True)
+                table.header_column = 1
+                action(table)
+                self.assertIsNone(table.header_column)
+
+    def test_header_focus_kept(self) -> None:
+        """A footer click, a removed row that leaves others, and a release on the rows keep the header focus."""
+
+        def click_footer(table: urwid.Table) -> None:
+            self.assertFalse(click(table, (10, 5), 0, 4))
+
+        def release_on_rows(table: urwid.Table) -> None:
+            click(table, (10, 5), 0, 2, event="mouse release")
+
+        def remove_row(table: urwid.Table) -> None:
+            del table.body[0]
+
+        for action in (click_footer, release_on_rows, remove_row):
+            with self.subTest(action.__name__):
+                table = self.make(sortable=True, footer=["t"])
+                table.header_column = 1
+                action(table)
+                self.assertEqual(1, table.header_column)
+
+    def test_header_column_setter_errors(self) -> None:
+        """The setter rejects an empty table, a value that is no column, and a column of given width 0."""
+        table = urwid.Table([Column("A"), Column("B", width=0)], [["a", "b"]], sortable=True)
+        for value in (2, -1, True, "0", 1):
+            with self.subTest(value=value), self.assertRaises(IndexError):
+                table.header_column = value
+        self.assertIsNone(table.header_column)
+
+    def test_header_column_hidden_by_size(self) -> None:
+        """A narrower size shows the focus on the visible column on the left, and the wider size restores it."""
+        table = urwid.Table(
+            [Column("A", width=3), Column("B", width=3), Column("C", width=3)],
+            [["a", "b", "c"]],
+            sortable=True,
+        )
+        table.header_column = 2
+        self.assertEqual((8, 0), table.get_cursor_coords((11, 2)))
+        self.assertEqual((4, 0), table.get_cursor_coords((7, 2)))
+        self.assertEqual(2, table.header_column)
+        self.assertEqual((8, 0), table.get_cursor_coords((11, 2)))
+        # right starts from the column shown, which is the last visible one
+        self.assertEqual(["right"], press(table, (7, 2), "right", "left"))
+        self.assertEqual(0, table.header_column)
+
+        with self.subTest("no visible column"):
+            self.assertIsNone(table.get_cursor_coords((2, 2)))
+            self.assertEqual(0, table.header_column)
+            self.assertEqual(["up"], press(table, (2, 2), "up"))
+            self.assertIsNone(table.header_column)
+
+        with self.subTest("up while the stored column is hidden"):
+            table.header_column = 2
+            table.header_column = None
+            self.assertEqual([], press(table, (7, 2), "up"))
+            self.assertEqual(2, table.header_column)
+            self.assertEqual((4, 0), table.get_cursor_coords((7, 2)))
+
+        with self.subTest("header dropped"):
+            dropped = self.make(sortable=True, header_drop=3)
+            dropped.header_column = 0
+            self.assertIsNone(dropped.get_cursor_coords((10, 3)))
+            self.assertEqual([(None, "r0   0    ")], render_runs(dropped, (10, 3), focus=True)[0])
+            self.assertEqual(["x"], press(dropped, (10, 3), "x"))
+            self.assertIsNone(dropped.header_column)
+
+    def test_header_round_trip_in_pile(self) -> None:
+        """Leaving the header by shift tab and coming back by tab lands in the rows; a plain focus move does not."""
+        table = self.make(sortable=True, select_navigation=True)
+        pile = urwid.Pile([urwid.Edit("", "above"), table], select_navigation=True)
+        pile.focus_position = 1
+        self.assertEqual([], press(pile, (10,), "up"))
+        self.assertEqual(0, table.header_column)
+        self.assertEqual([], press(pile, (10,), "shift tab"))
+        self.assertEqual(0, pile.focus_position)
+        self.assertEqual([], press(pile, (10,), "tab"))
+        self.assertIs(table, pile.focus)
+        self.assertIsNone(table.header_column)
+
+        table.header_column = 1
+        pile.focus_position = 0
+        pile.focus_position = 1
+        self.assertEqual(1, table.header_column)
+
+    def test_header_focus_with_unselectable_rows(self) -> None:
+        """A table whose rows are all not selectable focuses its header by up, the setter and a click."""
+        table = urwid.Table(self.columns, sortable=True)
+        table.body.extend(
+            [table.layout.row(["a", "1"], selectable=False), table.layout.row(["b", "2"], selectable=False)]
+        )
+        self.assertEqual([], press(table, (10, 3), "up"))
+        self.assertEqual(0, table.header_column)
+        table.header_column = None
+        table.header_column = 1
+        self.assertEqual(1, table.header_column)
+        table.header_column = None
+        click(table, (10, 3), 5, 0)
+        self.assertEqual(1, table.header_column)
+
 
 class TableContainerTest(unittest.TestCase):
     """Tests of Table and TableRow as containers: positions, contents and focus paths."""

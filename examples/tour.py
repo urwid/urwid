@@ -220,16 +220,18 @@ def main() -> None:
             " widget lines up rows of cells between a fixed header and footer: every column is as wide as its "
             "widest cell, a number, or a share of the rest.  This one shows at most four rows at a time, with a "
             "scrollbar while they do not all fit, a footer row of totals, and keeps the focused row marked while the "
-            "focus is elsewhere."
+            "focus is elsewhere.  Click a column label, or press UP at the first row and ENTER on a label, to sort by "
+            "that column; again to reverse the order."
         ),
     ]
+    # (name, size, size in bytes for sorting, note)
     table_rows = [
-        ("urwid", "1.2M", "console user interface library"),
-        ("table.py", "34K", "the widget shown here"),
-        ("tour.py", "18K", "this program"),
-        ("palette", "1", "a single entry"),
-        ("canvas.py", "52K", "what widgets render to"),
-        ("\u4e2d\u6587", "2", "wide characters line up too"),
+        ("urwid", "1.2M", 1_258_291, "console user interface library"),
+        ("table.py", "34K", 34_816, "the widget shown here"),
+        ("tour.py", "18K", 18_432, "this program"),
+        ("palette", "1", 1, "a single entry"),
+        ("canvas.py", "52K", 53_248, "what widgets render to"),
+        ("\u4e2d\u6587", "2", 2, "wide characters line up too"),
     ]
     text_drop_down: list[str | tuple[str, str]] = [
         "A ",
@@ -320,6 +322,39 @@ def main() -> None:
     show_drop_down_selection()
     # One width for both, so the two drop-downs line up.
     drop_down_width = max(drop_down.pack()[0] for drop_down in drop_downs)
+
+    table = urwid.Table(
+        [
+            urwid.TableColumn("Name"),
+            urwid.TableColumn("Size", align=urwid.RIGHT, attr="bright"),
+            urwid.TableColumn("Note", width=(urwid.WEIGHT, 1), wrap=urwid.ELLIPSIS),
+        ],
+        header_attr="important",
+        footer=["6 entries", "1.3M"],
+        footer_attr="important",
+        focus_attr={None: "buttnf", "bright": "buttnf"},
+        unfocused_focus_attr={None: "buttnl", "bright": "buttnl"},
+        max_rows=4,
+        scrollbar=None,
+        scrollbar_thumb_char=urwid.ScrollBar.Symbols.DARK_SHADE,
+        scrollbar_trough_char=urwid.ScrollBar.Symbols.LITE_SHADE,
+        sortable=True,
+        header_focus_attr="buttnf",
+    )
+    table.body.extend(
+        table.layout.row([name, size, note], data=size_bytes) for name, size, size_bytes, note in table_rows
+    )
+
+    def sort_table(sorted_table: urwid.Table, column: int) -> bool:
+        # the same column again reverses the order; the Size column sorts by the number of bytes, not by its text
+        reverse = sorted_table.sort_column == column and not sorted_table.sort_reverse
+        if column == 1:
+            sorted_table.sort(column, key=lambda row: row.data, reverse=reverse)
+        else:
+            sorted_table.sort(column, reverse=reverse)
+        return True
+
+    urwid.connect_signal(table, "header activated", sort_table)
 
     action_chosen = urwid.Text(["Action: ", ("important", "none yet")])
 
@@ -566,23 +601,7 @@ def main() -> None:
         urwid.Padding(urwid.Text(text_table), left=2, right=2, min_width=20),
         blank,
         urwid.Padding(
-            urwid.Table(
-                [
-                    urwid.TableColumn("Name"),
-                    urwid.TableColumn("Size", align=urwid.RIGHT, attr="bright"),
-                    urwid.TableColumn("Note", width=(urwid.WEIGHT, 1), wrap=urwid.ELLIPSIS),
-                ],
-                table_rows,
-                header_attr="important",
-                footer=["6 entries", "1.3M"],
-                footer_attr="important",
-                focus_attr={None: "buttnf", "bright": "buttnf"},
-                unfocused_focus_attr={None: "buttnl", "bright": "buttnl"},
-                max_rows=4,
-                scrollbar=None,
-                scrollbar_thumb_char=urwid.ScrollBar.Symbols.DARK_SHADE,
-                scrollbar_trough_char=urwid.ScrollBar.Symbols.LITE_SHADE,
-            ),
+            table,
             left=4,
             right=3,
             min_width=20,
