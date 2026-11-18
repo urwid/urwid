@@ -109,8 +109,8 @@ _STRING_STATES: typing.Final = frozenset((2, 4, 5))
 #: the final bytes after ESC that open a DCS, SOS, PM and APC string
 _COMMAND_STRING_OPENERS: typing.Final = frozenset((b"P", b"X", b"^", b"_"))
 
-#: the Primary DA reply: a VT320 (63) with ANSI colour (22)
-_PRIMARY_DEVICE_ATTRIBUTES: typing.Final = f"{ESC}[?63;22c"
+#: the Primary DA reply: a VT320 (63) with selective erase (6) and ANSI colour (22)
+_PRIMARY_DEVICE_ATTRIBUTES: typing.Final = f"{ESC}[?63;6;22c"
 #: the Secondary DA reply, as a VT320 sends it: the VT320 (24), firmware version 1.0 (10), no ROM cartridge (0)
 _SECONDARY_DEVICE_ATTRIBUTES: typing.Final = f"{ESC}[>24;10;0c"
 
@@ -147,7 +147,7 @@ _PERMANENTLY_RESET_PRIVATE_MODES: typing.Final = frozenset((68, 69))
 
 #: the DECRQCRA checksum bits of the AttrSpec flags, as xterm adds them to each character
 _CHECKSUM_BITS: typing.Final = (("bold", 0x80), ("blink", 0x40), ("standout", 0x20), ("underline", 0x10))
-#: the DECRQCRA checksum bit of a character DECSCA protected
+#: the DECRQCRA checksum bit of a protected character
 _CHECKSUM_PROTECTED: typing.Final = 0x04
 
 #: the conformance levels DECSCL selects: VT100 (61), VT200 (62) and VT300 (63), the highest and the startup one
@@ -286,15 +286,19 @@ CSI_COMMANDS: dict[bytes, CSIAlias | CSICommand] = {
     b"F": CSICommand(1, 1, lambda s, rows, q: s.move_cursor(0, -rows[0], relative_y=True)),
     b"G": CSICommand(1, 1, lambda s, col, q: s.move_cursor(col[0] - 1, 0, relative_y=True)),
     b"H": CSICommand(2, 1, lambda s, x_y, q: s.move_cursor(x_y[1] - 1, x_y[0] - 1)),
-    b"J": CSICommand(1, 0, lambda s, mode, q: s.csi_erase_display(mode[0], selective=q)),
-    b"K": CSICommand(1, 0, lambda s, mode, q: s.csi_erase_line(mode[0], selective=q)),
+    b"J": CSICommand(1, 0, lambda s, mode, q: s.csi_erase_display(mode[0], selective=q or s.modes.iso_protection)),
+    b"K": CSICommand(1, 0, lambda s, mode, q: s.csi_erase_line(mode[0], selective=q or s.modes.iso_protection)),
     b"L": CSICommand(1, 1, lambda s, number, q: s.insert_lines(lines=number[0])),
     b"M": CSICommand(1, 1, lambda s, number, q: s.remove_lines(lines=number[0])),
     b"P": CSICommand(1, 1, lambda s, number, q: s.remove_chars(chars=number[0])),
     b"X": CSICommand(
         1,
         1,
-        lambda s, number, q: s.erase(s.term_cursor, (s.term_cursor[0] + number[0] - 1, s.term_cursor[1])),
+        lambda s, number, q: s.erase(
+            s.term_cursor,
+            (s.term_cursor[0] + number[0] - 1, s.term_cursor[1]),
+            selective=s.modes.iso_protection,
+        ),
     ),
     b"a": CSIAlias("alias", b"C"),
     b"c": CSICommand(0, 0, lambda s, none, q: s.csi_get_device_attributes(q)),
@@ -361,7 +365,7 @@ _BLANK: typing.Final = _Blank(b" ")
 
 
 class _Protected(bytes):
-    """A character written while DECSCA protected the characters written, which DECSED, DECSEL and DECSERA keep.
+    """A character written while DECSCA or SPA protected the characters written, which the erases may keep.
 
     It is equal to the character and drawn as it.
     """
@@ -413,6 +417,9 @@ class TermModes:
     # the cursor style DECSCUSR set, 1 to 6, which the canvas draws itself in place of the display's cursor; None
     # before a DECSCUSR and after DECSTR or RIS, while the display's cursor is shown
     cursor_style: int | None = None
+    # SPA selected ISO protection, until DECSCA, DECSTR or RIS: ED, EL and ECH keep the protected characters too, and
+    # DECSERA erases them
+    iso_protection: bool = False
 
     def reset(self) -> None:
         """Reset every mode flag to its terminal-startup default."""
@@ -434,6 +441,7 @@ class TermModes:
         self.keypad_application = False
         self.backarrow_sends_backspace = False
         self.cursor_style = None
+        self.iso_protection = False
 
         self.keyboard_flags = []
 
@@ -690,7 +698,7 @@ class TermCanvas(Canvas):
         self.parsestate = 0
 
         self.attrspec: AttrSpec | None = None
-        #: DECSCA: the characters written are protected from the selective erases
+        #: DECSCA or SPA: the characters written are protected
         self.protected = False
         #: DECSACE: 2 makes DECCARA and DECRARA act on a rectangle, and any other value on a stream of cells
         self.attribute_extent = 0
@@ -1181,6 +1189,10 @@ class TermCanvas(Canvas):
             self.newline()
         elif char == b"H":  # set tabstop
             self.set_tabstop()
+        elif char == b"V":  # SPA
+            self.protected = self.modes.iso_protection = True
+        elif char == b"W":  # EPA, which also ends what DECSCA protects
+            self.protected = False
         elif char == b"Z":  # DECID
             self.widget.respond(_PRIMARY_DEVICE_ATTRIBUTES)
         elif char == b"7":  # save current state
@@ -1334,6 +1346,8 @@ class TermCanvas(Canvas):
             b"E",
             b"H",
             b"M",
+            b"V",
+            b"W",
             b"Z",
             b"7",
             b"6",
@@ -1845,8 +1859,8 @@ class TermCanvas(Canvas):
 
         As in xterm, the cells of a row erased up to its last column hold spaces never written, and the cells of a row
         erased short of it hold written spaces, which DECRQCRA counts.
-        With *selective*, as DECSED and DECSEL, the characters DECSCA protected are kept, and each run of cells between
-        them is erased as a row would be.
+        With *selective*, as DECSED and DECSEL, or as ED, EL and ECH after SPA, the protected characters are kept, and
+        each run of cells between them is erased as a row would be.
 
         The 'start' tuple (x, y) defines the starting position of the erase, while end (x, y) the last position.
 
@@ -2072,8 +2086,8 @@ class TermCanvas(Canvas):
         The cursor is shown with the startup style, insert, origin, cursor key and keypad application modes are reset,
         and autowrap is set.
         The scrolling region is the whole screen again, without moving the cursor.
-        The attributes are reset as by SGR 0, DECSCA stops protecting characters, and the character sets are the startup
-        ones.
+        The attributes are reset as by SGR 0, DECSCA and SPA stop protecting characters, ED, EL and ECH erase the
+        protected ones again, and the character sets are the startup ones.
         The cursor saved by DECSC is the home position with these attributes and character sets, origin mode off and no
         pending autowrap.
         """
@@ -2088,6 +2102,7 @@ class TermCanvas(Canvas):
         self.reset_scroll()
         self.csi_set_attr([0])
         self.protected = False
+        self.modes.iso_protection = False
         self.charset = TermCharset()
         self.saved_cursor = (0, 0)
         self.saved_attrs = (copy.copy(self.attrspec), TermCharset())
@@ -2114,7 +2129,8 @@ class TermCanvas(Canvas):
                 # 7-bit controls (1), the only ones sent
                 setting = f'{self.conformance_level:d};1"p'
             case b'"q':
-                setting = f'{self.protected:d}"q'
+                # as in xterm, the characters SPA protects are not reported
+                setting = f'{self.protected and not self.modes.iso_protection:d}"q'
             case b"$|":
                 # DECSCPP: the columns per page
                 setting = f"{self.width:d}$|"
@@ -2148,7 +2164,7 @@ class TermCanvas(Canvas):
         - the 1-based cursor row and column on the screen, also in origin mode, and page 1;
         - ``@`` plus the bits of bold (1), underline (2), blink (4) and reverse (8);
         - ``@`` plus 1 while DECSCA protects the characters written, where xterm adds 1 once DECSCA has protected any
-          since the last reset;
+          since the last reset, and neither adds it for SPA;
         - ``@`` plus the bits of origin mode (1), a pending SS2 (2) or SS3 (4), and a pending autowrap (8);
         - the slots invoked into GL and GR;
         - ``@`` plus a bit per slot holding a 96-character set, and the final bytes G0 to G3 were designated with.
@@ -2167,8 +2183,10 @@ class TermCanvas(Canvas):
                     + _FLAG_WRAP * self.is_rotten_cursor
                 )
                 finals, sets96 = self.charset.designations
+                # as in xterm, the characters SPA protects are not reported
+                protection = self.protected and not self.modes.iso_protection
                 body = (
-                    f"{y + 1:d};{x + 1:d};1;{chr(0x40 + rendition)};{chr(0x40 + self.protected)};{chr(0x40 + flags)};"
+                    f"{y + 1:d};{x + 1:d};1;{chr(0x40 + rendition)};{chr(0x40 + protection)};{chr(0x40 + flags)};"
                     f"{self.charset.active:d};{self.charset.gr:d};{chr(0x40 + sets96)};{finals.decode('ascii')}"
                 )
                 self.widget.respond(f"{ESC}P1$u{body}{ESC}\\")
@@ -2181,7 +2199,8 @@ class TermCanvas(Canvas):
 
         A body that is not in the form :meth:`csi_report_presentation_state` describes is ignored whole.
         The colours are kept, since DECCIR does not carry them.
-        DECSCA is restored too, which xterm does not do.
+        DECSCA is restored too, which xterm does not do; while SPA protects, which DECCIR does not report, the
+        protection is kept.
         """
         fields = body.split(b";")
         if len(fields) != 10:
@@ -2197,7 +2216,8 @@ class TermCanvas(Canvas):
         if {gl, gr} - {b"0", b"1", b"2", b"3"} or len(finals) != 4 or not all(0x30 <= final < 0x7F for final in finals):
             return
         rendition_bits, protection_bits, flag_bits, sets96_bits = bits
-        self.protected = bool(protection_bits & 1)
+        if not self.modes.iso_protection:
+            self.protected = bool(protection_bits & 1)
         # origin mode first, since it decides how the cursor position is constrained
         self.modes.constrain_scrolling = bool(flag_bits & _FLAG_ORIGIN)
         self.set_term_cursor(int(col) - 1, int(row) - 1)
@@ -2293,6 +2313,7 @@ class TermCanvas(Canvas):
         """Erase the characters DECSCA did not protect in a rectangle (DECSERA, CSI Pt ; Pl ; Pb ; Pr $ {).
 
         Each erased cell keeps its own attributes and holds a written space, as xterm draws it.
+        After SPA, as in xterm, the protected characters are erased too.
         """
         if (area := self._rectangle(params)) is None:
             return
@@ -2301,7 +2322,7 @@ class TermCanvas(Canvas):
             line = self.term[y]
             for x in range(left, right + 1):
                 attrspec, charset, char = line[x]
-                if not isinstance(char, _Protected):
+                if self.modes.iso_protection or not isinstance(char, _Protected):
                     line[x] = (attrspec, charset, b" ")
 
     def _change_area_attributes(
@@ -2390,7 +2411,9 @@ class TermCanvas(Canvas):
         """Protect the characters written from now on from the selective erases, or stop (DECSCA, CSI Ps " q).
 
         1 protects them, and 0, 2 or no parameter stops; any other value is ignored, as in xterm.
+        Any value ends the ISO protection SPA selected, so ED, EL and ECH erase the protected characters again.
         """
+        self.modes.iso_protection = False
         if params[0] in {None, 0, 1, 2}:
             self.protected = params[0] == 1
 
@@ -2624,7 +2647,7 @@ class TermCanvas(Canvas):
             1 -> erase from start of line to cursor.
             2 -> erase whole line.
 
-        With *selective*, as DECSEL, the characters DECSCA protected are kept.
+        With *selective*, as DECSEL, the protected characters are kept.
         """
         x, y = self.term_cursor
 
@@ -2645,7 +2668,7 @@ class TermCanvas(Canvas):
             2 -> erase the whole display.
 
         The rows outside the scrolling region are erased in origin mode too, as in xterm.
-        With *selective*, as DECSED, the characters DECSCA protected are kept.
+        With *selective*, as DECSED, the protected characters are kept.
         """
         top_left = (0, 0, True)
         bottom_right = (self.width - 1, self.height - 1, True)

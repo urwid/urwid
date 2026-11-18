@@ -531,7 +531,11 @@ class TermTest(unittest.TestCase):
                 self.assertEqual(self.term.term.term[0][0], cell)
 
     def test_selective_erase(self) -> None:
-        """Keep the characters DECSCA protected in DECSED, DECSEL and DECSERA, which xterm draws so."""
+        """Keep the protected characters in the erases xterm keeps them in.
+
+        Those DECSCA protected are kept by DECSED, DECSEL and DECSERA, and those SPA protected by ED, EL, ECH, DECSED
+        and DECSEL until DECSCA, DECSTR or RIS.
+        """
         for label, data, screen in (
             ("DECSEL", r"\e[1;1H\e[?K", " BC"),
             ("DECSED", "\nEF\\e[?2J", " BC"),
@@ -550,6 +554,29 @@ class TermTest(unittest.TestCase):
                 self.restart()
                 self.write('A\\e[1"qBC\\e[0"qD' + data)
                 self.expect(screen)
+
+        for label, data, screen in (
+            ("ED", r"\e[1;1H\e[2J", " BC"),
+            ("EL", r"\e[1;1H\e[K", " BC"),
+            ("ECH", r"\e[1;1H\e[4X", " BC"),
+            ("DECSED", r"\e[?2J", " BC"),
+            ("DECSERA, which erases them", r"\e[1;1;1;4${", ""),
+            ("ED after DECSCA, which ends the ISO protection with any value", r'\e[5"q\e[2J', ""),
+            ("DECSED after DECSCA", r'\e[0"q\e[?2J', " BC"),
+            ("ED after DECSTR", r"\e[!p\e[2J", ""),
+            ("ED after DECRC, which does not restore the ISO protection", r'\e7\e[0"q\e8\e[2J', ""),
+            ("ED, as DECRC restores the protection SPA set", r"\e[1;1H\eV\e7\eW\e8E\eW\e[2J", "EBC"),
+            ("DECSEL, as EPA ends DECSCA", r'\e[1"qE\eWF\e[?2J', " BC E"),
+        ):
+            with self.subTest(f"SPA, {label}"):
+                self.restart()
+                self.write(r"A\eVBC\eWD" + data)
+                self.expect(screen)
+
+        self.restart()
+        self.write(r"\eV\ec")
+        self.read()
+        self.assertFalse(self.term.term.modes.iso_protection, "RIS ends the ISO protection")
 
         red = urwid.AttrSpec("default", "dark red")
         self.restart(4, 2)
@@ -1216,12 +1243,12 @@ class TermTest(unittest.TestCase):
                 b"\x1b[?0n\x1b[?13n\x1b[?20n\x1b[?27;1;0;0n",
             ),
             ("the DEC DSR forms of the other reports are not answered", r"\e[?53n\e[15n\e[25n\e[26n", b""),
-            ("DA reports a VT320 with ANSI colour", r"\e[c", b"\x1b[?63;22c"),
+            ("DA reports a VT320 with selective erase and ANSI colour", r"\e[c", b"\x1b[?63;6;22c"),
             ("DA with a private marker is not answered", r"\e[?c", b""),
-            ("DECID reports a VT320", r"\eZ", b"\x1b[?63;22c"),
-            ("DECID after an unfinished ESC # reports a VT320", r"\e#\eZ", b"\x1b[?63;22c"),
+            ("DECID reports a VT320", r"\eZ", b"\x1b[?63;6;22c"),
+            ("DECID after an unfinished ESC # reports a VT320", r"\e#\eZ", b"\x1b[?63;6;22c"),
             ("ESC # Z is no DECID and is not answered", r"\e#Z", b""),
-            ("the kitty keyboard flags are answered before DA", r"\e[?u\e[c", b"\x1b[?0u\x1b[?63;22c"),
+            ("the kitty keyboard flags are answered before DA", r"\e[?u\e[c", b"\x1b[?0u\x1b[?63;6;22c"),
             ("Secondary DA reports a VT320", r"\e[>c\e[>0c", b"\x1b[>24;10;0c" * 2),
             ("Secondary DA with a parameter other than 0 is not answered", r"\e[>1c", b""),
             ("Tertiary DA reports unit ID zero", r"\e[=c\e[=0c", b"\x1bP!|00000000\x1b\\" * 2),
@@ -1320,6 +1347,8 @@ class TermTest(unittest.TestCase):
                     ("overwriting a protected character", r"\e[1;2HX\e[?2K", 1, "FFE0 FFE0 FFB9 0000"),
                     ("DECSERA on a cell never written", r"\e[2;1;2;1${", 2, "FFE0 0000 0000 0000"),
                     ("RIS", r"\ecABCD\e[?2K", 1, "0000 0000 0000 0000"),
+                    ("SPA, which adds 0x04 too, and ED", r"\ecX\eVAB\eWC\e[1;1H\e[J", 1, "FFE0 FFBB FFBA 0000"),
+                    ("SPA and ECH", r"\ecX\eVAB\eWC\e[1;1H\e[4X", 1, "FFE0 FFBB FFBA FFE0"),
                 )
             ),
             *(
@@ -1333,6 +1362,9 @@ class TermTest(unittest.TestCase):
                     ("set, ignoring SGR 0", r'\e[1"q\e[0m', b"1"),
                     ("set, as DECRC restores it", r'\e[1"q\e7\e[0"q\e8', b"1"),
                     ("set, as SCORC restores it", r'\e[1"q\e[s\e[0"q\e[u', b"1"),
+                    ("off while SPA protects", r"\eV", b"0"),
+                    ("set by DECSCA after SPA", r'\eV\e[1"q', b"1"),
+                    ("off, as EPA ends DECSCA", r'\e[1"q\eW', b"0"),
                     ("off after DECSTR", r'\e[1"q\e[!p', b"0"),
                     ("off after RIS", r'\e[1"q\ec', b"0"),
                 )
@@ -1427,6 +1459,16 @@ class TermTest(unittest.TestCase):
                 "DECCIR reports DECSCA, and DECRSPS restores it",
                 rf'\e[1"q\e[1$w\e[0"q\eP1$t1;1;1;@;A;@;0;2;@;BBBB{_ST}\eP$q"q{_ST}',
                 b'\x1bP1$u1;1;1;@;A;@;0;2;@;B0BB\x1b\\\x1bP1$r1"q\x1b\\',
+            ),
+            (
+                "DECRSPS keeps the protection SPA started, which DECCIR does not report",
+                rf'\eV\eP1$t1;1;1;@;@;@;0;2;@;B0BB{_ST}\e[5"q\eP$q"q{_ST}',
+                b'\x1bP1$r1"q\x1b\\',
+            ),
+            (
+                "DECCIR does not report SPA",
+                r"\eV\e[1$w",
+                b"\x1bP1$u1;1;1;@;@;@;0;2;@;B0BB\x1b\\",
             ),
             ("DECRQDE reports the screen", r'\e["v', b'\x1b[24;80;1;1;1"w'),
             (
