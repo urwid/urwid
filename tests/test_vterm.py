@@ -37,6 +37,8 @@ import weakref
 from itertools import dropwhile
 from unittest import mock
 
+import wcwidth
+
 import urwid
 import urwid.ansi_parser
 import urwid.vterm
@@ -531,7 +533,11 @@ class TermTest(unittest.TestCase):
                 self.assertEqual(self.term.term.term[0][0], cell)
 
     def test_selective_erase(self) -> None:
-        """Keep the characters DECSCA protected in DECSED, DECSEL and DECSERA, which xterm draws so."""
+        """Keep the protected characters in the erases xterm keeps them in.
+
+        Those DECSCA protected are kept by DECSED, DECSEL and DECSERA, and those SPA protected by ED, EL, ECH, DECSED
+        and DECSEL until DECSCA, DECSTR or RIS.
+        """
         for label, data, screen in (
             ("DECSEL", r"\e[1;1H\e[?K", " BC"),
             ("DECSED", "\nEF\\e[?2J", " BC"),
@@ -550,6 +556,29 @@ class TermTest(unittest.TestCase):
                 self.restart()
                 self.write('A\\e[1"qBC\\e[0"qD' + data)
                 self.expect(screen)
+
+        for label, data, screen in (
+            ("ED", r"\e[1;1H\e[2J", " BC"),
+            ("EL", r"\e[1;1H\e[K", " BC"),
+            ("ECH", r"\e[1;1H\e[4X", " BC"),
+            ("DECSED", r"\e[?2J", " BC"),
+            ("DECSERA, which erases them", r"\e[1;1;1;4${", ""),
+            ("ED after DECSCA, which ends the ISO protection with any value", r'\e[5"q\e[2J', ""),
+            ("DECSED after DECSCA", r'\e[0"q\e[?2J', " BC"),
+            ("ED after DECSTR", r"\e[!p\e[2J", ""),
+            ("ED after DECRC, which does not restore the ISO protection", r'\e7\e[0"q\e8\e[2J', ""),
+            ("ED, as DECRC restores the protection SPA set", r"\e[1;1H\eV\e7\eW\e8E\eW\e[2J", "EBC"),
+            ("DECSEL, as EPA ends DECSCA", r'\e[1"qE\eWF\e[?2J', " BC E"),
+        ):
+            with self.subTest(f"SPA, {label}"):
+                self.restart()
+                self.write(r"A\eVBC\eWD" + data)
+                self.expect(screen)
+
+        self.restart()
+        self.write(r"\eV\ec")
+        self.read()
+        self.assertFalse(self.term.term.modes.iso_protection, "RIS ends the ISO protection")
 
         red = urwid.AttrSpec("default", "dark red")
         self.restart(4, 2)
@@ -1216,12 +1245,12 @@ class TermTest(unittest.TestCase):
                 b"\x1b[?0n\x1b[?13n\x1b[?20n\x1b[?27;1;0;0n",
             ),
             ("the DEC DSR forms of the other reports are not answered", r"\e[?53n\e[15n\e[25n\e[26n", b""),
-            ("DA reports a VT320 with ANSI colour", r"\e[c", b"\x1b[?63;22c"),
+            ("DA reports a VT320 with selective erase and ANSI colour", r"\e[c", b"\x1b[?63;6;22c"),
             ("DA with a private marker is not answered", r"\e[?c", b""),
-            ("DECID reports a VT320", r"\eZ", b"\x1b[?63;22c"),
-            ("DECID after an unfinished ESC # reports a VT320", r"\e#\eZ", b"\x1b[?63;22c"),
+            ("DECID reports a VT320", r"\eZ", b"\x1b[?63;6;22c"),
+            ("DECID after an unfinished ESC # reports a VT320", r"\e#\eZ", b"\x1b[?63;6;22c"),
             ("ESC # Z is no DECID and is not answered", r"\e#Z", b""),
-            ("the kitty keyboard flags are answered before DA", r"\e[?u\e[c", b"\x1b[?0u\x1b[?63;22c"),
+            ("the kitty keyboard flags are answered before DA", r"\e[?u\e[c", b"\x1b[?0u\x1b[?63;6;22c"),
             ("Secondary DA reports a VT320", r"\e[>c\e[>0c", b"\x1b[>24;10;0c" * 2),
             ("Secondary DA with a parameter other than 0 is not answered", r"\e[>1c", b""),
             ("Tertiary DA reports unit ID zero", r"\e[=c\e[=0c", b"\x1bP!|00000000\x1b\\" * 2),
@@ -1320,6 +1349,8 @@ class TermTest(unittest.TestCase):
                     ("overwriting a protected character", r"\e[1;2HX\e[?2K", 1, "FFE0 FFE0 FFB9 0000"),
                     ("DECSERA on a cell never written", r"\e[2;1;2;1${", 2, "FFE0 0000 0000 0000"),
                     ("RIS", r"\ecABCD\e[?2K", 1, "0000 0000 0000 0000"),
+                    ("SPA, which adds 0x04 too, and ED", r"\ecX\eVAB\eWC\e[1;1H\e[J", 1, "FFE0 FFBB FFBA 0000"),
+                    ("SPA and ECH", r"\ecX\eVAB\eWC\e[1;1H\e[4X", 1, "FFE0 FFBB FFBA FFE0"),
                 )
             ),
             *(
@@ -1333,6 +1364,9 @@ class TermTest(unittest.TestCase):
                     ("set, ignoring SGR 0", r'\e[1"q\e[0m', b"1"),
                     ("set, as DECRC restores it", r'\e[1"q\e7\e[0"q\e8', b"1"),
                     ("set, as SCORC restores it", r'\e[1"q\e[s\e[0"q\e[u', b"1"),
+                    ("off while SPA protects", r"\eV", b"0"),
+                    ("set by DECSCA after SPA", r'\eV\e[1"q', b"1"),
+                    ("off, as EPA ends DECSCA", r'\e[1"q\eW', b"0"),
                     ("off after DECSTR", r'\e[1"q\e[!p', b"0"),
                     ("off after RIS", r'\e[1"q\ec', b"0"),
                 )
@@ -1427,6 +1461,33 @@ class TermTest(unittest.TestCase):
                 "DECCIR reports DECSCA, and DECRSPS restores it",
                 rf'\e[1"q\e[1$w\e[0"q\eP1$t1;1;1;@;A;@;0;2;@;BBBB{_ST}\eP$q"q{_ST}',
                 b'\x1bP1$u1;1;1;@;A;@;0;2;@;B0BB\x1b\\\x1bP1$r1"q\x1b\\',
+            ),
+            (
+                "DECRSPS keeps the protection SPA started, which DECCIR does not report",
+                rf'\eV\eP1$t1;1;1;@;@;@;0;2;@;B0BB{_ST}\e[5"q\eP$q"q{_ST}',
+                b'\x1bP1$r1"q\x1b\\',
+            ),
+            (
+                "DECCIR does not report SPA",
+                r"\eV\e[1$w",
+                b"\x1bP1$u1;1;1;@;@;@;0;2;@;B0BB\x1b\\",
+            ),
+            *(
+                (
+                    f"DECCIR reports no pending wrap after {label}, as xterm does",
+                    "A" * 80 + data + r"\e[1$w",
+                    b"\x1bP1$u1;%d;1;@;@;@;0;2;@;B0BB\x1b\\" % column,
+                )
+                for label, data, column in (
+                    ("CR", "\r", 1),
+                    ("BS", "\b", 79),
+                    ("DECSTBM", r"\e[1;3r", 1),
+                    ("DECOM reset", r"\e[?6l", 1),
+                    ("ED", r"\e[2J", 80),
+                    ("EL", r"\e[K", 80),
+                    ("ECH", r"\e[X", 80),
+                    ("the alternate screen is shown", r"\e[?1049h", 80),
+                )
             ),
             ("DECRQDE reports the screen", r'\e["v', b'\x1b[24;80;1;1;1"w'),
             (
@@ -1742,6 +1803,122 @@ class TermTest(unittest.TestCase):
         self.write(r"AB\e[1;1H\e[2 q")
         self.term.wait_and_feed()
         self.assertEqual(next(iter(self.term.render(self.termsize, focus=False).content()))[0], (None, None, b"A"))
+
+    def test_wide_and_combining_characters(self) -> None:
+        """Give a wide character two cells and join a character with no width to the one before, as xterm draws them.
+
+        Which characters are wide is urwid's own width calculation, which differs between Unicode versions and so
+        between terminals; the cases take characters whose width has not changed, or ask wcwidth.
+        """
+        wide = "\u4e2d"
+        # a variation selector joins the heart only where urwid then draws it as wide as before
+        heart = "\u2764\ufe0f" if wcwidth.width("\u2764\ufe0f") == wcwidth.width("\u2764") else "\u2764"
+        for label, data, screen, cursor in (
+            ("a wide character", wide, wide, (2, 0)),
+            ("a character after a wide one", f"{wide}X", f"{wide}X", (3, 0)),
+            ("a wide character in the last two columns", rf"\e[1;11H{wide}", " " * 10 + wide, (11, 0)),
+            (
+                "autowrap after a wide character in the last two columns",
+                rf"\e[1;11H{wide}Y",
+                " " * 10 + f"{wide}\nY",
+                (1, 1),
+            ),
+            ("autowrap before a wide character in the last column", rf"\e[1;12H{wide}Y", f"\n{wide}Y", (3, 1)),
+            ("no autowrap: dropped in the last column", rf"\e[?7l\e[1;12H{wide}Y", " " * 11 + "Y", (11, 0)),
+            ("no autowrap: written in the last two columns", rf"\e[?7l\e[1;11H{wide}", " " * 10 + wide, (11, 0)),
+            ("no autowrap: overwritten in the last column", rf"\e[?7l\e[1;11H{wide}Y", " " * 11 + "Y", (11, 0)),
+            ("no autowrap: dropped past the last column", rf"\e[?7l\e[1;10H{wide}{wide}", " " * 9 + wide, (11, 0)),
+            ("overwriting the first half", rf"{wide}\e[1;1HX", "X", (1, 0)),
+            ("overwriting the second half", rf"{wide}\e[1;2HX", " X", (2, 0)),
+            ("a wide character over a second half", rf"AB{wide}\e[1;4H{wide}", f"AB {wide}", (5, 0)),
+            ("a wide character over two halves", rf"{wide}{wide}\e[1;2H{wide}", f" {wide}", (3, 0)),
+            ("ICH in a wide character", rf"{wide}AB\e[1;2H\e[@", "   AB", (1, 0)),
+            ("ICH before a wide character", rf"{wide}AB\e[1;1H\e[@", f" {wide}AB", (0, 0)),
+            ("ICH pushing a wide character past the edge", rf"{'A' * 10}{wide}\e[1;1H\e[@", " " + "A" * 10, (0, 0)),
+            ("DCH of the first half", rf"{wide}AB\e[1;1H\e[P", " AB", (0, 0)),
+            ("DCH of the second half", rf"{wide}AB\e[1;2H\e[P", " AB", (1, 0)),
+            ("DCH before a wide character", rf"A{wide}B\e[1;1H\e[P", f"{wide}B", (0, 0)),
+            ("ECH of the first half", rf"{wide}AB\e[1;1H\e[X", "  AB", (0, 0)),
+            ("ECH of the second half", rf"{wide}AB\e[1;2H\e[X", "  AB", (1, 0)),
+            ("EL 1 of the first half", rf"{wide}AB\e[1;1H\e[1K", "  AB", (0, 0)),
+            ("EL of the second half", rf"{wide}AB\e[1;2H\e[K", "", (1, 0)),
+            ("insert mode", rf"ABC\e[1;1H\e[4h{wide}", f"{wide}ABC", (2, 0)),
+            ("BS onto the second half", f"{wide}\bX", " X", (2, 0)),
+            ("a tab onto the second half", rf"{wide * 3}\e[3g\e[1;4H\eH\e[1;1H" + "\tX", f"{wide} X{wide}", (4, 0)),
+            ("DECCRA of a second half", rf"{wide}AB\e[1;2;1;3;1;2;1$v", f"{wide}AB\n A", (4, 0)),
+            ("DECERA of a second half", rf"{wide}AB\e[1;2;1;2$z", "  AB", (4, 0)),
+            ("DECFRA of a second half", rf"{wide}AB\e[88;1;2;1;2$x", " XAB", (4, 0)),
+            ("DECIC in a wide character", rf"{wide}AB\e[1;2H\e['}}", "   AB", (1, 0)),
+            ("DECDC in a wide character", rf"{wide}AB\e[1;2H\e['~", " AB", (1, 0)),
+            ("DECSED keeps a protected wide character", rf'\e[1"q{wide}\e[0"q\e[?2J', wide, (2, 0)),
+            ("an emoji", "\U0001f600X", "\U0001f600X", (3, 0)),
+            ("a combining accent", "e\u0301X", "e\u0301X", (2, 0)),
+            ("a combining accent at the start of a line, dropped", "\u0301X", "X", (1, 0)),
+            ("a combining accent after the last column", "\\e[1;12He\u0301X", " " * 11 + "e\u0301\nX", (1, 1)),
+            ("a combining accent on a wide character", f"{wide}\u0301X", f"{wide}\u0301X", (3, 0)),
+            ("a combining accent on a blank", "e\\e[C\u0301X", "e \u0301X", (3, 0)),
+            ("a zero width joiner", "a\u200dX", "a\u200dX", (2, 0)),
+            ("a variation selector", "\u2764\ufe0fX", f"{heart}X", (2, 0)),
+            ("a wide character after CR from the last column", f"{'A' * 12}\r{wide}", f"{wide}{'A' * 10}", (2, 0)),
+            ("a wide character after BS from the last column", f"{'A' * 12}\b{wide}", f"{'A' * 10}{wide}", (11, 0)),
+            (
+                "a wide character after DECSTBM homes the cursor",
+                rf"{'A' * 12}\e[1;3r{wide}",
+                f"{wide}{'A' * 10}",
+                (2, 0),
+            ),
+            ("a combining accent after CR from the last column, dropped", f"{'A' * 12}\r\u0301", "A" * 12, (0, 0)),
+            (
+                "no autowrap: a combining accent after the last column",
+                "\\e[?7l\\e[1;11Hde\u0301",
+                " " * 10 + "de\u0301",
+                (11, 0),
+            ),
+            (
+                "autowrap set after a write in the last column wraps",
+                rf"\e[?7l{'A' * 12}\e[?7hB",
+                "A" * 12 + "\nB",
+                (1, 1),
+            ),
+            ("at most two combining accents", "e\u0301\u0302\u0303X", "e\u0301\u0302X", (2, 0)),
+            ("a combining accent on a DEC graphics character, dropped", "\\e(0q\u0301\\e(BX", "qX", (2, 0)),
+        ):
+            with self.subTest(label), set_temporary_encoding("utf-8"):
+                self.restart(12, 3)
+                self.write(data.encode().decode("iso8859-1"))
+                self.assertEqual(self.read(), screen.encode())
+                self.assertEqual(self.term.term.term_cursor, cursor)
+
+        with set_temporary_encoding("utf-8"):
+            self.restart(12, 3)
+            self.write(rf"{wide}\e[1;1;1;1;1;2*y".encode().decode("iso8859-1"))
+            self.read()
+            self.assertEqual(
+                bytes(self.pty.from_widget),
+                b"\x1bP1!~FFC5\x1b\\",
+                "DECRQCRA counts the first half as 0x1B and the second as a space, as xterm does",
+            )
+
+            self.restart(12, 3)
+            self.write(rf"\e[11m{wide}".encode().decode("iso8859-1"))
+            self.read()
+            self.assertEqual(self.term.term.term[0][0][1], "U", "the IBM PC mapping stores a wide character in it")
+
+            self.restart(12, 3)
+            self.write(f"{'A' * 10}{wide}".encode().decode("iso8859-1"))
+            self.read()
+            self.resize(11, 3)
+            self.assertEqual(self.read(), b"A" * 10, "a resize cutting a wide character in half leaves no half")
+
+            self.restart(12, 3)
+            self.write(rf"{wide}\e[D\e[2 q".encode().decode("iso8859-1"))
+            self.term.wait_and_feed()
+            first = next(iter(self.term.render(self.termsize, focus=True).content()))[0]
+            self.assertEqual(
+                first,
+                (urwid.AttrSpec("default,standout", "default"), None, wide.encode()),
+                "the cursor on the second half is drawn on the first",
+            )
 
     def test_column_operations(self) -> None:
         """Insert and delete columns in the scrolling region with DECIC, DECDC, DECBI and DECFI, as xterm does."""
