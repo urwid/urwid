@@ -979,6 +979,69 @@ class TableTest(unittest.TestCase):
                 self.assertTrue(check.state)
                 self.assertEqual([], activated)
 
+    def test_edge_reached(self) -> None:
+        """A key or a wheel notch that moves nothing at an end of the rows sends that end; others send nothing."""
+        size = (10, 4)
+        # label, table arguments, start row, keys or a wheel button, the ends sent
+        cases: tuple[
+            tuple[
+                str,
+                dict[str, typing.Any],
+                int,
+                tuple[str, ...] | int,
+                list[str],
+            ],
+            ...,
+        ] = (
+            ("up at the first row", {}, 0, ("up",), ["top"]),
+            ("page up at the first row", {}, 0, ("page up",), ["top"]),
+            ("down at the last row", {}, 4, ("down",), ["bottom"]),
+            ("page down at the last row", {}, 4, ("page down",), ["bottom"]),
+            ("keys that move", {}, 2, ("up", "down", "down"), []),
+            ("wheel up at the first row", {}, 0, 4, ["top"]),
+            ("wheel down at the last row", {"scrollbar": True}, 4, 5, ["bottom"]),
+            ("up to the header of a sortable table", {"sortable": True}, 0, ("up",), ["top"]),
+        )
+        ends: list[str] = []
+
+        def record(_w: urwid.Table, end: str) -> None:
+            ends.append(end)
+
+        for label, kwargs, start, keys, expected in cases:
+            with self.subTest(label):
+                table = self.make(5, **kwargs)
+                table.render(size, focus=True)
+                # Moved by keys rather than by focus_position, so that the list box has stored its view offset.
+                press(table, size, *(["down"] * start))
+                ends.clear()
+                urwid.connect_signal(table, "edge reached", record)
+                if isinstance(keys, int):
+                    click(table, size, 0, 1, button=keys)
+                else:
+                    press(table, size, *keys)
+                self.assertEqual(expected, ends)
+        sortable = self.make(5, sortable=True)
+        sortable.render(size, focus=True)
+        press(sortable, size, "up")
+        self.assertEqual(0, sortable.header_column)
+
+    def test_edge_reached_loads_rows(self) -> None:
+        """A handler that adds rows at the bottom lets the next key move into them."""
+        size = (10, 4)
+        table = self.make(2)
+
+        def load(widget: urwid.Table, end: str) -> None:
+            if end == "bottom":
+                widget.body.extend([[f"r{i}", str(i)] for i in range(len(widget.body), len(widget.body) + 2)])
+
+        urwid.connect_signal(table, "edge reached", load)
+        table.focus_position = 1
+        table.render(size, focus=True)
+        self.assertEqual(["down"], press(table, size, "down"))
+        self.assertEqual(4, len(table.body))
+        self.assertEqual([], press(table, size, "down"))
+        self.assertEqual(2, table.focus_position)
+
     def test_selectable_rows(self) -> None:
         """Rows of plain text are focusable; rows built not selectable are skipped."""
         table = urwid.Table([Column("A")])

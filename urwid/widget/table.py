@@ -1070,6 +1070,9 @@ class Table(Widget, WidgetContainerMixin[int]):
     A handler whose result is true consumes the key; otherwise the key is returned, as :class:`Overlay` does for
     ``"menu"``. Every handler runs, whatever the earlier ones returned.
     A mouse click moves the focus and reaches the cell only.
+    Sends ``"edge reached"`` with ``"top"`` or ``"bottom"`` when its rows send it, see :class:`ListBox`,
+    so that a handler can add rows at that end, such as the next batch of a list loaded in parts.
+    In a sortable table, :kbd:`up` at the first row sends ``"top"`` before the header takes the focus.
 
     :meth:`sort` reorders the rows by a column or a key and records :attr:`sort_column` and :attr:`sort_reverse`.
 
@@ -1089,7 +1092,7 @@ class Table(Widget, WidgetContainerMixin[int]):
     finds the header focus as it left it.
     """
 
-    signals: typing.ClassVar[list[str]] = ["focus changed", "activate", "header activated"]
+    signals: typing.ClassVar[list[str]] = ["focus changed", "activate", "header activated", "edge reached"]
 
     def __init__(
         self,
@@ -1225,11 +1228,16 @@ class Table(Widget, WidgetContainerMixin[int]):
         )
         self._bar = ScrollBar(self._listbox, visible=True, **bar_options) if scrollbar is not False else None
         signals.connect_signal(self._rows, "modified", type(self)._rows_modified, weak_args=[self])
+        signals.connect_signal(self._listbox, "edge reached", Table._edge_reached, weak_args=[self])
         # connected last, so that filling the rows during construction sends no signal
         self._rows.set_focus_moved_callback(_WeakCallback(self, type(self)._focus_moved))
 
     def _focus_moved(self, old: int | None, new: int | None) -> None:
         self._emit("focus changed", old, new)
+
+    def _edge_reached(self, _listbox: ListBox[int], end: Literal["top", "bottom"]) -> None:
+        """Send ``"edge reached"`` from the table for *end*, sent by the rows."""
+        self._emit("edge reached", end)
 
     @property
     def layout(self) -> TableLayout:

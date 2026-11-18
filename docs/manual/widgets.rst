@@ -972,10 +972,14 @@ The table sends ``"focus changed"`` like the other containers, and
 whose result is true consumes the key; otherwise the key is returned, as
 :class:`Overlay` does for ``"menu"``.  Every handler runs, whatever the earlier
 ones returned.  A mouse click moves the focus and reaches the cell, as in a
-:class:`ListBox`.  A ``row_attr(index, data)`` callable colours rows by their
-position or their data, for example in stripes; it runs each time a row is
-drawn.  The ``unfocused_focus_attr`` map is applied over the row's own map, so
-its keys are the attributes the row's map produces.
+:class:`ListBox`.  The table also passes on the ``"edge reached"`` signal of
+its rows, see :class:`ListBox`, so a table that loads its rows in batches adds
+the next batch when it is sent with ``"bottom"``.  In a sortable table,
+:kbd:`up` at the first row sends ``"top"`` before the header takes the focus.
+A ``row_attr(index, data)`` callable colours rows by their position or their
+data, for example in stripes; it runs each time a row is drawn.  The
+``unfocused_focus_attr`` map is applied over the row's own map, so its keys are
+the attributes the row's map produces.
 
 ``footer=`` takes the cells of a row drawn below the rows, such as totals.
 :attr:`Table.footer` can be set later to cells, to a :class:`TableRow` of
