@@ -339,6 +339,30 @@ class TerminalOutputTest(unittest.TestCase):
 
         self.assertEqual([b"8x1"], _text(output, (8, 1)))
 
+    def test_resize_handler_renders_the_widget_again(self) -> None:
+        """A "resize" handler that renders the widget at another size gets the terminal cut or padded to it.
+
+        The terminal keeps the size being reported, and the render that resized it returns that size.
+        A later render at the handler's size still resizes the terminal, also while the handler's canvas is alive.
+        """
+        output, events = _recording(size=(10, 2))
+        nested: list[urwid.Canvas] = []
+
+        def render_again(widget: urwid.TerminalOutput, size: tuple[int, int]) -> None:
+            widget.write(f"\x1b[2J\x1b[H{size[0]}x{size[1]}")
+            if not nested:
+                nested.append(widget.render((3, 3)))
+
+        urwid.connect_signal(output, "resize", render_again)
+
+        self.assertEqual([b"6x2", b""], _text(output, (6, 2)))
+        self.assertEqual([b"6x2", b"", b""], [line.rstrip() for line in nested[0].text])
+        self.assertEqual([("resize", (6, 2))], events)
+
+        output.render((3, 3))
+        self.assertEqual((3, 3), (output._term.width, output._term.height))
+        self.assertEqual([("resize", (6, 2)), ("resize", (3, 3))], events)
+
     def test_scrolling(self) -> None:
         """Scroll on the page keys and the mouse wheel, and leave other input to the parent."""
         output, _events = _recording(size=(4, 2))

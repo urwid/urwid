@@ -6,7 +6,7 @@ import re
 import typing
 
 from urwid import util
-from urwid.canvas import SolidCanvas
+from urwid.canvas import CompositeCanvas, SolidCanvas
 from urwid.term_canvas import TermCanvas, TermModes
 
 from .constants import MouseButton, Sizing
@@ -84,6 +84,8 @@ class TerminalOutput(Widget):
         #: The modes the data set; the screen resets them, so they are this widget's own.
         self.term_modes = TermModes()
         self._term = TermCanvas(columns, rows, self, scroll_on_output=scroll_on_output)
+        # the "resize" signal is being emitted, so a render from its handlers does not resize the terminal again
+        self._emitting_resize = False
 
     def write(self, data: bytes | bytearray | memoryview | str) -> None:
         """Feed *data* to the terminal, as a program writes its output.
@@ -127,19 +129,32 @@ class TerminalOutput(Widget):
         self,
         size: tuple[int, int],  # type: ignore[override]
         focus: bool = False,
-    ) -> TermCanvas | SolidCanvas:
+    ) -> TermCanvas | CompositeCanvas | SolidCanvas:
         """Resize the terminal to *size* when it differs, and return the terminal canvas.
 
         The cursor is drawn only when the widget has *focus*.
         A size with a zero dimension shows nothing and leaves the terminal at its size, so no output is lost.
+        A ``"resize"`` handler that renders the widget at another size gets the terminal cut or padded to that size,
+        and the terminal keeps the size the signal reports.
         """
         columns, rows = size
         if columns <= 0 or rows <= 0:
             return SolidCanvas(" ", columns, rows)
         term = self._term
         if size != (term.width, term.height):
+            if self._emitting_resize:
+                canvas = CompositeCanvas(term)
+                # not cached: a later render at this size has to resize the terminal
+                canvas.cacheable = False
+                canvas.pad_trim_left_right(0, columns - term.width)
+                canvas.pad_trim_top_bottom(0, rows - term.height)
+                return canvas
             term.resize(*size)
-            self._emit("resize", size)
+            self._emitting_resize = True
+            try:
+                self._emit("resize", size)
+            finally:
+                self._emitting_resize = False
         if focus != term.has_focus:
             term.has_focus = focus
             term.set_term_cursor()
