@@ -1650,13 +1650,16 @@ class ListBox(Widget, SelectNavigationMixin[_K], _UnfocusedFocusAttrMixin):
         """Run a page key and send ``"edge reached"`` when it moved nothing at *end*.
 
         The return value of a page key does not tell whether the view moved, so the focus and its offset are compared.
+        The offset is the one drawn, because the stored one can differ from it after the focus is set,
+        and rendering does not update it.
         """
-        before = self._body.get_focus()[1], self.offset_rows, self.inset_fraction
+        middle = self.calculate_visible(size, focus=True)[0]
+        before = None if middle is None else (middle.offset, middle.focus_pos)
         unhandled = move(size)
-        focus_widget, focus_pos = self._body.get_focus()
+        middle = self.calculate_visible(size, focus=True)[0]
         if (
-            focus_widget is not None  # a body can lose its rows while the key is handled
-            and before == (focus_pos, self.offset_rows, self.inset_fraction)
+            middle is not None  # a body can lose its rows while the key is handled
+            and before == (middle.offset, middle.focus_pos)
             and end in self.ends_visible(size, True)
         ):
             self._emit("edge reached", end)
