@@ -276,6 +276,7 @@ class TestScreenInput(unittest.TestCase):
             mock.patch.object(_win32, "GetConsoleMode", side_effect=get_mode),
             mock.patch.object(_win32, "SetConsoleMode") as set_mode,
             mock.patch.object(_win32_raw_display, "ReadInputThread"),
+            mock.patch.object(s, "_console_window_size", return_value=None),  # the handles above are no real ones
         ):
             s.start()
             written.clear()
