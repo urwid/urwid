@@ -1144,7 +1144,51 @@ class TermTest(unittest.TestCase):
             ("the kitty keyboard flags are answered before DA", r"\e[?u\e[c", b"\x1b[?0u\x1b[?63;22c"),
             ("Secondary DA reports a VT320", r"\e[>c\e[>0c", b"\x1b[>24;10;0c" * 2),
             ("Secondary DA with a parameter other than 0 is not answered", r"\e[>1c", b""),
-            ("Tertiary DA is not answered", r"\e[=c", b""),
+            ("Tertiary DA reports unit ID zero", r"\e[=c\e[=0c", b"\x1bP!|00000000\x1b\\" * 2),
+            ("Tertiary DA with a parameter other than 0 is not answered", r"\e[=1c", b""),
+            ("Tertiary DA is not answered at the VT100 level", r'\e[61"p\e[=c', b""),
+            ("DECRQCRA counts a blank cell 0", r"\e[5;1;1;1;1;1*y", b"\x1bP5!~0000\x1b\\"),
+            (
+                "DECRQCRA adds bold, blink, reverse and underline to the character, not faint or colours",
+                r"A\e[1mA\e[0;5mA\e[0;7mA\e[0;4mA\e[0;2;31mA\e[0m"
+                + "".join(rf"\e[1;1;1;{col};1;{col}*y" for col in range(1, 7)),
+                b"".join(b"\x1bP1!~%s\x1b\\" % code for code in (b"FFBF", b"FF3F", b"FF7F", b"FF9F", b"FFAF", b"FFBF")),
+            ),
+            ("DECRQCRA takes the low 7 bits of a character", "\xc3\xa9\\e[1;1;1;1;1;1*y", b"\x1bP1!~FF97\x1b\\"),
+            ("DECRQCRA sums a rectangle, the whole page by default", r"AB\e[1;1*y", b"\x1bP1!~FF7D\x1b\\"),
+            (
+                "DECRQCRA counts rows from the top margin in origin mode",
+                r"\e[3;7r\e[?6hA\e[1;1;1;1;1;1*y",
+                b"\x1bP1!~FFBF\x1b\\",
+            ),
+            (
+                "DECRQCRA without parameters is not answered, and an empty Pid is 65535, as in xterm",
+                r"\e[*y\e[;*y\e[7*y",
+                b"\x1bP65535!~0000\x1b\\\x1bP7!~0000\x1b\\",
+            ),
+            ("DECRQCRA is not answered at the VT100 level", r'\e[61"p\e[1;1;1;1;1;1*y', b""),
+            (
+                "DECFRA fills in the current attributes, and DECERA erases",
+                r"\e[1m\e[88;1;1;2;3$x\e[0m\e[1;1;1;1;2;3*y\e[1;1;1;1$z\e[1;1;1;1;1;1*y\e[1;1;1;2;1;2*y",
+                b"\x1bP1!~FAF0\x1b\\\x1bP1!~0000\x1b\\\x1bP1!~FF28\x1b\\",
+            ),
+            ("DECFRA ignores a control character", r"\e[10;1;1;1;1$x\e[1;1;1;1;1;1*y", b"\x1bP1!~0000\x1b\\"),
+            (
+                "DECCRA copies a rectangle and leaves the source",
+                r"AB\e[1;1;1;2;1;3;5;1$v\e[1;1;3;5;3;6*y\e[1;1;1;1;1;2*y",
+                b"\x1bP1!~FF7D\x1b\\" * 2,
+            ),
+            ("DECRQSS reports the lines per page", rf"\eP$qt{_ST}", b"\x1bP1$r24t\x1b\\"),
+            (
+                "DECRQSS reports the cursor style DECSCUSR set, 0 being 1, a style past 6 ignored",
+                rf"\eP$q q{_ST}\e[0 q\eP$q q{_ST}\e[5 q\e[7 q\eP$q q{_ST}",
+                b"\x1bP1$r2 q\x1b\\\x1bP1$r1 q\x1b\\\x1bP1$r5 q\x1b\\",
+            ),
+            (
+                "DECSTR and RIS restore the steady block cursor",
+                rf"\e[5 q\e[!p\eP$q q{_ST}\e[5 q\ec\eP$q q{_ST}",
+                b"\x1bP1$r2 q\x1b\\" * 2,
+            ),
             ("DECRQM reports a mode reset", r"\e[?2048$p", b"\x1b[?2048;2$y"),
             ("DECRQM reports a mode set", r"\e[?2004h\e[?2004$p", b"\x1b[?2004;1$y"),
             (
@@ -1273,7 +1317,7 @@ class TermTest(unittest.TestCase):
             ),
             (
                 "DECRQSS answers a setting not reported as invalid",
-                rf"\eP$q q{_ST}\eP$qmm{_ST}\eP$q{_ST}",
+                rf"\eP$q$}}{_ST}\eP$qmm{_ST}\eP$q{_ST}",
                 b"\x1bP0$r\x1b\\" * 3,
             ),
             ("DECRQSS ignores BEL and ends only at ST", f"\\eP$q\x07m{_ST}", b"\x1bP1$r0m\x1b\\"),
@@ -1393,6 +1437,70 @@ class TermTest(unittest.TestCase):
         self.write("\\e7\\e(0\\e8\x0fq")
         self.expect([[(None, None, b"q")]], raw=True)
 
+    def test_cursor_style_is_drawn_after_decscusr(self) -> None:
+        """Draw the cursor cell in the style DECSCUSR set instead of the display's cursor, until DECSTR or RIS."""
+        reverse = urwid.AttrSpec("default,standout", "default")
+        underline = urwid.AttrSpec("default,underline", "default")
+        red_reverse = urwid.AttrSpec("dark red,standout", "default")
+        for label, data, cell, cursor in (
+            ("the display's cursor before a DECSCUSR", r"AB\e[1;1H", (None, None, b"A"), (0, 0)),
+            ("a block in reverse video", r"AB\e[1;1H\e[2 q", (reverse, None, b"A"), None),
+            ("a blinking underline drawn steady", r"AB\e[1;1H\e[3 q", (underline, None, b"A"), None),
+            ("a bar in reverse video", r"AB\e[1;1H\e[6 q", (reverse, None, b"A"), None),
+            (
+                "a reverse cell drawn back to normal",
+                r"\e[7mA\e[0mB\e[1;1H\e[2 q",
+                (urwid.AttrSpec("default", "default"), None, b"A"),
+                None,
+            ),
+            (
+                "an underlined cell drawn without the underline",
+                r"\e[4mA\e[0mB\e[1;1H\e[4 q",
+                (urwid.AttrSpec("default", "default"), None, b"A"),
+                None,
+            ),
+            ("the cell keeps its colour", r"\e[31mA\e[0mB\e[1;1H\e[2 q", (red_reverse, None, b"A"), None),
+            ("a hidden cursor is not drawn", r"AB\e[1;1H\e[2 q\e[?25l", (None, None, b"A"), None),
+            ("DECSTR returns to the display's cursor", r"AB\e[1;1H\e[2 q\e[!p", (None, None, b"A"), (0, 0)),
+            ("RIS returns to the display's cursor", r"\e[2 q\ecAB\e[1;1H", (None, None, b"A"), (0, 0)),
+        ):
+            with self.subTest(label):
+                self.restart(10, 3)
+                self.write(data)
+                self.term.wait_and_feed()
+                canvas = self.term.render(self.termsize, focus=True)
+                self.assertEqual(next(iter(canvas.content()))[0], cell)
+                self.assertEqual(canvas.cursor, cursor)
+        # out of focus no cursor is drawn
+        self.restart(10, 3)
+        self.write(r"AB\e[1;1H\e[2 q")
+        self.term.wait_and_feed()
+        self.assertEqual(next(iter(self.term.render(self.termsize, focus=False).content()))[0], (None, None, b"A"))
+
+    def test_column_operations(self) -> None:
+        """Insert and delete columns in the scrolling region with DECIC, DECDC, DECBI and DECFI, as xterm does."""
+        for label, sequence, rows, cursor in (
+            ("DECIC at the cursor column", r"\e[1;3H\e[2'}", ["AB  CDEF"] * 4, (2, 0)),
+            ("DECDC at the cursor column", r"\e[2;3H\e[2'~", ["ABEF"] * 4, (2, 1)),
+            (
+                "DECIC only in the scrolling region",
+                r"\e[2;3r\e[2;3H\e['}",
+                ["ABCDEF", "AB CDEF", "AB CDEF", "ABCDEF"],
+                (2, 1),
+            ),
+            ("DECIC outside the scrolling region", r"\e[2;3r\e[1;3H\e['}", ["ABCDEF"] * 4, (2, 0)),
+            ("DECBI at the left edge", r"\e[2;1H\e6", [" ABCDEF"] * 4, (0, 1)),
+            ("DECBI elsewhere moves left", r"\e[2;3H\e6", ["ABCDEF"] * 4, (1, 1)),
+            ("DECFI at the right edge", r"\e[2;10H\e9", ["BCDEF"] * 4, (9, 1)),
+            ("DECFI elsewhere moves right", r"\e[2;3H\e9", ["ABCDEF"] * 4, (3, 1)),
+        ):
+            with self.subTest(label):
+                self.restart(10, 4)
+                self.write("ABCDEF\nABCDEF\nABCDEF\nABCDEF" + sequence)
+                self.read()
+                self.assertEqual([line.rstrip() for line in self.term.term.text], [row.encode() for row in rows])
+                self.assertEqual(self.term.term.term_cursor, cursor)
+
     def test_soft_reset(self) -> None:
         """Reset the modes, the region, the attributes and the charsets DECSTR resets, keeping the cursor, as xterm."""
         self.write(r"\e[?1h\e[?25l\e[4h\e[?7l\e[2;4r\e[1;31m\e=\e(0\e[3;5H\e7\e[2;2H\e[!p")
@@ -1478,7 +1586,7 @@ class TermTest(unittest.TestCase):
 
     def test_csi_with_sub_parameters_or_intermediate_bytes_is_ignored_whole(self) -> None:
         """Ignore a whole CSI sequence with sub-parameters, a private marker or intermediate bytes (ECMA-48 5.4)."""
-        self.write(r"\e[38:5:196ma\e[38:2::1:2:3mb\e[4:3mc\e[2 qd\e[>4;1me\e[=5cf\e[1$xg\e[>1ch")
+        self.write(r"\e[38:5:196ma\e[38:2::1:2:3mb\e[4:3mc\e[2 @d\e[>4;1me\e[=5cf\e[1$tg\e[>1ch")
         self.expect("abcdefgh")
         self.assertIsNone(self.term.term.attrspec)
         self.assertEqual(bytes(self.pty.from_widget), b"")

@@ -114,6 +114,19 @@ _PRIMARY_DEVICE_ATTRIBUTES: typing.Final = f"{ESC}[?63;22c"
 #: the Secondary DA reply, as a VT320 sends it: the VT320 (24), firmware version 1.0 (10), no ROM cartridge (0)
 _SECONDARY_DEVICE_ATTRIBUTES: typing.Final = f"{ESC}[>24;10;0c"
 
+#: the Tertiary DA reply (DECRPTUI): the unit ID, zero as in xterm
+_TERTIARY_DEVICE_ATTRIBUTES: typing.Final = f"{ESC}P!|00000000{ESC}\\"
+
+#: the cursor styles DECSCUSR sets: 1 and 2 a blinking and a steady block, 3 and 4 underline, 5 and 6 a bar
+_CURSOR_STYLES: typing.Final = range(1, 7)
+#: the cursor styles drawn underlined; the others, a block or a bar, are drawn in reverse video
+_UNDERLINE_CURSOR_STYLES: typing.Final = frozenset((3, 4))
+#: the cursor style DECRQSS reports before a DECSCUSR, a steady block, as xterm reports its startup one
+_DEFAULT_CURSOR_STYLE: typing.Final = 2
+
+#: the DECRQCRA checksum bits of the AttrSpec flags, as xterm adds them to each character
+_CHECKSUM_BITS: typing.Final = (("bold", 0x80), ("blink", 0x40), ("standout", 0x20), ("underline", 0x10))
+
 #: the conformance levels DECSCL selects: VT100 (61), VT200 (62) and VT300 (63), the highest and the startup one
 _CONFORMANCE_LEVELS: typing.Final = range(61, 64)
 
@@ -270,6 +283,14 @@ CSI_COMMANDS: dict[bytes, CSIAlias | CSICommand] = {
     b"u": CSICommand(0, 0, lambda s, none, q: s.restore_cursor(with_attrs=True)),
     # DECRQPSR (CSI Ps $ w) is answered in parse_csi, and the other forms are not implemented
     b"w": CSICommand(0, 0, lambda s, none, q: None),
+    # the VT420 sequences with an intermediate byte, run in parse_csi from _INTERMEDIATE_COMMANDS: DECFRA (CSI ... $ x),
+    # DECERA (CSI ... $ z), DECCRA (CSI ... $ v), DECRQCRA (CSI ... * y), DECIC (CSI Ps ' }) and DECDC (CSI Ps ' ~)
+    b"v": CSICommand(0, 0, lambda s, none, q: None),
+    b"x": CSICommand(0, 0, lambda s, none, q: None),
+    b"y": CSICommand(0, 0, lambda s, none, q: None),
+    b"z": CSICommand(0, 0, lambda s, none, q: None),
+    b"}": CSICommand(0, 0, lambda s, none, q: None),
+    b"~": CSICommand(0, 0, lambda s, none, q: None),
     b"`": CSIAlias("alias", b"G"),
 }
 
@@ -327,6 +348,9 @@ class TermModes:
     keypad_application: bool = False
     # the backarrow key sends BS rather than DEL (DECBKM)
     backarrow_sends_backspace: bool = False
+    # the cursor style DECSCUSR set, 1 to 6, which the canvas draws itself in place of the display's cursor; None
+    # before a DECSCUSR and after DECSTR or RIS, while the display's cursor is shown
+    cursor_style: int | None = None
 
     def reset(self) -> None:
         """Reset every mode flag to its terminal-startup default."""
@@ -347,6 +371,7 @@ class TermModes:
         self.alternate_screen = False
         self.keypad_application = False
         self.backarrow_sends_backspace = False
+        self.cursor_style = None
 
         self.keyboard_flags = []
 
@@ -476,6 +501,23 @@ class TermCharset:
             return char
 
         return char
+
+
+def _with_flag(attrspec: AttrSpec | None, flag: str, *, remove: bool = False) -> AttrSpec:
+    """Return *attrspec* with the foreground setting *flag*, such as ``standout``, added, or removed with *remove*.
+
+    None stands for the default colours.
+    """
+    if attrspec is None:
+        attrspec = AttrSpec("default", "default")
+    attrs = [fg.strip() for fg in attrspec.foreground.split(",")]
+    if flag in attrs and remove:
+        attrs.remove(flag)
+        attrspec = attrspec.copy_modified(fg=",".join(attrs))
+    elif flag not in attrs and not remove:
+        attrs.append(flag)
+        attrspec = attrspec.copy_modified(fg=",".join(attrs))
+    return attrspec
 
 
 def _sgr_parameters(attrspec: AttrSpec | None) -> str:
@@ -611,10 +653,15 @@ class TermCanvas(Canvas):
 
         self.term_cursor = x, y = self.constrain_coords(x, y)
 
+        # with a cursor style set, content() draws the cursor and the display shows none
+        self.cursor = self._shown_cursor() if self.modes.cursor_style is None else None
+
+    def _shown_cursor(self) -> tuple[int, int] | None:
+        """Return the cursor's column and row in the view, or None while it is hidden, out of focus or scrolled away."""
+        x, y = self.term_cursor
         if self.has_focus and self.modes.visible_cursor and self.scrolling_up < self.height - y:
-            self.cursor = (x, y + self.scrolling_up)
-        else:
-            self.cursor = None
+            return x, y + self.scrolling_up
+        return None
 
     def reset_scroll(self) -> None:
         """Reset scrolling region to full terminal size."""
@@ -913,6 +960,18 @@ class TermCanvas(Canvas):
                 self.csi_report_mode(int(mode))
             return
 
+        if char == b"c" and bytes(self._escbuf) in {b"=", b"=0"}:
+            # Tertiary DA: CSI = c, a DCS reply, which a VT100 (level 61) does not send
+            if self.conformance_level > 61:
+                self.widget.respond(_TERTIARY_DEVICE_ATTRIBUTES)
+            return
+
+        if (handler := _INTERMEDIATE_COMMANDS.get((bytes(self._escbuf[-1:]), char))) is not None:
+            params = self._escbuf[:-1]
+            if not params.strip(b"0123456789;"):
+                handler(self, [int(param) if param else None for param in params.split(b";")])
+            return
+
         if char == b"p" and self._escbuf == b"!":
             # DECSTR: CSI ! p
             self.soft_reset()
@@ -993,6 +1052,10 @@ class TermCanvas(Canvas):
             pass
         elif char in _GR_LOCKING_SHIFTS:
             self.charset.gr = _GR_LOCKING_SHIFTS[char]
+        elif char == b"6":  # DECBI
+            self.back_index()
+        elif char == b"9":  # DECFI
+            self.forward_index()
         elif char in _LOCKING_SHIFTS:
             self.charset.activate(_LOCKING_SHIFTS[char])
         elif char in _SINGLE_SHIFTS:
@@ -1164,7 +1227,9 @@ class TermCanvas(Canvas):
             b"M",
             b"Z",
             b"7",
+            b"6",
             b"8",
+            b"9",
             b">",
             b"=",
             *_LOCKING_SHIFTS,
@@ -1718,16 +1783,7 @@ class TermCanvas(Canvas):
 
     def reverse_attrspec(self, attrspec: AttrSpec | None, undo: bool = False) -> AttrSpec:
         """Put standout mode to the 'attrspec' given and remove it if 'undo' is True."""
-        if attrspec is None:
-            attrspec = AttrSpec("default", "default")
-        attrs = [fg.strip() for fg in attrspec.foreground.split(",")]
-        if "standout" in attrs and undo:
-            attrs.remove("standout")
-            attrspec = attrspec.copy_modified(fg=",".join(attrs))
-        elif "standout" not in attrs and not undo:
-            attrs.append("standout")
-            attrspec = attrspec.copy_modified(fg=",".join(attrs))
-        return attrspec
+        return _with_flag(attrspec, "standout", remove=undo)
 
     @deprecated(
         "TermCanvas.reverse_video() is deprecated, set TermCanvas.modes.reverse_video instead. "
@@ -1896,7 +1952,8 @@ class TermCanvas(Canvas):
     def soft_reset(self) -> None:
         """Reset the modes, margins, attributes and character sets DECSTR resets, as xterm does.
 
-        The cursor is shown, insert, origin, cursor key and keypad application modes are reset, and autowrap is set.
+        The cursor is shown with the startup style, insert, origin, cursor key and keypad application modes are reset,
+        and autowrap is set.
         The scrolling region is the whole screen again, without moving the cursor.
         The attributes are reset as by SGR 0, and the character sets are the startup ones.
         The cursor saved by DECSC is the home position with these attributes and character sets, origin mode off and no
@@ -1909,6 +1966,7 @@ class TermCanvas(Canvas):
         modes.autowrap = True
         modes.keys_decckm = False
         modes.keypad_application = False
+        modes.cursor_style = None
         self.reset_scroll()
         self.csi_set_attr([0])
         self.charset = TermCharset()
@@ -1925,8 +1983,8 @@ class TermCanvas(Canvas):
         - a valid request gets Ps 1, and Pt is the control sequence that restores the setting;
         - a setting this canvas does not report gets Ps 0 and an empty Pt.
 
-        The settings reported are SGR (``m``), DECSTBM (``r``), DECSCL (``"p``), DECSCA (``"q``) and DECSCPP
-        (``$|``).
+        The settings reported are SGR (``m``), DECSTBM (``r``), DECSCL (``"p``), DECSCA (``"q``), DECSCPP (``$|``),
+        DECSLPP (``t``) and DECSCUSR (`` q``).
         """
         match request:
             case b"m":
@@ -1942,6 +2000,13 @@ class TermCanvas(Canvas):
             case b"$|":
                 # DECSCPP: the columns per page
                 setting = f"{self.width:d}$|"
+            case b"t":
+                # DECSLPP: the lines per page
+                setting = f"{self.height:d}t"
+            case b" q":
+                # DECSCUSR: the cursor style
+                style = self.modes.cursor_style
+                setting = f"{_DEFAULT_CURSOR_STYLE if style is None else style:d} q"
             case _:
                 self.widget.respond(f"{ESC}P0$r{ESC}\\")
                 return
@@ -2041,6 +2106,159 @@ class TermCanvas(Canvas):
         for column in columns:
             if 0 < int(column) <= self.width:
                 self.set_tabstop(int(column) - 1)
+
+    def _rectangle(self, params: Sequence[int | None]) -> tuple[int, int, int, int] | None:
+        """Return the rectangle the parameters Pt ; Pl ; Pb ; Pr of a VT420 rectangular area sequence select.
+
+        A missing or zero parameter selects the edge of the page, and a parameter past the edge selects the edge.
+        In origin mode the rows count from the top margin and stop at the bottom margin, as in xterm.
+
+        :returns: the 0-based top row, left column, bottom row and right column, all included, or None for a rectangle
+            whose top is below its bottom or whose left is right of its right.
+        """
+        top, left, bottom, right = (*params, None, None, None, None)[:4]
+        if self.modes.constrain_scrolling:
+            first, last = self.scrollregion_start, self.scrollregion_end
+        else:
+            first, last = 0, self.height - 1
+        top_row = min(first + (top or 1) - 1, last)
+        bottom_row = last if not bottom else min(first + bottom - 1, last)
+        left_col = min((left or 1) - 1, self.width - 1)
+        right_col = self.width - 1 if not right else min(right - 1, self.width - 1)
+        if top_row > bottom_row or left_col > right_col:
+            return None
+        return top_row, left_col, bottom_row, right_col
+
+    def csi_fill_rectangle(self, params: Sequence[int | None]) -> None:
+        """Fill a rectangle with a character in the current attributes (DECFRA, CSI Pch ; Pt ; Pl ; Pb ; Pr $ x).
+
+        The character code is a printable ASCII or Latin-1 one, 32 to 126 or 160 to 255, and any other is ignored.
+        """
+        code = params[0] if params else None
+        if code is None or not (32 <= code <= 126 or 160 <= code <= 255):
+            return
+        if (area := self._rectangle(params[1:])) is None:
+            return
+        top, left, bottom, right = area
+        cell = (self.attrspec, self.charset.current, chr(code).encode(util.get_encoding(), "urwid_fallback_ascii"))
+        for y in range(top, bottom + 1):
+            self.term[y][left : right + 1] = [cell] * (right - left + 1)
+
+    def csi_erase_rectangle(self, params: Sequence[int | None]) -> None:
+        """Erase a rectangle, as erasing in a line does (DECERA, CSI Pt ; Pl ; Pb ; Pr $ z)."""
+        if (area := self._rectangle(params)) is None:
+            return
+        top, left, bottom, right = area
+        for y in range(top, bottom + 1):
+            self.term[y][left : right + 1] = [self.empty_char()] * (right - left + 1)
+
+    def csi_copy_rectangle(self, params: Sequence[int | None]) -> None:
+        """Copy a rectangle to another place on the screen (DECCRA).
+
+        The sequence is ``CSI Pts ; Pls ; Pbs ; Prs ; Pps ; Ptd ; Pld ; Ppd $ v``: the source rectangle and page, then
+        the destination's top left corner and page.
+        The pages are ignored, since there is one, and a copy past the screen edge is cut there.
+        """
+        if (area := self._rectangle(params[:4])) is None:
+            return
+        top, left, bottom, right = area
+        if (destination := self._rectangle([*params[5:7], None, None])) is None:
+            return
+        to_top, to_left, last, _right = destination
+        rows = [self.term[y][left : right + 1] for y in range(top, bottom + 1)]
+        for offset, cells in enumerate(rows[: last - to_top + 1]):
+            fitting = cells[: self.width - to_left]
+            self.term[to_top + offset][to_left : to_left + len(fitting)] = fitting
+
+    def csi_request_checksum(self, params: Sequence[int | None]) -> None:
+        """Answer DECRQCRA (``CSI Pid ; Pp ; Pt ; Pl ; Pb ; Pr * y``) with ``DCS Pid ! ~ XXXX ST``.
+
+        The checksum is xterm's: the negated 16-bit sum of each cell's character, its low 7 bits, plus the bits of bold
+        (0x80), blink (0x40), reverse (0x20) and underline (0x10).
+        A blank cell without those attributes counts 0, as a cell never written does in xterm.
+
+        This canvas keeps no difference between a written and an erased cell, so two cases differ from xterm:
+
+        - a space written without those attributes counts 0 here and 0x20 in xterm;
+        - a cell erased while one of those attributes is set counts 0x20 plus its bits here and 0 in xterm.
+
+        DEC special graphics cells count their ASCII character, which xterm values differently.
+        Without parameters it is not answered, and an empty Pid is 65535, as in xterm.
+        It is not answered at the VT100 level (61), like the other DCS replies.
+        """
+        if self.conformance_level == 61 or params == [None]:
+            return
+        request = 0xFFFF if params[0] is None else params[0]
+        if (area := self._rectangle(params[2:])) is None:
+            return
+        top, left, bottom, right = area
+        encoding = util.get_encoding()
+        # a screen holds few distinct cells, so each is valued once per request
+        values: dict[tuple[AttrSpec | None, bytes], int] = {}
+        total = 0
+        for y in range(top, bottom + 1):
+            for attrspec, _charset, char in self.term[y][left : right + 1]:
+                value = values.get((attrspec, char))
+                if value is None:
+                    flags = (
+                        0 if attrspec is None else sum(bit for name, bit in _CHECKSUM_BITS if getattr(attrspec, name))
+                    )
+                    text = char.decode(encoding, "replace")
+                    # a blank cell without those attributes counts as a cell never written
+                    value = 0 if char == b" " and not flags else (ord(text[0]) & 0x7F if text else 0) + flags
+                    values[attrspec, char] = value
+                total += value
+        self.widget.respond(f"{ESC}P{request:d}!~{-total & 0xFFFF:04X}{ESC}\\")
+
+    def csi_insert_columns(self, params: Sequence[int | None]) -> None:
+        """Insert blank columns at the cursor column in the scrolling region (DECIC, CSI Ps ' }).
+
+        Nothing happens while the cursor is outside the scrolling region.
+        """
+        x, y = self.term_cursor
+        if self.scrollregion_start <= y <= self.scrollregion_end:
+            for row in range(self.scrollregion_start, self.scrollregion_end + 1):
+                self.insert_chars((x, row), chars=params[0] or 1)
+
+    def csi_delete_columns(self, params: Sequence[int | None]) -> None:
+        """Delete columns at the cursor column in the scrolling region (DECDC, CSI Ps ' ~).
+
+        Nothing happens while the cursor is outside the scrolling region.
+        """
+        x, y = self.term_cursor
+        if self.scrollregion_start <= y <= self.scrollregion_end:
+            for row in range(self.scrollregion_start, self.scrollregion_end + 1):
+                self.remove_chars((x, row), chars=params[0] or 1)
+
+    def back_index(self) -> None:
+        """Move the cursor one column left, or at the left edge insert a blank column there (DECBI)."""
+        x, y = self.term_cursor
+        if x > 0:
+            self.set_term_cursor(x - 1, y)
+        else:
+            self.csi_insert_columns([1])
+        self.is_rotten_cursor = False
+
+    def forward_index(self) -> None:
+        """Move the cursor one column right, or at the right edge delete the leftmost column (DECFI)."""
+        x, y = self.term_cursor
+        if x < self.width - 1:
+            self.set_term_cursor(x + 1, y)
+        elif self.scrollregion_start <= y <= self.scrollregion_end:
+            for row in range(self.scrollregion_start, self.scrollregion_end + 1):
+                self.remove_chars((0, row))
+        self.is_rotten_cursor = False
+
+    def csi_set_cursor_style(self, params: Sequence[int | None]) -> None:
+        """Set the cursor style DECSCUSR (``CSI Ps SP q``) selects.
+
+        0 selects 1, as in xterm, and any value past 6 is ignored.
+        From then on :meth:`content` draws the cursor cell itself, see :attr:`TermModes.cursor_style`.
+        """
+        style = params[0] or 1
+        if style in _CURSOR_STYLES:
+            self.modes.cursor_style = style
+            self.set_term_cursor()
 
     def csi_set_modes(
         self,
@@ -2226,9 +2444,33 @@ class TermCanvas(Canvas):
 
         The cells store the attributes the child set.
         While the reverse video mode (DECSCNM) is on, every line is yielded with its attributes in standout.
+        After a DECSCUSR the shown cursor cell is drawn in reverse video for a block or a bar, or underlined for an
+        underline, and the blinking styles are drawn steady.
+        A cell that is already in reverse video, or already underlined for an underline, is drawn without it.
 
         All parameters are ignored.
         """
+        lines = self._screen_lines()
+        style = self.modes.cursor_style
+        if style is None or (shown := self._shown_cursor()) is None:
+            yield from lines
+            return
+        cursor_x, cursor_y = shown
+        for row, line in enumerate(lines):
+            if row != cursor_y or cursor_x >= len(line):
+                yield line
+                continue
+            # a copy, so the screen's own row is not changed
+            drawn = list(line)
+            cell_attr, charset, text = drawn[cursor_x]
+            # the flag is turned off on a cell that already has it, so the cursor stays visible there
+            flag = "underline" if style in _UNDERLINE_CURSOR_STYLES else "standout"
+            cell_attr = _with_flag(cell_attr, flag, remove=cell_attr is not None and getattr(cell_attr, flag))
+            drawn[cursor_x] = (cell_attr, charset, text)
+            yield drawn
+
+    def _screen_lines(self) -> Iterator[list[tuple[AttrSpec | None, Literal["0", "U"] | None, bytes]]]:
+        """Yield the rows in view, with their attributes in standout while the reverse video mode (DECSCNM) is on."""
         lines: Iterable[list[tuple[AttrSpec | None, Literal["0", "U"] | None, bytes]]]
         if self.scrolling_up == 0:
             lines = self.term
@@ -2252,3 +2494,20 @@ class TermCanvas(Canvas):
                     reversed_attrs[cell_attr] = self.reverse_attrspec(cell_attr)
                 reversed_line.append((reversed_attrs[cell_attr], charset, text))
             yield reversed_line
+
+
+#: the CSI sequences with an intermediate byte before the final one, by intermediate and final byte, run with their
+#: parameters, None for an empty one
+_INTERMEDIATE_COMMANDS: typing.Final[Mapping[tuple[bytes, bytes], Callable[[TermCanvas, list[int | None]], None]]] = (
+    types.MappingProxyType(
+        {
+            (b"$", b"x"): TermCanvas.csi_fill_rectangle,
+            (b"$", b"z"): TermCanvas.csi_erase_rectangle,
+            (b"$", b"v"): TermCanvas.csi_copy_rectangle,
+            (b"*", b"y"): TermCanvas.csi_request_checksum,
+            (b"'", b"}"): TermCanvas.csi_insert_columns,
+            (b"'", b"~"): TermCanvas.csi_delete_columns,
+            (b" ", b"q"): TermCanvas.csi_set_cursor_style,
+        }
+    )
+)
