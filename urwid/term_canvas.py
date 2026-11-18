@@ -152,6 +152,8 @@ _SGR_FLAGS: typing.Final = (
     ("standout", 7),
     ("strikethrough", 9),
 )
+#: the names of those flags in an AttrSpec foreground
+_FLAG_NAMES: typing.Final = frozenset(name for name, _code in _SGR_FLAGS)
 
 #: the character set slot each intermediate byte of a 94-character set designation (ESC I F) selects
 _DESIGNATED_SLOTS: typing.Final = types.MappingProxyType({b"(": 0, b")": 1, b"*": 2, b"+": 3})
@@ -829,13 +831,23 @@ class TermCanvas(Canvas):
         return [self.empty_char(char)] * self.width
 
     def empty_char(self, char: bytes = b" ") -> tuple[AttrSpec | None, Literal["0", "U"] | None, bytes]:
-        """Return one empty terminal cell holding *char*, with the canvas's current attributes and charset.
+        """Return one empty terminal cell holding *char*, with the canvas's current colours and charset.
 
-        The cell does not take the current hyperlink: as in a terminal, erased and scrolled-in cells are not linked.
+        As in xterm, an erased or scrolled-in cell takes the colours only: not bold, underline, reverse video or the
+        other attribute flags, and not the current hyperlink.
         """
         attrspec = self.attrspec
         if attrspec is not None and attrspec.hyperlink is not None:
             attrspec = attrspec_with_hyperlink(attrspec, None, unset_color="default")
+        if attrspec is None:
+            return (None, self.charset.current, char)
+        if any(getattr(attrspec, name) for name, _code in _SGR_FLAGS):
+            colour = ",".join(
+                part for part in (part.strip() for part in attrspec.foreground.split(",")) if part not in _FLAG_NAMES
+            )
+            attrspec = attrspec.copy_modified(fg=colour or "default")
+        if attrspec.foreground == "default" and attrspec.background == "default":
+            return (None, self.charset.current, char)
         return (attrspec, self.charset.current, char)
 
     def addstr(self, data: Iterable[int]) -> None:
@@ -1627,9 +1639,10 @@ class TermCanvas(Canvas):
                 self.scrolling_up = min(self.scrolling_up + 1, len(self.scrollback_buffer))
 
     def decaln(self) -> None:
-        """DEC screen alignment test: Fill screen with E's."""
+        """DEC screen alignment test: fill the screen with E's, without attributes and in ASCII, as xterm does."""
+        cell: tuple[AttrSpec | None, Literal["0", "U"] | None, bytes] = (None, None, b"E")
         for row in range(self.height):
-            self.term[row] = self.empty_line(b"E")
+            self.term[row] = [cell] * self.width
 
     def blank_line(self, row: int) -> None:
         """Blank a single line at the specified row, without modifying other lines."""
@@ -1743,10 +1756,12 @@ class TermCanvas(Canvas):
         # pyrefly: ignore[bad-argument-type]  # the optional third element widens to bool | int
         ex, ey = self.constrain_coords(*end)
 
+        cell = self.empty_char()
+
         # within a single row
         if sy == ey:
             for x in range(sx, ex + 1):
-                self.term[sy][x] = self.empty_char()
+                self.term[sy][x] = cell
             return
 
         # spans multiple rows
@@ -1754,10 +1769,10 @@ class TermCanvas(Canvas):
         while y <= ey:
             if y == sy:
                 for x in range(sx, self.width):
-                    self.term[y][x] = self.empty_char()
+                    self.term[y][x] = cell
             elif y == ey:
                 for x in range(ex + 1):
-                    self.term[y][x] = self.empty_char()
+                    self.term[y][x] = cell
             else:
                 self.blank_line(y)
 
@@ -2142,12 +2157,19 @@ class TermCanvas(Canvas):
             self.term[y][left : right + 1] = [cell] * (right - left + 1)
 
     def csi_erase_rectangle(self, params: Sequence[int | None]) -> None:
-        """Erase a rectangle, as erasing in a line does (DECERA, CSI Pt ; Pl ; Pb ; Pr $ z)."""
+        """Erase a rectangle to spaces in the current attributes (DECERA, CSI Pt ; Pl ; Pb ; Pr $ z).
+
+        Unlike erasing in a line, the spaces keep the attribute flags, such as reverse video, as in xterm.
+        """
         if (area := self._rectangle(params)) is None:
             return
         top, left, bottom, right = area
+        attrspec = self.attrspec
+        if attrspec is not None and attrspec.hyperlink is not None:
+            attrspec = attrspec_with_hyperlink(attrspec, None, unset_color="default")
+        cell = (attrspec, self.charset.current, b" ")
         for y in range(top, bottom + 1):
-            self.term[y][left : right + 1] = [self.empty_char()] * (right - left + 1)
+            self.term[y][left : right + 1] = [cell] * (right - left + 1)
 
     def csi_copy_rectangle(self, params: Sequence[int | None]) -> None:
         """Copy a rectangle to another place on the screen (DECCRA).
@@ -2174,10 +2196,8 @@ class TermCanvas(Canvas):
         (0x80), blink (0x40), reverse (0x20) and underline (0x10).
         A blank cell without those attributes counts 0, as a cell never written does in xterm.
 
-        This canvas keeps no difference between a written and an erased cell, so two cases differ from xterm:
-
-        - a space written without those attributes counts 0 here and 0x20 in xterm;
-        - a cell erased while one of those attributes is set counts 0x20 plus its bits here and 0 in xterm.
+        This canvas keeps no difference between a written and an erased cell, so a space written without those
+        attributes counts 0 here and 0x20 in xterm.
 
         DEC special graphics cells count their ASCII character, which xterm values differently.
         Without parameters it is not answered, and an empty Pid is 65535, as in xterm.

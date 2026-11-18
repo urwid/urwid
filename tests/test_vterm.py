@@ -496,6 +496,28 @@ class TermTest(unittest.TestCase):
         self.write("\\ecabc\ndef\\e[2;1H\\e[1J")
         self.expect("\n ef")
 
+    def test_erased_cells_keep_the_colours_only(self) -> None:
+        """Give erased, inserted and scrolled-in cells the colours but not the attribute flags, as xterm does.
+
+        DECERA keeps the flags, and DECALN fills with plain E's, also as in xterm.
+        """
+        blue = urwid.AttrSpec("default", "dark blue")
+        reverse = urwid.AttrSpec("default,standout", "dark blue")
+        for label, data, cell in (
+            ("EL", r"\e[7;4;1;44m\e[K", (blue, None, b" ")),
+            ("ECH", r"\e[7;4;1;44m\e[2X", (blue, None, b" ")),
+            ("ICH", r"X\e[1;1H\e[7;4;1;44m\e[@", (blue, None, b" ")),
+            ("IL", r"\e[7;4;1;44m\e[L", (blue, None, b" ")),
+            ("ED with default colours", r"\e[7;4m\e[2J", (None, None, b" ")),
+            ("DECERA keeps the flags", r"\e[7;44m\e[1;1;1;2$z", (reverse, None, b" ")),
+            ("DECALN ignores the attributes and the charset", r"\e[7;44m\e(0\e#8", (None, None, b"E")),
+        ):
+            with self.subTest(label):
+                self.restart(4, 2)
+                self.write(data)
+                self.read()
+                self.assertEqual(self.term.term.term[0][0], cell)
+
     def test_scrolling_region_simple(self):
         # TODO(Aleksei): Issue #544
         self.write("\\e[10;20r\\e[10f1\n2\n3\n4\n5\n6\n7\n8\n9\n10\n11\n12\\e[faa")
