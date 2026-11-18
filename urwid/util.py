@@ -444,7 +444,12 @@ def rle_get_at(
     rle: Iterable[tuple[_HashableT, int]],
     pos: int,
 ) -> _HashableT | None:
-    """Return the attribute at offset pos."""
+    """Return the attribute at offset pos.
+
+    .. note::
+        Each call reads the runs from the start up to *pos*.
+        To read the attribute at every position, iterate over the runs once instead of calling this per position.
+    """
     x = 0
     if pos < 0:
         return None
@@ -460,7 +465,12 @@ def rle_subseg(
     start: int,
     end: int,
 ) -> list[tuple[_HashableT, int]]:
-    """Return a sub segment of a rle list."""
+    """Return a sub segment of a rle list.
+
+    .. note::
+        Each call reads the runs from the start up to *end*.
+        To cut a list into consecutive segments, walk the runs once instead of calling this per segment.
+    """
     sub_segment = []
     x = 0
     for a, run in rle:
@@ -506,6 +516,10 @@ def rle_prepend_modify(
     Merge with first run when possible.
 
     MODIFIES rle parameter contents. Returns None.
+
+    .. note::
+        A run that is not merged is inserted at the front, which moves every run of a list.
+        To build a list from the end, add the runs with :func:`rle_append_modify` and reverse the list once.
     """
     a, r = a_r
     if not rle:
