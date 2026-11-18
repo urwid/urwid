@@ -1204,7 +1204,11 @@ class TermTest(unittest.TestCase):
                 for label, data, row, col, value in (
                     ("EL, never written", "ABCD\\e[1;2H\\e[1m\\e[K", 1, 2, b"0000"),
                     ("ED, never written", "ABCD\\e[1;2H\\e[1m\\e[J", 1, 2, b"0000"),
+                    ("EL 1, a space without attributes", "ABCD\\e[1;2H\\e[1m\\e[1K", 1, 1, b"FFE0"),
+                    ("ED 1, a space on the cursor row", "ABCD\\e[2;2H\\e[1m\\e[1J", 2, 2, b"FFE0"),
+                    ("ED 1, never written above the cursor row", "ABCD\\e[2;2H\\e[1m\\e[1J", 1, 1, b"0000"),
                     ("ECH, a space without attributes", "ABCD\\e[1;2H\\e[1m\\e[2X", 1, 2, b"FFE0"),
+                    ("ECH up to the last column, never written", "ABCD\\e[1;1H\\e[1m\\e[80X", 1, 1, b"0000"),
                     ("ICH, a space without attributes", "ABCD\\e[1;2H\\e[1m\\e[2@", 1, 2, b"FFE0"),
                     ("DECIC, a space without attributes", "ABCD\\e[1;2H\\e[1m\\e['}", 1, 2, b"FFE0"),
                     ("DCH, never written", "ABCD\\e[1;1H\\e[1m\\e[2P", 1, 80, b"0000"),

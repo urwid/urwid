@@ -284,11 +284,7 @@ CSI_COMMANDS: dict[bytes, CSIAlias | CSICommand] = {
     b"X": CSICommand(
         1,
         1,
-        lambda s, number, q: s.erase(
-            s.term_cursor,
-            (s.term_cursor[0] + number[0] - 1, s.term_cursor[1]),
-            written=True,
-        ),
+        lambda s, number, q: s.erase(s.term_cursor, (s.term_cursor[0] + number[0] - 1, s.term_cursor[1])),
     ),
     b"a": CSIAlias("alias", b"C"),
     b"c": CSICommand(0, 0, lambda s, none, q: s.csi_get_device_attributes(q)),
@@ -1801,12 +1797,11 @@ class TermCanvas(Canvas):
         self,
         start: tuple[int, int] | tuple[int, int, bool],
         end: tuple[int, int] | tuple[int, int, bool],
-        *,
-        written: bool = False,
     ) -> None:
         """Erase a region of the terminal.
 
-        With *written* the cells hold written spaces, as ECH leaves them, rather than spaces never written.
+        As in xterm, the cells of a row erased up to its last column hold spaces never written, and the cells of a row
+        erased short of it hold written spaces, which DECRQCRA counts.
 
         The 'start' tuple (x, y) defines the starting position of the erase, while end (x, y) the last position.
 
@@ -1822,27 +1817,14 @@ class TermCanvas(Canvas):
         # pyrefly: ignore[bad-argument-type]  # the optional third element widens to bool | int
         ex, ey = self.constrain_coords(*end)
 
-        cell = self.empty_char(b" " if written else _BLANK)
-
-        # within a single row
-        if sy == ey:
-            for x in range(sx, ex + 1):
-                self.term[sy][x] = cell
-            return
-
-        # spans multiple rows
-        y = sy
-        while y <= ey:
-            if y == sy:
-                for x in range(sx, self.width):
-                    self.term[y][x] = cell
-            elif y == ey:
-                for x in range(ex + 1):
-                    self.term[y][x] = cell
-            else:
-                self.term[y] = [cell] * self.width
-
-            y += 1
+        blank = self.empty_char()
+        written = self.empty_char(b" ")
+        for y in range(sy, ey + 1):
+            first = sx if y == sy else 0
+            last = ex if y == ey else self.width - 1
+            if first <= last:
+                cell = blank if last == self.width - 1 else written
+                self.term[y][first : last + 1] = [cell] * (last - first + 1)
 
     def csi_set_attr(self, attrs: Sequence[int]) -> None:
         """Set graphics rendition.
