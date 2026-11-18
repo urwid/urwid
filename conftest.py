@@ -1,4 +1,4 @@
-"""Pytest configuration: skip collecting modules that cannot be imported on this platform."""
+"""Pytest configuration: prepare the pytest-xdist controller, skip modules that cannot be imported here."""
 
 from __future__ import annotations
 
@@ -8,6 +8,8 @@ import typing
 
 if typing.TYPE_CHECKING:
     from pathlib import Path
+
+    import pytest
 
 IS_WINDOWS = sys.platform == "win32"
 
@@ -48,6 +50,19 @@ def _backend_available(name: str) -> bool:
     except ImportError:
         return False
     return True
+
+
+def pytest_configure(config: pytest.Config) -> None:
+    """Import urwid in the pytest-xdist controller before the workers start.
+
+    The controller rebuilds each warning a worker reports by importing the module that defines its class,
+    on one execnet receiver thread per worker.
+    Two such threads importing urwid modules for the first time at once deadlock in the import system,
+    which ends the run with ``INTERNALERROR`` (pytest-dev/pytest-xdist#1422).
+    Once urwid is imported, those imports are lookups in :data:`sys.modules`.
+    """
+    if not hasattr(config, "workerinput"):
+        importlib.import_module("urwid")
 
 
 def pytest_ignore_collect(collection_path: Path) -> bool | None:

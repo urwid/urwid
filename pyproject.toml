@@ -85,6 +85,7 @@ pytest = [
   "pytest-asyncio",
   "pytest-cov",
   "pytest-timeout",
+  "pytest-xdist",
 ]
 ruff = [
   "ruff",
