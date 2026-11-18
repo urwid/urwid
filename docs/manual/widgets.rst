@@ -301,8 +301,9 @@ markup for an item with that label, or ``None`` for a separator::
     )
 
 The list opens below the launcher, or above it when it does not fit below.
-:kbd:`up` and :kbd:`down` skip separators and disabled items, and
-:kbd:`enter`, :kbd:`space`, a click or an item's ``key`` chooses an item.
+:kbd:`up`, :kbd:`down`, :kbd:`home` and :kbd:`end` skip separators and
+disabled items, and :kbd:`enter`, :kbd:`space`, a click or an item's ``key``
+chooses an item.
 The list then closes and the menu sends the ``'action'`` signal with the
 chosen :class:`MenuItem`, after its ``'close'`` signal.  :kbd:`esc` or a
 click outside closes the list without a choice.
