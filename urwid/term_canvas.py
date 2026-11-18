@@ -27,6 +27,7 @@ pty, does not.
 from __future__ import annotations
 
 import copy
+import types
 import typing
 from collections import deque
 from contextlib import suppress
@@ -98,6 +99,48 @@ ESC_B = b"\x1b"
 
 #: :data:`urwid.ansi_parser.OSC_IGNORED_CONTROLS` as bytes
 _OSC_IGNORED = frozenset(char.encode("ascii") for char in OSC_IGNORED_CONTROLS)
+#: the controls ignored inside a DCS, SOS, PM or APC string: those of an OSC string, and BEL, which ends only OSC
+_COMMAND_STRING_IGNORED: typing.Final = _OSC_IGNORED | {b"\a"}
+
+#: the parser states of a command string: OSC (2), the discarded rest of an over-long OSC (4), and DCS, SOS, PM or APC
+#: (5), which ST alone ends
+_STRING_STATES: typing.Final = frozenset((2, 4, 5))
+
+#: the final bytes after ESC that open a DCS, SOS, PM and APC string
+_COMMAND_STRING_OPENERS: typing.Final = frozenset((b"P", b"X", b"^", b"_"))
+
+#: the Primary DA reply: a VT220 (62) with ANSI colour (22)
+_PRIMARY_DEVICE_ATTRIBUTES: typing.Final = f"{ESC}[?62;22c"
+#: the Secondary DA reply, as a VT220 sends it: the VT220 (1), firmware version 1.0 (10), no ROM cartridge (0)
+_SECONDARY_DEVICE_ATTRIBUTES: typing.Final = f"{ESC}[>1;10;0c"
+
+#: the DECRQSS reply for DECSCL: VT200 level (62) with 7-bit controls (1), the only ones sent
+_CONFORMANCE_LEVEL_SETTING: typing.Final = '62;1"p'
+
+#: the bytes of a DCS string kept, the "P" that opens it included; a longer string is no request this canvas answers
+_DCS_KEPT_LENGTH: typing.Final = 32
+
+#: the states the ANSI modes this canvas keeps no flag for are reported in, by DECRQM: 4 is permanently reset, for
+#: KAM (keyboard locked), and 3 permanently set, for SRM (no local echo)
+_FIXED_ANSI_MODE_STATES: typing.Final = types.MappingProxyType({2: 4, 12: 3})
+
+#: the SGR parameters of the attribute flags of an AttrSpec
+_SGR_FLAGS: typing.Final = (
+    ("bold", 1),
+    ("faint", 2),
+    ("italics", 3),
+    ("underline", 4),
+    ("blink", 5),
+    ("standout", 7),
+    ("strikethrough", 9),
+)
+
+#: the character set slot each intermediate byte of a 94-character set designation (ESC I F) selects
+_DESIGNATED_SLOTS: typing.Final = types.MappingProxyType({b"(": 0, b")": 1, b"*": 2, b"+": 3})
+
+#: the final bytes after ESC of the locking shifts LS2 and LS3 and the single shifts SS2 and SS3, with their slot
+_LOCKING_SHIFTS: typing.Final = types.MappingProxyType({b"n": 2, b"o": 3})
+_SINGLE_SHIFTS: typing.Final = types.MappingProxyType({b"N": 2, b"O": 3})
 
 #: the control characters :meth:`TermCanvas.process_char` executes, also after an ESC inside an OSC string
 _EXECUTED_CONTROLS = frozenset((b"\r", b"\x0f", b"\x0e", b"\n", b"\v", b"\f", b"\t", b"\b"))
@@ -204,7 +247,8 @@ CSI_COMMANDS: dict[bytes, CSIAlias | CSICommand] = {
     b"l": CSICommand(1, 0, lambda s, modes, q: s.csi_set_modes(modes, q, reset=True)),
     b"m": CSICommand(1, 0, lambda s, attrs, q: s.csi_set_attr(attrs)),
     b"n": CSICommand(1, 0, lambda s, mode, q: s.csi_status_report(mode[0])),
-    # DECRQM (CSI ? Ps $ p) is answered in parse_csi; the other forms, such as DECSTR (CSI ! p), are not implemented
+    # DECRQM (CSI ? Ps $ p, CSI Ps $ p) and DECSTR (CSI ! p) are run in parse_csi; DECSCL (CSI Ps ; Ps " p) is accepted
+    # and not applied, and the other forms are not implemented
     b"p": CSICommand(0, 0, lambda s, none, q: None),
     b"q": CSICommand(1, 0, lambda s, mode, q: s.csi_set_keyboard_leds(mode[0])),
     b"r": CSICommand(2, 0, lambda s, t_b, q: s.csi_set_scroll(t_b[0], t_b[1])),
@@ -257,6 +301,12 @@ class TermModes:
     # charset stuff
     main_charset: Literal[1, 2] = CHARSET_DEFAULT
 
+    # the keypad is in application mode (DECKPAM, DECNKM); urwid names the keypad keys as the main keys, so the keys
+    # sent do not change
+    keypad_application: bool = False
+    # the backarrow key sends BS rather than DEL (DECBKM)
+    backarrow_sends_backspace: bool = False
+
     def reset(self) -> None:
         """Reset every mode flag to its terminal-startup default."""
         # ECMA-48
@@ -274,6 +324,8 @@ class TermModes:
         self.mouse_tracking = None
         self.mouse_encoding = None
         self.alternate_screen = False
+        self.keypad_application = False
+        self.backarrow_sends_backspace = False
 
         self.keyboard_flags = []
 
@@ -295,9 +347,9 @@ class _Screen:
 
 
 class TermCharset:
-    """Tracks the terminal's G0/G1 character set slots and which one is currently active."""
+    """Tracks the terminal's G0 to G3 character set slots and which one is currently active."""
 
-    __slots__ = ("_g", "_sgr_mapping", "active", "current")
+    __slots__ = ("_g", "_sgr_mapping", "_single", "active", "current")
 
     MAPPING: typing.ClassVar[dict[str, str | None]] = {
         "default": None,
@@ -307,13 +359,14 @@ class TermCharset:
     }
 
     def __init__(self) -> None:
-        """Initialize with the G0/G1 slots at their default charsets, G0 active."""
-        self._g = [
-            "default",
-            "vt100",
-        ]
+        """Initialize with G1 as DEC special graphics and G0, G2 and G3 at the default charset, G0 active."""
+        # a tuple, so a copy kept by DECSC is not changed by a later designation
+        self._g: tuple[str, ...] = ("default", "vt100", "default", "default")
 
         self._sgr_mapping = False
+
+        # the slot a single shift (SS2, SS3) selects for the next character, None outside a single shift
+        self._single: int | None = None
 
         # prepare defaults
         self.active = 0
@@ -323,13 +376,32 @@ class TermCharset:
 
     def define(self, g: int, charset: str) -> None:
         """Redefine G'g' with new mapping."""
-        self._g[g] = charset
+        self._g = (*self._g[:g], charset, *self._g[g + 1 :])
         self.activate(g=self.active)
 
     def activate(self, g: int) -> None:
-        """Activate the given charset slot."""
+        """Activate the given charset slot.
+
+        A pending single shift still applies to the next character.
+        """
         self.active = g
-        self.current = self.MAPPING.get(self._g[g], None)  # type: ignore[assignment]
+        self.current = self.MAPPING.get(self._g[self._shown], None)  # type: ignore[assignment]
+
+    @property
+    def _shown(self) -> int:
+        """Return the slot the next character is drawn from: the single shift's, else the active one."""
+        return self.active if self._single is None else self._single
+
+    def single_shift(self, g: int) -> None:
+        """Draw the next character only from slot *g*, as SS2 and SS3 do."""
+        self._single = g
+        self.activate(self.active)
+
+    def end_single_shift(self) -> None:
+        """End a single shift after the character it applied to."""
+        if self._single is not None:
+            self._single = None
+            self.activate(self.active)
 
     def set_sgr_ibmpc(self) -> None:
         """Set graphics rendition mapping to IBM PC CP437."""
@@ -347,7 +419,7 @@ class TermCharset:
         With the UTF-8 encoding a control character there would be executed by the host terminal,
         so it is stored as ``?``.
         """
-        if self._sgr_mapping or self._g[self.active] == "ibmpc":
+        if self._sgr_mapping or self._g[self._shown] == "ibmpc":
             if (dec_pos := DEC_SPECIAL_CHARS.find(char.decode("cp437"))) >= 0:
                 self.current = "0"
                 return ALT_DEC_SPECIAL_CHARS[dec_pos].encode("cp437")
@@ -358,6 +430,38 @@ class TermCharset:
             return char
 
         return char
+
+
+def _sgr_parameters(attrspec: AttrSpec | None) -> str:
+    """Return the SGR parameters that select *attrspec* from the default attributes.
+
+    The parameters start with ``0``.
+    Colours are written as SGR 30-37, 90-97, 38;5;n or 38;2;r;g;b, and the background alike, in the semicolon form a
+    :class:`TermCanvas` reads back.
+    The hyperlink is not part of SGR and is left out.
+
+    >>> _sgr_parameters(None)
+    '0'
+    >>> _sgr_parameters(AttrSpec("light red,bold", "h100", 256))
+    '0;1;91;48;5;100'
+    """
+    if attrspec is None:
+        return "0"
+    parameters = ["0", *(str(code) for name, code in _SGR_FLAGS if getattr(attrspec, name))]
+    rgb = attrspec.get_rgb_values()
+    for base, true, high, basic, number, values in (
+        (30, attrspec.foreground_true, attrspec.foreground_high, attrspec.foreground_basic,
+         attrspec.foreground_number, rgb[0:3]),
+        (40, attrspec.background_true, attrspec.background_high, attrspec.background_basic,
+         attrspec.background_number, rgb[3:6]),
+    ):  # fmt: skip
+        if true:
+            parameters.append(f"{base + 8};2;{';'.join(str(value) for value in values)}")
+        elif high:
+            parameters.append(f"{base + 8};5;{number:d}")
+        elif basic:
+            parameters.append(str(base + number if number < 8 else base + 60 + number - 8))
+    return ";".join(parameters)
 
 
 class TermCanvas(Canvas):
@@ -726,14 +830,14 @@ class TermCanvas(Canvas):
         return shift
 
     def set_g01(self, char: bytes, mod: bytes) -> None:
-        """Set G0 or G1 according to 'char' and modifier 'mod'."""
+        """Designate the character set of final byte *char* to the slot of intermediate byte *mod*.
+
+        The slots are G0 for ``(``, G2 for ``*``, G3 for ``+`` and G1 for any other byte.
+        """
         if self.modes.main_charset != CHARSET_DEFAULT:
             return
 
-        if mod == b"(":
-            g = 0
-        else:
-            g = 1
+        g = _DESIGNATED_SLOTS.get(mod, 1)
 
         if char == b"0":
             cset = "vt100"
@@ -754,10 +858,23 @@ class TermCanvas(Canvas):
                 self.csi_keyboard_flags(marker, [int(param) if param else None for param in params.split(b";")])
             return
 
-        if char == b"p" and self._escbuf.startswith(b"?") and self._escbuf.endswith(b"$"):
-            # DECRQM for a DEC private mode: CSI ? Ps $ p
-            if (mode := self._escbuf[1:-1]).isdigit():
-                self.csi_report_private_mode(int(mode))
+        if char == b"p" and self._escbuf.endswith(b"$"):
+            # DECRQM for a DEC private mode, CSI ? Ps $ p, or an ANSI mode, CSI Ps $ p
+            if self._escbuf.startswith(b"?"):
+                if (mode := self._escbuf[1:-1]).isdigit():
+                    self.csi_report_private_mode(int(mode))
+            elif (mode := self._escbuf[:-1]).isdigit():
+                self.csi_report_mode(int(mode))
+            return
+
+        if char == b"p" and self._escbuf == b"!":
+            # DECSTR: CSI ! p
+            self.soft_reset()
+            return
+
+        if char == b"c" and bytes(self._escbuf) in {b">", b">0"}:
+            # Secondary DA: CSI > c
+            self.widget.respond(_SECONDARY_DEVICE_ATTRIBUTES)
             return
 
         qmark = self._escbuf.startswith(b"?")
@@ -805,8 +922,18 @@ class TermCanvas(Canvas):
             elif char in b"G8":
                 # 8 is obsolete and only for backwards compatibility
                 self.modes.main_charset = CHARSET_UTF8
-        elif mod in {b"(", b")"}:  # define G0/G1
+        elif mod in _DESIGNATED_SLOTS:  # define G0 to G3
             self.set_g01(char, mod)
+        elif mod:
+            # another intermediate byte, such as the 96-character set designations (ESC - F, ESC . F, ESC / F) and
+            # S7C1T/S8C1T (ESC SP F, ESC SP G): accepted and not applied
+            pass
+        elif char in _LOCKING_SHIFTS:
+            self.charset.activate(_LOCKING_SHIFTS[char])
+        elif char in _SINGLE_SHIFTS:
+            self.charset.single_shift(_SINGLE_SHIFTS[char])
+        elif char in {b"=", b">"}:  # DECKPAM, DECKPNM
+            self.modes.keypad_application = char == b"="
         elif char == b"M":  # reverse line feed
             self.linefeed(reverse=True)
         elif char == b"D":  # line feed
@@ -818,7 +945,7 @@ class TermCanvas(Canvas):
         elif char == b"H":  # set tabstop
             self.set_tabstop()
         elif char == b"Z":  # DECID
-            self.widget.respond(f"{ESC}[?6c")
+            self.widget.respond(_PRIMARY_DEVICE_ATTRIBUTES)
         elif char == b"7":  # save current state
             self.save_cursor(with_attrs=True)
         elif char == b"8":  # restore current state
@@ -862,6 +989,14 @@ class TermCanvas(Canvas):
                 link = None
         self.attrspec = attrspec_with_hyperlink(self.attrspec, link, unset_color="default")
 
+    def parse_dcs(self, body: bytes) -> None:
+        """Apply the DCS string *body*, given without its ``ESC P`` and ST framing.
+
+        DECRQSS is answered, and any other DCS string is ignored.
+        """
+        if body.startswith(b"$q"):
+            self.dcs_request_setting(body[2:])
+
     def parse_escape(self, char: bytes) -> None:
         """Feed *char* through the escape-sequence state machine, dispatching to CSI/OSC/non-CSI parsing as needed."""
         if self.parsestate == 1:
@@ -881,7 +1016,12 @@ class TermCanvas(Canvas):
             self._osc_invalid_utf8 = False
             self.parsestate = 2
             return
-        elif self.parsestate in {2, 4} and self._escbuf[-1:] == ESC_B and char != b"\\":
+        elif self.parsestate == 0 and char in _COMMAND_STRING_OPENERS:
+            # start of a DCS, SOS, PM or APC string; the opening byte is kept, to tell a DCS from the others at ST
+            self._escbuf = bytearray(char)
+            self.parsestate = 5
+            return
+        elif self.parsestate in _STRING_STATES and self._escbuf[-1:] == ESC_B and char != b"\\":
             # ECMA-48 allows no ESC inside a command string other than in ST, so any other ESC ends the string
             # unapplied and starts a new escape sequence
             self.leave_escape()
@@ -891,6 +1031,18 @@ class TermCanvas(Canvas):
         elif self.parsestate == 4 and (char == b"\a" or (self._escbuf == ESC_B and char == b"\\")):
             # end of an over-long OSC string, discarded
             pass
+        elif self.parsestate == 5 and self._escbuf[-1:] == ESC_B and char == b"\\":
+            # end of a DCS, SOS, PM or APC string; only a DCS that was kept whole is applied
+            if self._escbuf.startswith(b"P") and len(self._escbuf) < _DCS_KEPT_LENGTH:
+                self.parse_dcs(bytes(self._escbuf[1:-1]))
+        elif self.parsestate == 5:
+            if len(self._escbuf) < _DCS_KEPT_LENGTH:
+                self._escbuf += char
+            else:
+                # past the limit only the last byte is replaced, which is enough to recognise ST, also when *char* is a
+                # multibyte character, so the buffer does not grow
+                self._escbuf[-1:] = char[-1:]
+            return
         elif self.parsestate == 2 and char == b"\a":
             # end of OSC
             self.parse_osc(bytes(self._escbuf.lstrip(b"0")))
@@ -921,14 +1073,18 @@ class TermCanvas(Canvas):
             self._escbuf = bytearray()
             self.parsestate = 1
             return
-        elif self.parsestate == 0 and char in {b"%", b"#", b"(", b")"}:
-            # non-CSI sequence
-            self._escbuf = bytearray(char)
-            self.parsestate = 3
+        elif self.parsestate in {0, 3} and b" " <= char <= b"/":
+            # an intermediate byte of an escape sequence (ECMA-35), such as the "(" of a G0 designation; past the
+            # limit the intermediate bytes are dropped, and the sequence still ends at its final byte
+            if self.parsestate == 0:
+                self._escbuf = bytearray()
+                self.parsestate = 3
+            if len(self._escbuf) < MAX_CSI_LENGTH:
+                self._escbuf += char
             return
         elif self.parsestate == 3:
             self.parse_noncsi(char, bytes(self._escbuf))
-        elif char in {b"c", b"D", b"E", b"H", b"M", b"Z", b"7", b"8", b">", b"="}:
+        elif char in {b"c", b"D", b"E", b"H", b"M", b"Z", b"7", b"8", b">", b"=", *_LOCKING_SHIFTS, *_SINGLE_SHIFTS}:
             self.parse_noncsi(char)
 
         self.leave_escape()
@@ -1033,19 +1189,20 @@ class TermCanvas(Canvas):
 
         dc = self.modes.display_ctrl
 
-        if char == ESC_B and self.parsestate not in {2, 4}:  # escape
+        if char == ESC_B and self.parsestate not in _STRING_STATES:  # escape
             # as in a terminal, an ESC drops a sequence still being read and starts a new one
             self.leave_escape()
             self.within_escape = True
-        elif self.parsestate in {2, 4} and char in b"\x18\x1a":  # CAN/SUB abort an OSC string, also with display_ctrl
+        elif self.parsestate in _STRING_STATES and char in b"\x18\x1a":
+            # CAN/SUB abort a command string, also with display_ctrl
             self.leave_escape()
         elif (
-            self.parsestate in {2, 4}
-            and char in _OSC_IGNORED
+            self.parsestate in _STRING_STATES
+            and char in (_COMMAND_STRING_IGNORED if self.parsestate == 5 else _OSC_IGNORED)
             and (self._escbuf[-1:] != ESC_B or dc or char not in _EXECUTED_CONTROLS)
         ):
-            # as in a terminal, such a control character inside an OSC string is neither executed nor part of its body;
-            # after an ESC, one of _EXECUTED_CONTROLS is executed by the branches below, and the ESC stays pending
+            # as in a terminal, such a control character inside a command string is neither executed nor part of its
+            # body; after an ESC, one of _EXECUTED_CONTROLS is executed by the branches below, and the ESC stays pending
             pass
         elif not dc and char == b"\r":  # carriage return CR
             self.carriage_return()
@@ -1070,8 +1227,8 @@ class TermCanvas(Canvas):
         elif not dc and (char in _IGNORED_CONTROLS or (char == b"\x7f" and self.parsestate not in {2, 4})):
             # as in a terminal, any other C0 control character and DEL are ignored, and an escape sequence continues
             pass
-        elif not dc and char == b"\x9b" and self.parsestate not in {2, 4}:  # CSI (equivalent to "ESC [")
-            # like ESC, it drops a sequence still being read; inside an OSC string it is part of the string
+        elif not dc and char == b"\x9b" and self.parsestate not in _STRING_STATES:  # CSI (equivalent to "ESC [")
+            # like ESC, it drops a sequence still being read; inside a command string it is part of the string
             self.leave_escape()
             self.within_escape = True
             self.parsestate = 1
@@ -1199,6 +1356,7 @@ class TermCanvas(Canvas):
                 self.insert_chars(char=char, dec_special=dec_special)
             else:
                 self.set_char(char, dec_special=dec_special)
+            self.charset.end_single_shift()
 
         self.set_term_cursor(x, y)
 
@@ -1538,6 +1696,10 @@ class TermCanvas(Canvas):
                     self.save_cursor(with_attrs=True)
                 else:
                     self.restore_cursor(with_attrs=True)
+            elif private_mode == PrivateMode.NUMERIC_KEYPAD:
+                self.modes.keypad_application = flag
+            elif private_mode == PrivateMode.BACKARROW_KEY:
+                self.modes.backarrow_sends_backspace = flag
             elif private_mode == PrivateMode.BRACKETED_PASTE:
                 self.modes.bracketed_paste = flag
             elif private_mode == PrivateMode.IN_BAND_RESIZE:
@@ -1578,6 +1740,10 @@ class TermCanvas(Canvas):
                 return modes.autowrap
             case PrivateMode.CURSOR_VISIBLE:
                 return modes.visible_cursor
+            case PrivateMode.NUMERIC_KEYPAD:
+                return modes.keypad_application
+            case PrivateMode.BACKARROW_KEY:
+                return modes.backarrow_sends_backspace
             case PrivateMode.BRACKETED_PASTE:
                 return modes.bracketed_paste
             case PrivateMode.SYNCHRONIZED_OUTPUT:
@@ -1600,6 +1766,69 @@ class TermCanvas(Canvas):
         state = self.private_mode_state(str(mode))
         value = 0 if state is None else 1 if state else 2
         self.widget.respond(f"{ESC}[?{mode:d};{value:d}$y")
+
+    def csi_report_mode(self, mode: int) -> None:
+        """Answer a DECRQM query for ANSI *mode* with a DECRPM reply (CSI mode ; state $ y).
+
+        The state is 1 for a set mode and 2 for a reset one.
+        KAM (2) is reported as permanently reset (4), and SRM (12) as permanently set (3), since neither changes.
+        Any other mode this canvas keeps no state for is reported as 0.
+        """
+        modes = self.modes
+        match mode:
+            case 3:
+                value = 1 if modes.display_ctrl else 2
+            case 4:
+                value = 1 if modes.insert else 2
+            case 20:
+                value = 1 if modes.lfnl else 2
+            case _:
+                value = _FIXED_ANSI_MODE_STATES.get(mode, 0)
+        self.widget.respond(f"{ESC}[{mode:d};{value:d}$y")
+
+    def soft_reset(self) -> None:
+        """Reset the modes, margins, attributes and character sets DECSTR resets, as xterm does.
+
+        The cursor is shown, insert, origin, cursor key and keypad application modes are reset, and autowrap is set.
+        The scrolling region is the whole screen again, without moving the cursor.
+        The attributes are reset as by SGR 0, and the character sets are the startup ones.
+        The cursor saved by DECSC is the home position with these attributes and character sets.
+        """
+        modes = self.modes
+        modes.visible_cursor = True
+        modes.insert = False
+        modes.constrain_scrolling = False
+        modes.autowrap = True
+        modes.keys_decckm = False
+        modes.keypad_application = False
+        self.reset_scroll()
+        self.csi_set_attr([0])
+        self.charset = TermCharset()
+        self.saved_cursor = (0, 0)
+        self.saved_attrs = (copy.copy(self.attrspec), TermCharset())
+        self.set_term_cursor()
+
+    def dcs_request_setting(self, request: bytes) -> None:
+        """Answer a DECRQSS query for the setting *request* names with a DECRPSS reply (DCS Ps $ r Pt ST).
+
+        The reply follows xterm:
+
+        - a valid request gets Ps 1, and Pt is the control sequence that restores the setting;
+        - a setting this canvas does not report gets Ps 0 and an empty Pt.
+
+        The settings reported are SGR (``m``), DECSTBM (``r``) and DECSCL (``"p``).
+        """
+        match request:
+            case b"m":
+                setting = f"{_sgr_parameters(self.attrspec)}m"
+            case b"r":
+                setting = f"{self.scrollregion_start + 1:d};{self.scrollregion_end + 1:d}r"
+            case b'"p':
+                setting = _CONFORMANCE_LEVEL_SETTING
+            case _:
+                self.widget.respond(f"{ESC}P0$r{ESC}\\")
+                return
+        self.widget.respond(f"{ESC}P1$r{setting}{ESC}\\")
 
     def csi_set_modes(
         self,
@@ -1637,9 +1866,9 @@ class TermCanvas(Canvas):
             self.set_tabstop(clear=True)
 
     def csi_get_device_attributes(self, qmark: bool) -> None:
-        """Report device attributes (what are you?). In our case, we'll report ourself as a VT102 terminal."""
+        """Report the primary device attributes: a VT220 with ANSI colour."""
         if not qmark:
-            self.widget.respond(f"{ESC}[?6c")
+            self.widget.respond(_PRIMARY_DEVICE_ATTRIBUTES)
 
     def csi_keyboard_flags(self, marker: bytes, params: Sequence[int | None]) -> None:
         """Act on a kitty keyboard protocol sequence for the flag stack of the screen shown.

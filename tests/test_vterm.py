@@ -890,6 +890,64 @@ class TermTest(unittest.TestCase):
         self.expect_signal("tle")
         self.disconnect_signal("title")
 
+    def test_command_strings_are_discarded(self) -> None:
+        """Discard a DCS, SOS, PM or APC string up to its ST, ignoring BEL in it, as xterm does."""
+        self.beeped = False
+        urwid.connect_signal(self.term, "beep", self.caught_beep)
+        red = urwid.AttrSpec("dark red", "default")
+        for label, chunks, line in (
+            ("DCS", [r"a\eP1;1|17/ab\e\b"], [(None, None, b"a"), (None, None, b"b")]),
+            ("SOS", [r"a\eXsos\e\b"], [(None, None, b"a"), (None, None, b"b")]),
+            ("PM", [r"a\e^pm\e\b"], [(None, None, b"a"), (None, None, b"b")]),
+            (
+                "APC, as in the kitty graphics protocol",
+                [r"a\e_Gf=24;AAAA\e\b"],
+                [(None, None, b"a"), (None, None, b"b")],
+            ),
+            ("ST across reads", [r"a\ePx\e", r"\b"], [(None, None, b"a"), (None, None, b"b")]),
+            ("BEL inside", ["a\\ePx\x07y\\e\\b"], [(None, None, b"a"), (None, None, b"b")]),
+            ("CAN aborts the string", ["a\\ePx\x18b"], [(None, None, b"a"), (None, None, b"b")]),
+            (
+                "an ESC ends the string and starts a sequence",
+                [r"a\ePx\e[31mb"],
+                [(None, None, b"a"), (red, None, b"b")],
+            ),
+            ("a control after an ESC inside is executed", ["a\\ePx\\e\b\\b"], [(None, None, b"b")]),
+        ):
+            with self.subTest(label):
+                self.restart()
+                for chunk in chunks:
+                    self.write(chunk)
+                    self.read()
+                self.expect([line], raw=True)
+                self.assertEqual(bytes(self.pty.from_widget), b"")
+        self.assertFalse(self.beeped)
+
+    def test_escape_with_intermediate_bytes_is_read_whole(self) -> None:
+        """Read an escape sequence with any intermediate bytes up to its final byte, printing none of it."""
+        for sequence in (
+            r"\e G",
+            r"\e F",
+            r"\e*0",
+            r"\e+B",
+            r"\e-A",
+            r"\e(%5",
+            r"\e%/G",
+            r"\e*E",
+            r"\e+Z",
+            r"\e*7",
+            r"\e-M",
+            r"\e.H",
+            r"\e 7",
+        ):
+            with self.subTest(sequence=sequence):
+                self.restart()
+                self.write(rf"a{sequence}b")
+                self.expect("ab")
+                # a final byte that is a single-character sequence of its own, such as DECID, is not run
+                self.assertEqual(bytes(self.pty.from_widget), b"")
+                self.assertIsNone(self.term.term.saved_cursor)
+
     def test_set_leds(self):
         self.connect_signal("leds")
         self.write(r"\e[0qtest1")
@@ -1057,12 +1115,15 @@ class TermTest(unittest.TestCase):
         for label, query, answer in (
             ("CPR reports the 1-based cursor position", r"\e[3;5H\e[6n", b"\x1b[3;5R"),
             ("DSR reports the terminal OK", r"\e[5n", b"\x1b[0n"),
-            ("DA reports a VT102", r"\e[c", b"\x1b[?6c"),
+            ("DA reports a VT220 with ANSI colour", r"\e[c", b"\x1b[?62;22c"),
             ("DA with a private marker is not answered", r"\e[?c", b""),
-            ("DECID reports a VT102", r"\eZ", b"\x1b[?6c"),
-            ("DECID after an unfinished ESC # reports a VT102", r"\e#\eZ", b"\x1b[?6c"),
+            ("DECID reports a VT220", r"\eZ", b"\x1b[?62;22c"),
+            ("DECID after an unfinished ESC # reports a VT220", r"\e#\eZ", b"\x1b[?62;22c"),
             ("ESC # Z is no DECID and is not answered", r"\e#Z", b""),
-            ("the kitty keyboard flags are answered before DA", r"\e[?u\e[c", b"\x1b[?0u\x1b[?6c"),
+            ("the kitty keyboard flags are answered before DA", r"\e[?u\e[c", b"\x1b[?0u\x1b[?62;22c"),
+            ("Secondary DA reports a VT220", r"\e[>c\e[>0c", b"\x1b[>1;10;0c" * 2),
+            ("Secondary DA with a parameter other than 0 is not answered", r"\e[>1c", b""),
+            ("Tertiary DA is not answered", r"\e[=c", b""),
             ("DECRQM reports a mode reset", r"\e[?2048$p", b"\x1b[?2048;2$y"),
             ("DECRQM reports a mode set", r"\e[?2004h\e[?2004$p", b"\x1b[?2004;1$y"),
             (
@@ -1072,7 +1133,44 @@ class TermTest(unittest.TestCase):
             ),
             ("DECRQM reports a mode with no state as unknown", r"\e[?3$p\e[?9999$p", b"\x1b[?3;0$y\x1b[?9999;0$y"),
             ("DECRQM is not answered without a mode", r"\e[?$p\e[?1;2$p", b""),
-            ("other sequences ending in p are not answered", r"\e[5p\e[!p\e[61;1\"p\e[4$p", b""),
+            ("other sequences ending in p are not answered", r"\e[5p\e[!p\e[61;1\"p", b""),
+            (
+                "DECRQM reports the ANSI modes",
+                r"\e[4h\e[20h\e[4$p\e[20$p\e[3$p\e[2$p\e[12$p\e[99$p",
+                b"\x1b[4;1$y\x1b[20;1$y\x1b[3;2$y\x1b[2;4$y\x1b[12;3$y\x1b[99;0$y",
+            ),
+            ("DECRQM for an ANSI mode is not answered without a mode", r"\e[$p\e[4;20$p", b""),
+            (
+                "DECRQM reports the keypad and backarrow modes",
+                r"\e[?66$p\e=\e[?66$p\e>\e[?66$p\e[?66h\e[?66$p\e[?67$p\e[?67h\e[?67$p",
+                b"\x1b[?66;2$y\x1b[?66;1$y\x1b[?66;2$y\x1b[?66;1$y\x1b[?67;2$y\x1b[?67;1$y",
+            ),
+            (
+                "RIS resets the keypad and backarrow modes",
+                r"\e[?66h\e[?67h\ec\e[?66$p\e[?67$p",
+                b"\x1b[?66;2$y\x1b[?67;2$y",
+            ),
+            ("DECRQSS reports the default SGR", r"\eP$qm\e\\", b"\x1bP1$r0m\x1b\\"),
+            (
+                "DECRQSS reports the SGR set, bold making the colour bright",
+                r"\e[1;2;3;4;5;7;9;31;44m\eP$qm\e\\",
+                b"\x1bP1$r0;1;2;3;4;5;7;9;91;44m\x1b\\",
+            ),
+            ("DECRQSS reports a 256-colour SGR", r"\e[38;5;100;48;5;7m\eP$qm\e\\", b"\x1bP1$r0;38;5;100;48;5;7m\x1b\\"),
+            ("DECRQSS reports a true-colour SGR", r"\e[48;2;1;2;3m\eP$qm\e\\", b"\x1bP1$r0;48;2;1;2;3m\x1b\\"),
+            ("DECRQSS leaves the hyperlink out of SGR", r"\e]8;;http://x\e\\\eP$qm\e\\", b"\x1bP1$r0m\x1b\\"),
+            ("DECRQSS reports the scrolling region", r"\e[2;5r\eP$qr\e\\", b"\x1bP1$r2;5r\x1b\\"),
+            ("DECRQSS reports the whole screen as the region", r"\eP$qr\e\\", b"\x1bP1$r1;24r\x1b\\"),
+            ("DECRQSS reports the conformance level", r'\eP$q"p\e\\', b'\x1bP1$r62;1"p\x1b\\'),
+            (
+                "DECRQSS answers a setting not reported as invalid",
+                r"\eP$q q\e\\\eP$qmm\e\\\eP$q\e\\",
+                b"\x1bP0$r\x1b\\" * 3,
+            ),
+            ("DECRQSS ignores BEL and ends only at ST", "\\eP$q\x07m\\e\\\\", b"\x1bP1$r0m\x1b\\"),
+            ("a DCS that is no DECRQSS is not answered", r"\eP1$qm\e\\\ePzz\e\\", b""),
+            ("an over-long DECRQSS is not answered", r"\eP$q" + "m" * 40 + r"\e\\", b""),
+            ("DECRQSS aborted by CAN is not answered", "\\eP$qm\x18\\e\\\\", b""),
             ("mode 2048 reports the size on each set", r"\e[?2048h\e[?2048h", b"\x1b[48;24;80;0;0t" * 2),
             ("mode 2048 is reset by RIS", r"\e[?2048h\ec\e[?2048$p", b"\x1b[48;24;80;0;0t\x1b[?2048;2$y"),
         ):
@@ -1130,6 +1228,49 @@ class TermTest(unittest.TestCase):
         """Draw with the DEC special graphics set while it is designated as G0."""
         self.write(r"\e(0q\e(Bq")
         self.expect([[(None, "0", b"q"), (None, None, b"q")]], raw=True)
+
+    def test_g2_and_g3_shifts(self) -> None:
+        """Draw from G2 and G3 with the locking shifts LS2 and LS3, and for one character with SS2 and SS3."""
+        dec = (None, "0", b"q")
+        ascii_q = (None, None, b"q")
+        for label, data, line in (
+            ("SS2 shifts one character", r"\e*0q\eNqq", [ascii_q, dec, ascii_q]),
+            ("SS3 shifts one character", r"\e+0q\eOqq", [ascii_q, dec, ascii_q]),
+            ("SS2 returns to the locking shift in effect", "\\e*0\x0e\\eNqq", [dec, dec]),
+            ("a designation during SS2 keeps it a single shift", r"\e*0\eN\e(Bqq", [dec, ascii_q]),
+            ("SGR 10 during SS2 keeps it a single shift", r"\e*0\eN\e[10mqq", [dec, ascii_q]),
+            ("SI during SS2 changes the slot it returns to", "\\e*0\x0e\\eN\x0fqq", [dec, ascii_q]),
+            ("LS2 and LS3 stay until SI", "\\e*0\\e+0\\enq\\eoq\x0fq", [dec, dec, ascii_q]),
+            ("a 96-character set designation changes no slot", r"\e-A\e.A\e/Aq\enq", [ascii_q, ascii_q]),
+            ("RIS resets G2 and G3", r"\e*0\ec\enq", [ascii_q]),
+        ):
+            with self.subTest(label):
+                self.restart()
+                self.write(data)
+                self.expect([line], raw=True)
+
+    def test_designation_after_decsc_does_not_change_the_saved_charsets(self) -> None:
+        """Restore the character sets DECSC saved, also after a designation made between DECSC and DECRC."""
+        self.write("\\e7\\e(0\\e8\x0fq")
+        self.expect([[(None, None, b"q")]], raw=True)
+
+    def test_soft_reset(self) -> None:
+        """Reset the modes, the region, the attributes and the charsets DECSTR resets, keeping the cursor, as xterm."""
+        self.write(r"\e[?1h\e[?25l\e[4h\e[?7l\e[2;4r\e[1;31m\e=\e(0\e[3;5H\e7\e[2;2H\e[!p")
+        self.read()
+        self.assertEqual(self.term.term.term_cursor, (1, 1))
+        self.write(r"\e[?1$p\e[?6$p\e[?7$p\e[?25$p\e[4$p\e[?66$p\eP$qm\e\\\eP$qr\e\\")
+        self.read()
+        self.assertEqual(
+            bytes(self.pty.from_widget),
+            b"\x1b[?1;2$y\x1b[?6;2$y\x1b[?7;1$y\x1b[?25;1$y\x1b[4;2$y\x1b[?66;2$y\x1bP1$r0m\x1b\\\x1bP1$r1;24r\x1b\\",
+        )
+        self.pty.from_widget.clear()
+        # the cursor DECSC saved before is replaced by the home position with the reset attributes and charsets
+        self.write(r"\e[2J\e8q\e[6n")
+        self.read()
+        self.assertEqual(self.term.term.term[0][0], (None, None, b"q"))
+        self.assertEqual(bytes(self.pty.from_widget), b"\x1b[1;2R")
 
     def test_scrollback(self) -> None:
         """Scroll the view through the scrollback buffer within its bounds."""
@@ -1198,7 +1339,7 @@ class TermTest(unittest.TestCase):
 
     def test_csi_with_sub_parameters_or_intermediate_bytes_is_ignored_whole(self) -> None:
         """Ignore a whole CSI sequence with sub-parameters, a private marker or intermediate bytes (ECMA-48 5.4)."""
-        self.write(r"\e[38:5:196ma\e[38:2::1:2:3mb\e[4:3mc\e[2 qd\e[>4;1me\e[=5cf\e[!pg\e[>ch")
+        self.write(r"\e[38:5:196ma\e[38:2::1:2:3mb\e[4:3mc\e[2 qd\e[>4;1me\e[=5cf\e[1$wg\e[>1ch")
         self.expect("abcdefgh")
         self.assertIsNone(self.term.term.attrspec)
         self.assertEqual(bytes(self.pty.from_widget), b"")
@@ -1526,6 +1667,23 @@ class TermTest(unittest.TestCase):
                 self.term.keygrab = True
                 self.assertEqual(self.term.keypress(self.termsize, key), key)
                 self.assertEqual(bytes(self.pty.from_widget), b"")
+
+    def test_backarrow_key_mode(self) -> None:
+        """Send BS for Backspace while DECBKM is set, and DEL while it is reset, its default."""
+        for mode, key, sent in (
+            ("", "backspace", b"\x7f"),
+            (r"\e[?67h", "backspace", b"\x08"),
+            (r"\e[?67h", "shift backspace", b"\x08"),
+            (r"\e[?67h\e[?67l", "backspace", b"\x7f"),
+        ):
+            with self.subTest(mode=mode, key=key):
+                self.restart()
+                self.write(mode)
+                self.read()
+                self.pty.from_widget.clear()
+                self.term.keygrab = True
+                self.assertIsNone(self.term.keypress(self.termsize, key))
+                self.assertEqual(bytes(self.pty.from_widget), sent)
 
     def test_meta_keys_send_escape_prefix(self) -> None:
         """Send ESC before the key's character for a meta key, which urwid's own input parser reads back as that key."""

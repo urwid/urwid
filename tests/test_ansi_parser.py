@@ -1094,6 +1094,55 @@ class OscTerminationTest(unittest.TestCase):
                 self.assertIsNone(line.title)
 
 
+class DiscardedSequenceTest(unittest.TestCase):
+    """DCS, SOS, PM and APC strings, and escape sequences with intermediate bytes, leave no text behind."""
+
+    def test_command_strings_are_discarded(self) -> None:
+        """Discard a command string up to its ST, ignoring BEL and line ends in it, also across feed calls."""
+        red = sgi_params_to_attrspec([31], None, unset_color="inherit")
+        for label, text, expected, attrib, bel in (
+            ("DCS", "a\x1bP$qm\x1b\\b", "ab", [(None, 2)], 0),
+            ("SOS", "a\x1bXsos\x1b\\b", "ab", [(None, 2)], 0),
+            ("PM", "a\x1b^pm\x1b\\b", "ab", [(None, 2)], 0),
+            ("APC, as in the kitty graphics protocol", "a\x1b_Gf=24;AAAA\x1b\\b", "ab", [(None, 2)], 0),
+            ("BEL and line ends inside", "a\x1bPx\x07y\r\nz\x1b\\b", "ab", [(None, 2)], 0),
+            ("CAN aborts the string", "a\x1bPx\x18b", "ab", [(None, 2)], 0),
+            ("an ESC ends the string and starts a sequence", "a\x1bPx\x1b[31mb", "ab", [(None, 1), (red, 1)], 0),
+            ("a control after an ESC inside is executed", "a\x1bPx\x1b\t\\b", "a       b", [(None, 9)], 0),
+            ("BEL after an ESC inside is not", "a\x1bPx\x1b\x07\\b", "ab", [(None, 2)], 0),
+        ):
+            for one_line in (True, False):
+                for split in range(len(text) + 1):
+                    with self.subTest(label, one_line=one_line, split=split):
+                        parser = AnsiParser(one_line=one_line)
+                        parser.feed(text[:split])
+                        parser.feed(text[split:])
+                        line = parser.finalize()[0]
+                        self.assertEqual(expected, line.text)
+                        self.assertEqual(attrib, line.attrib)
+                        self.assertEqual(bel, line.bel)
+
+    def test_escape_with_intermediate_bytes_is_read_whole(self) -> None:
+        """Read an escape sequence with any intermediate bytes up to its final byte, and skip it."""
+        for sequence in (
+            "\x1b G",
+            "\x1b F",
+            "\x1b*0",
+            "\x1b+B",
+            "\x1b-A",
+            "\x1b(%5",
+            "\x1b%/G",
+            "\x1b*E",
+            "\x1b+Z",
+            "\x1b-M",
+            "\x1b 7",
+        ):
+            with self.subTest(sequence=sequence):
+                line = parse_ansi_text(f"a{sequence}b")
+                self.assertEqual("ab", line.text)
+                self.assertEqual([("unknown", sequence)], [(op.kind, op.raw) for op in line.skipped])
+
+
 class ControlCharacterTest(unittest.TestCase):
     """C0 control characters are executed as in a terminal, and an escape sequence around them continues."""
 

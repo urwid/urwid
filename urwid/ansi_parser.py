@@ -131,6 +131,13 @@ _CANCEL = frozenset("\x18\x1a")
 #: executed nor part of the string. DEL is not among them: a terminal keeps it in the string.
 OSC_IGNORED_CONTROLS = frozenset(map(chr, range(0x20))) - {BEL, ESC, *_CANCEL}
 
+#: The control characters ignored inside a DCS, SOS, PM or APC string: those of an OSC string, and BEL, which ends only
+#: OSC.
+_COMMAND_STRING_IGNORED: typing.Final = OSC_IGNORED_CONTROLS | {BEL}
+
+#: The final bytes after ESC that open a DCS, SOS, PM and APC string, which are discarded up to their ST.
+_COMMAND_STRING_OPENERS: typing.Final = frozenset("PX^_")
+
 #: C0 control characters and DEL passed to ``AnsiParser._execute_control()`` wherever they appear outside an OSC
 #: string, also inside another escape sequence, which then continues; ESC, CAN, SUB and the line ends are handled apart.
 _INLINE_CONTROLS = frozenset(map(chr, (*range(0x20), 0x7F))) - {ESC, *_CANCEL, "\r", "\n"}
@@ -297,6 +304,8 @@ class AnsiParser:
     is ignored as in a terminal: it is neither executed nor part of the string, and a line end there splits no line.
     Right after an ESC inside the string, a control character is executed instead, and the ESC stays pending, so a
     following backslash still ends the string. An OSC string left unterminated hides the rest of the input.
+    A DCS, SOS, PM or APC string is discarded up to its ST in the same way, and BEL inside it is ignored as well.
+    An escape sequence with intermediate bytes, such as ``ESC SP G``, is read up to its final byte.
 
     Deliberately out of scope in both modes (stripped and logged as :class:`SkippedOp` with
     ``kind="terminal-setting"`` or ``kind="unknown"``): erase (``CSI J``/``K``), scroll regions, save/restore
@@ -362,8 +371,8 @@ class AnsiParser:
         # completed-lines queue, used only in one_line mode
         self._completed: list[ParsedLine] = []
 
-        # escape-framing state: 0 none / 1 CSI / 2 OSC / 3 two-char intermediate /
-        # 4 the discarded remainder of an over-long OSC string
+        # escape-framing state: 0 none / 1 CSI / 2 OSC / 3 intermediate bytes /
+        # 4 the discarded remainder of an over-long OSC string / 5 a discarded DCS, SOS, PM or APC string
         self._within_escape = False
         self._parsestate = 0
         self._escbuf = ""
@@ -410,8 +419,8 @@ class AnsiParser:
         while i < n:
             ch = text[i]
             if ch in _LINE_END_PAIR:
-                if self._parsestate in {2, 4} and self._escbuf[-1:] != ESC:
-                    # a line end inside an OSC string is ignored, see _step()
+                if self._parsestate in {2, 4, 5} and self._escbuf[-1:] != ESC:
+                    # a line end inside a command string is ignored, see _step()
                     i += 1
                     continue
                 if self._one_line:
@@ -552,6 +561,24 @@ class AnsiParser:
                 # pending, so a following backslash still ends the string; line ends are handled so in feed()
                 self._execute_control(ch)
             return
+        if self._parsestate == 5:
+            if ch in _CANCEL:
+                self._leave_escape()
+            elif ch not in _COMMAND_STRING_IGNORED:
+                if self._escbuf == ESC and ch != "\\":
+                    # any ESC other than the one of ST ends the string and starts a new escape sequence
+                    self._leave_escape()
+                    self._within_escape = True
+                    self._step(ch)
+                elif self._escbuf == ESC:
+                    self._leave_escape()
+                else:
+                    # only the last character is kept, which is enough to recognise ST
+                    self._escbuf = ch
+            elif self._escbuf == ESC and ch != BEL:
+                # after an ESC the control character is executed, as in an OSC string; BEL is no terminator here
+                self._execute_control(ch)
+            return
         if ch in _INLINE_CONTROLS:
             self._execute_control(ch)
             return
@@ -662,9 +689,20 @@ class AnsiParser:
             self._parsestate = 1
             return
 
-        if self._parsestate == 0 and ch in "%#()":
-            self._escbuf = ch
-            self._parsestate = 3
+        if self._parsestate == 0 and ch in _COMMAND_STRING_OPENERS:
+            self._skip("unknown", f"{ESC}{ch}", "DCS, SOS, PM and APC strings are not supported, discarded")
+            self._escbuf = ""
+            self._parsestate = 5
+            return
+
+        if self._parsestate in {0, 3} and " " <= ch <= "/":
+            # an intermediate byte of an escape sequence (ECMA-35), such as the "(" of a G0 designation; past the limit
+            # the intermediate bytes are dropped, and the sequence still ends at its final byte
+            if self._parsestate == 0:
+                self._escbuf = ""
+                self._parsestate = 3
+            if len(self._escbuf) < MAX_CSI_LENGTH:
+                self._escbuf += ch
             return
 
         if self._parsestate == 3:
@@ -781,6 +819,9 @@ class AnsiParser:
             self._charsets[0 if mod == "(" else 1] = ch
             if ch not in {_ASCII_SET, DEC_TAG}:
                 self._skip("terminal-setting", raw, "unsupported character set designation, drawn as ASCII")
+        elif mod:
+            # another intermediate byte: its final byte is no single-character sequence of its own
+            self._skip("unknown", raw, f"unrecognised escape sequence {raw!r}")
         elif ch == "M":
             self._skip("vertical-move", raw, "reverse line feed")
         elif ch == "D":
