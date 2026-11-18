@@ -244,21 +244,23 @@ class TestRawDisplay(unittest.TestCase):
         """Write the default colors and then the settings as SGR on fbterm, and only a set color as a palette entry.
 
         fbterm's SGR 39 also ends underline, so the settings come after it.
+        TERM names fbterm in any case.
         """
-        s = urwid.display.raw.Screen()
-        s.set_terminal_properties(colors=256)
-        s.term = "fbterm"
-        a2e = s._attrspec_to_escape  # pylint: disable=protected-access  # the encoder has no public entry point
-        for fg, bg, expected in (
-            ("default", "default", "\x1b[0;39;49m"),
-            ("black", "default", "\x1b[0;39;49m\x1b[1;0}"),
-            ("brown,bold,underline", "dark green", "\x1b[0;39;49;1;4m\x1b[1;3}\x1b[2;2}"),
-            ("default,underline", "default", "\x1b[0;39;49;4m"),
-            ("default,standout", "#d0d", "\x1b[0;39;49;7m\x1b[2;164}"),
-            ("#fea", "light blue", "\x1b[0;39;49m\x1b[1;229}\x1b[2;12}"),
-        ):
-            with self.subTest(fg=fg, bg=bg):
-                self.assertEqual(expected, a2e(s.AttrSpec(fg, bg)))
+        for term in ("fbterm", "FBTERM"):
+            s = urwid.display.raw.Screen()
+            s.set_terminal_properties(colors=256)
+            s.term = term
+            a2e = s._attrspec_to_escape  # pylint: disable=protected-access  # the encoder has no public entry point
+            for fg, bg, expected in (
+                ("default", "default", "\x1b[0;39;49m"),
+                ("black", "default", "\x1b[0;39;49m\x1b[1;0}"),
+                ("brown,bold,underline", "dark green", "\x1b[0;39;49;1;4m\x1b[1;3}\x1b[2;2}"),
+                ("default,underline", "default", "\x1b[0;39;49;4m"),
+                ("default,standout", "#d0d", "\x1b[0;39;49;7m\x1b[2;164}"),
+                ("#fea", "light blue", "\x1b[0;39;49m\x1b[1;229}\x1b[2;12}"),
+            ):
+                with self.subTest(term=term, fg=fg, bg=bg):
+                    self.assertEqual(expected, a2e(s.AttrSpec(fg, bg)))
 
     def test_attrspec_truecolor_to_escape(self):
         s = urwid.display.raw.Screen()
@@ -588,6 +590,8 @@ class TestRawDisplay(unittest.TestCase):
             # GNU screen interprets the sequences itself, whatever terminal it runs in
             "screen.linux": osc4,
             "fbterm": ("\x1b[3;1;255;0;0;2;0;255;0}", ""),
+            # TERM names the terminal in any case
+            "FBTerm": ("\x1b[3;1;255;0;0;2;0;255;0}", ""),
             "linux": linux,
             "linux-16color": linux,
             "linux.utf8": linux,

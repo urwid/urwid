@@ -1529,13 +1529,16 @@ class TestGetColsRows(unittest.TestCase):
 
     @mock.patch("fcntl.ioctl")
     def test_falls_back_to_80x24_for_ansi_vt100_when_ioctl_gives_non_positive(self, mock_ioctl):
+        """TERM names the terminal in any case."""
         mock_ioctl.return_value = struct.pack("hhhh", 0, 0, 0, 0)
-        s = _make_screen()
-        s.term = "ansi"
+        for term in ("ansi", "VT100"):
+            with self.subTest(term=term):
+                s = _make_screen()
+                s.term = term
 
-        cols, rows = s.get_cols_rows()
+                cols, rows = s.get_cols_rows()
 
-        self.assertEqual((80, 24), (cols, rows))
+                self.assertEqual((80, 24), (cols, rows))
 
     @mock.patch("fcntl.ioctl")
     def test_reported_size_is_used_until_the_next_sigwinch(self, mock_ioctl):
