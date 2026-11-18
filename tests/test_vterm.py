@@ -498,6 +498,7 @@ class TermTest(unittest.TestCase):
         # in origin mode the rows outside the scrolling region are erased too, as in xterm
         for erase, screen in (
             (r"\e[2J", ""),
+            (r"\e[?2J", ""),
             (r"\e[H\e[J", "X"),
             (r"\e[2;1H\e[1J", "\n\n\nX\nX\nX"),
         ):
@@ -515,6 +516,7 @@ class TermTest(unittest.TestCase):
         for label, data, cell in (
             ("EL", r"\e[7;4;1;44m\e[K", (blue, None, b" ")),
             ("ECH", r"\e[7;4;1;44m\e[2X", (blue, None, b" ")),
+            ("DECSEL", r"\e[7;4;1;44m\e[?K", (blue, None, b" ")),
             ("ICH", r"X\e[1;1H\e[7;4;1;44m\e[@", (blue, None, b" ")),
             ("IL", r"\e[7;4;1;44m\e[L", (blue, None, b" ")),
             ("ED with default colours", r"\e[7;4m\e[2J", (None, None, b" ")),
@@ -527,6 +529,33 @@ class TermTest(unittest.TestCase):
                 self.write(data)
                 self.read()
                 self.assertEqual(self.term.term.term[0][0], cell)
+
+    def test_selective_erase(self) -> None:
+        """Keep the characters DECSCA protected in DECSED, DECSEL and DECSERA, which xterm draws so."""
+        for label, data, screen in (
+            ("DECSEL", r"\e[1;1H\e[?K", " BC"),
+            ("DECSED", "\nEF\\e[?2J", " BC"),
+            ("DECSERA", r"\e[1;1;1;4${", " BC"),
+            ("DECSERA outside the rectangle", r"\e[1;3;1;4${", "ABC"),
+            ("EL", r"\e[1;1H\e[K", ""),
+            ("DCH, which shifts the protection", r"\e[1;1H\e[P\e[?K", "BC"),
+            ("insert mode, which protects the inserted characters", '\\e[1;1H\\e[4h\\e[1"qE\\e[1;1H\\e[?K', "E BC"),
+            (
+                "DECRC on the alternate screen, which restores DECSCA",
+                '\\e[1"q\\e[?1049h\\e[0"q\\e[?1049lE\\e[1;1H\\e[?K',
+                " BC E",
+            ),
+        ):
+            with self.subTest(label):
+                self.restart()
+                self.write('A\\e[1"qBC\\e[0"qD' + data)
+                self.expect(screen)
+
+        red = urwid.AttrSpec("default", "dark red")
+        self.restart(4, 2)
+        self.write(r"\e[41mX\e[0;7;44m\e[${")
+        self.read()
+        self.assertEqual(self.term.term.term[0][0][::2], (red, b" "), "DECSERA keeps the cell's own attributes")
 
     def test_scrolling_region_simple(self):
         # TODO(Aleksei): Issue #544
@@ -1242,6 +1271,58 @@ class TermTest(unittest.TestCase):
                 r"\e[2;1H \e[1;1;1;1;2;1*y",
                 b"\x1bP1!~FFE0\x1b\\",
             ),
+            *(
+                (
+                    f"DECRQCRA counts the cells as xterm does after {label}",
+                    '\\ecA\\e[1"qBC\\e[0"qD'
+                    + data
+                    + "".join(rf"\e[1;1;{row};{col};{row};{col}*y" for col in range(1, 5)),
+                    b"".join(b"\x1bP1!~%s\x1b\\" % value for value in values.encode().split()),
+                )
+                for label, data, row, values in (
+                    ("DECSCA, which adds 0x04 to a protected character", "", 1, "FFBF FFBA FFB9 FFBC"),
+                    ("DECSEL, which keeps protected characters", r"\e[1;1H\e[?K", 1, "FFE0 FFBA FFB9 0000"),
+                    ("DECSEL 1", r"\e[1;3H\e[?1K", 1, "FFE0 FFBA FFB9 FFBC"),
+                    ("DECSEL 2", r"\e[?2K", 1, "FFE0 FFBA FFB9 0000"),
+                    ("DECSED 0", r"\e[1;1H\e[?J", 1, "FFE0 FFBA FFB9 0000"),
+                    ("DECSED 2", r"\e[?2J", 1, "FFE0 FFBA FFB9 0000"),
+                    ("EL, which erases protected characters", r"\e[1;1H\e[K", 1, "0000 0000 0000 0000"),
+                    ("ECH, which erases protected characters", r"\e[1;1H\e[4X", 1, "FFE0 FFE0 FFE0 FFE0"),
+                    ("DECERA, which erases protected characters", r"\e[1;1;1;4$z", 1, "FFE0 FFE0 FFE0 FFE0"),
+                    ("DECERA while DECSCA protects", r'\e[1"q\e[1;1;1;4$z\e[0"q\e[?2K', 1, "FFDC FFDC FFDC FFDC"),
+                    ("DECFRA while DECSCA protects", r'\e[1"q\e[88;1;1;1;4$x\e[0"q\e[?2K', 1, "FFA4 FFA4 FFA4 FFA4"),
+                    ("EL while DECSCA protects", r'\e[1"q\e[1;1H\e[K\e[0"q\e[?2K', 1, "0000 0000 0000 0000"),
+                    (
+                        "DECCRA, which copies the protection",
+                        r"\e[1;1;1;4;1;2;1$v\e[2;1H\e[?2K",
+                        2,
+                        "FFE0 FFBA FFB9 0000",
+                    ),
+                    ("overwriting a protected character", r"\e[1;2HX\e[?2K", 1, "FFE0 FFE0 FFB9 0000"),
+                    ("DECSERA on a cell never written", r"\e[2;1;2;1${", 2, "FFE0 0000 0000 0000"),
+                    ("RIS", r"\ecABCD\e[?2K", 1, "0000 0000 0000 0000"),
+                )
+            ),
+            *(
+                (f"DECRQSS reports DECSCA {label}", rf'\ec{data}\eP$q"q{_ST}', b'\x1bP1$r%s"q\x1b\\' % value)
+                for label, data, value in (
+                    ("off at startup", "", b"0"),
+                    ("set", r'\e[1"q', b"1"),
+                    ("reset by 2", r'\e[1"q\e[2"q', b"0"),
+                    ("reset by no parameter", r'\e[1"q\e["q', b"0"),
+                    ("set, ignoring a value past 2", r'\e[1"q\e[5"q', b"1"),
+                    ("set, ignoring SGR 0", r'\e[1"q\e[0m', b"1"),
+                    ("set, as DECRC restores it", r'\e[1"q\e7\e[0"q\e8', b"1"),
+                    ("set, as SCORC restores it", r'\e[1"q\e[s\e[0"q\e[u', b"1"),
+                    ("off after DECSTR", r'\e[1"q\e[!p', b"0"),
+                    ("off after RIS", r'\e[1"q\ec', b"0"),
+                )
+            ),
+            (
+                "DECCIR reports DECSCA, and DECRSPS restores it",
+                rf'\e[1"q\e[1$w\e[0"q\eP1$t1;1;1;@;A;@;0;2;@;BBBB{_ST}\eP$q"q{_ST}',
+                b'\x1bP1$u1;1;1;@;A;@;0;2;@;B0BB\x1b\\\x1bP1$r1"q\x1b\\',
+            ),
             ("DECRQDE reports the screen", r'\e["v', b'\x1b[24;80;1;1;1"w'),
             (
                 "DECRQM reports DECLRMM and DECKBUM permanently reset",
@@ -1312,7 +1393,6 @@ class TermTest(unittest.TestCase):
             ("DECRQSS reports the scrolling region", rf"\e[2;5r\eP$qr{_ST}", b"\x1bP1$r2;5r\x1b\\"),
             ("DECRQSS reports the whole screen as the region", rf"\eP$qr{_ST}", b"\x1bP1$r1;24r\x1b\\"),
             ("DECRQSS reports the conformance level", rf'\eP$q"p{_ST}', b'\x1bP1$r63;1"p\x1b\\'),
-            ("DECRQSS reports no protected characters", rf'\eP$q"q{_ST}', b'\x1bP1$r0"q\x1b\\'),
             ("DECRQSS reports the columns per page", rf"\eP$q$|{_ST}", b"\x1bP1$r80$|\x1b\\"),
             (
                 "DECSCL sets the level DECRQSS reports, and ignores another level",

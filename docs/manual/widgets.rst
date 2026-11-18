@@ -183,9 +183,10 @@ The terminal widgets are box widgets that emulate a terminal.
 It answers a device attributes query as a VT320 with ANSI colour.  It
 answers DECRQSS, DECRQM for the ANSI and DEC private modes it keeps, and
 DECRQPSR with the cursor information and the tab stops, which DECRSPS
-restores.  DECSCL selects the VT100, VT200 or VT300 level.  Of the VT420 it
-takes the rectangular area operations DECFRA, DECERA, DECCRA and the DECRQCRA
-checksum, the column operations DECIC, DECDC, DECBI and DECFI, and the
+restores.  DECSCL selects the VT100, VT200 or VT300 level.  The selective
+erases DECSED and DECSEL keep the characters DECSCA protects.  Of the VT420 it
+takes the rectangular area operations DECFRA, DECERA, DECSERA, DECCRA and the
+DECRQCRA checksum, the column operations DECIC, DECDC, DECBI and DECFI, and the
 tertiary device attributes query, at every level, although xterm takes them
 only at the VT420 level.  At the VT100 level no reply in a DCS string is
 sent.  After the child sets a cursor style with DECSCUSR, the widget draws the
