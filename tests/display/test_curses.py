@@ -221,6 +221,22 @@ class CursesStartTerminalModeTest(unittest.TestCase):
             self.calls.mock_calls[-2:],
         )
 
+    def test_failed_initscr_is_the_error_raised(self) -> None:
+        """Raise the error of a failed initscr(), not one from undoing a start that changed nothing.
+
+        The screen is left stopped, and the terminal mode is not touched.
+        """
+        curses_mock = curses_display.curses
+        curses_mock.initscr.side_effect = curses_mock.error("setupterm: could not find terminal")
+        curses_mock.echo.side_effect = curses_mock.error("must call initscr() first")
+        screen = curses_display.Screen()
+
+        with self.assertRaisesRegex(curses_mock.error, "could not find terminal"):
+            screen.start()
+
+        self.assertFalse(screen.started)
+        self.calls.tcsetattr.assert_not_called()
+
     def test_stop_gives_the_signal_keys_back_when_the_mode_restore_fails(self) -> None:
         """Restore the signal keys even when setting the cleared flags back raises."""
         self.tcgetattr.side_effect = [self.mode(termios.IEXTEN), self.mode(0)]

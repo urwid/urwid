@@ -1027,6 +1027,8 @@ class Screen(BaseScreen, RealTerminal):
         close = escape.HYPERLINK_CLOSE if self.hyperlinks else ""
         self.write(close + self._attrspec_to_escape(AttrSpec("", "")) + escape.SI + move_cursor + escape.SHOW_CURSOR)
         self.flush()
+        # a later start that fails before switching screens has no alternate screen to leave
+        self._alternate_buffer = False
         # leaving the alternate screen restores the G1 the terminal had before, and whatever runs before the next
         # start can reset the character sets, so G1 is designated again then
         self._setup_G1_done = False
