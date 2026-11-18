@@ -495,6 +495,15 @@ class TermTest(unittest.TestCase):
         self.expect("\n  f\ngh")
         self.write("\\ecabc\ndef\\e[2;1H\\e[1J")
         self.expect("\n ef")
+        # in origin mode the rows outside the scrolling region are erased too, as in xterm
+        for erase, screen in (
+            (r"\e[2J", ""),
+            (r"\e[H\e[J", "X"),
+            (r"\e[2;1H\e[1J", "\n\n\nX\nX\nX"),
+        ):
+            with self.subTest(erase):
+                self.write("\\ecX\nX\nX\nX\nX\nX\\e[2;4r\\e[?6h" + erase)
+                self.expect(screen)
 
     def test_erased_cells_keep_the_colours_only(self) -> None:
         """Give erased, inserted and scrolled-in cells the colours but not the attribute flags, as xterm does.

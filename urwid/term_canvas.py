@@ -2472,11 +2472,14 @@ class TermCanvas(Canvas):
             0 -> erase from cursor to end of display.
             1 -> erase from start to cursor.
             2 -> erase the whole display.
+
+        The rows outside the scrolling region are erased in origin mode too, as in xterm.
         """
+        cursor = (*self.term_cursor, True)
         if mode == 0:
-            self.erase(self.term_cursor, (self.width - 1, self.height - 1))
+            self.erase(cursor, (self.width - 1, self.height - 1, True))
         elif mode == 1:
-            self.erase((0, 0), self.term_cursor)
+            self.erase((0, 0, True), cursor)
         elif mode == 2:
             self.clear(cursor=self.term_cursor)
 
