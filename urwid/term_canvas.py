@@ -124,6 +124,27 @@ _UNDERLINE_CURSOR_STYLES: typing.Final = frozenset((3, 4))
 #: the cursor style DECRQSS reports before a DECSCUSR, a steady block, as xterm reports its startup one
 _DEFAULT_CURSOR_STYLE: typing.Final = 2
 
+#: the DECRQCRA value xterm gives each character of the DEC special graphics set, by the ASCII byte it is designated
+#: with, as measured from xterm 407
+_DEC_CHECKSUM_VALUES: typing.Final = types.MappingProxyType(
+    dict(
+        zip(
+            (bytes((code,)) for code in range(0x5F, 0x7F)),
+            # the values of "_" to "~", in that order
+            bytes.fromhex(
+                "00 14 78 0a 0d 0e 0b b0 b1 15 0c 16 17 18 19 1a 1b 1c 1d 1e 1f 80 81 82 83 84 85 86 c6 87 a3 b7"
+            ),
+            strict=True,
+        )
+    )
+)
+#: the DECRQCRA value xterm gives a character with no 7-bit value: U+00A0 and anything past Latin-1
+_CHECKSUM_UNMAPPED: typing.Final = 0x1B
+
+#: the DEC private modes DECRQM reports as permanently reset (4): DECKBUM (68), and DECLRMM (69), since left and right
+#: margins are not implemented
+_PERMANENTLY_RESET_PRIVATE_MODES: typing.Final = frozenset((68, 69))
+
 #: the DECRQCRA checksum bits of the AttrSpec flags, as xterm adds them to each character
 _CHECKSUM_BITS: typing.Final = (("bold", 0x80), ("blink", 0x40), ("standout", 0x20), ("underline", 0x10))
 
@@ -263,7 +284,11 @@ CSI_COMMANDS: dict[bytes, CSIAlias | CSICommand] = {
     b"X": CSICommand(
         1,
         1,
-        lambda s, number, q: s.erase(s.term_cursor, (s.term_cursor[0] + number[0] - 1, s.term_cursor[1])),
+        lambda s, number, q: s.erase(
+            s.term_cursor,
+            (s.term_cursor[0] + number[0] - 1, s.term_cursor[1]),
+            written=True,
+        ),
     ),
     b"a": CSIAlias("alias", b"C"),
     b"c": CSICommand(0, 0, lambda s, none, q: s.csi_get_device_attributes(q)),
@@ -285,8 +310,9 @@ CSI_COMMANDS: dict[bytes, CSIAlias | CSICommand] = {
     b"u": CSICommand(0, 0, lambda s, none, q: s.restore_cursor(with_attrs=True)),
     # DECRQPSR (CSI Ps $ w) is answered in parse_csi, and the other forms are not implemented
     b"w": CSICommand(0, 0, lambda s, none, q: None),
-    # the VT420 sequences with an intermediate byte, run in parse_csi from _INTERMEDIATE_COMMANDS: DECFRA (CSI ... $ x),
-    # DECERA (CSI ... $ z), DECCRA (CSI ... $ v), DECRQCRA (CSI ... * y), DECIC (CSI Ps ' }) and DECDC (CSI Ps ' ~)
+    # the VT420 sequences with an intermediate byte, run in parse_csi from _INTERMEDIATE_COMMANDS: DECRQDE (CSI " v),
+    # DECFRA (CSI ... $ x), DECERA (CSI ... $ z), DECCRA (CSI ... $ v), DECRQCRA (CSI ... * y), DECIC (CSI Ps ' })
+    # and DECDC (CSI Ps ' ~)
     b"v": CSICommand(0, 0, lambda s, none, q: None),
     b"x": CSICommand(0, 0, lambda s, none, q: None),
     b"y": CSICommand(0, 0, lambda s, none, q: None),
@@ -309,8 +335,23 @@ _CSI_PRIVATE_FINAL_BYTES: typing.Final = frozenset((b"J", b"K", b"c", b"h", b"l"
 CHARSET_DEFAULT: Literal[1] = 1  # type annotated exclusively for buggy IDE
 CHARSET_UTF8: Literal[2] = 2
 
+
+class _Blank(bytes):
+    """A space no character was written to, such as an erased or scrolled-in cell.
+
+    It is equal to ``b" "`` and drawn as one, but unlike a written space DECRQCRA counts it 0, as xterm counts a cell
+    never written.
+    Cells keep the one instance, :data:`_BLANK`, which is told apart by identity.
+    """
+
+    __slots__ = ()
+
+
+#: the character of a cell never written; compared by identity
+_BLANK: typing.Final = _Blank(b" ")
+
 # Cell with no attributes, for the cells a resize adds and the padding of lines from the scrollback.
-_BLANK_CELL: tuple[AttrSpec | None, Literal["0", "U"] | None, bytes] = (None, None, b" ")
+_BLANK_CELL: tuple[AttrSpec | None, Literal["0", "U"] | None, bytes] = (None, None, _BLANK)
 
 
 @dataclass(eq=True, order=False)
@@ -505,6 +546,25 @@ class TermCharset:
             return char
 
         return char
+
+
+def _checksum_value(cell: tuple[AttrSpec | None, Literal["0", "U"] | None, bytes], encoding: str) -> int:
+    """Return what a written *cell* adds to a DECRQCRA checksum.
+
+    The values are those :meth:`TermCanvas.csi_request_checksum` describes; a never-written blank is left to the caller.
+    """
+    attrspec, charset, char = cell
+    flags = 0 if attrspec is None else sum(bit for name, bit in _CHECKSUM_BITS if getattr(attrspec, name))
+    if charset == "0" and char in _DEC_CHECKSUM_VALUES:
+        return _DEC_CHECKSUM_VALUES[char] + flags
+    text = char.decode(encoding, "replace")
+    code = ord(text[0]) if text else 0
+    if code < 0x7F:
+        return code + flags
+    if 0xA0 < code < 0xFF:
+        return (code & 0x7F) + flags
+    # DEL, the C1 controls and U+00FF count 0 in xterm
+    return (_CHECKSUM_UNMAPPED if code == 0xA0 or code > 0xFF else 0) + flags
 
 
 def _with_flag(attrspec: AttrSpec | None, flag: str, *, remove: bool = False) -> AttrSpec:
@@ -826,15 +886,16 @@ class TermCanvas(Canvas):
         div, mod = divmod(x, 8)
         return (self.tabstops[div] & (1 << mod)) > 0
 
-    def empty_line(self, char: bytes = b" ") -> list[tuple[AttrSpec | None, Literal["0", "U"] | None, bytes]]:
+    def empty_line(self, char: bytes = _BLANK) -> list[tuple[AttrSpec | None, Literal["0", "U"] | None, bytes]]:
         """Return a full row of empty characters, one per column, filled with *char*."""
         return [self.empty_char(char)] * self.width
 
-    def empty_char(self, char: bytes = b" ") -> tuple[AttrSpec | None, Literal["0", "U"] | None, bytes]:
+    def empty_char(self, char: bytes = _BLANK) -> tuple[AttrSpec | None, Literal["0", "U"] | None, bytes]:
         """Return one empty terminal cell holding *char*, with the canvas's current colours and charset.
 
         As in xterm, an erased or scrolled-in cell takes the colours only: not bold, underline, reverse video or the
         other attribute flags, and not the current hyperlink.
+        By default it holds a space never written, which DECRQCRA counts as xterm does.
         """
         attrspec = self.attrspec
         if attrspec is not None and attrspec.hyperlink is not None:
@@ -1669,7 +1730,8 @@ class TermCanvas(Canvas):
             chars = 1
 
         if char is None:
-            char_spec = self.empty_char()
+            # inserted blanks are written spaces, as in xterm
+            char_spec = self.empty_char(b" ")
         else:
             charset: Literal["0", "U"] | None = "0" if dec_special else self.charset.current
             char_spec = (self.attrspec, charset, char)
@@ -1739,8 +1801,12 @@ class TermCanvas(Canvas):
         self,
         start: tuple[int, int] | tuple[int, int, bool],
         end: tuple[int, int] | tuple[int, int, bool],
+        *,
+        written: bool = False,
     ) -> None:
         """Erase a region of the terminal.
+
+        With *written* the cells hold written spaces, as ECH leaves them, rather than spaces never written.
 
         The 'start' tuple (x, y) defines the starting position of the erase, while end (x, y) the last position.
 
@@ -1756,7 +1822,7 @@ class TermCanvas(Canvas):
         # pyrefly: ignore[bad-argument-type]  # the optional third element widens to bool | int
         ex, ey = self.constrain_coords(*end)
 
-        cell = self.empty_char()
+        cell = self.empty_char(b" " if written else _BLANK)
 
         # within a single row
         if sy == ey:
@@ -1774,7 +1840,7 @@ class TermCanvas(Canvas):
                 for x in range(ex + 1):
                     self.term[y][x] = cell
             else:
-                self.blank_line(y)
+                self.term[y] = [cell] * self.width
 
             y += 1
 
@@ -1942,9 +2008,10 @@ class TermCanvas(Canvas):
         """Answer a DECRQM query for DEC private *mode* with a DECRPM reply (CSI ? mode ; state $ y).
 
         The state is 1 for a set mode, 2 for a reset one, and 0 for a mode this canvas keeps no state for.
+        DECKBUM (68) and DECLRMM (69) are reported as permanently reset (4), since setting them has no effect.
         """
         state = self.private_mode_state(str(mode))
-        value = 0 if state is None else 1 if state else 2
+        value = 4 if mode in _PERMANENTLY_RESET_PRIVATE_MODES else 0 if state is None else 1 if state else 2
         self.widget.respond(f"{ESC}[?{mode:d};{value:d}$y")
 
     def csi_report_mode(self, mode: int) -> None:
@@ -2001,7 +2068,7 @@ class TermCanvas(Canvas):
         - a setting this canvas does not report gets Ps 0 and an empty Pt.
 
         The settings reported are SGR (``m``), DECSTBM (``r``), DECSCL (``"p``), DECSCA (``"q``), DECSCPP (``$|``),
-        DECSLPP (``t``) and DECSCUSR (`` q``).
+        DECSLRM (``s``), DECSNLS (``*|``), DECSLPP (``t``) and DECSCUSR (`` q``).
         """
         match request:
             case b"m":
@@ -2017,6 +2084,12 @@ class TermCanvas(Canvas):
             case b"$|":
                 # DECSCPP: the columns per page
                 setting = f"{self.width:d}$|"
+            case b"s":
+                # DECSLRM: the left and right margins, the screen's edges, since DECLRMM cannot be set
+                setting = f"1;{self.width:d}s"
+            case b"*|":
+                # DECSNLS: the lines per screen
+                setting = f"{self.height:d}*|"
             case b"t":
                 # DECSLPP: the lines per page
                 setting = f"{self.height:d}t"
@@ -2192,14 +2265,18 @@ class TermCanvas(Canvas):
     def csi_request_checksum(self, params: Sequence[int | None]) -> None:
         """Answer DECRQCRA (``CSI Pid ; Pp ; Pt ; Pl ; Pb ; Pr * y``) with ``DCS Pid ! ~ XXXX ST``.
 
-        The checksum is xterm's: the negated 16-bit sum of each cell's character, its low 7 bits, plus the bits of bold
-        (0x80), blink (0x40), reverse (0x20) and underline (0x10).
-        A blank cell without those attributes counts 0, as a cell never written does in xterm.
+        The checksum is xterm's: the negated 16-bit sum of each written cell's character value plus the bits of bold
+        (0x80), blink (0x40), reverse (0x20) and underline (0x10), with a cell never written, such as an erased one,
+        counting 0.
+        The character value is the code of an ASCII character, the low 7 bits of a Latin-1 one, 0x1B for U+00A0 and
+        anything past Latin-1, 0 for DEL, the C1 controls and U+00FF, and xterm's own value for a DEC special graphics
+        character.
 
-        This canvas keeps no difference between a written and an erased cell, so a space written without those
-        attributes counts 0 here and 0x20 in xterm.
+        Two cases differ from xterm, since this canvas stores them as xterm does not:
 
-        DEC special graphics cells count their ASCII character, which xterm values differently.
+        - a box drawing character written in UTF-8 is stored as the DEC graphics character, valued as one;
+        - a wide character takes one cell here and two in xterm.
+
         Without parameters it is not answered, and an empty Pid is 65535, as in xterm.
         It is not answered at the VT100 level (61), like the other DCS replies.
         """
@@ -2211,21 +2288,26 @@ class TermCanvas(Canvas):
         top, left, bottom, right = area
         encoding = util.get_encoding()
         # a screen holds few distinct cells, so each is valued once per request
-        values: dict[tuple[AttrSpec | None, bytes], int] = {}
+        values: dict[tuple[AttrSpec | None, Literal["0", "U"] | None, bytes], int] = {}
         total = 0
         for y in range(top, bottom + 1):
-            for attrspec, _charset, char in self.term[y][left : right + 1]:
-                value = values.get((attrspec, char))
+            for cell in self.term[y][left : right + 1]:
+                # a never-written blank is equal to a written space, so it is told apart before the cache
+                if cell[2] is _BLANK:
+                    continue
+                value = values.get(cell)
                 if value is None:
-                    flags = (
-                        0 if attrspec is None else sum(bit for name, bit in _CHECKSUM_BITS if getattr(attrspec, name))
-                    )
-                    text = char.decode(encoding, "replace")
-                    # a blank cell without those attributes counts as a cell never written
-                    value = 0 if char == b" " and not flags else (ord(text[0]) & 0x7F if text else 0) + flags
-                    values[attrspec, char] = value
+                    value = _checksum_value(cell, encoding)
+                    values[cell] = value
                 total += value
         self.widget.respond(f"{ESC}P{request:d}!~{-total & 0xFFFF:04X}{ESC}\\")
+
+    def csi_report_displayed_extent(self, _params: Sequence[int | None]) -> None:
+        """Answer DECRQDE (``CSI " v``) with DECRPDE.
+
+        The reply is the height and the width, and column, row and page 1 at the top left.
+        """
+        self.widget.respond(f'{ESC}[{self.height:d};{self.width:d};1;1;1"w')
 
     def csi_insert_columns(self, params: Sequence[int | None]) -> None:
         """Insert blank columns at the cursor column in the scrolling region (DECIC, CSI Ps ' }).
@@ -2518,6 +2600,7 @@ class TermCanvas(Canvas):
 _INTERMEDIATE_COMMANDS: typing.Final[Mapping[tuple[bytes, bytes], Callable[[TermCanvas, list[int | None]], None]]] = (
     types.MappingProxyType(
         {
+            (b'"', b"v"): TermCanvas.csi_report_displayed_extent,
             (b"$", b"x"): TermCanvas.csi_fill_rectangle,
             (b"$", b"z"): TermCanvas.csi_erase_rectangle,
             (b"$", b"v"): TermCanvas.csi_copy_rectangle,
