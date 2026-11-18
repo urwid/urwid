@@ -193,8 +193,12 @@ DECBI and DECFI, and the tertiary device attributes query, at every level,
 although xterm takes them only at the VT420 level.  At the VT100 level no reply
 in a DCS string is sent.  After the child sets a cursor style with DECSCUSR,
 the widget draws the cursor cell itself, in reverse video for a block or a bar
-and underlined for an underline, instead of the display's cursor.  Replies use
-7-bit controls only.  The child is given ``TERM=linux``.
+and underlined for an underline, instead of the display's cursor.  As in xterm,
+a wide character takes two cells, and a character with no width, such as a
+combining accent, joins the character before it; which characters are wide is
+urwid's own width calculation, the one the display uses, applied to each
+character on its own, as xterm does.  Replies use 7-bit controls only.  The
+child is given ``TERM=linux``.
 :class:`TerminalOutput` shows output the application writes to it, such as
 captured output, with no process behind it, and also works on Windows.
 

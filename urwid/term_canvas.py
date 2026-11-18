@@ -27,13 +27,14 @@ pty, does not.
 from __future__ import annotations
 
 import copy
+import functools
 import types
 import typing
 from collections import deque
 from contextlib import suppress
 from dataclasses import dataclass, field
 
-from urwid import _deprecation, util
+from urwid import _deprecation, str_util, util
 from urwid.ansi_parser import (
     MAX_CSI_LENGTH,
     MAX_OSC_LENGTH,
@@ -147,6 +148,9 @@ _PERMANENTLY_RESET_PRIVATE_MODES: typing.Final = frozenset((68, 69))
 
 #: the DECRQCRA checksum bits of the AttrSpec flags, as xterm adds them to each character
 _CHECKSUM_BITS: typing.Final = (("bold", 0x80), ("blink", 0x40), ("standout", 0x20), ("underline", 0x10))
+#: the characters with no width a cell takes after its own, as xterm's default combiningChars resource; more are dropped
+_MAX_COMBINING: typing.Final = 2
+
 #: the DECRQCRA checksum bit of a protected character
 _CHECKSUM_PROTECTED: typing.Final = 0x04
 
@@ -377,6 +381,51 @@ class _Protected(bytes):
 _BLANK_CELL: tuple[AttrSpec | None, Literal["0", "U"] | None, bytes] = (None, None, _BLANK)
 
 
+@functools.lru_cache(maxsize=1024)
+def _encoded_width(char: bytes, byte_encoding: str) -> int:
+    """Return how many columns *char*, encoded in *byte_encoding*, is drawn in.
+
+    The encoding is urwid's current one, an argument so a character is measured again after it changes.
+    """
+    if byte_encoding == "narrow":
+        return len(char)
+    return str_util.calc_width(char, 0, len(char))
+
+
+def _drawn_width(char: bytes) -> int:
+    """Return how many columns the display draws a cell's *char* in.
+
+    It is 2 for the first half of a wide character.
+    """
+    return 1 if len(char) < 2 else _encoded_width(bytes(char), str_util.get_byte_encoding())
+
+
+def _mend_wide(line: list[tuple[AttrSpec | None, Literal["0", "U"] | None, bytes]], x: int) -> None:
+    """Replace a half of a wide character that lost its other half at the boundary before column *x* with a space.
+
+    A wide character takes two cells: its own, and an empty one after it.
+    The half left over holds a written space with its own attributes, as xterm draws it.
+    """
+    if x < len(line) and not line[x][2] and (x == 0 or _drawn_width(line[x - 1][2]) != 2):
+        attrspec, charset, char = line[x]
+    elif x > 0 and _drawn_width(line[x - 1][2]) == 2 and (x == len(line) or line[x][2]):
+        x -= 1
+        attrspec, charset, char = line[x]
+    else:
+        return
+    line[x] = (attrspec, charset, _Protected(b" ") if isinstance(char, _Protected) else b" ")
+
+
+def _fit_line(
+    line: list[tuple[AttrSpec | None, Literal["0", "U"] | None, bytes]],
+    width: int,
+) -> list[tuple[AttrSpec | None, Literal["0", "U"] | None, bytes]]:
+    """Return a copy of *line* cut or padded with blank cells to *width*, with no wide character cut in half."""
+    fitted = line[:width] + [_BLANK_CELL] * (width - len(line))
+    _mend_wide(fitted, width)
+    return fitted
+
+
 @dataclass(eq=True, order=False)
 class TermModes:
     """Terminal mode flags (ECMA-48 and DEC private modes) tracked for a :class:`TermCanvas`."""
@@ -585,7 +634,8 @@ def _checksum_value(cell: tuple[AttrSpec | None, Literal["0", "U"] | None, bytes
     if charset == "0" and char in _DEC_CHECKSUM_VALUES:
         return _DEC_CHECKSUM_VALUES[char] + flags
     text = char.decode(encoding, "replace")
-    code = ord(text[0]) if text else 0
+    # the second half of a wide character counts as a space
+    code = ord(text[0]) if text else 0x20
     if code < 0x7F:
         return code + flags
     if 0xA0 < code < 0xFF:
@@ -1024,7 +1074,7 @@ class TermCanvas(Canvas):
         :returns: how many rows the lines that stay on the screen moved down, negative when they moved up.
         """
         for row in range(self.height):
-            lines[row] = lines[row][:width] + [_BLANK_CELL] * (width - self.width)
+            lines[row] = _fit_line(lines[row], width)
 
         shift = 0
         for _y in range(self.height, height):
@@ -1034,7 +1084,7 @@ class TermCanvas(Canvas):
 
             # adjust x axis of the scrollback line to the new width
             last_line = scrollback.pop()
-            lines.insert(0, last_line[:width] + [_BLANK_CELL] * (width - len(last_line)))
+            lines.insert(0, _fit_line(last_line, width))
             shift += 1
         for _y in range(height, self.height):
             if (
@@ -1425,6 +1475,14 @@ class TermCanvas(Canvas):
                             # is a cell, as the display draws that byte; process_char() would run it as CSI.
                             self.push_cursor(char)
                             return
+                        # a C1 control is left to push_cursor(), as the IBM PC mapping draws it
+                        width = 1 if "\x80" <= sequence < "\xa0" else _drawn_width(char)
+                        if width == 0:
+                            self.combine_char(char)
+                            return
+                        if width == 2:
+                            self.push_wide_char(char)
+                            return
 
                 else:
                     # an invalid multibyte sequence is dropped, and parse_osc() refuses an OSC string that had one
@@ -1521,6 +1579,8 @@ class TermCanvas(Canvas):
     ) -> None:
         """Set character of either the current cursor position or a position given by 'x' and/or 'y' to 'char'.
 
+        The other half of a wide character the cell was part of becomes a space.
+
         :param char: the character to store.
         :param x: the column, the cursor's when not given.
         :param y: the row, the cursor's when not given.
@@ -1534,7 +1594,13 @@ class TermCanvas(Canvas):
         x, y = self.constrain_coords(x, y)
         if self.protected:
             char = _Protected(char)
-        self.term[y][x] = (self.attrspec, "0" if dec_special else self.charset.current, char)
+        line = self.term[y]
+        replaced = line[x][2]
+        line[x] = (self.attrspec, "0" if dec_special else self.charset.current, char)
+        if not replaced or (len(replaced) > 1 and _drawn_width(replaced) == 2):
+            # a wide character written over loses its other half
+            _mend_wide(line, x)
+            _mend_wide(line, x + 1)
 
     def constrain_coords(self, x: int, y: int, ignore_scrolling: bool = False) -> tuple[int, int]:
         """Check if x/y are within the terminal and return the corrected version.
@@ -1671,11 +1737,82 @@ class TermCanvas(Canvas):
 
                 self.is_rotten_cursor = False
         else:
-            if x + 1 < self.width:
+            # as in xterm, a write in the last column leaves a pending wrap, which only autowrap acts on
+            self.is_rotten_cursor = x + 1 >= self.width
+            if not self.is_rotten_cursor:
                 x += 1
 
-            self.is_rotten_cursor = False
             self.push_char(char, x, y, dec_special=dec_special)
+
+    def push_wide_char(self, char: bytes) -> None:
+        """Write a character two columns wide at the cursor and move the cursor past it, as xterm does.
+
+        It takes the cursor cell and the one after it, which holds an empty string.
+        A character that does not fit before the right edge moves to the next line first with autowrap, and is dropped
+        without it.
+
+        :param char: the character, in urwid's encoding.
+        """
+        x, y = self.term_cursor
+        if self.width < 2 or (not self.modes.autowrap and x + 1 >= self.width):
+            return
+        if self.modes.autowrap and x + 1 >= self.width:
+            # as a line feed: only the bottom row of the scrolling region scrolls it
+            if y == self.scrollregion_end:
+                self.scroll()
+            else:
+                y += 1
+            self.set_term_cursor(0, y)
+            x, y = self.term_cursor
+        if self.modes.insert:
+            self.insert_chars(chars=2)
+        char = self.charset.apply_mapping(char)
+        if self.protected:
+            char = _Protected(char)
+        tail = _Protected(b"") if self.protected else b""
+        line = self.term[y]
+        line[x : x + 2] = [(self.attrspec, self.charset.current, char), (self.attrspec, self.charset.current, tail)]
+        _mend_wide(line, x)
+        _mend_wide(line, x + 2)
+        self.charset.end_single_shift()
+        # in the last two columns the cursor stays on the second half, with a pending wrap
+        self.set_term_cursor(min(x + 2, self.width - 1), y)
+        self.is_rotten_cursor = x + 2 >= self.width
+
+    def combine_char(self, char: bytes) -> None:
+        """Add a character with no width to the character before the cursor, as xterm does.
+
+        Such a character is a combining accent, a zero width joiner or a variation selector.
+        After a character was written in the last column, the character before the cursor is the one under it.
+        It is dropped:
+
+        - at the start of a line;
+        - past the :data:`_MAX_COMBINING` a character takes;
+        - on a cell in the DEC special graphics set, which the display draws in a character set without it;
+        - when the display would draw the character it joins wider.
+
+        xterm keeps it on a DEC special graphics character, and after BS from the last column it joins the character
+        under the cursor.
+
+        :param char: the character, in urwid's encoding.
+        """
+        x, y = self.term_cursor
+        if not (self.is_rotten_cursor and x == self.width - 1):
+            x -= 1
+        if x < 0:
+            return
+        line = self.term[y]
+        if not line[x][2]:
+            # the second half of a wide character: the first half holds it
+            x -= 1
+        attrspec, charset, text = line[x]
+        joined = bytes(text) + char
+        if (
+            charset != "0"
+            and len(joined.decode(util.get_encoding(), "replace")) <= 1 + _MAX_COMBINING
+            and _drawn_width(joined) == _drawn_width(text)
+        ):
+            line[x] = (attrspec, charset, _Protected(joined) if isinstance(text, _Protected) else joined)
 
     def save_cursor(self, with_attrs: bool = False) -> None:
         """Save the current cursor position.
@@ -1789,8 +1926,12 @@ class TermCanvas(Canvas):
 
         x, y = position
         line = self.term[y]
-        line[x:x] = [char_spec] * min(chars, self.width - x)
+        chars = min(chars, self.width - x)
+        line[x:x] = [char_spec] * chars
         del line[self.width :]
+        _mend_wide(line, x)
+        _mend_wide(line, x + chars)
+        _mend_wide(line, self.width)
 
     def remove_chars(self, position: tuple[int, int] | None = None, chars: int = 1) -> None:
         """Remove 'chars' number of empty characters from 'position'.
@@ -1809,6 +1950,7 @@ class TermCanvas(Canvas):
         line = self.term[y]
         del line[x : x + chars]
         line += [self.empty_char()] * chars
+        _mend_wide(line, x)
 
     def insert_lines(self, row: int | None = None, lines: int = 1) -> None:
         """Insert 'lines' empty lines at 'row', or the cursor row, pushing the lines below down the scrolling region.
@@ -1890,6 +2032,8 @@ class TermCanvas(Canvas):
                 if run_first <= run_last:
                     cell = blank if run_last == self.width - 1 else written
                     line[run_first : run_last + 1] = [cell] * (run_last - run_first + 1)
+                    _mend_wide(line, run_first)
+                    _mend_wide(line, run_last + 1)
 
     def csi_set_attr(self, attrs: Sequence[int]) -> None:
         """Set graphics rendition.
@@ -2291,7 +2435,10 @@ class TermCanvas(Canvas):
         char = chr(code).encode(util.get_encoding(), "urwid_fallback_ascii")
         cell = (self.attrspec, self.charset.current, _Protected(char) if self.protected else char)
         for y in range(top, bottom + 1):
-            self.term[y][left : right + 1] = [cell] * (right - left + 1)
+            line = self.term[y]
+            line[left : right + 1] = [cell] * (right - left + 1)
+            _mend_wide(line, left)
+            _mend_wide(line, right + 1)
 
     def csi_erase_rectangle(self, params: Sequence[int | None]) -> None:
         """Erase a rectangle to spaces in the current attributes (DECERA, CSI Pt ; Pl ; Pb ; Pr $ z).
@@ -2307,7 +2454,10 @@ class TermCanvas(Canvas):
             attrspec = attrspec_with_hyperlink(attrspec, None, unset_color="default")
         cell = (attrspec, self.charset.current, _Protected(b" ") if self.protected else b" ")
         for y in range(top, bottom + 1):
-            self.term[y][left : right + 1] = [cell] * (right - left + 1)
+            line = self.term[y]
+            line[left : right + 1] = [cell] * (right - left + 1)
+            _mend_wide(line, left)
+            _mend_wide(line, right + 1)
 
     def csi_selective_erase_rectangle(self, params: Sequence[int | None]) -> None:
         """Erase the characters DECSCA did not protect in a rectangle (DECSERA, CSI Pt ; Pl ; Pb ; Pr $ {).
@@ -2324,6 +2474,8 @@ class TermCanvas(Canvas):
                 attrspec, charset, char = line[x]
                 if self.modes.iso_protection or not isinstance(char, _Protected):
                     line[x] = (attrspec, charset, b" ")
+            _mend_wide(line, left)
+            _mend_wide(line, right + 1)
 
     def _change_area_attributes(
         self,
@@ -2433,7 +2585,10 @@ class TermCanvas(Canvas):
         rows = [self.term[y][left : right + 1] for y in range(top, bottom + 1)]
         for offset, cells in enumerate(rows[: last - to_top + 1]):
             fitting = cells[: self.width - to_left]
-            self.term[to_top + offset][to_left : to_left + len(fitting)] = fitting
+            line = self.term[to_top + offset]
+            line[to_left : to_left + len(fitting)] = fitting
+            _mend_wide(line, to_left)
+            _mend_wide(line, to_left + len(fitting))
 
     def csi_request_checksum(self, params: Sequence[int | None]) -> None:
         """Answer DECRQCRA (``CSI Pid ; Pp ; Pt ; Pl ; Pb ; Pr * y``) with ``DCS Pid ! ~ XXXX ST``.
@@ -2443,12 +2598,11 @@ class TermCanvas(Canvas):
         such as an erased one, counting 0.
         The character value is the code of an ASCII character, the low 7 bits of a Latin-1 one, 0x1B for U+00A0 and
         anything past Latin-1, 0 for DEL, the C1 controls and U+00FF, and xterm's own value for a DEC special graphics
-        character.
+        character; the second half of a wide character counts as a space, and a character with no width joined to
+        another adds nothing.
 
-        Two cases differ from xterm, since this canvas stores them as xterm does not:
-
-        - a box drawing character written in UTF-8 is stored as the DEC graphics character, valued as one;
-        - a wide character takes one cell here and two in xterm.
+        A box drawing character written in UTF-8 differs from xterm: this canvas stores it as the DEC graphics
+        character, valued as one.
 
         Without parameters it is not answered, and an empty Pid is 65535, as in xterm.
         It is not answered at the VT100 level (61), like the other DCS replies.
@@ -2743,6 +2897,9 @@ class TermCanvas(Canvas):
                 continue
             # a copy, so the screen's own row is not changed
             drawn = list(line)
+            if not drawn[cursor_x][2] and cursor_x > 0:
+                # the second half of a wide character: its first half draws both
+                cursor_x -= 1
             cell_attr, charset, text = drawn[cursor_x]
             # the flag is turned off on a cell that already has it, so the cursor stays visible there
             flag = "underline" if style in _UNDERLINE_CURSOR_STYLES else "standout"
@@ -2757,10 +2914,7 @@ class TermCanvas(Canvas):
             lines = self.term
         else:
             viewport_range = slice(-(self.height + self.scrolling_up), -self.scrolling_up)
-            lines = (
-                line[: self.width] + [_BLANK_CELL] * (self.width - len(line))
-                for line in (*self.scrollback_buffer, *self.term)[viewport_range]
-            )
+            lines = (_fit_line(line, self.width) for line in (*self.scrollback_buffer, *self.term)[viewport_range])
 
         if not self.modes.reverse_video:
             yield from lines
