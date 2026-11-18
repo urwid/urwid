@@ -527,7 +527,8 @@ class ActionMenu(_MenuOwner):
         :param user_data: passed to `on_action`.
         :param open_keys: keys that open the list at the launcher's edge; ``None`` for the keys of the ``activate``
             command.
-        :param open_buttons: mouse buttons whose press opens the list at the pointer.
+        :param open_buttons: mouse buttons whose press on the launcher opens the list at the launcher's edge,
+            as an opening key does.
         :param align: ``"right"`` lines up the right edge of the list with the launcher's, and opens submenus to the
             left; ``"left"`` does the opposite.
         :param border: draw a box around each list, with separators joined to it.
@@ -599,9 +600,10 @@ class ActionMenu(_MenuOwner):
             super().open_pop_up()
 
     def open_at(self, col: int, row: int) -> None:
-        """Open the list at column `col` of row `row` of the launcher, as a mouse opening does.
+        """Open the list below column `col` of row `row` of the launcher.
 
-        An application that opens the menu from its own key or mouse handler uses it.
+        An application that opens the menu from its own key or mouse handler uses it,
+        for example to open a context menu at the pointer.
         With no item that can be chosen, it does nothing.
         """
         if self._usable:
@@ -614,7 +616,7 @@ class ActionMenu(_MenuOwner):
         self._emit("action", item)
 
     def get_pop_up_parameters(self) -> PopUpParametersModel:
-        """Return the list below the launcher's edge, or below the pointer for a mouse opening or :meth:`open_at`.
+        """Return the list below the launcher's edge, or below the cell given to :meth:`open_at`.
 
         The launcher rows above it are the vertical anchor, so it moves above them when it does not fit below.
         """
@@ -683,13 +685,14 @@ class ActionMenu(_MenuOwner):
         row: int,
         focus: bool,
     ) -> bool | None:
-        """Open the list at the pointer on a press of an opening button; pass every other event to the launcher.
+        """Open the list on a press of an opening button; pass every other event to the launcher.
 
+        The list opens at the launcher's edge, as it does for an opening key.
         The opening press also asks the containers around the menu for the focus, see :meth:`Widget.request_focus`.
         With no item that can be chosen, every event goes to the launcher.
         """
         if self._usable and button in self._open_buttons and is_mouse_press(event):
             self.request_focus()
-            self.open_at(col, row)
+            self.open_pop_up()
             return True
         return super().mouse_event(size, event, button, col, row, focus)

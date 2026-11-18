@@ -340,14 +340,14 @@ class ContextMenuTest(unittest.TestCase):
             ["┌────────────────────┐", "│(O)pen              │"], [line[:22] for line in lines(target, (34, 9))[2:4]]
         )
 
-    def test_click_opens_at_the_pointer_and_focuses_the_row(self) -> None:
-        """C2: a right click on a row that is not focused opens its menu at the pointer and focuses the row."""
+    def test_click_opens_at_the_row_edge_and_focuses_the_row(self) -> None:
+        """C2: a right click on a row that is not focused opens its menu as the key does, and focuses the row."""
         target, menus = file_list()
         target.render((34, 9), focus=True)
         target.mouse_event((34, 9), "mouse press", 3, 9, 2, True)
         self.assertIsNotNone(menus[2].pop_up_widget)
         self.assertEqual(
-            ["photo.png┌─────────┐iB", "         │(O)pen   │  "],
+            ["┌────────────────────┐", "│(O)pen              │"],
             [line[:22] for line in lines(target, (34, 9))[3:5]],
         )
         list_box = target.original_widget.original_widget
@@ -366,10 +366,18 @@ class ContextMenuTest(unittest.TestCase):
         self.assertEqual("photo.png  │(O)pen   │", lines(target, (34, 9))[3][:22])
 
     def test_open_at(self) -> None:
+        """open_at() opens below the given cell; a later click on the row opens at the row's edge again."""
         target, menus = file_list()
         target.render((34, 9), focus=True)
         menus[1].open_at(4, 0)
         self.assertEqual("phot│(O)pen   │", lines(target, (34, 9))[3][:15])
+        menus[1].close_pop_up()
+        target.render((34, 9), focus=True)
+        target.mouse_event((34, 9), "mouse press", 3, 9, 1, True)
+        self.assertEqual(
+            ["┌────────────────────┐", "│(O)pen              │"],
+            [line[:22] for line in lines(target, (34, 9))[2:4]],
+        )
 
 
 class SubmenuTest(unittest.TestCase):

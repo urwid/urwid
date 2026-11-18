@@ -41,6 +41,25 @@ class ReadlineEdit(urwid.Edit):
     _command_map.bind_readline()
 
 
+class ContextMenuArea(urwid.WidgetWrap[urwid.ActionMenu]):
+    """Area whose right click opens its context menu below the pointer, through :meth:`ActionMenu.open_at`."""
+
+    def mouse_event(
+        self,
+        size: tuple[()] | tuple[int] | tuple[int, int],
+        event: str,
+        button: int,
+        col: int,
+        row: int,
+        focus: bool,
+    ) -> bool | None:
+        """Open the menu below the pressed cell on a right click; pass every other event on."""
+        if button == urwid.MouseButton.RIGHT and urwid.util.is_mouse_press(event):
+            self._w.open_at(col, row)
+            return True
+        return super().mouse_event(size, event, button, col, row, focus)
+
+
 def main() -> None:
     """Build and run the tour of standard widget types and features."""
     text_header = (
@@ -243,6 +262,11 @@ def main() -> None:
             "Near the right edge the submenu opens to the left of the list."
         ),
     ]
+    text_context_menu = (
+        "Right-click anywhere in this paragraph.  Its menu has no launcher of its own: the paragraph's mouse "
+        "handler calls open_at(), so the menu opens below the pointer, while a click on a launcher such as "
+        "Actions opens the list at the launcher's edge, as ENTER does."
+    )
     text_tabs: list[str | tuple[str, str]] = [
         "A ",
         ("important", "Tabs"),
@@ -314,6 +338,19 @@ def main() -> None:
         attr_map="buttn",
         focus_map="buttnf",
         disabled_map="tab",
+    )
+    context_menu = urwid.ActionMenu(
+        None,
+        [
+            urwid.MenuItem("(C)opy", "copy", key="c"),
+            urwid.MenuItem("Select (a)ll", "select all", key="a"),
+        ],
+        launcher=urwid.Text(text_context_menu),
+        # The paragraph opens the menu itself, so the menu takes no button of its own.
+        open_buttons=(),
+        on_action=show_action,
+        attr_map="buttn",
+        focus_map="buttnf",
     )
 
     blank = urwid.Divider()
@@ -580,6 +617,8 @@ def main() -> None:
             right=3,
             min_width=20,
         ),
+        blank,
+        urwid.Padding(ContextMenuArea(context_menu), left=4, right=3, min_width=20),
         blank,
         blank,
         urwid.Padding(urwid.Text(text_tabs), left=2, right=2, min_width=20),

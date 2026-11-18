@@ -319,11 +319,12 @@ click outside closes the list without a choice.
 
 The launcher is a label with :attr:`ActionMenu.menu_indicator` after it, or
 any widget given as ``launcher``, such as a row of a :class:`ListBox`.  The
-keys in ``open_keys`` open the list at the launcher's edge, a press of a
-button in ``open_buttons`` opens it at the pointer, and every other key and
-button goes to the launcher.  A mouse opening also gives the row the focus
-through :meth:`Widget.request_focus`.  :meth:`ActionMenu.open_at` opens the
-list at a position from an application's own handler.
+keys in ``open_keys`` and a press of a button in ``open_buttons`` open the
+list at the launcher's edge, and every other key and button goes to the
+launcher.  A mouse opening also gives the row the focus through
+:meth:`Widget.request_focus`.  :meth:`ActionMenu.open_at` opens the list
+below a cell of the launcher, so an application's own mouse handler can open
+a context menu at the pointer.
 
 A menu with no item that can be chosen opens nothing.  Its label launcher is
 then not selectable and is drawn with ``disabled_map``; a launcher widget
@@ -333,7 +334,9 @@ keeps all its keys and buttons.
     The list is a pop-up, so :class:`ActionMenu` needs
     ``MainLoop(..., pop_ups=True)`` or another :class:`PopUpTarget` above it.
 
-The tour.py_ example program shows an action menu with a submenu.
+The tour.py_ example program shows an action menu with a submenu, and a
+context menu that a paragraph opens at the pointer through
+:meth:`ActionMenu.open_at`.
 
 Edit Widgets
 ------------
