@@ -1951,10 +1951,10 @@ class TermCanvas(Canvas):
     def csi_status_report(self, mode: int, *, private: bool = False) -> None:
         """Answer a device status report (DSR) query for *mode*, as xterm does.
 
-        Information is queried by 'mode', where possible values are:
-            5 -> device status report: the terminal is OK
-            6 -> cursor position report, with the row counted from the top margin in origin mode, as CUP takes it
+        :param mode: the report asked for:
 
+            - 5, the device status report: the terminal is OK;
+            - 6, the cursor position report, with the row counted from the top margin in origin mode, as CUP takes it.
         :param private: the DEC form, ``CSI ? Ps n``, was sent.
             Its cursor position report (DECXCPR) adds page 1, and it also answers 15 (no printer), 25 (user-defined
             keys unlocked) and 26 (a North American keyboard, ready, an LK201).
