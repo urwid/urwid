@@ -233,16 +233,7 @@ class TrioEventLoop(EventLoop):
             or was cancelled directly with handle.cancel()
         """
         # A directly cancelled scope stays in _pending_alarms until its task unwinds.
-        existed = handle in self._pending_alarms
-        if existed:
-            try:
-                existed = not handle.cancel_called
-            except RuntimeError:
-                if trio.lowlevel.in_trio_run():
-                    raise
-                # trio reads the clock for a scope that was not cancelled, which needs a
-                # running loop. Outside it - before run(), say - no alarm task can be
-                # unwinding, so set membership alone tells whether the alarm is pending.
+        existed = handle in self._pending_alarms and not self._cancel_called(handle)
         self._pending_alarms.discard(handle)
         handle.cancel()
         return existed
@@ -267,13 +258,27 @@ class TrioEventLoop(EventLoop):
         """
         return self._cancel_scope(handle)
 
+    @staticmethod
+    def _cancel_called(scope: trio.CancelScope) -> bool:
+        """Read cancellation state before or during a Trio run.
+
+        :raises RuntimeError: when reading the property fails inside a Trio run
+        """
+        try:
+            return scope.cancel_called
+        except RuntimeError:
+            if trio.lowlevel.in_trio_run():
+                raise
+            # Trio reads its clock for a scope not yet cancelled, which needs a running loop.
+            return False
+
     def _cancel_scope(self, scope: trio.CancelScope) -> bool:
         """Cancel the given Trio cancellation scope.
 
         :param scope: the Trio cancellation scope to cancel
         :returns: True if the scope was cancelled, False if it was cancelled already before invoking this function
         """
-        existed = not scope.cancel_called
+        existed = not self._cancel_called(scope)
         scope.cancel()
         return existed
 

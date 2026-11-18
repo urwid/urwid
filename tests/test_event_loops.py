@@ -1834,6 +1834,14 @@ class TrioEventLoopTest(unittest.TestCase, EventLoopTestMixin, MainLoopTestMixin
         self.assertTrue(evl.remove_alarm(handle))
         self.assertFalse(evl.remove_alarm(handle))
 
+    def test_remove_watch_file_before_run(self) -> None:
+        """A file watch may be removed before run()."""
+        evl = typing.cast("urwid.TrioEventLoop", self.evl)
+        with ClosingSocketPair() as (rd, _wr):
+            handle = evl.watch_file(rd.fileno(), lambda: None)
+            self.assertTrue(evl.remove_watch_file(handle))
+            self.assertFalse(evl.remove_watch_file(handle))
+
     def test_remove_directly_cancelled_alarm_before_run(self) -> None:
         """A scope cancelled with handle.cancel() before run() reports as removed, not pending."""
         evl = typing.cast("urwid.TrioEventLoop", self.evl)
