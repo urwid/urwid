@@ -185,10 +185,11 @@ answers DECRQSS, DECRQM for the ANSI and DEC private modes it keeps, and
 DECRQPSR with the cursor information and the tab stops, which DECRSPS
 restores.  DECSCL selects the VT100, VT200 or VT300 level.  The selective
 erases DECSED and DECSEL keep the characters DECSCA protects.  Of the VT420 it
-takes the rectangular area operations DECFRA, DECERA, DECSERA, DECCRA and the
-DECRQCRA checksum, the column operations DECIC, DECDC, DECBI and DECFI, and the
-tertiary device attributes query, at every level, although xterm takes them
-only at the VT420 level.  At the VT100 level no reply in a DCS string is
+takes the rectangular area operations DECFRA, DECERA, DECSERA, DECCRA, DECCARA
+and DECRARA, with DECSACE choosing a rectangle or a stream for the last two,
+and the DECRQCRA checksum, the column operations DECIC, DECDC, DECBI and DECFI,
+and the tertiary device attributes query, at every level, although xterm takes
+them only at the VT420 level.  At the VT100 level no reply in a DCS string is
 sent.  After the child sets a cursor style with DECSCUSR, the widget draws the
 cursor cell itself, in reverse video for a block or a bar and underlined for
 an underline, instead of the display's cursor.  Replies use 7-bit controls
