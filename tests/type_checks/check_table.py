@@ -60,3 +60,24 @@ if typing.TYPE_CHECKING:
         shared = TableLayout([urwid.TableColumn(), urwid.TableColumn(align=urwid.RIGHT)])
         assert_type(shared.row(["label", "value"], data=1), urwid.TableRow)
         urwid.Pile([shared.row(["a", "b"])])
+
+    def sorting(table: urwid.Table) -> None:
+        """Type the sort call, its state and the header focus."""
+        table.sort(0)
+        table.sort(0, reverse=True)
+        table.sort(key=lambda row: row.index or 0)
+        table.sort(1, key=lambda row: str(row.data))
+        assert_type(table.sortable, bool)
+        assert_type(table.sort_column, int | None)
+        assert_type(table.sort_reverse, bool)
+        assert_type(table.header_column, int | None)
+        table.header_column = 0
+        table.header_column = None
+        sortable = urwid.Table(
+            [urwid.TableColumn("Name")],
+            sortable=True,
+            sort_marks=(urwid.ScrollBar.Symbols.ARROW_TRIANGLE_UP, urwid.ScrollBar.Symbols.ARROW_TRIANGLE_DOWN),
+            header_focus_attr="focused label",
+        )
+        urwid.Table([urwid.TableColumn("Name")], sortable=True, sort_marks=None)
+        assert_type(sortable.sortable, bool)

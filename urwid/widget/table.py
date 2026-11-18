@@ -32,6 +32,8 @@ from .widget import Widget, WidgetError, WidgetWrap
 if typing.TYPE_CHECKING:
     from collections.abc import Callable, Collection, Hashable, Iterable, Iterator, Sequence
 
+    from _typeshed import SupportsRichComparison
+
     from urwid.canvas import Canvas
     from urwid.util import _TagMarkup
 
@@ -299,6 +301,16 @@ class TableLayout:
             width for kind, width in zip(self._kinds, self._natural, strict=True) if kind != WHSettings.GIVEN or width
         ]
         return sum(visible) + self._dividechars * max(len(visible) - 1, 0)
+
+    def _column_spans(self, maxcol: int) -> dict[int, tuple[int, int]]:
+        """Return ``{index: (start, width)}`` of each visible column at *maxcol*, left to right."""
+        spans: dict[int, tuple[int, int]] = {}
+        start = 0
+        for index, width in enumerate(self.widths(maxcol)):
+            if width:
+                spans[index] = (start, width)
+                start += width + self._dividechars
+        return spans
 
     def invalidate_widths(self) -> None:
         """Measure every cell of every registered row again.
@@ -712,6 +724,26 @@ class _TableEdgeRow(TableRow):
     _column_attrs = False
 
 
+class _TableHeaderRow(_TableEdgeRow):
+    """Header row built by a table, whose focused cell a focus map can mark."""
+
+    def __init__(
+        self,
+        layout: TableLayout,
+        *,
+        attr: _AttrMapLike | None,
+        focus_map: dict[Hashable, Hashable] | None,
+    ) -> None:
+        """Build the row of the column labels; *focus_map* maps the cell that renders in focus."""
+        super().__init__(layout, [column.label for column in layout.columns], attr=attr, selectable=False)
+        if focus_map is not None:
+            # each cell keeps its own options, which fit the AttrMap around it
+            wrapped: list[typing.Any] = [
+                (AttrMap(cell, None, focus_map), options) for cell, options in self._w.contents
+            ]
+            self._w.contents[:] = wrapped
+
+
 # set_modified_callback raises by design, as in SimpleFocusListWalker
 class _TableRows(SimpleFocusListWalker[TableRow]):  # pylint: disable=abstract-method
     """The rows of a table: plain sequences become rows of its layout, and every change is validated first."""
@@ -789,7 +821,8 @@ class Table(Widget, WidgetContainerMixin[int]):
     """Rows of cells in columns of shared widths, between a fixed header and footer, and with a focused row.
 
     The rows scroll in a :class:`ListBox`.
-    The header stays on top, the footer stays at the bottom, and neither takes the focus.
+    The header stays on top and the footer stays at the bottom.
+    Neither takes the focus, except the header of a sortable table.
     It is a container whose positions are the indexes of the rows in :attr:`body`.
     The header and the footer are not in it.
     A focus path goes on through the focused :class:`TableRow` to its focused cell.
@@ -809,9 +842,26 @@ class Table(Widget, WidgetContainerMixin[int]):
     A handler whose result is true consumes the key; otherwise the key is returned, as :class:`Overlay` does for
     ``"menu"``. Every handler runs, whatever the earlier ones returned.
     A mouse click moves the focus and reaches the cell only.
+
+    :meth:`sort` reorders the rows by a column or a key and records :attr:`sort_column` and :attr:`sort_reverse`.
+
+    A table built with ``sortable=True`` also offers its header for sorting:
+
+    - It sends ``"header activated"`` with the column index for a click with button 1 on a header label,
+      and for the ``activate`` command on the focused header label.
+      The result of the handlers is used as for ``"activate"``.
+      The table does not sort by itself: a handler calls :meth:`sort`.
+    - :kbd:`up` at the first row focuses the header, see :attr:`header_column`.
+      :kbd:`left` and :kbd:`right` move over the visible labels.
+      :kbd:`down`, and :kbd:`tab` with *select_navigation*, go back to the rows.
+      Every other key is returned, so :kbd:`up` and :kbd:`shift tab` leave the table.
+    - The label of the sorted column carries a mark from *sort_marks*.
+
+    A parent that moves its own focus away and back without the entry hook :meth:`enter_selectable`
+    finds the header focus as it left it.
     """
 
-    signals: typing.ClassVar[list[str]] = ["focus changed", "activate"]
+    signals: typing.ClassVar[list[str]] = ["focus changed", "activate", "header activated"]
 
     def __init__(
         self,
@@ -834,6 +884,9 @@ class Table(Widget, WidgetContainerMixin[int]):
         select_navigation: bool = False,
         wheel: Literal["focus", "view"] = "focus",
         scrollbar: bool | None = False,
+        sortable: bool = False,
+        sort_marks: tuple[str, str] | None = (" ^", " v"),
+        header_focus_attr: _AttrMapLike | None = None,
         **scrollbar_options: typing.Unpack[_ScrollBarOptions],
     ) -> None:
         """Create the table.
@@ -861,11 +914,18 @@ class Table(Widget, WidgetContainerMixin[int]):
         :param wheel: what a notch of the mouse wheel moves; see :attr:`wheel`
         :param scrollbar: ``True`` draws a scrollbar beside the rows, ``None`` only when the rows do not fit,
             ``False`` never; while it is on, its column counts in the natural width
+        :param sortable: offer the header for sorting, see the class description; needs *header*
+        :param sort_marks: the suffixes of the sorted column's label, ascending first, such as
+            ``(ScrollBar.Symbols.ARROW_TRIANGLE_UP, ScrollBar.Symbols.ARROW_TRIANGLE_DOWN)``;
+            ``None`` draws no mark. Drawn only while *sortable* is set.
+        :param header_focus_attr: attribute map of the focused header label, in any form :class:`AttrMap` takes;
+            used only while *sortable* is set
         :param scrollbar_options: the :class:`ScrollBar` parameters with a ``scrollbar_`` prefix,
             such as ``scrollbar_thumb_char``, ``scrollbar_end_markers``, ``scrollbar_side`` and ``scrollbar_attr``;
             ignored while *scrollbar* is ``False``
-        :raises TableError: a column specification, *dividechars*, *max_rows*, a drop threshold, a row or the footer
-            is invalid.
+        :raises TableError: a column specification, *dividechars*, *max_rows*, a drop threshold, a row, the footer,
+            *sort_marks* or *header_focus_attr* is invalid.
+            *sortable* is set without *header*.
         :raises TypeError: a keyword argument is neither a parameter of the table nor one of *scrollbar_options*,
             also while *scrollbar* is ``False``.
         :raises ValueError: :class:`ScrollBar` rejects the value of a ``scrollbar_`` parameter.
@@ -878,15 +938,31 @@ class Table(Widget, WidgetContainerMixin[int]):
                 not isinstance(threshold, int) or isinstance(threshold, bool) or threshold < 1
             ):
                 raise TableError(f"{name} must be None or an int >= 1, not {threshold!r}")
+        if sortable and not header:
+            raise TableError("a sortable table needs a header")
+        match sort_marks:
+            case None | tuple((str(), str())):
+                pass
+            case _:
+                raise TableError(f"sort_marks must be None or a tuple of two str, not {sort_marks!r}")
+        try:
+            header_focus_map = None if header_focus_attr is None else _attr_map_dict(header_focus_attr)
+        except AttrMapError as exc:
+            raise TableError(f"invalid header_focus_attr {header_focus_attr!r}") from exc
         super().__init__()
         self._layout = TableLayout(columns, dividechars=dividechars)
+        self._sortable = sortable
         self._header = (
-            _TableEdgeRow(
-                self._layout, [column.label for column in self._layout.columns], attr=header_attr, selectable=False
-            )
+            _TableHeaderRow(self._layout, attr=header_attr, focus_map=header_focus_map if sortable else None)
             if header
             else None
         )
+        self._sort_marks = sort_marks
+        self._sort_column: int | None = None
+        self._sort_reverse = False
+        # whether the header has the focus, and the column it was last given; see header_column
+        self._header_focused = False
+        self._header_column: int | None = None
         self._footer: TableRow | None = None
         self._footer_attr = footer_attr
         self.footer = footer
@@ -931,6 +1007,157 @@ class Table(Widget, WidgetContainerMixin[int]):
     def layout(self) -> TableLayout:
         """The layout of the columns, which builds and measures the rows."""
         return self._layout
+
+    @property
+    def sortable(self) -> bool:
+        """Whether the header is offered for sorting, as set when the table was built."""
+        return self._sortable
+
+    @property
+    def sort_column(self) -> int | None:
+        """The column given to the last :meth:`sort`, or ``None``."""
+        return self._sort_column
+
+    @property
+    def sort_reverse(self) -> bool:
+        """The *reverse* given to the last :meth:`sort`."""
+        return self._sort_reverse
+
+    @typing.overload
+    def sort(self, column: int, *, key: None = None, reverse: bool = False) -> None: ...
+
+    @typing.overload
+    def sort(
+        self,
+        column: int | None = None,
+        *,
+        key: Callable[[TableRow], SupportsRichComparison],
+        reverse: bool = False,
+    ) -> None: ...
+
+    def sort(
+        self,
+        column: int | None = None,
+        *,
+        key: Callable[[TableRow], SupportsRichComparison] | None = None,
+        reverse: bool = False,
+    ) -> None:
+        """Sort the rows, keeping the focus on the same row.
+
+        Without *key*, the rows are ordered by the text of their cell in *column*, compared as strings,
+        so a numeric column needs a *key*.
+        With *key* and *column*, *column* only says which label carries the mark of a sortable table.
+        The new order is computed before anything changes, so an exception from it leaves the table as it was.
+        A ``"modified"`` or ``"focus changed"`` handler already sees the new :attr:`sort_column` and mark.
+        The rows are not sorted again when they change later: call :meth:`sort` again.
+
+        A handler toggles the direction with
+        ``table.sort(column, reverse=table.sort_column == column and not table.sort_reverse)``.
+
+        >>> table = Table([TableColumn("Name")], [["b"], ["a"]], sortable=True)
+        >>> table.sort(0)
+        >>> [row.cells[0].text for row in table.body]
+        ['a', 'b']
+
+        :param column: the index of the column to sort by, or ``None`` with *key*
+        :param key: ``key(row)`` with the :class:`TableRow`, as :meth:`list.sort` takes it
+        :param reverse: sort in descending order
+        :raises TableError: neither *column* nor *key* is given.
+            Without *key*, a row is a span row or its cell in *column* is not a :class:`Text`.
+        :raises IndexError: *column* is not the index of a column.
+        """
+        columns = len(self._layout.columns)
+        if column is not None and (
+            not isinstance(column, int) or isinstance(column, bool) or not 0 <= column < columns
+        ):
+            raise IndexError(f"No Table column at index {column!r}")
+        if key is None:
+            if column is None:
+                raise TableError("sort() needs a column or a key")
+            key = self._text_key(column)
+        ordered = sorted(self._rows, key=key, reverse=reverse)
+        previous = self._sort_column
+        self._sort_column = column
+        self._sort_reverse = reverse
+        if self._sortable and self._header is not None and self._sort_marks is not None:
+            labels = self._layout.columns
+            if previous is not None and previous != column:
+                typing.cast("_TableText", self._header.cells[previous]).set_text(labels[previous].label)
+            if column is not None:
+                mark = self._sort_marks[1] if reverse else self._sort_marks[0]
+                typing.cast("_TableText", self._header.cells[column]).set_text([labels[column].label, mark])
+        rank = {id(row): position for position, row in enumerate(ordered)}
+        self._rows.sort(key=lambda row: rank[id(row)])
+
+    @staticmethod
+    def _text_key(column: int) -> Callable[[TableRow], str | bytes]:
+        """Return a sort key giving the text of the cell in *column*.
+
+        The key raises :exc:`TableError` for a span row and for a cell that is not a :class:`Text`.
+        """
+
+        def key(row: TableRow) -> str | bytes:
+            cell = None if row.span else row.cells[column].base_widget
+            if not isinstance(cell, Text):
+                raise TableError(f"row {row.index}: column {column} has no text to sort by; pass a key to sort()")
+            return cell.text
+
+        return key
+
+    @property
+    def header_column(self) -> int | None:
+        """The header column that has the focus, or ``None`` while the rows have it.
+
+        Set a column index to focus the header there, or ``None`` to give the focus back to the rows.
+        A size that hides the column shows the focus on the nearest visible column on its left.
+        A size that drops the header, or hides every column, leaves the focus with the rows while it lasts.
+
+        :raises TableError: the table is not sortable, or it has no rows.
+        :raises IndexError: the value set is not the index of a column, or the column has a given width of 0.
+        """
+        return self._header_column if self._header_focused else None
+
+    @header_column.setter
+    def header_column(self, column: int | None) -> None:
+        if not self._sortable:
+            raise TableError("only a sortable table focuses its header")
+        if column is None:
+            self._header_focused = False
+            self._invalidate()
+            return
+        if not self._rows:
+            raise TableError("an empty table cannot focus its header")
+        columns = self._layout.columns
+        if (
+            not isinstance(column, int)
+            or isinstance(column, bool)
+            or not 0 <= column < len(columns)
+            or columns[column].width == 0
+        ):
+            raise IndexError(f"No visible Table column at index {column!r}")
+        self._header_column = column
+        self._header_focused = True
+        self._invalidate()
+
+    def _header_target(self, arrangement: _Arrangement) -> int | None:
+        """Return the header column the focus is shown on at *arrangement*, or ``None`` when it cannot be shown.
+
+        It is the stored column when it is visible, otherwise the nearest visible column on its left;
+        the first visible column when none is stored.
+        """
+        if not self._rows or not arrangement.header_rows:
+            return None
+        visible = list(self._layout._column_spans(arrangement.content))
+        if not visible:
+            return None
+        stored = self._header_column
+        if stored is None:
+            return visible[0]
+        if stored in visible:
+            return stored
+        # the stored column never has a given width of 0, and a size hides the rightmost columns first,
+        # so a visible column is on the left of a hidden stored one
+        return max(index for index in visible if index < stored)
 
     @property
     def body(self) -> _TableRows:
@@ -1081,6 +1308,7 @@ class Table(Widget, WidgetContainerMixin[int]):
         - a row on screen takes the cursor from that edge, at the preferred column;
         - a row off screen is placed at that edge and keeps its nested focus.
 
+        The focus leaves the header of a sortable table.
 
         :param position: the index of the row
         :param coming_from: ``"above"`` or ``"below"`` when the old focus is on that side of the new one
@@ -1089,6 +1317,7 @@ class Table(Widget, WidgetContainerMixin[int]):
         """
         if not isinstance(position, int) or not 0 <= position < len(self._rows):
             raise IndexError(f"No Table row at position {position!r}")
+        self._end_header_focus()
         self._listbox.set_focus(position, coming_from)
 
     def selectable(self) -> bool:
@@ -1098,12 +1327,21 @@ class Table(Widget, WidgetContainerMixin[int]):
     def enter_selectable(self, *, reverse: bool = False) -> None:
         """Start at the first selectable cell of the first selectable row, or at the last one when *reverse* is set.
 
-        It is the entry hook a parent container calls, and acts only when the table was built with
-        ``select_navigation``, see :ref:`select-navigation`.
+        It is the entry hook a parent container calls.
+        It moves the focus within the rows only when the table was built with ``select_navigation``,
+        see :ref:`select-navigation`.
+        It always takes the focus off the header of a sortable table.
 
         :param reverse: start at the last selectable cell of the last selectable row instead.
         """
+        self._end_header_focus()
         self._listbox.enter_selectable(reverse=reverse)
+
+    def _end_header_focus(self) -> None:
+        """Give the focus back to the rows when the header has it."""
+        if self._header_focused:
+            self._header_focused = False
+            self._invalidate()
 
     def sizing(self) -> frozenset[Sizing]:
         """Return BOX and FLOW, and FIXED as well when no column is weighted."""
@@ -1138,6 +1376,8 @@ class Table(Widget, WidgetContainerMixin[int]):
             row._index = index
             if self._row_attr is not None:
                 row._invalidate()
+        if not self._rows:
+            self._header_focused = False
         self._invalidate()
 
     def _widths_changed(self) -> None:
@@ -1257,12 +1497,17 @@ class Table(Widget, WidgetContainerMixin[int]):
         size: tuple[()] | tuple[int] | tuple[int, int],
         focus: bool = False,
     ) -> Canvas:
-        """Render the header, the rows and the footer, top to bottom."""
-        maxcol, content, hrows, frows, body_rows, bar = self._arrange(size)
+        """Render the header, the rows and the footer, top to bottom.
 
-        def edge(row: TableRow, rows: int) -> Canvas:
-            """Render *row* out of focus over the scrollbar column, cut to *rows* rows."""
-            canvas = CompositeCanvas(row.render((content,)))
+        While the header has the focus, it is rendered with *focus* and the rows without it.
+        """
+        arrangement = self._arrange(size)
+        maxcol, content, hrows, frows, body_rows, bar = arrangement
+        header_column = self._header_target(arrangement) if self._header_focused else None
+
+        def edge(row: TableRow, rows: int, row_focus: bool = False) -> CompositeCanvas:
+            """Render *row* over the scrollbar column, cut to *rows* rows."""
+            canvas = CompositeCanvas(row.render((content,), row_focus))
             if bar and self._bar is not None:
                 if self._bar.scrollbar_side == SCROLLBAR_LEFT:
                     canvas.pad_trim_left_right(maxcol - content, 0)
@@ -1274,10 +1519,19 @@ class Table(Widget, WidgetContainerMixin[int]):
 
         combine: list[tuple[Canvas, Hashable, bool]] = []
         if self._header is not None and hrows:
-            combine.append((edge(self._header, hrows), "header", False))
+            if header_column is None:
+                combine.append((edge(self._header, hrows), "header", False))
+            else:
+                if self._header._w.focus_position != header_column:
+                    self._header._w.focus_position = header_column
+                header = edge(self._header, hrows, focus)
+                if focus:
+                    header.cursor = self._header_cursor(arrangement, header_column)
+                combine.append((header, "header", True))
         if self._rows and body_rows != 0:
             widget, body_size = self._body_widget_size(maxcol, body_rows, bar)
-            combine.append((widget.render(body_size, focus), "body", True))
+            body_focus = focus and header_column is None
+            combine.append((widget.render(body_size, body_focus), "body", header_column is None))
         elif body_rows:
             combine.append((SolidCanvas(" ", maxcol, body_rows), "body", False))
         if self._footer is not None and frows:
@@ -1285,6 +1539,13 @@ class Table(Widget, WidgetContainerMixin[int]):
         if not combine:
             return SolidCanvas(" ", maxcol, 0)
         return CanvasCombine(combine)
+
+    def _header_cursor(self, arrangement: _Arrangement, column: int) -> tuple[int, int]:
+        """Return the cursor on the first screen column of the label of the visible *column*."""
+        start = self._layout._column_spans(arrangement.content)[column][0]
+        if arrangement.bar and self._bar is not None and self._bar.scrollbar_side == SCROLLBAR_LEFT:
+            start += arrangement.maxcol - arrangement.content
+        return start, 0
 
     def _body_call_size(
         self,
@@ -1302,21 +1563,52 @@ class Table(Widget, WidgetContainerMixin[int]):
     def keypress(self, size: tuple[()] | tuple[int] | tuple[int, int], key: str) -> str | None:
         """Pass the key to the rows; send ``"activate"`` for an ``activate`` command they leave unhandled.
 
-        :returns: ``None`` if the rows or an ``"activate"`` handler handled the key, otherwise the key.
+        While the header of a sortable table has the focus, the key goes to the header instead,
+        as the class description says.
+
+        :returns: ``None`` if the rows, the header or a handler handled the key, otherwise the key.
             A handler handles the key by returning a true value.
         """
+        if self._header_focused:
+            arrangement = self._arrange(size)
+            if (column := self._header_target(arrangement)) is not None:
+                return self._header_keypress(arrangement, column, key)
+            self._end_header_focus()
         if (body := self._body_call_size(size)) is None:
             return key
-        widget, body_size, _arrangement = body
+        widget, body_size, arrangement = body
         if (unhandled := widget.keypress(body_size, key)) is None:
             return None
-        if (
-            self._command_map[unhandled] == Command.ACTIVATE
-            and self._rows.focus is not None
-            and signals.emit_signal(self, "activate", self, self._rows.focus)
-        ):
+        command = self._command_map[unhandled]
+        if command == Command.ACTIVATE:
+            if self._rows.focus is not None and signals.emit_signal(self, "activate", self, self._rows.focus):
+                return None
+        elif command == Command.UP and self._sortable and (column := self._header_target(arrangement)) is not None:
+            if self._header_column is None:
+                self._header_column = column
+            self._header_focused = True
+            self._invalidate()
             return None
         return unhandled
+
+    def _header_keypress(self, arrangement: _Arrangement, column: int, key: str) -> str | None:
+        """Handle *key* while the header has the focus, shown on the visible *column*."""
+        command = self._command_map[key]
+        if command in {Command.LEFT, Command.RIGHT}:
+            visible = list(self._layout._column_spans(arrangement.content))
+            position = visible.index(column) + (1 if command == Command.RIGHT else -1)
+            if not 0 <= position < len(visible):
+                return key
+            self._header_column = visible[position]
+            self._invalidate()
+            return None
+        if command == Command.ACTIVATE:
+            self._header_column = column
+            return None if signals.emit_signal(self, "header activated", self, column) else key
+        if command == Command.DOWN or (self._select_navigation and command == Command.SELECT_NEXT):
+            self._end_header_focus()
+            return None
+        return key
 
     def mouse_event(
         self,
@@ -1327,7 +1619,20 @@ class Table(Widget, WidgetContainerMixin[int]):
         row: int,
         focus: bool,
     ) -> bool | None:
-        """Pass the event to the rows; the header and the footer take no mouse events."""
+        """Pass the event to the rows; the footer takes no mouse events.
+
+        The header takes none either, except a press of button 1 on a label of a sortable table,
+        which focuses that label when the table has rows and sends ``"header activated"``.
+        A press of button 1 on the rows gives the focus back to them.
+
+        :returns: whether the rows or a ``"header activated"`` handler handled the event.
+        """
+        if self._sortable:
+            arrangement = self._arrange(size)
+            if row < arrangement.header_rows:
+                return self._header_click(arrangement, event, button, col)
+            if self._header_focused and self._header_target(arrangement) is None:
+                self._end_header_focus()
         if (body := self._body_call_size(size)) is None:
             return False
         widget, body_size, arrangement = body
@@ -1339,10 +1644,38 @@ class Table(Widget, WidgetContainerMixin[int]):
                 body_rows = self._body_rows(arrangement.content, sys.maxsize)
             if row >= body_rows:
                 return False
+        if event == "mouse press" and button == 1:
+            self._end_header_focus()
         return widget.mouse_event(body_size, event, button, col, row, focus)
 
+    def _header_click(self, arrangement: _Arrangement, event: str, button: int, col: int) -> bool:
+        """Handle a mouse event on the header of a sortable table, *col* screen columns from its left edge."""
+        if event != "mouse press" or button != 1:
+            return False
+        if arrangement.bar and self._bar is not None and self._bar.scrollbar_side == SCROLLBAR_LEFT:
+            col -= arrangement.maxcol - arrangement.content
+        column = next(
+            (
+                index
+                for index, (start, width) in self._layout._column_spans(arrangement.content).items()
+                if start <= col < start + width
+            ),
+            None,
+        )
+        if column is None:
+            return False
+        if self._rows:
+            self._header_column = column
+            self._header_focused = True
+            self._invalidate()
+        return signals.emit_signal(self, "header activated", self, column)
+
     def get_cursor_coords(self, size: tuple[()] | tuple[int] | tuple[int, int]) -> tuple[int, int] | None:
-        """Return the cursor coordinates of the focused row, below the header."""
+        """Return the cursor coordinates of the focused row, below the header, or of the focused header label."""
+        if self._header_focused:
+            arrangement = self._arrange(size)
+            if (column := self._header_target(arrangement)) is not None:
+                return self._header_cursor(arrangement, column)
         if (body := self._body_call_size(size)) is None:
             return None
         widget, body_size, arrangement = body

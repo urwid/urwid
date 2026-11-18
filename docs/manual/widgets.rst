@@ -942,8 +942,8 @@ its keys are the attributes the row's map produces.
 ``footer=`` takes the cells of a row drawn below the rows, such as totals.
 :attr:`Table.footer` can be set later to cells, to a :class:`TableRow` of
 :attr:`Table.layout` with its own maps (a span row for a one-line summary),
-or to ``None``.  Like the header, the footer shares the column widths and
-never takes the focus or a mouse click.
+or to ``None``.  The footer shares the column widths and never takes the
+focus or a mouse click; neither does the header, unless the table is sortable.
 
 A box size that does not fit the whole table can drop the header or the
 footer: ``header_drop=N`` drops the header while keeping it would leave the
@@ -967,6 +967,25 @@ handling are passed with a ``scrollbar_`` prefix, such as
 ``scrollbar_thumb_char``, ``scrollbar_end_markers``, ``scrollbar_side`` and
 ``scrollbar_attr``, so a table's scrollbar can look like the other scrollbars
 of an application.
+
+:meth:`Table.sort` reorders the rows by the text of a column, or by a
+``key`` that receives each :class:`TableRow`, and keeps the focus on the same
+row.  :attr:`Table.sort_column` and :attr:`Table.sort_reverse` record the last
+sort.  A table built with ``sortable=True`` also offers its header for sorting:
+
+* A click on a column label, or :kbd:`enter` on the focused label, sends
+  ``"header activated"`` with the column index.  The table does not sort by
+  itself; the handler calls :meth:`Table.sort`, and toggles the direction with
+  ``table.sort(column, reverse=table.sort_column == column and not table.sort_reverse)``.
+* :kbd:`up` at the first row focuses the header, :kbd:`left` and
+  :kbd:`right` move over the labels, and :kbd:`down` goes back to the rows.
+  :attr:`Table.header_column` reads and sets the focused label.
+  ``header_focus_attr`` marks it while the table is in focus.
+* The label of the sorted column carries a mark, ``" ^"`` or ``" v"`` by
+  default; ``sort_marks=`` changes the two marks, and ``None`` draws none.
+
+A table built without ``sortable=True`` keeps its header out of the focus and
+returns :kbd:`up` at the first row to its parent, as other lists do.
 
 :class:`urwid.widget.TableLayout`, the part that shares the widths, also
 works without a table: rows built with :meth:`TableLayout.row` line up in a
