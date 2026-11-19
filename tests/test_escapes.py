@@ -130,6 +130,25 @@ class InputEscapeSequenceParserTest(unittest.TestCase):
                     with self.assertRaises(escape.MoreInputRequired):
                         escape.process_keyqueue(list(sequence[:length]), more_available=True)
 
+    def test_alt_with_command_string_introducers(self):
+        """Alt with P, ], X, ^ or _ is a key of its own, also when the keys after it look like a terminated string.
+
+        Terminal replies such as OSC strings start with the same codes, but key bindings of these keys are kept.
+        """
+        for codes, expected in (
+            ([*b"\x1bXabc"], ["meta X", "a", "b", "c"]),
+            ([*b"\x1b]11;x"], ["meta ]", "1", "1", ";", "x"]),
+            ([*b"\x1bP\x1b\\"], ["meta P", "meta \\"]),
+            ([*b"\x1b]\x07"], ["meta ]", "ctrl g"]),
+            ([*b"\x1bXabc\x1b\\"], ["meta X", "a", "b", "c", "meta \\"]),
+            ([*b"\x1b^a\x1b\\"], ["meta ^", "a", "meta \\"]),
+            ([*b"\x1b_a\x1b\\"], ["meta _", "a", "meta \\"]),
+            ([*b"\x1b]11;x\x07"], ["meta ]", "1", "1", ";", "x", "ctrl g"]),
+        ):
+            with self.subTest(codes=codes):
+                for more_available in (False, True):
+                    self.assertListEqual(expected, decode_by_key(codes, more_available=more_available)[0])
+
     def test_unrecognised_control_sequence_after_escape(self):
         """ESC before an unrecognised control sequence stays a key of its own, as the sequence may be a report."""
         self.assertListEqual(["esc", "<csi 99~>"], decode_by_key([27, *b"\x1b[99~"])[0])
@@ -537,6 +556,7 @@ class InputEscapeSequenceParserTest(unittest.TestCase):
                 ("\xe9", list(b"\xc3\xa9")),  # 2-byte
                 ("€", list(b"\xe2\x82\xac")),  # 3-byte
                 ("\U0001f600", list(b"\xf0\x9f\x98\x80")),  # 4-byte
+                ("\xa0", list(b"\xc2\xa0")),  # the first character after the C1 controls
             ):
                 with self.subTest(text=text):
                     actual, rest = escape.process_keyqueue(codes, more_available=False)
@@ -547,6 +567,11 @@ class InputEscapeSequenceParserTest(unittest.TestCase):
             actual, rest = escape.process_keyqueue([0xC3, ord("A")], more_available=False)
             self.assertEqual(["<195>"], actual)
             self.assertListEqual([ord("A")], rest)
+
+            # a C1 control character is named by its value, as a byte that is not valid utf-8 is
+            actual, rest = escape.process_keyqueue([0xC2, 0x85], more_available=False)
+            self.assertEqual(["<133>"], actual)
+            self.assertListEqual([], rest)
 
             # a standalone byte that is not a valid utf-8 lead byte (a bare continuation byte)
             actual, rest = escape.process_keyqueue([0x80], more_available=False)
@@ -573,8 +598,11 @@ class InputEscapeSequenceParserTest(unittest.TestCase):
             for encoding, codes, expected, expected_rest in (
                 ("koi8-r", [0xC1], ["а"], []),  # single byte of a narrow encoding
                 ("iso-8859-1", [0xE9], ["é"], []),
+                ("iso-8859-1", [0x9B], ["<155>"], []),  # a C1 control character is named by its value
+                ("cp1252", [0x9B], ["\u203a"], []),  # the same byte is a printable character in cp1252
                 ("gbk", [0xD6, 0xD0, ord("A")], ["中"], [ord("A")]),  # double byte of a wide encoding
-                ("gbk", [0x81, 0xFF], ["\x81"], [0xFF]),  # lead byte with an invalid trail: decoded one by one
+                # lead byte with an invalid trail: decoded one by one, as a C1 control named by its value
+                ("gbk", [0x81, 0xFF], ["<129>"], [0xFF]),
                 ("ascii", [0xE9], ["é"], []),  # not a character of the encoding: read as Latin-1
             ):
                 with self.subTest(encoding=encoding, codes=codes):

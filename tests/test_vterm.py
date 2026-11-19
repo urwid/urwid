@@ -2542,6 +2542,15 @@ class TermTest(unittest.TestCase):
                 self.assertEqual(bytes(self.pty.from_widget), sent)
                 self.assertEqual(urwid.display.escape.process_keyqueue(list(sent), more_available=False), ([key], []))
 
+    def test_c1_control_keys_send_the_character(self) -> None:
+        """Send the C1 control character that the input decoder names by its value, as in ``'<133>'``."""
+        for key, sent in (("<128>", "\x80"), ("<133>", "\x85"), ("<159>", "\x9f"), ("meta <155>", "\x1b\x9b")):
+            with self.subTest(key=key):
+                self.pty.from_widget.clear()
+                self.term.keygrab = True
+                self.assertIsNone(self.term.keypress(self.termsize, key))
+                self.assertEqual(bytes(self.pty.from_widget), sent.encode(self.term.encoding))
+
     def test_keyboard_protocol_keys_are_sent_as_a_legacy_terminal_sends_them(self) -> None:
         """Send a key only the keyboard protocols report apart as the legacy key it collapses to."""
         for key, sent in (
@@ -2598,7 +2607,9 @@ class TermTest(unittest.TestCase):
             "meta shift up",
             "f21",
             "focus in",
-            "<130>",
+            "<255>",
+            "<160>",
+            "<0133>",
             "super enter",
             "super a",
             "super \u0436",

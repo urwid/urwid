@@ -1380,9 +1380,11 @@ def _process_keyqueue_at(
         s = bytes(codes[start : start + need_more + 1])
 
         try:
-            return [s.decode("utf-8")], start + need_more + 1
+            key = s.decode("utf-8")
         except UnicodeDecodeError:
             return [f"<{code:d}>"], start + 1
+        # a C1 control is named by its value, as a byte that is not valid UTF-8 is, so it is not received as text
+        return [f"<{ord(key):d}>" if "\x80" <= key < "\xa0" else key], start + need_more + 1
 
     if (
         em == "wide"
@@ -1408,7 +1410,8 @@ def _process_keyqueue_at(
             key = code.to_bytes(1, "little").decode(util.get_encoding())
         except UnicodeDecodeError:
             key = chr(code)  # not a character of the encoding (always for "ascii"): read the byte as Latin-1
-        return [key], start + 1
+        # a C1 control, such as byte 0x9B in ISO-8859-1, is named by its value as in UTF-8
+        return [f"<{code:d}>" if "\x80" <= key < "\xa0" else key], start + 1
     if code != 27:
         return [f"<{code:d}>"], start + 1
 
