@@ -1524,7 +1524,27 @@ class TermTest(unittest.TestCase):
                 r"\e[?1002h\e[?1002$p\e[?1000$p",
                 b"\x1b[?1002;1$y\x1b[?1000;2$y",
             ),
-            ("DECRQM reports a mode with no state as unknown", r"\e[?3$p\e[?9999$p", b"\x1b[?3;0$y\x1b[?9999;0$y"),
+            ("DECRQM reports a mode with no state as unknown", r"\e[?30$p\e[?9999$p", b"\x1b[?30;0$y\x1b[?9999;0$y"),
+            *(
+                (
+                    f"DECRQM reports ANSI mode {mode} permanently reset, as xterm does",
+                    rf"\e[{mode}$p",
+                    b"\x1b[%d;4$y" % mode,
+                )
+                for mode in (1, 5, 7, 10, 11, 13, 14, 15, 16, 17, 18, 19)
+            ),
+            *(
+                (f"DECRQM reports DEC mode {mode} permanently reset", rf"\e[?{mode}$p", b"\x1b[?%d;4$y" % mode)
+                for mode in (4, 8, 18, 19, 42)
+            ),
+            ("DECRQM reports DECCOLM reset, as xterm does without 132 columns", r"\e[?3h\e[?3$p", b"\x1b[?3;2$y"),
+            (
+                "DECRQM reports ANSI mode (DECANM) permanently set, as VT52 mode is not implemented",
+                r"\e[?2l\e[?2$p",
+                b"\x1b[?2;3$y",
+            ),
+            ("DECRQUPSS reports ISO Latin-1", r"\e[&u", b"\x1bP1!uA\x1b\\"),
+            ("DECRQUPSS is not answered at the VT100 level", r'\e[61"p\e[&u', b""),
             ("DECRQM is not answered without a mode", r"\e[?$p\e[?1;2$p", b""),
             ("other sequences ending in p are not answered", r'\e[5p\e[!p\e[61;1"p', b""),
             (
@@ -1919,6 +1939,74 @@ class TermTest(unittest.TestCase):
                 (urwid.AttrSpec("default,standout", "default"), None, wide.encode()),
                 "the cursor on the second half is drawn on the first",
             )
+
+    def test_scroll_up_and_down(self) -> None:
+        """Scroll the scrolling region with SU and SD, keeping the cursor and the scrollback, as xterm does."""
+        for label, data, screen, cursor in (
+            ("SU", r"\e[S", "2\n3\n4\n5", (1, 4)),
+            ("SU 2", r"\e[2S", "3\n4\n5", (1, 4)),
+            ("SU 0 scrolls one line", r"\e[0S", "2\n3\n4\n5", (1, 4)),
+            ("SU past the region clears it", r"\e[99S", "", (1, 4)),
+            ("SU in the scrolling region", r"\e[2;4r\e[5;2H\e[S", "1\n3\n4\n\n5", (1, 4)),
+            ("SD", r"\e[T", "\n1\n2\n3\n4", (1, 4)),
+            ("SD 2 in the scrolling region", r"\e[2;4r\e[5;2H\e[2T", "1\n\n\n2\n5", (1, 4)),
+            (
+                "SD with more parameters is ignored, as xterm's mouse highlight tracking",
+                r"\e[2;1T",
+                "1\n2\n3\n4\n5",
+                (1, 4),
+            ),
+            ("SU with ? is not SU", r"\e[?1S", "1\n2\n3\n4\n5", (1, 4)),
+            ("SD 0 is ignored, as in xterm", r"\e[0T", "1\n2\n3\n4\n5", (1, 4)),
+            ("SD with ? is not SD", r"\e[?1T", "1\n2\n3\n4\n5", (1, 4)),
+            ("SD as ECMA-48 corrected it", r"\e[2^", "\n\n1\n2\n3", (1, 4)),
+            ("SD as ECMA-48 corrected it, 0 scrolling one line, as in xterm", r"\e[0^", "\n1\n2\n3\n4", (1, 4)),
+        ):
+            with self.subTest(label):
+                self.restart(10, 5)
+                self.write("1\n2\n3\n4\n5" + data)
+                self.expect(screen)
+                self.assertEqual(self.term.term.term_cursor, cursor)
+                self.assertEqual(len(self.term.term.scrollback_buffer), 0, "the lines scrolled off are not saved")
+
+        self.restart(10, 5)
+        self.write(r"\e[5;1H" + "A" * 10 + r"\e[SB")
+        # the wrap at the bottom row scrolls once more
+        self.expect("\n\n" + "A" * 10 + "\n\nB")
+        self.assertEqual(self.term.term.term_cursor, (1, 4), "SU keeps a pending wrap")
+
+    def test_c1_controls_in_utf8_are_dropped(self) -> None:
+        """Neither run nor draw a C1 control written in UTF-8, as xterm and kitty do."""
+        for label, data in (
+            ("NEL", "AB\u0085C"),
+            ("IND", "AB\u0084C"),
+            ("RI", "AB\u008dC"),
+            ("an unassigned one", "AB\u0081C"),
+            ("CSI", "AB\u009b2DC"),
+            ("OSC", "AB\u009d0;t\u009cC"),
+        ):
+            with self.subTest(label), set_temporary_encoding("utf-8"):
+                self.restart(12, 3)
+                self.write(data.encode().decode("iso8859-1"))
+                text = data.encode("ascii", "ignore").decode()
+                self.assertEqual(self.read(), text.encode())
+                self.assertEqual(self.term.term.term_cursor, (len(text), 0))
+
+        with set_temporary_encoding("iso8859-1"):
+            # U+009B is byte 0x9B in this encoding, which a display would send to the host terminal as CSI
+            self.restart(12, 3)
+            self.write("\\e%GAB" + "\u009b2DC".encode().decode("iso8859-1"))
+            self.assertEqual(self.read(), b"AB2DC")
+
+        for label, data in (
+            ("the IBM PC mapping designated", "\\e(UA\u0085B"),
+            ("display control mode", "\\e[3hA\u0085B"),
+        ):
+            with self.subTest(f"drawn with {label}"), set_temporary_encoding("utf-8"):
+                self.restart(12, 3)
+                self.write(data.encode().decode("iso8859-1"))
+                self.read()
+                self.assertEqual(self.term.term.term_cursor, (3, 0))
 
     def test_column_operations(self) -> None:
         """Insert and delete columns in the scrolling region with DECIC, DECDC, DECBI and DECFI, as xterm does."""

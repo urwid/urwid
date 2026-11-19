@@ -142,9 +142,15 @@ _DEC_CHECKSUM_VALUES: typing.Final = types.MappingProxyType(
 #: the DECRQCRA value xterm gives a character with no 7-bit value: U+00A0 and anything past Latin-1
 _CHECKSUM_UNMAPPED: typing.Final = 0x1B
 
-#: the DEC private modes DECRQM reports as permanently reset (4): DECKBUM (68), and DECLRMM (69), since left and right
-#: margins are not implemented
-_PERMANENTLY_RESET_PRIVATE_MODES: typing.Final = frozenset((68, 69))
+#: the states the DEC private modes this canvas keeps no flag for are reported in, by DECRQM:
+#: 4 is permanently reset, as setting them has no effect: smooth scrolling (DECSCLM, 4) and autorepeat (DECARM, 8),
+#: which the display decides, printing (DECPFF 18, DECPEX 19), as no printer is attached, and the national replacement
+#: character sets (DECNRCM, 42), DECKBUM (68) and the margins (DECLRMM, 69), which are not implemented;
+#: 3 is permanently set, for ANSI mode (DECANM, 2), as VT52 mode is not implemented;
+#: 2 is reset, for 132 columns (DECCOLM, 3), as xterm reports it without its c132 resource
+_FIXED_PRIVATE_MODE_STATES: typing.Final = types.MappingProxyType(
+    {2: 3, 3: 2, **dict.fromkeys((4, 8, 18, 19, 42, 68, 69), 4)},
+)
 
 #: the DECRQCRA checksum bits of the AttrSpec flags, as xterm adds them to each character
 _CHECKSUM_BITS: typing.Final = (("bold", 0x80), ("blink", 0x40), ("standout", 0x20), ("underline", 0x10))
@@ -174,8 +180,11 @@ _FLAG_SS3: typing.Final = 4
 _FLAG_WRAP: typing.Final = 8
 
 #: the states the ANSI modes this canvas keeps no flag for are reported in, by DECRQM: 4 is permanently reset, for
-#: KAM (keyboard locked), and 3 permanently set, for SRM (no local echo)
-_FIXED_ANSI_MODE_STATES: typing.Final = types.MappingProxyType({2: 4, 12: 3})
+#: KAM (keyboard locked) and the ECMA-48 modes of a VT320 that keep their reset state, as xterm reports them, and 3 is
+#: permanently set, for SRM (no local echo)
+_FIXED_ANSI_MODE_STATES: typing.Final = types.MappingProxyType(
+    {2: 4, 12: 3, **dict.fromkeys((1, 5, 7, 10, 11, 13, 14, 15, 16, 17, 18, 19), 4)},
+)
 
 #: the SGR parameters of the attribute flags of an AttrSpec
 _SGR_FLAGS: typing.Final = (
@@ -295,6 +304,11 @@ CSI_COMMANDS: dict[bytes, CSIAlias | CSICommand] = {
     b"L": CSICommand(1, 1, lambda s, number, q: s.insert_lines(lines=number[0])),
     b"M": CSICommand(1, 1, lambda s, number, q: s.remove_lines(lines=number[0])),
     b"P": CSICommand(1, 1, lambda s, number, q: s.remove_chars(chars=number[0])),
+    b"S": CSICommand(1, 1, lambda s, lines, q: s.csi_scroll(lines[0])),
+    # SD (CSI Ps T) is run in parse_csi, which sees whether its parameter is 0
+    b"T": CSICommand(0, 0, lambda s, none, q: None),
+    # SD as ECMA-48 corrected it, which xterm takes too
+    b"^": CSICommand(1, 1, lambda s, lines, q: s.csi_scroll(lines[0], reverse=True)),
     b"X": CSICommand(
         1,
         1,
@@ -327,7 +341,7 @@ CSI_COMMANDS: dict[bytes, CSIAlias | CSICommand] = {
     # the VT420 sequences with an intermediate byte, run in parse_csi from _INTERMEDIATE_COMMANDS: DECRQDE (CSI " v),
     # DECFRA (CSI ... $ x), DECERA (CSI ... $ z), DECSERA (CSI ... $ {), DECCRA (CSI ... $ v), DECCARA (CSI ... $ r),
     # DECRARA (CSI ... $ t), DECSACE (CSI Ps * x), DECRQCRA (CSI ... * y), DECIC (CSI Ps ' }) and DECDC (CSI Ps ' ~);
-    # DECSCA (CSI Ps " q) is run there too
+    # DECSCA (CSI Ps " q) and DECRQUPSS (CSI & u) are run there too
     b"t": CSICommand(0, 0, lambda s, none, q: None),
     b"v": CSICommand(0, 0, lambda s, none, q: None),
     b"x": CSICommand(0, 0, lambda s, none, q: None),
@@ -603,6 +617,11 @@ class TermCharset:
         """Reset graphics rendition mapping to IBM PC CP437."""
         self._sgr_mapping = False
         self.activate(g=self.active)
+
+    @property
+    def ibmpc_mapped(self) -> bool:
+        """Return whether the characters written are mapped as the IBM PC character set, by SGR 11 or a designation."""
+        return self._sgr_mapping or self._g[self._shown] == "ibmpc"
 
     def apply_mapping(self, char: bytes) -> bytes:
         """Map *char* through the active IBM PC/DEC special character set, tracking which slot the result came from.
@@ -1139,6 +1158,13 @@ class TermCanvas(Canvas):
                 handler(self, [int(param) if param else None for param in params.split(b";")])
             return
 
+        if char == b"T":
+            # SD: as in xterm, which takes more parameters as its mouse highlight tracking, only no parameter or one
+            # other than 0 scrolls
+            if not self._escbuf or (self._escbuf.isdigit() and int(self._escbuf) > 0):
+                self.csi_scroll(int(self._escbuf or b"1"), reverse=True)
+            return
+
         if char == b"p" and self._escbuf == b"!":
             # DECSTR: CSI ! p
             self.soft_reset()
@@ -1464,6 +1490,10 @@ class TermCanvas(Canvas):
                     if self.within_escape:
                         # an escape sequence takes bytes, not cells: no DEC drawing character here
                         char = sequence.encode(util.get_encoding(), "urwid_fallback_ascii")
+                    elif "\x80" <= sequence < "\xa0" and not (self.charset.ibmpc_mapped or self.modes.display_ctrl):
+                        # as in xterm, a C1 control written in UTF-8 is neither run nor drawn; the IBM PC mapping and
+                        # display control mode draw it
+                        return
                     else:
                         char, charsets = util.apply_target_encoding(sequence)
                         if charsets == [("0", 1)]:
@@ -1872,11 +1902,11 @@ class TermCanvas(Canvas):
         self.is_rotten_cursor = False
         self.set_term_cursor(x, y)
 
-    def scroll(self, reverse: bool = False) -> None:
+    def scroll(self, reverse: bool = False, *, scrollback: bool = True) -> None:
         """Append a new line at the bottom of the scrolling region and remove its topmost line.
 
         The removed line goes into the scrollback buffer when the region starts at the top row, as in xterm.
-        A region below the top row drops it.
+        A region below the top row drops it, and so does a scroll without *scrollback*.
         If reverse is True, do exactly the opposite, but don't save into scrollback buffer.
         """
         if reverse:
@@ -1885,12 +1915,22 @@ class TermCanvas(Canvas):
         else:
             killed = self.term.pop(self.scrollregion_start)
             self.term.insert(self.scrollregion_end, self.empty_line())
-            if self.scrollregion_start > 0:
+            if self.scrollregion_start > 0 or not scrollback:
                 return
             self.scrollback_buffer.append(killed)
             if self.scrolling_up and not self.scroll_on_output:
                 # the view moves up with the lines it shows
                 self.scrolling_up = min(self.scrolling_up + 1, len(self.scrollback_buffer))
+
+    def csi_scroll(self, lines: int, *, reverse: bool = False) -> None:
+        """Scroll the scrolling region up by *lines*, or down with *reverse*.
+
+        This is SU (``CSI Ps S``), and SD (``CSI Ps T`` and ``CSI Ps ^``).
+        The cursor and a pending wrap stay.
+        As in xterm, the lines scrolled off the top are not saved in the scrollback.
+        """
+        for _ in range(min(lines, self.scrollregion_end - self.scrollregion_start + 1)):
+            self.scroll(reverse=reverse, scrollback=False)
 
     def decaln(self) -> None:
         """DEC screen alignment test: fill the screen with E's, without attributes and in ASCII, as xterm does."""
@@ -2207,17 +2247,21 @@ class TermCanvas(Canvas):
         """Answer a DECRQM query for DEC private *mode* with a DECRPM reply (CSI ? mode ; state $ y).
 
         The state is 1 for a set mode, 2 for a reset one, and 0 for a mode this canvas keeps no state for.
-        DECKBUM (68) and DECLRMM (69) are reported as permanently reset (4), since setting them has no effect.
+        The modes in :data:`_FIXED_PRIVATE_MODE_STATES` are reported in the state it gives them.
         """
         state = self.private_mode_state(str(mode))
-        value = 4 if mode in _PERMANENTLY_RESET_PRIVATE_MODES else 0 if state is None else 1 if state else 2
+        if mode in _FIXED_PRIVATE_MODE_STATES:
+            value = _FIXED_PRIVATE_MODE_STATES[mode]
+        else:
+            value = 0 if state is None else 1 if state else 2
         self.widget.respond(f"{ESC}[?{mode:d};{value:d}$y")
 
     def csi_report_mode(self, mode: int) -> None:
         """Answer a DECRQM query for ANSI *mode* with a DECRPM reply (CSI mode ; state $ y).
 
         The state is 1 for a set mode and 2 for a reset one.
-        KAM (2) is reported as permanently reset (4), and SRM (12) as permanently set (3), since neither changes.
+        KAM (2) is reported as permanently reset (4), and SRM (12) as permanently set (3), since neither changes, and
+        so are the ECMA-48 modes of a VT320 that keep their reset state (1, 5, 7, 10, 11 and 13 to 19), as in xterm.
         Any other mode this canvas keeps no state for is reported as 0.
         """
         modes = self.modes
@@ -2576,6 +2620,15 @@ class TermCanvas(Canvas):
         self.modes.iso_protection = False
         if params[0] in {None, 0, 1, 2}:
             self.protected = params[0] == 1
+
+    def csi_request_user_preferred_supplemental_set(self, _params: Sequence[int | None]) -> None:
+        """Answer DECRQUPSS (``CSI & u``) with DECAUPSS for ISO Latin-1, ``DCS 1 ! u A ST``.
+
+        That is the 96-character set a designation such as ``ESC - A`` draws.
+        It is not answered at the VT100 level (61), like the other DCS replies.
+        """
+        if self.conformance_level > 61:
+            self.widget.respond(f"{ESC}P1!uA{ESC}\\")
 
     def csi_copy_rectangle(self, params: Sequence[int | None]) -> None:
         """Copy a rectangle to another place on the screen (DECCRA).
@@ -2957,6 +3010,7 @@ _INTERMEDIATE_COMMANDS: typing.Final[Mapping[tuple[bytes, bytes], Callable[[Term
             (b"$", b"t"): TermCanvas.csi_reverse_area_attributes,
             (b"*", b"x"): TermCanvas.csi_select_attribute_extent,
             (b'"', b"q"): TermCanvas.csi_select_protection,
+            (b"&", b"u"): TermCanvas.csi_request_user_preferred_supplemental_set,
             (b"$", b"v"): TermCanvas.csi_copy_rectangle,
             (b"*", b"y"): TermCanvas.csi_request_checksum,
             (b"'", b"}"): TermCanvas.csi_insert_columns,

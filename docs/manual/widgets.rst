@@ -183,22 +183,25 @@ The terminal widgets are box widgets that emulate a terminal.
 It answers a device attributes query as a VT320 with selective erase and ANSI
 colour.  It answers DECRQSS, DECRQM for the ANSI and DEC private modes it
 keeps, and DECRQPSR with the cursor information and the tab stops, which
-DECRSPS restores.  DECSCL selects the VT100, VT200 or VT300 level.  The
-selective erases DECSED and DECSEL keep the characters DECSCA or SPA protects,
-and after SPA, until DECSCA, DECSTR or RIS, ED, EL and ECH keep them too.  Of
-the VT420 it takes the rectangular area operations DECFRA, DECERA, DECSERA,
-DECCRA, DECCARA and DECRARA, with DECSACE choosing a rectangle or a stream for
-the last two, and the DECRQCRA checksum, the column operations DECIC, DECDC,
-DECBI and DECFI, and the tertiary device attributes query, at every level,
-although xterm takes them only at the VT420 level.  At the VT100 level no reply
-in a DCS string is sent.  After the child sets a cursor style with DECSCUSR,
-the widget draws the cursor cell itself, in reverse video for a block or a bar
-and underlined for an underline, instead of the display's cursor.  As in xterm,
-a wide character takes two cells, and a character with no width, such as a
+DECRSPS restores, and DECRQUPSS with ISO Latin-1.  DECSCL selects the VT100,
+VT200 or VT300 level.  The selective erases DECSED and DECSEL keep the
+characters DECSCA or SPA protects, and after SPA, until DECSCA, DECSTR or RIS,
+ED, EL and ECH keep them too.  Of the VT420 it takes the rectangular area
+operations DECFRA, DECERA, DECSERA, DECCRA, DECCARA and DECRARA, with DECSACE
+choosing a rectangle or a stream for the last two, and the DECRQCRA checksum,
+the column operations DECIC, DECDC, DECBI and DECFI, and the tertiary device
+attributes query, at every level, although xterm takes them only at the VT420
+level.  At the VT100 level no reply in a DCS string is sent.  SU and SD scroll
+the scrolling region without saving the lines scrolled off in the scrollback,
+as in xterm.  After the child sets a cursor style with DECSCUSR, the widget
+draws the cursor cell itself, in reverse video for a block or a bar and
+underlined for an underline, instead of the display's cursor.  As in xterm, a
+wide character takes two cells, and a character with no width, such as a
 combining accent, joins the character before it; which characters are wide is
 urwid's own width calculation, the one the display uses, applied to each
-character on its own, as xterm does.  Replies use 7-bit controls only.  The
-child is given ``TERM=linux``.
+character on its own, as xterm does, and a C1 control written in UTF-8 is
+ignored, as in xterm and kitty.  VT52 mode is not implemented.  Replies use
+7-bit controls only.  The child is given ``TERM=linux``.
 :class:`TerminalOutput` shows output the application writes to it, such as
 captured output, with no process behind it, and also works on Windows.
 
