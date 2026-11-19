@@ -316,6 +316,10 @@ Contributors
     :alt: current version on PyPi
     :target: https://pypi.python.org/pypi/urwid
 
+.. |pdf| image:: https://img.shields.io/badge/PDF-Download-blue.svg?logo=adobe&logoColor=white
+   :alt: PDF Documentation
+   :target: https://github.com/urwid/urwid/actions/workflows/documentation-pdf.yml
+
 .. |docs| image:: https://github.com/urwid/urwid/actions/workflows/documentation.yml/badge.svg?branch=master
     :alt: Documentation Status
     :target: https://urwid.org
