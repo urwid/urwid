@@ -34,6 +34,8 @@ from collections import deque
 from contextlib import suppress
 from dataclasses import dataclass, field
 
+import wcwidth
+
 from urwid import _deprecation, str_util, util
 from urwid.ansi_parser import (
     MAX_CSI_LENGTH,
@@ -154,8 +156,9 @@ _FIXED_PRIVATE_MODE_STATES: typing.Final = types.MappingProxyType(
 
 #: the DECRQCRA checksum bits of the AttrSpec flags, as xterm adds them to each character
 _CHECKSUM_BITS: typing.Final = (("bold", 0x80), ("blink", 0x40), ("standout", 0x20), ("underline", 0x10))
-#: the characters with no width a cell takes after its own, as xterm's default combiningChars resource; more are dropped
-_MAX_COMBINING: typing.Final = 2
+#: the code points a cell holds at most, which bounds the cost of joining a long run of combining marks; more are
+#: dropped
+_MAX_CLUSTER_LENGTH: typing.Final = 32
 
 #: the DECRQCRA checksum bit of a protected character
 _CHECKSUM_PROTECTED: typing.Final = 0x04
@@ -412,6 +415,32 @@ def _drawn_width(char: bytes) -> int:
     It is 2 for the first half of a wide character.
     """
     return 1 if len(char) < 2 else _encoded_width(bytes(char), str_util.get_byte_encoding())
+
+
+#: a text of each kind a character can continue the grapheme cluster of: a plain character, which combining marks,
+#: spacing marks and a zero width joiner continue, a regional indicator, an emoji with a zero width joiner, the Hangul
+#: jamo and syllables, and a consonant with a virama, which a consonant of any script with such conjuncts continues
+_CLUSTER_STARTS: typing.Final = ("a", "\U0001f1fa", "\U0001f468\u200d", "\u1100", "\u1161", "\uac00", "\u0915\u094d")
+
+
+def _continues_cluster(text: str, char: str) -> bool:
+    """Return whether *char*, written after a cell holding *text*, belongs to the same grapheme cluster.
+
+    It is not cached, since a pair of cells rarely repeats in text where the second may join the first, such as Hangul.
+    """
+    joined = text + char
+    return wcwidth.grapheme_boundary_before(joined, len(joined)) < len(text)
+
+
+# sized for the characters of one text: the CJK ideographs and Hangul syllables of the Basic Multilingual Plane
+@functools.lru_cache(maxsize=32768)
+def _may_continue_cluster(char: str) -> bool:
+    """Return whether *char* continues the grapheme cluster of some text, so that it may join a cell.
+
+    The character after a prepended concatenation mark, such as U+0600, is not counted, which keeps this a property of
+    the character alone.
+    """
+    return any(_continues_cluster(start, char) for start in _CLUSTER_STARTS)
 
 
 def _mend_wide(line: list[tuple[AttrSpec | None, Literal["0", "U"] | None, bytes]], x: int) -> None:
@@ -1505,10 +1534,20 @@ class TermCanvas(Canvas):
                             # is a cell, as the display draws that byte; process_char() would run it as CSI.
                             self.push_cursor(char)
                             return
-                        # a C1 control is left to push_cursor(), as the IBM PC mapping draws it
-                        width = 1 if "\x80" <= sequence < "\xa0" else _drawn_width(char)
+                        if "\x80" <= sequence < "\xa0":
+                            # left to push_cursor(), as the IBM PC mapping draws it
+                            width = 1
+                        else:
+                            width = _drawn_width(char)
+                            # most characters start a cluster, which is known without looking at the cell before them
+                            if (width == 0 or _may_continue_cluster(sequence)) and self.combine_char(
+                                char,
+                                sequence,
+                                width=width,
+                            ):
+                                return
                         if width == 0:
-                            self.combine_char(char)
+                            # a character with no width that joins no character has no cell to take
                             return
                         if width == 2:
                             self.push_wide_char(char)
@@ -1814,40 +1853,75 @@ class TermCanvas(Canvas):
         self.set_term_cursor(min(x + 2, self.width - 1), y)
         self.is_rotten_cursor = x + 2 >= self.width
 
-    def combine_char(self, char: bytes) -> None:
-        """Add a character with no width to the character before the cursor, as xterm does.
+    def combine_char(self, char: bytes, text: str, *, width: int | None = None) -> bool:
+        """Join *char* to the character before the cursor when it continues its grapheme cluster.
 
-        Such a character is a combining accent, a zero width joiner or a variation selector.
+        A cell holds a grapheme cluster, as urwid's width calculation measures one, so a combining accent, a zero
+        width joiner and the emoji after it, a variation selector, a skin tone modifier and the second regional
+        indicator of a flag join the character before them.
+        A character with no width that starts a cluster of its own joins it too, as a cell cannot hold it alone.
         After a character was written in the last column, the character before the cursor is the one under it.
-        It is dropped:
+        A cluster the display draws one column wider than its character, such as a heart with an emoji variation
+        selector, takes the next cell as its second half, and the cursor moves past it; in the last column it moves to
+        the next line with autowrap, as in kitty.
 
-        - at the start of a line;
-        - past the :data:`_MAX_COMBINING` a character takes;
-        - on a cell in the DEC special graphics set, which the display draws in a character set without it;
-        - when the display would draw the character it joins wider.
+        It does not join the cluster:
 
-        xterm keeps it on a DEC special graphics character, and after BS from the last column it joins the character
-        under the cursor.
+        - when the cluster would hold more than :data:`_MAX_CLUSTER_LENGTH` code points;
+        - when it would be drawn wider than two columns or narrower than before, as Hangul jamo that do not make a
+          syllable can be;
+        - when it would be drawn wider in the last column without autowrap, or on a screen one column wide;
+        - when the character before the cursor is a DEC special graphics character, which the display draws in a
+          character set without it, or there is no character before the cursor.
 
-        :param char: the character, in urwid's encoding.
+        Such a character takes a cell of its own, or is dropped when it has no width.
+
+        :param char: the character, in urwid's encoding, which is UTF-8 for any character to join.
+        :param text: the character as text.
+        :param width: the columns the display draws *char* alone in, when the caller has measured it.
+        :returns: whether the character was joined or dropped, and so takes no cell of its own.
         """
+        if str_util.get_byte_encoding() != "utf8":
+            return False
+        if width is None:
+            width = _drawn_width(char)
         x, y = self.term_cursor
         if not (self.is_rotten_cursor and x == self.width - 1):
             x -= 1
         if x < 0:
-            return
+            return width == 0
         line = self.term[y]
         if not line[x][2]:
             # the second half of a wide character: the first half holds it
             x -= 1
-        attrspec, charset, text = line[x]
-        joined = bytes(text) + char
-        if (
-            charset != "0"
-            and len(joined.decode(util.get_encoding(), "replace")) <= 1 + _MAX_COMBINING
-            and _drawn_width(joined) == _drawn_width(text)
-        ):
-            line[x] = (attrspec, charset, _Protected(joined) if isinstance(text, _Protected) else joined)
+        attrspec, charset, cell = line[x]
+        held = cell.decode("utf-8", "replace")
+        if charset == "0" or not (width == 0 or _continues_cluster(held, text)):
+            return width == 0
+        joined = bytes(cell) + char
+        old_width, new_width = _drawn_width(cell), _drawn_width(joined)
+        if len(held) + len(text) > _MAX_CLUSTER_LENGTH or new_width not in {old_width, 2}:
+            return width == 0
+        protected = isinstance(cell, _Protected)
+        if new_width != old_width and x + 1 >= self.width:
+            if not self.modes.autowrap or self.width < 2:
+                return width == 0
+            # as in kitty, the cluster moves to the next line, as a wide character that does not fit does
+            line[x] = self.empty_char()
+            self.push_wide_char(joined)
+            row = self.term[self.term_cursor[1]]
+            row[0] = (attrspec, charset, _Protected(joined) if protected else joined)
+            row[1] = (attrspec, charset, _Protected(b"") if protected else b"")
+            return True
+        if new_width != old_width:
+            if self.modes.insert:
+                self.insert_chars((x + 1, y))
+            line[x + 1] = (attrspec, charset, _Protected(b"") if protected else b"")
+            _mend_wide(line, x + 2)
+            self.set_term_cursor(min(x + 2, self.width - 1), y)
+            self.is_rotten_cursor = x + 2 >= self.width
+        line[x] = (attrspec, charset, _Protected(joined) if protected else joined)
+        return True
 
     def save_cursor(self, with_attrs: bool = False) -> None:
         """Save the current cursor position.

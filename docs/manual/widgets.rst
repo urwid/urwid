@@ -195,13 +195,13 @@ level.  At the VT100 level no reply in a DCS string is sent.  SU and SD scroll
 the scrolling region without saving the lines scrolled off in the scrollback,
 as in xterm.  After the child sets a cursor style with DECSCUSR, the widget
 draws the cursor cell itself, in reverse video for a block or a bar and
-underlined for an underline, instead of the display's cursor.  As in xterm, a
-wide character takes two cells, and a character with no width, such as a
-combining accent, joins the character before it; which characters are wide is
-urwid's own width calculation, the one the display uses, applied to each
-character on its own, as xterm does, and a C1 control written in UTF-8 is
-ignored, as in xterm and kitty.  VT52 mode is not implemented.  Replies use
-7-bit controls only.  The child is given ``TERM=linux``.
+underlined for an underline, instead of the display's cursor.  A grapheme
+cluster, such as a character with combining accents, an emoji sequence or a
+flag, takes one cell, or two with an empty second half for a wide one, as
+urwid's own width calculation, the one the display uses, measures it.  A C1
+control written in UTF-8 is ignored, as in xterm and kitty.  VT52 mode is not
+implemented.  Replies use 7-bit controls only.  The child is given
+``TERM=linux``.
 :class:`TerminalOutput` shows output the application writes to it, such as
 captured output, with no process behind it, and also works on Windows.
 
