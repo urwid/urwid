@@ -1131,12 +1131,6 @@ class TermTest(unittest.TestCase):
             ("OSC palette set cut short by ST", (80, 24), r"\e]Pabcdef\e\xy", "xy"),
             ("OSC palette set cut short by a CSI", (80, 24), r"ab\e]Pabcdef\e[1GX", "Xb"),
             ("ESC inside a CSI sequence starts a new one", (80, 24), r"ab\e[3\e[1GX", "Xb"),
-            ("ESC inside a C1 CSI sequence starts a new one", (80, 24), "ab\x9b3\\e[1GX", "Xb"),
-            ("C1 CSI inside a CSI sequence starts a new one", (80, 24), "ab\\e[3\x9b1GX", "Xb"),
-            ("C1 CSI inside ESC ( starts a new sequence", (80, 24), "ab\\e(\x9b1GX", "Xb"),
-            ("C1 CSI after an ESC starts a new sequence", (80, 24), "ab\\e\x9b1GX", "Xb"),
-            ("C1 CSI after an over-long CSI starts a new one", (80, 24), "ab\\e[" + "1;" * 300 + "\x9b1GX", "Xb"),
-            ("C1 CSI after an ESC inside an OSC string starts a CSI", (80, 24), "ab\\e]0;t\\e\x9b1GX", "Xb"),
             ("C1 CSI is displayed in display control mode", (80, 24), "\\e[3hab\x9bc", "ab\x9bc"),
             ("ESC after an ESC starts a new sequence", (80, 24), r"ab\e\e[1GX", "Xb"),
             ("ESC inside ESC % starts a new sequence", (80, 24), r"ab\e%\e[1GX", "Xb"),
@@ -1156,6 +1150,42 @@ class TermTest(unittest.TestCase):
         ):
             with self.subTest(label):
                 self.restart(*size)
+                self.write(output)
+                self.expect(screen)
+
+    def test_c1_csi(self) -> None:
+        """Run byte 0x9B as CSI in an 8-bit encoding.
+
+        There it starts a sequence as ESC [ does.
+        """
+        for label, output, screen in (
+            ("ESC inside a C1 CSI sequence starts a new one", "ab\x9b3\\e[1GX", "Xb"),
+            ("C1 CSI inside a CSI sequence starts a new one", "ab\\e[3\x9b1GX", "Xb"),
+            ("C1 CSI inside ESC ( starts a new sequence", "ab\\e(\x9b1GX", "Xb"),
+            ("C1 CSI after an ESC starts a new sequence", "ab\\e\x9b1GX", "Xb"),
+            ("C1 CSI after an over-long CSI starts a new one", "ab\\e[" + "1;" * 300 + "\x9b1GX", "Xb"),
+            ("C1 CSI after an ESC inside an OSC string starts a CSI", "ab\\e]0;t\\e\x9b1GX", "Xb"),
+        ):
+            with self.subTest(label), set_temporary_encoding("iso8859-1"):
+                self.restart(80, 24)
+                self.write(output)
+                self.expect(screen)
+
+    def test_lone_csi_byte_in_utf8_is_dropped(self) -> None:
+        """Drop byte 0x9B in UTF-8, as xterm does.
+
+        On its own it is not valid UTF-8, and it is dropped also inside an escape sequence or a command string.
+        """
+        for label, output, screen in (
+            ("outside a sequence", "ab\x9b3\\e[1GX", "Xb3"),
+            ("inside a CSI sequence, which continues", "ab\\e[3\x9b1GX", "ab" + " " * 28 + "X"),
+            ("inside ESC (", "ab\\e(\x9b1GX", "abGX"),
+            ("after an ESC", "ab\\e\x9b1GX", "abGX"),
+            ("before parameters", "ab\x9b2DC", "ab2DC"),
+            ("after an ESC inside an OSC string", "ab\\e]0;t\\e\x9b1GX", "abGX"),
+        ):
+            with self.subTest(label), set_temporary_encoding("utf-8"):
+                self.restart(80, 24)
                 self.write(output)
                 self.expect(screen)
 

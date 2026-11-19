@@ -1560,14 +1560,9 @@ class TermCanvas(Canvas):
                     return
             else:
                 self.utf8_eat_bytes = None
-                if (
-                    continuation
-                    and not self.within_escape
-                    and byte != 0x9B
-                    and not (self.modes.display_ctrl and byte < 0xA0)
-                ):
-                    # A lone continuation byte is not valid UTF-8, and is dropped like an invalid multibyte sequence.
-                    # The C1 controls in that range stay controls: CSI, and every one shown in display control mode.
+                if continuation and not (self.modes.display_ctrl and byte < 0xA0):
+                    # A lone continuation byte is not valid UTF-8 and is dropped, as in xterm. That includes 0x9B and
+                    # bytes inside an escape sequence. Display control mode shows the C1 controls in that range.
                     return
                 char = bytes([byte])
         else:
