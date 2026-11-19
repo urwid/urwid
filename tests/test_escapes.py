@@ -959,7 +959,11 @@ class KeyReportTest(unittest.TestCase):
 
     def test_csi_u_carries_the_shifted_character_with_modify_other_keys(self):
         """xterm's formatOtherKeys sends modifyOtherKeys reports as CSI u, with the character typed with shift."""
-        for keyboard_protocol, key in ((None, "shift ctrl !"), ("kitty", "shift ctrl !"), ("modify other keys", "ctrl !")):
+        for keyboard_protocol, key in (
+            (None, "shift ctrl !"),
+            ("kitty", "shift ctrl !"),
+            ("modify other keys", "ctrl !"),
+        ):
             with self.subTest(keyboard_protocol=keyboard_protocol):
                 actual, _rest = escape.process_keyqueue(
                     [27, *b"[33;6u"], more_available=False, keyboard_protocol=keyboard_protocol
