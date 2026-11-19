@@ -304,6 +304,11 @@ CSI_COMMANDS: dict[bytes, CSIAlias | CSICommand] = {
     b"L": CSICommand(1, 1, lambda s, number, q: s.insert_lines(lines=number[0])),
     b"M": CSICommand(1, 1, lambda s, number, q: s.remove_lines(lines=number[0])),
     b"P": CSICommand(1, 1, lambda s, number, q: s.remove_chars(chars=number[0])),
+    b"S": CSICommand(1, 1, lambda s, lines, q: s.csi_scroll(lines[0])),
+    # SD (CSI Ps T) is run in parse_csi, which sees whether its parameter is 0
+    b"T": CSICommand(0, 0, lambda s, none, q: None),
+    # SD as ECMA-48 corrected it, which xterm takes too
+    b"^": CSICommand(1, 1, lambda s, lines, q: s.csi_scroll(lines[0], reverse=True)),
     b"X": CSICommand(
         1,
         1,
@@ -1153,6 +1158,13 @@ class TermCanvas(Canvas):
                 handler(self, [int(param) if param else None for param in params.split(b";")])
             return
 
+        if char == b"T":
+            # SD: as in xterm, which takes more parameters as its mouse highlight tracking, only no parameter or one
+            # other than 0 scrolls
+            if not self._escbuf or (self._escbuf.isdigit() and int(self._escbuf) > 0):
+                self.csi_scroll(int(self._escbuf or b"1"), reverse=True)
+            return
+
         if char == b"p" and self._escbuf == b"!":
             # DECSTR: CSI ! p
             self.soft_reset()
@@ -1890,11 +1902,11 @@ class TermCanvas(Canvas):
         self.is_rotten_cursor = False
         self.set_term_cursor(x, y)
 
-    def scroll(self, reverse: bool = False) -> None:
+    def scroll(self, reverse: bool = False, *, scrollback: bool = True) -> None:
         """Append a new line at the bottom of the scrolling region and remove its topmost line.
 
         The removed line goes into the scrollback buffer when the region starts at the top row, as in xterm.
-        A region below the top row drops it.
+        A region below the top row drops it, and so does a scroll without *scrollback*.
         If reverse is True, do exactly the opposite, but don't save into scrollback buffer.
         """
         if reverse:
@@ -1903,12 +1915,22 @@ class TermCanvas(Canvas):
         else:
             killed = self.term.pop(self.scrollregion_start)
             self.term.insert(self.scrollregion_end, self.empty_line())
-            if self.scrollregion_start > 0:
+            if self.scrollregion_start > 0 or not scrollback:
                 return
             self.scrollback_buffer.append(killed)
             if self.scrolling_up and not self.scroll_on_output:
                 # the view moves up with the lines it shows
                 self.scrolling_up = min(self.scrolling_up + 1, len(self.scrollback_buffer))
+
+    def csi_scroll(self, lines: int, *, reverse: bool = False) -> None:
+        """Scroll the scrolling region up by *lines*, or down with *reverse*.
+
+        This is SU (``CSI Ps S``), and SD (``CSI Ps T`` and ``CSI Ps ^``).
+        The cursor and a pending wrap stay.
+        As in xterm, the lines scrolled off the top are not saved in the scrollback.
+        """
+        for _ in range(min(lines, self.scrollregion_end - self.scrollregion_start + 1)):
+            self.scroll(reverse=reverse, scrollback=False)
 
     def decaln(self) -> None:
         """DEC screen alignment test: fill the screen with E's, without attributes and in ASCII, as xterm does."""

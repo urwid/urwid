@@ -1940,6 +1940,41 @@ class TermTest(unittest.TestCase):
                 "the cursor on the second half is drawn on the first",
             )
 
+    def test_scroll_up_and_down(self) -> None:
+        """Scroll the scrolling region with SU and SD, keeping the cursor and the scrollback, as xterm does."""
+        for label, data, screen, cursor in (
+            ("SU", r"\e[S", "2\n3\n4\n5", (1, 4)),
+            ("SU 2", r"\e[2S", "3\n4\n5", (1, 4)),
+            ("SU 0 scrolls one line", r"\e[0S", "2\n3\n4\n5", (1, 4)),
+            ("SU past the region clears it", r"\e[99S", "", (1, 4)),
+            ("SU in the scrolling region", r"\e[2;4r\e[5;2H\e[S", "1\n3\n4\n\n5", (1, 4)),
+            ("SD", r"\e[T", "\n1\n2\n3\n4", (1, 4)),
+            ("SD 2 in the scrolling region", r"\e[2;4r\e[5;2H\e[2T", "1\n\n\n2\n5", (1, 4)),
+            (
+                "SD with more parameters is ignored, as xterm's mouse highlight tracking",
+                r"\e[2;1T",
+                "1\n2\n3\n4\n5",
+                (1, 4),
+            ),
+            ("SU with ? is not SU", r"\e[?1S", "1\n2\n3\n4\n5", (1, 4)),
+            ("SD 0 is ignored, as in xterm", r"\e[0T", "1\n2\n3\n4\n5", (1, 4)),
+            ("SD with ? is not SD", r"\e[?1T", "1\n2\n3\n4\n5", (1, 4)),
+            ("SD as ECMA-48 corrected it", r"\e[2^", "\n\n1\n2\n3", (1, 4)),
+            ("SD as ECMA-48 corrected it, 0 scrolling one line, as in xterm", r"\e[0^", "\n1\n2\n3\n4", (1, 4)),
+        ):
+            with self.subTest(label):
+                self.restart(10, 5)
+                self.write("1\n2\n3\n4\n5" + data)
+                self.expect(screen)
+                self.assertEqual(self.term.term.term_cursor, cursor)
+                self.assertEqual(len(self.term.term.scrollback_buffer), 0, "the lines scrolled off are not saved")
+
+        self.restart(10, 5)
+        self.write(r"\e[5;1H" + "A" * 10 + r"\e[SB")
+        # the wrap at the bottom row scrolls once more
+        self.expect("\n\n" + "A" * 10 + "\n\nB")
+        self.assertEqual(self.term.term.term_cursor, (1, 4), "SU keeps a pending wrap")
+
     def test_c1_controls_in_utf8_are_dropped(self) -> None:
         """Neither run nor draw a C1 control written in UTF-8, as xterm and kitty do."""
         for label, data in (
