@@ -90,6 +90,7 @@ class MenuItemTest(unittest.TestCase):
             ("no visible items", lambda: urwid.ActionMenu("A", ["x"], max_visible_items=0)),
             ("duplicate keys", lambda: urwid.ActionMenu("A", [MenuItem("a", key="k"), MenuItem("b", key="k")])),
             ("unknown align", lambda: urwid.ActionMenu("A", ["x"], align="center")),
+            ("unknown placement", lambda: urwid.ActionMenu("A", ["x"], placement="middle")),
             ("label and launcher", lambda: urwid.ActionMenu("A", ["x"], launcher=urwid.Text("row"))),
             ("neither label nor launcher", lambda: urwid.ActionMenu(None, ["x"])),
             ("submenu of separators", lambda: MenuItem("Send", submenu=[None])),
@@ -322,6 +323,31 @@ class LayoutTest(unittest.TestCase):
             lines(target, (40, 10))[1:4],
         )
 
+    def test_placement_center(self) -> None:
+        """The list opens in the middle of the target, as wide as its own entries rather than the launcher."""
+        target = screen(urwid.ActionMenu("Actions", ["Open", "Delete"], placement="center"))
+        keys(target, (20, 9), "enter")
+        self.assertEqual(
+            [
+                "line 0              ",
+                "Actions >           ",
+                "statu┌───────┐      ",
+                "     │Open   │      ",
+                "     │Delete │      ",
+                "     └───────┘      ",
+            ],
+            lines(target, (20, 9))[:6],
+        )
+
+    def test_placement_center_cut_short_by_the_screen(self) -> None:
+        """A centred list taller than the target is cut to the target's rows and gets a scroll bar."""
+        target = screen(urwid.ActionMenu("Actions", ["Open", "Copy", "Move", "Delete"], placement="center"))
+        keys(target, (12, 5), "enter")
+        self.assertEqual(
+            ["l┌──────┐   ", "A│Open  │█  ", "s│Copy  │█  ", " │Move  │   ", " └──────┘   "],
+            lines(target, (12, 5)),
+        )
+
 
 class ChoosingTest(unittest.TestCase):
     def test_choose_by_enter_after_skipping_disabled_and_separators(self) -> None:
@@ -484,6 +510,87 @@ class ContextMenuTest(unittest.TestCase):
             [line[:22] for line in lines(target, (34, 9))[2:4]],
         )
 
+    def test_open_at_with_placement_center(self) -> None:
+        """open_at() opens below the given cell, and an opening key opens the list in the middle."""
+        target, menus = file_list(placement="center")
+        target.render((34, 9), focus=True)
+        menus[1].open_at(4, 0)
+        self.assertEqual("phot│(O)pen   │", lines(target, (34, 9))[3][:15])
+        menus[1].close_pop_up()
+        keys(target, (34, 9), "m")
+        self.assertEqual(
+            ["report.txt ┌─────────┐", "todo.org   │(O)pen   │"], [line[:22] for line in lines(target, (34, 9))[1:3]]
+        )
+
+
+class ArrowToOwnerTest(unittest.TestCase):
+    """An arrow the top list has no use for goes to the widgets under the list, such as a row of launchers."""
+
+    def bar(self, **kwargs: typing.Any) -> tuple[urwid.PopUpTarget, urwid.Columns, list[urwid.ActionMenu]]:
+        menus = [urwid.ActionMenu("File", WITH_SUBMENU, **kwargs), urwid.ActionMenu("Edit", ["Copy", "Paste"])]
+        columns = urwid.Columns([("pack", menu) for menu in menus], dividechars=1)
+        return urwid.PopUpTarget(urwid.Filler(columns, "top")), columns, menus
+
+    def test_unused_arrow_moves_to_the_next_launcher(self) -> None:
+        """The list closes when the Columns takes the arrow; the next launcher gets the focus without opening."""
+        for placement in ("launcher", "center"):
+            with self.subTest(placement=placement):
+                target, columns, menus = self.bar(placement=placement)
+                keys(target, (40, 10), "enter")
+                self.assertIsNone(target.keypress((40, 10), "right"))
+                self.assertEqual(1, columns.focus_position)
+                self.assertEqual([None, None], [menu.pop_up_widget for menu in menus])
+                keys(target, (40, 10), "enter")
+                self.assertIsNone(target.keypress((40, 10), "left"))
+                self.assertEqual(0, columns.focus_position)
+                self.assertIsNone(menus[1].pop_up_widget)
+
+    def test_unused_arrow_nobody_takes_keeps_the_list(self) -> None:
+        """In a list of rows nothing takes the arrow, so the list stays open and the arrow is returned."""
+        target, menus = file_list()
+        keys(target, (34, 9), "m")
+        self.assertEqual("right", target.keypress((34, 9), "right"))
+        self.assertIsNotNone(menus[1].pop_up_widget)
+
+    def test_unfocused_launcher_keeps_the_arrow(self) -> None:
+        """A list opened by open_at() on an unfocused launcher does not hand the arrow to the focused widget."""
+        edit = urwid.Edit("", "hello")
+        menu = urwid.ActionMenu(None, ["Copy"], launcher=urwid.SelectableIcon("row", 0))
+        target = urwid.PopUpTarget(urwid.ListBox(urwid.SimpleFocusListWalker([edit, menu])))
+        target.render((20, 6), focus=True)
+        menu.open_at(0, 0)
+        keys(target, (20, 6))
+        self.assertEqual("left", target.keypress((20, 6), "left"))
+        self.assertEqual(5, edit.edit_pos)
+        self.assertIsNotNone(menu.pop_up_widget)
+
+    def test_list_closed_during_the_keypress_keeps_the_arrow(self) -> None:
+        """A list a subclass closed while handling the arrow does not hand it to the widgets under it."""
+
+        class ClosingMenu(urwid.ActionMenu):
+            def _close_on_menu_key(self, key: str) -> str | None:
+                self.close_pop_up()
+                return key
+
+        menus = [ClosingMenu("File", ["Open"]), urwid.ActionMenu("Edit", ["Copy"])]
+        columns = urwid.Columns([("pack", menu) for menu in menus], dividechars=1)
+        target = urwid.PopUpTarget(urwid.Filler(columns, "top"))
+        keys(target, (40, 10), "enter")
+        self.assertEqual("right", target.keypress((40, 10), "right"))
+        self.assertEqual(0, columns.focus_position)
+
+    def test_submenus_keep_their_arrows(self) -> None:
+        """Either arrow on a submenu row of the top list opens the child, and a child list keeps every arrow."""
+        for opening in ("left", "right"):
+            with self.subTest(opening=opening):
+                target, columns, menus = self.bar()
+                keys(target, (40, 10), "enter", "down", opening)
+                self.assertIn("(M)ail", "".join(lines(target, (40, 10))))
+                # On the plain (M)ail row the arrow away from the parent is returned, with every list still open.
+                self.assertEqual("right", target.keypress((40, 10), "right"))
+                self.assertEqual(0, columns.focus_position)
+                self.assertIn("(M)ail", "".join(lines(target, (40, 10))))
+
 
 class SubmenuTest(unittest.TestCase):
     def open_child(
@@ -509,6 +616,18 @@ class SubmenuTest(unittest.TestCase):
         )
         self.assertIn("focus", attributes(target, (40, 10), 4, range(1, 13)))
         self.assertIn("focus", attributes(target, (40, 10), 4, range(15, 27)))
+
+    def test_child_opens_beside_a_centred_list(self) -> None:
+        """The child of a centred list opens beside it, level with its row."""
+        target, _menu, _sent = self.open_child(size=(44, 10), placement="center")
+        self.assertEqual(
+            [
+                "status: -      ┌────────────┐               ",
+                "               │(O)pen      │┌────────────┐ ",
+                "               │(S)end to  >││(M)ail      │ ",
+            ],
+            lines(target, (44, 10))[2:5],
+        )
 
     def test_child_flips_left_at_the_right_edge(self) -> None:
         """U3: near the right edge the child opens left of the parent, over none of its columns."""

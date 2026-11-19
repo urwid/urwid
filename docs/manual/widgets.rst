@@ -346,8 +346,16 @@ click outside closes the list without a choice.
   drawn: the arrow back towards the parent closes only the child, as
   :kbd:`esc` does, and the other arrow on a submenu row opens a further
   child.  In the top list either arrow opens a child.
+- While the launcher has the focus, :kbd:`left` and :kbd:`right` on a row
+  of the top list with no submenu go to the widgets under the list.  When
+  one of them takes the arrow, as a
+  :class:`Columns` of menu launchers does by moving the focus, the list
+  closes; otherwise it stays open and the arrow is returned unhandled.
 - ``align="right"`` lines up the right edges of the list and the launcher,
   for a menu at the right edge or a right-to-left interface.
+- ``placement="center"`` opens the list in the middle of the
+  :class:`PopUpTarget` rather than at the launcher's edge, for a chooser
+  that belongs to the whole screen rather than to the launcher.
 - ``border=False`` draws the list without its box.
 - The ``scrollbar_`` keyword arguments are passed to the :class:`ScrollBar`
   of each list, as for :class:`DropDown`.
@@ -355,11 +363,11 @@ click outside closes the list without a choice.
 The launcher is a label with :attr:`ActionMenu.menu_indicator` after it, or
 any widget given as ``launcher``, such as a row of a :class:`ListBox`.  The
 keys in ``open_keys`` and a press of a button in ``open_buttons`` open the
-list at the launcher's edge, and every other key and button goes to the
+list where ``placement`` says, and every other key and button goes to the
 launcher.  A mouse opening also gives the row the focus through
 :meth:`Widget.request_focus`.  :meth:`ActionMenu.open_at` opens the list
-below a cell of the launcher, so an application's own mouse handler can open
-a context menu at the pointer.
+below a cell of the launcher, whatever ``placement`` says, so an
+application's own mouse handler can open a context menu at the pointer.
 
 A menu with no item that can be chosen opens nothing.  Its label launcher is
 then not selectable and is drawn with ``disabled_map``; a launcher widget
@@ -430,6 +438,9 @@ together to show it:
   closes it when the pop-up leaves :kbd:`esc` unhandled.
   ``PopUpLauncher(..., close_on_click_outside=True)`` closes it on a mouse
   click outside the pop-up; that click does not reach the widget under it.
+  A ``pass_key_below`` callback among the parameters may offer a key the
+  pop-up leaves unhandled to the widgets under it, as :class:`ActionMenu`
+  does with an arrow its list has no use for.
   ``PopUpLauncher(..., signal_open_close=True)`` sends the signals ``"open"``
   and ``"close"`` when the pop-up opens and closes, with the launcher as the
   only argument; repeated calls on an open or a closed launcher send nothing.
