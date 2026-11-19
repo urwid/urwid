@@ -450,6 +450,10 @@ class ActionMenu(_MenuOwner):
     the arrow back towards the parent closes only the child, as :kbd:`esc` does,
     and the other arrow on a submenu row opens a further child.
     In the top list either arrow opens a child.
+    While the launcher has the focus, an arrow on a row of the top list with no submenu goes to the widgets
+    under the list.
+    When one of them takes it, as a :class:`Columns <urwid.Columns>` of launchers does by moving the focus,
+    the list closes; otherwise it stays open and the arrow is returned unhandled.
     :kbd:`esc`, or a click outside the list, closes it without a choice.
 
     Opening keys and buttons are set by `open_keys` and `open_buttons`; every other key and button goes to the
@@ -608,6 +612,8 @@ class ActionMenu(_MenuOwner):
         # Where open_at() asked for the list, or None for the launcher's edge.
         self._pointer: tuple[int, int] | None = None
         self._fixed_width: int | None = None
+        # Focus of the render in progress, see render().
+        self._render_focus = False
         if label is not None and launcher is None:
             indicator_width = self.menu_indicator.pack()[0]
             self._fixed_width = Text(label).pack()[0] + 1 + indicator_width
@@ -661,38 +667,60 @@ class ActionMenu(_MenuOwner):
 
         Below an edge or a cell, the rows above the list are the vertical anchor,
         so it moves above them when it does not fit below.
+        While the launcher has the focus, unused arrows are offered to the widgets under the list.
         """
         layout = _list_layout(self._items, self._style)
+        parameters: PopUpParametersModel
         if self._pointer is not None:
             col, row = self._pointer
-            return {
+            parameters = {
                 "left": col if self._style.align == "left" else col + 1 - layout.width,
                 "top": row + 1,
                 "overlay_width": layout.width,
                 "overlay_height": layout.height,
                 "anchor_height": 1,
             }
-        match self._placement:
-            case "center":
-                return {
-                    "left": "center",
-                    "top": "middle",
-                    "overlay_width": layout.width,
-                    "overlay_height": layout.height,
-                }
-            case "launcher":
-                # Before the first render, the size the default launcher packs to with no size given.
-                launcher_width, launcher_rows = self.launcher_size or (self._fixed_width or layout.width, 1)
-                width = max(launcher_width, layout.width) if self._style.align == "left" else layout.width
-                return {
-                    "left": 0 if self._style.align == "left" else launcher_width - width,
-                    "top": launcher_rows,
-                    "overlay_width": width,
-                    "overlay_height": layout.height,
-                    "anchor_height": launcher_rows,
-                }
-            case _:
-                typing.assert_never(self._placement)
+        else:
+            match self._placement:
+                case "center":
+                    parameters = {
+                        "left": "center",
+                        "top": "middle",
+                        "overlay_width": layout.width,
+                        "overlay_height": layout.height,
+                    }
+                case "launcher":
+                    # Before the first render, the size the default launcher packs to with no size given.
+                    launcher_width, launcher_rows = self.launcher_size or (self._fixed_width or layout.width, 1)
+                    width = max(launcher_width, layout.width) if self._style.align == "left" else layout.width
+                    parameters = {
+                        "left": 0 if self._style.align == "left" else launcher_width - width,
+                        "top": launcher_rows,
+                        "overlay_width": width,
+                        "overlay_height": layout.height,
+                        "anchor_height": launcher_rows,
+                    }
+                case _:
+                    typing.assert_never(self._placement)
+        # Only a launcher on the focus path receives what the widgets under the list do with the arrow,
+        # so an unfocused one keeps it from the focused widget, which has nothing to do with the menu.
+        if self._render_focus:
+            parameters["pass_key_below"] = self._pass_arrow_below
+        return parameters
+
+    def _pass_arrow_below(self, key: str, send_below: Callable[[str], str | None]) -> str | None:
+        """Offer a left or right arrow the top list left unhandled to the widgets under it.
+
+        The list closes when they handle the arrow, as a container of launchers does when it moves the focus.
+
+        :returns: the key when it is not such an arrow, the list is already closed,
+            or nothing under the list handled it, otherwise ``None``.
+        """
+        if self._command_map[key] not in {Command.LEFT, Command.RIGHT} or self.pop_up_widget is None:
+            return key
+        if (unhandled := send_below(key)) is None:
+            self.close_pop_up()
+        return unhandled
 
     def pack(
         self,
@@ -710,6 +738,9 @@ class ActionMenu(_MenuOwner):
         """Render the launcher, with the list attached when it is open."""
         if not size and self._fixed_width is not None:
             size = (self._fixed_width,)
+        # Read by get_pop_up_parameters() during this render; the canvas cache keys each canvas by focus,
+        # so a cached canvas carries the callback that matches its own focus.
+        self._render_focus = focus
         return super().render(size, focus)
 
     def keypress(

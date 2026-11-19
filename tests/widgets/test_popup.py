@@ -32,6 +32,26 @@ class ThingWithAPopUp(urwid.PopUpLauncher[urwid.SolidFill]):
         return {"left": 1, "top": 1, "overlay_width": 10, "overlay_height": 3}
 
 
+class PassingPopUp(ThingWithAPopUp):
+    """Selectable launcher that offers every key its pop-up leaves unhandled to the widgets under the pop-up."""
+
+    def __init__(self) -> None:
+        super().__init__(close_on_menu=True)
+        # Each key offered below the pop-up, with what the widgets there returned.
+        self.passed: list[tuple[str, str | None]] = []
+
+    def selectable(self) -> bool:
+        return True
+
+    def get_pop_up_parameters(self) -> dict:
+        return {**super().get_pop_up_parameters(), "pass_key_below": self._pass_key_below}
+
+    def _pass_key_below(self, key: str, send_below: typing.Callable[[str], str | None]) -> str | None:
+        unhandled = send_below(key)
+        self.passed.append((key, unhandled))
+        return unhandled
+
+
 class EmptyListPopUp(urwid.PopUpLauncher[urwid.SolidFill]):
     """Launcher whose pop-up is an empty container, which is false because its length is 0."""
 
@@ -201,6 +221,26 @@ class PopUpTargetTest(unittest.TestCase):
 
                 self.assertEqual(expected, target.keypress((10, 5), key))
                 self.assertEqual(still_open, launcher.pop_up_widget is not None)
+
+    def test_pass_key_below(self) -> None:
+        """A key the pop-up leaves unhandled goes to pass_key_below, which can send it to the widgets under the pop-up."""
+        launcher = PassingPopUp()
+        columns = urwid.Columns([launcher, urwid.Filler(urwid.Edit())])
+        target = urwid.PopUpTarget(columns)
+        launcher.open_pop_up()
+
+        # The pop-up's Edit takes "x"; it is not offered below.
+        self.assertIsNone(target.keypress((20, 5), "x"))
+        # Its cursor is at the end, so "right" is offered below, and the Columns moves the focus.
+        self.assertIsNone(target.keypress((20, 5), "right"))
+        self.assertEqual(1, columns.focus_position)
+        self.assertEqual("f1", target.keypress((20, 5), "f1"))
+        self.assertEqual([("right", None), ("f1", "f1")], launcher.passed)
+        self.assertIsNotNone(launcher.pop_up_widget)
+        # on_unhandled_key runs first: the esc it handles by closing the pop-up is not offered below.
+        self.assertIsNone(target.keypress((20, 5), "esc"))
+        self.assertEqual([("right", None), ("f1", "f1")], launcher.passed)
+        self.assertIsNone(launcher.pop_up_widget)
 
     def test_menu_key_follows_the_launcher_command_map(self) -> None:
         """The menu key is looked up in the launcher's command map."""

@@ -22,6 +22,7 @@
 
 from __future__ import annotations
 
+import functools
 import typing
 
 from urwid.canvas import CompositeCanvas
@@ -38,7 +39,7 @@ if typing.TYPE_CHECKING:
     from collections.abc import Callable
     from typing import Literal, NotRequired, TypedDict
 
-    from urwid.canvas import Canvas, PopUpLeft, PopUpSize, PopUpTop
+    from urwid.canvas import Canvas, PopUpLeft, PopUpPassKey, PopUpSize, PopUpTop
 
     from .widget import AbstractBoxWidget, AbstractWidget, _DelegateToWidgetMixin
 
@@ -53,6 +54,7 @@ if typing.TYPE_CHECKING:
         anchor_width: NotRequired[int]
         anchor_side: NotRequired[Literal["left", "right"]]
         on_anchor_side: NotRequired[Callable[[Literal["left", "right"]], None]]
+        pass_key_below: NotRequired[PopUpPassKey]
 
 
 WrappedWidget = typing.TypeVar("WrappedWidget", bound="AbstractBoxWidget")
@@ -169,6 +171,7 @@ class PopUpLauncher(
         The optional ``anchor_width`` and ``anchor_side`` keys do the same for columns: the pop-up moves to the
         other side of the launcher, or its width is clipped, when it does not fit on the side it prefers.
         The optional ``on_anchor_side`` key is called with the side the anchor ended up on.
+        The optional ``pass_key_below`` key offers a key the pop-up leaves unhandled to the widgets under it.
         See :meth:`CompositeCanvas.set_pop_up <urwid.CompositeCanvas.set_pop_up>`.
 
         :raises NotImplementedError: the subclass does not override this method.
@@ -330,6 +333,9 @@ class PopUpTarget(WidgetDecoration[WrappedWidget]):
         self._current_widget: AbstractWidget = self._original_widget
         # Unhandled key callback of the topmost open pop-up.
         self._pop_up_unhandled_key: Callable[[str], str | None] | None = None
+        # Callback of the topmost open pop-up for keys passed below it, and the widget it is drawn over,
+        # or None when its launcher set no callback.
+        self._pop_up_pass_key_below: tuple[PopUpPassKey, AbstractWidget] | None = None
         # Outside click callback of the topmost open pop-up and the (left, right, top, bottom) padding around it,
         # or None when its launcher set no callback.
         self._pop_up_click_outside: tuple[Callable[[], None], tuple[int, int, int, int]] | None = None
@@ -374,8 +380,10 @@ class PopUpTarget(WidgetDecoration[WrappedWidget]):
         on_anchor_side = canv.get_pop_up_on_anchor_side()
         h_align, v_align = canv.get_pop_up_align()
         on_unhandled_key = canv.get_pop_up_unhandled_key()
+        pass_key_below = canv.get_pop_up_pass_key_below()
         on_click_outside = canv.get_pop_up_click_outside()
         top_unhandled_key = None
+        top_pass_key_below = None
         top_click_outside = None
         # Position of the widget that declared the current pop-up; the original widget fills this widget.
         offset_left = offset_top = 0
@@ -474,6 +482,7 @@ class PopUpTarget(WidgetDecoration[WrappedWidget]):
                     top=top,
                 )
             new_levels.append((w, overlay))
+            top_pass_key_below = None if pass_key_below is None else (pass_key_below, bottom_widget)
             bottom_widget = overlay
             top_unhandled_key = on_unhandled_key
 
@@ -493,11 +502,13 @@ class PopUpTarget(WidgetDecoration[WrappedWidget]):
             on_anchor_side = w_canv.get_pop_up_on_anchor_side()
             h_align, v_align = w_canv.get_pop_up_align()
             on_unhandled_key = w_canv.get_pop_up_unhandled_key()
+            pass_key_below = w_canv.get_pop_up_pass_key_below()
             on_click_outside = w_canv.get_pop_up_click_outside()
 
         self._pop_up_levels = new_levels
         self._current_widget = bottom_widget
         self._pop_up_unhandled_key = top_unhandled_key
+        self._pop_up_pass_key_below = top_pass_key_below
         self._pop_up_click_outside = top_click_outside
 
     def render(
@@ -554,7 +565,8 @@ class PopUpTarget(WidgetDecoration[WrappedWidget]):
         """Rebuild the pop-up overlay chain for *size* and forward the keypress to it.
 
         A key the topmost pop-up leaves unhandled goes to the ``on_unhandled_key`` callback its launcher set, if
-        any; see :meth:`CompositeCanvas.set_pop_up <urwid.CompositeCanvas.set_pop_up>`.
+        any, and then to its ``pass_key_below`` callback, which may offer it to the widgets under the pop-up;
+        see :meth:`CompositeCanvas.set_pop_up <urwid.CompositeCanvas.set_pop_up>`.
 
         :raises WidgetError: a pop-up widget cannot take its ``'pack'`` size,
             see :meth:`PopUpLauncher.create_pop_up`.
@@ -562,7 +574,10 @@ class PopUpTarget(WidgetDecoration[WrappedWidget]):
         self._update_overlay(size, True)
         unhandled = self._current_widget.keypress(size, key)
         if unhandled is not None and self._pop_up_unhandled_key is not None:
-            return self._pop_up_unhandled_key(unhandled)
+            unhandled = self._pop_up_unhandled_key(unhandled)
+        if unhandled is not None and self._pop_up_pass_key_below is not None:
+            pass_key_below, below = self._pop_up_pass_key_below
+            unhandled = pass_key_below(unhandled, functools.partial(below.keypress, size))
         return unhandled
 
     def move_cursor_to_coords(self, size: tuple[int, int], x: int, y: int) -> bool:

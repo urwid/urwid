@@ -270,7 +270,8 @@ def main() -> None:
             " opens a list of actions with ENTER, SPACE or a click.  The key in brackets chooses an item, "
             "a disabled item cannot be focused, and Send to opens a submenu with RIGHT; LEFT or ESC closes it.  "
             "Near the right edge the submenu opens to the left of the list.  Centred opens the same list in the "
-            "middle of the screen."
+            "middle of the screen.  On an item without a submenu, LEFT and RIGHT close the list and move between "
+            "the two launchers."
         ),
     ]
     text_context_menu = (

@@ -59,6 +59,8 @@ if typing.TYPE_CHECKING:
     # A pop-up position on one axis: an offset from the launcher, or an alignment inside the PopUpTarget.
     PopUpLeft = int | Literal["left", "center", "right", Align.LEFT, Align.CENTER, Align.RIGHT]
     PopUpTop = int | Literal["top", "middle", "bottom", VAlign.TOP, VAlign.MIDDLE, VAlign.BOTTOM]
+    # Callback that offers a key a pop-up left unhandled to the widgets under it, see CompositeCanvas.set_pop_up.
+    PopUpPassKey = Callable[[str, Callable[[str], str | None]], str | None]
 
     _ContentLine = list[tuple[Hashable, Literal["0", "U"] | None, bytes]]
     _CView = tuple[int, int, int, int, Mapping[Hashable, Hashable] | None, "Canvas"]
@@ -85,6 +87,8 @@ if typing.TYPE_CHECKING:
             ],
             # Same (x, y) as "pop up"; the data part is the pop-up widget and its unhandled key callback.
             "pop up unhandled key": NotRequired[tuple[int, int, tuple[AbstractWidget, Callable[[str], str | None]]]],
+            # Same (x, y) as "pop up"; the data part is the pop-up widget and its callback for keys passed below it.
+            "pop up pass key below": NotRequired[tuple[int, int, tuple[AbstractWidget, PopUpPassKey]]],
             # Same (x, y) as "pop up"; the data part is the pop-up widget and its outside click callback.
             "pop up click outside": NotRequired[tuple[int, int, tuple[AbstractWidget, Callable[[], None]]]],
             # Same (x, y) as "pop up"; the data part is the pop-up widget and its alignments, None for an offset.
@@ -455,6 +459,15 @@ class Canvas:
             return None
         return on_key[2][1]
 
+    def get_pop_up_pass_key_below(self) -> PopUpPassKey | None:
+        """Return the callback for keys passed below the pop-up set on this canvas, or ``None`` if none was set."""
+        pop_up = self.coords.get("pop up", None)
+        pass_key = self.coords.get("pop up pass key below", None)
+        # As for the anchor, use only the callback set together with this pop-up.
+        if pop_up is None or pass_key is None or pass_key[:2] != pop_up[:2] or pass_key[2][0] is not pop_up[2][0]:
+            return None
+        return pass_key[2][1]
+
     def get_pop_up_click_outside(self) -> Callable[[], None] | None:
         """Return the outside click callback set with the pop-up on this canvas.
 
@@ -493,6 +506,7 @@ class Canvas:
         anchor_side: Literal["left", "right"] = "left",
         on_anchor_side: Callable[[Literal["left", "right"]], None] | None = None,
         on_unhandled_key: Callable[[str], str | None] | None = None,
+        pass_key_below: PopUpPassKey | None = None,
         on_click_outside: Callable[[], None] | None = None,
     ) -> None:
         """Add pop-up information to the canvas.
@@ -546,6 +560,14 @@ class Canvas:
         :param on_unhandled_key: called by :class:`PopUpTarget <urwid.PopUpTarget>` with a key that `w` returned
             unhandled while it is the topmost open pop-up; it returns ``None`` when it handled the key, or the key
             to pass on. ``None`` passes every unhandled key on.
+        :param pass_key_below: called by :class:`PopUpTarget <urwid.PopUpTarget>` with a key that `w` and
+            `on_unhandled_key` left unhandled while `w` is the topmost open pop-up,
+            and with a function that sends a key to the widgets `w` is drawn over.
+            That function returns the key when those widgets leave it unhandled, and ``None`` when they handled it.
+            The callback returns the key to pass on, or ``None`` when the key was handled.
+            It belongs to the pop-up that was topmost when the key arrived, so it can run after that pop-up closed
+            during the same keypress.
+            ``None`` passes every such key on without offering it to the widgets under the pop-up.
         :param on_click_outside: called by :class:`PopUpTarget <urwid.PopUpTarget>` instead of passing on a press of
             mouse button 1, 2 or 3 outside `w` while it is the topmost open pop-up.
             ``None`` leaves such a press unhandled.
@@ -613,6 +635,10 @@ class Canvas:
             self.coords.pop("pop up unhandled key", None)
         else:
             self.coords["pop up unhandled key"] = (x, y, (w, on_unhandled_key))
+        if pass_key_below is None:
+            self.coords.pop("pop up pass key below", None)
+        else:
+            self.coords["pop up pass key below"] = (x, y, (w, pass_key_below))
         if on_click_outside is None:
             self.coords.pop("pop up click outside", None)
         else:
