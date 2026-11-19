@@ -336,7 +336,7 @@ CSI_COMMANDS: dict[bytes, CSIAlias | CSICommand] = {
     # the VT420 sequences with an intermediate byte, run in parse_csi from _INTERMEDIATE_COMMANDS: DECRQDE (CSI " v),
     # DECFRA (CSI ... $ x), DECERA (CSI ... $ z), DECSERA (CSI ... $ {), DECCRA (CSI ... $ v), DECCARA (CSI ... $ r),
     # DECRARA (CSI ... $ t), DECSACE (CSI Ps * x), DECRQCRA (CSI ... * y), DECIC (CSI Ps ' }) and DECDC (CSI Ps ' ~);
-    # DECSCA (CSI Ps " q) is run there too
+    # DECSCA (CSI Ps " q) and DECRQUPSS (CSI & u) are run there too
     b"t": CSICommand(0, 0, lambda s, none, q: None),
     b"v": CSICommand(0, 0, lambda s, none, q: None),
     b"x": CSICommand(0, 0, lambda s, none, q: None),
@@ -2599,6 +2599,15 @@ class TermCanvas(Canvas):
         if params[0] in {None, 0, 1, 2}:
             self.protected = params[0] == 1
 
+    def csi_request_user_preferred_supplemental_set(self, _params: Sequence[int | None]) -> None:
+        """Answer DECRQUPSS (``CSI & u``) with DECAUPSS for ISO Latin-1, ``DCS 1 ! u A ST``.
+
+        That is the 96-character set a designation such as ``ESC - A`` draws.
+        It is not answered at the VT100 level (61), like the other DCS replies.
+        """
+        if self.conformance_level > 61:
+            self.widget.respond(f"{ESC}P1!uA{ESC}\\")
+
     def csi_copy_rectangle(self, params: Sequence[int | None]) -> None:
         """Copy a rectangle to another place on the screen (DECCRA).
 
@@ -2979,6 +2988,7 @@ _INTERMEDIATE_COMMANDS: typing.Final[Mapping[tuple[bytes, bytes], Callable[[Term
             (b"$", b"t"): TermCanvas.csi_reverse_area_attributes,
             (b"*", b"x"): TermCanvas.csi_select_attribute_extent,
             (b'"', b"q"): TermCanvas.csi_select_protection,
+            (b"&", b"u"): TermCanvas.csi_request_user_preferred_supplemental_set,
             (b"$", b"v"): TermCanvas.csi_copy_rectangle,
             (b"*", b"y"): TermCanvas.csi_request_checksum,
             (b"'", b"}"): TermCanvas.csi_insert_columns,

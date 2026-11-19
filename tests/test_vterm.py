@@ -1543,6 +1543,8 @@ class TermTest(unittest.TestCase):
                 r"\e[?2l\e[?2$p",
                 b"\x1b[?2;3$y",
             ),
+            ("DECRQUPSS reports ISO Latin-1", r"\e[&u", b"\x1bP1!uA\x1b\\"),
+            ("DECRQUPSS is not answered at the VT100 level", r'\e[61"p\e[&u', b""),
             ("DECRQM is not answered without a mode", r"\e[?$p\e[?1;2$p", b""),
             ("other sequences ending in p are not answered", r'\e[5p\e[!p\e[61;1"p', b""),
             (
