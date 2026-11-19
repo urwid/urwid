@@ -1496,6 +1496,16 @@ above or below the list.  Created with ``edge="stop"`` it consumes those keys
 and the focus stays in the list; the attribute :attr:`ListBox.edge` can be
 changed later.  An empty ListBox returns the keys in both modes.
 
+:kbd:`home` and :kbd:`end` move the focus to the first and the last widget of
+the body, whether it is selectable or not.  Created with
+``home_end="selectable"`` they move it to the first and the last selectable
+widget instead, so a heading or a divider never takes the focus, and the
+widgets before or after it stay in view as far as there is room for them.
+A body without a selectable widget is handled as in the default mode, and the
+attribute :attr:`ListBox.home_end` can be changed later.
+:meth:`ListBox.scroll_to_selectable` does the same for a program, such as one
+that binds its own keys to those moves.
+
 A list that loads more rows on demand connects to the ``"edge reached"`` signal
 of the ListBox.  It is sent with ``"top"`` or ``"bottom"`` when :kbd:`up`,
 :kbd:`down`, :kbd:`page up`, :kbd:`page down` or a wheel notch asks the view to
@@ -1646,6 +1656,15 @@ above and below the focus widget.
 A :class:`SimpleFocusListWalker`
 is a list walker that behaves like a normal Python list. It may be used any
 time you will be displaying a moderate number of widgets.
+``SimpleFocusListWalker(widgets, focus=3)`` and
+:class:`SimpleFocusDequeWalker` with the same keyword start with the focus on
+that index instead of the first widget.  A :class:`ListBox` treats it as the
+initial focus of its body: its first render draws the focus widget on the top
+row, and moves the focus to the first selectable widget shown below it when the
+focus widget is not selectable.  Setting :attr:`ListBox.focus_position` after
+creating the ListBox does neither: the focus stays where it was set, below the
+widgets before it when they fit in the view, and in the middle of the view
+otherwise.
 
 A log or a progress view that grows at the end can be created with
 ``SimpleFocusListWalker(..., follow_end=True)``, or with a bounded

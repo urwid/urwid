@@ -2828,6 +2828,136 @@ class ListBoxEdgeModeTest(unittest.TestCase):
             urwid.ListBox([], edge="wrap")  # type: ignore[arg-type]
 
 
+class ListBoxHomeEndModeTest(unittest.TestCase):
+    """``home_end`` and ``scroll_to_selectable()`` focus the first or last selectable widget, with what is beyond it."""
+
+    size = (6, 4)
+
+    @staticmethod
+    def _body() -> list[urwid.Widget]:
+        """Return a heading, a divider, rows "b0" to "b7" and a footer; positions 0, 1 and 10 are not selectable."""
+        return [
+            urwid.Text("head"),
+            urwid.Divider("-"),
+            *(SelectableText(f"b{i}") for i in range(8)),
+            urwid.Text("foot"),
+        ]
+
+    def _rows(self, lbox: urwid.ListBox) -> list[str]:
+        """Return the rows of `lbox` rendered in focus at the test size, without trailing spaces."""
+        return [line.decode().rstrip() for line in lbox.render(self.size, focus=True).text]
+
+    def test_keys(self) -> None:
+        """Home and End reach the end widgets with "any" and the end selectable widgets with "selectable"."""
+        cases = (
+            ("any", "home", 0, ["head", "------", "b0", "b1"]),
+            ("any", "end", 10, ["b5", "b6", "b7", "foot"]),
+            ("selectable", "home", 2, ["head", "------", "b0", "b1"]),
+            ("selectable", "end", 9, ["b5", "b6", "b7", "foot"]),
+        )
+        for walker_cls in (urwid.SimpleFocusListWalker, urwid.SimpleFocusDequeWalker, V1ProtocolWalker):
+            for home_end, key, position, rows in cases:
+                if walker_cls is V1ProtocolWalker and home_end == "any":
+                    continue  # scroll_to_top() needs positions(), see test_keypress_max_left_no_positions
+                with self.subTest(walker=walker_cls.__name__, home_end=home_end, key=key):
+                    lbox = urwid.ListBox(walker_cls(self._body()), home_end=home_end)
+                    lbox.focus_position = 5
+                    self._rows(lbox)
+                    self.assertIsNone(lbox.keypress(self.size, key))
+                    self.assertEqual(position, lbox.focus_position)
+                    self.assertEqual(rows, self._rows(lbox))
+
+    def test_placement(self) -> None:
+        """The widgets beyond the new focus fill only the rows the view has left next to it."""
+        tall = urwid.Text("\n".join("abcde"))
+        cases = (
+            ("heading taller than the room", [tall, SelectableText("x")], "top", 1, ["d", "e", "x"]),
+            ("footer taller than the room", [SelectableText("x"), tall], "bottom", 0, ["x", "a", "b"]),
+            (
+                "focus taller than the view",
+                [urwid.Text("h"), SelectableText("\n".join("pqrs"))],
+                "top",
+                1,
+                ["p", "q", "r"],
+            ),
+            (
+                "focus taller than the view",
+                [SelectableText("\n".join("pqrs")), urwid.Text("f")],
+                "bottom",
+                0,
+                ["p", "q", "r"],
+            ),
+            ("nothing beyond", [SelectableText("x"), urwid.Text("t")], "top", 0, ["x", "t", ""]),
+        )
+        for label, body, end, position, rows in cases:
+            with self.subTest(label, end=end):
+                lbox = urwid.ListBox(urwid.SimpleFocusListWalker(body))
+                lbox.focus_position = len(body) - 1 if end == "top" else 0
+                lbox.render((6, 3), focus=True)
+                self.assertTrue(lbox.scroll_to_selectable((6, 3), end))
+                self.assertEqual(position, lbox.focus_position)
+                self.assertEqual(rows, [line.decode().rstrip() for line in lbox.render((6, 3), focus=True).text])
+
+    def test_pending_focus_is_replaced(self) -> None:
+        """A focus or an alignment set before the call does not replace the placement at the next render."""
+        for label, prepare in (
+            ("focus_position", lambda lbox: setattr(lbox, "focus_position", 9)),
+            ("set_focus_valign", lambda lbox: lbox.set_focus_valign("top")),
+        ):
+            with self.subTest(label):
+                lbox = urwid.ListBox(urwid.SimpleFocusListWalker(self._body()))
+                lbox.focus_position = 6
+                self._rows(lbox)
+                prepare(lbox)
+                self.assertTrue(lbox.scroll_to_selectable(self.size, "top"))
+                self.assertEqual(["head", "------", "b0", "b1"], self._rows(lbox))
+                self.assertEqual(2, lbox.focus_position)
+
+    def test_wrap_around_walker(self) -> None:
+        """A walker created with ``wrap_around`` is searched from its first or its last position."""
+        for walker_cls in (urwid.SimpleFocusListWalker, urwid.SimpleFocusDequeWalker):
+            with self.subTest(walker=walker_cls.__name__):
+                lbox = urwid.ListBox(walker_cls(self._body(), wrap_around=True))
+                lbox.focus_position = 5
+                self._rows(lbox)
+                self.assertTrue(lbox.scroll_to_selectable(self.size, "bottom"))
+                self.assertEqual(9, lbox.focus_position)
+                self.assertEqual(["b5", "b6", "b7", "foot"], self._rows(lbox))
+                self.assertTrue(lbox.scroll_to_selectable(self.size, "top"))
+                self.assertEqual(2, lbox.focus_position)
+                self.assertEqual(["head", "------", "b0", "b1"], self._rows(lbox))
+
+    def test_no_selectable_widget(self) -> None:
+        """Without a selectable widget the method changes nothing, and the keys move to the end widgets."""
+        lbox = urwid.ListBox(urwid.SimpleFocusListWalker([urwid.Text(str(i)) for i in range(8)]), home_end="selectable")
+        lbox.focus_position = 3
+        before = self._rows(lbox)
+        self.assertFalse(lbox.scroll_to_selectable(self.size, "top"))
+        self.assertFalse(lbox.scroll_to_selectable(self.size, "bottom"))
+        self.assertEqual(3, lbox.focus_position)
+        self.assertEqual(before, self._rows(lbox))
+        self.assertIsNone(lbox.keypress(self.size, "end"))
+        self.assertEqual(7, lbox.focus_position)
+        self.assertIsNone(lbox.keypress(self.size, "home"))
+        self.assertEqual(0, lbox.focus_position)
+        empty = urwid.ListBox(urwid.SimpleFocusListWalker([]), home_end="selectable")
+        self.assertFalse(empty.scroll_to_selectable(self.size, "top"))
+
+    def test_invalid_values(self) -> None:
+        """The mode can be changed after creation, and an unknown mode or end is refused."""
+        lbox = urwid.ListBox(urwid.SimpleFocusListWalker(self._body()))
+        self.assertEqual("any", lbox.home_end)
+        lbox.home_end = "selectable"
+        self.assertEqual("selectable", lbox.home_end)
+        with self.assertRaises(ValueError):
+            lbox.home_end = "first"  # type: ignore[assignment]
+        self.assertEqual("selectable", lbox.home_end)
+        with self.assertRaises(ValueError):
+            urwid.ListBox([], home_end="first")  # type: ignore[arg-type]
+        with self.assertRaises(ValueError):
+            lbox.scroll_to_selectable(self.size, "middle")  # type: ignore[arg-type]
+
+
 class ListBoxEdgeReachedTest(unittest.TestCase):
     """``"edge reached"`` is sent when a key or a wheel notch moves nothing at an end of the list."""
 

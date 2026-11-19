@@ -223,6 +223,7 @@ class SimpleFocusDequeWalker(
         wrap_around: bool = False,
         maxlen: int | None = None,
         *,
+        focus: int = 0,
         follow_end: bool = False,
     ) -> None:
         """Build the walker, wrapping *contents* in a focus-tracking deque.
@@ -241,14 +242,17 @@ class SimpleFocusDequeWalker(
         :param maxlen: if set, bounds the deque's length; the oldest items are silently evicted
             from the opposite end once full, and focus is adjusted to keep tracking a sensible
             item (see :class:`MonitoredFocusDeque`)
+        :param focus: the index of the initial focus item
         :param follow_end: if true, items added after a focused last item take the focus, so a :class:`ListBox`
             showing a growing log keeps showing its newest line until the user moves the focus up;
             see :attr:`MonitoredFocusDeque.follow_end`
         :raises ListWalkerError: *contents* is not iterable.
+        :raises TypeError: *focus* is not an integer.
+        :raises IndexError: *focus* is not an index of the items kept, which is ignored when there are none.
         """
         if not isinstance(contents, Iterable):
             raise ListWalkerError(f"SimpleFocusDequeWalker expecting iterable object, got: {contents!r}")
-        super().__init__(contents, maxlen, follow_end=follow_end)
+        super().__init__(contents, maxlen, focus=focus, follow_end=follow_end)
         self.wrap_around = wrap_around
 
     def copy(self) -> Self:

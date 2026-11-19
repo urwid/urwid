@@ -369,17 +369,21 @@ class DropDownListTest(unittest.TestCase):
         self.assertIsNone(drop_down._pop_up_widget)
 
     def test_long_list_scrolls_with_the_selected_option_visible(self) -> None:
-        drop_down = urwid.DropDown(numbers(20), selected=15, max_visible_items=5)
-        target = drop_down_at_row(drop_down, 0)
-        target.keypress((6, 10), "enter")
+        """The list opens on the selected option, below the options before it when they fit and centred otherwise."""
+        for selected, first in ((3, 0), (15, 13)):
+            with self.subTest(selected=selected):
+                drop_down = urwid.DropDown(numbers(20), selected=selected, max_visible_items=5)
+                target = drop_down_at_row(drop_down, 0)
+                target.keypress((6, 10), "enter")
 
-        rows = urwid.testing.render_text(target, (6, 10), focus=True)
-        list_rows = rows[1:6]
+                rows = urwid.testing.render_text(target, (6, 10), focus=True)
+                list_rows = rows[1:6]
 
-        self.assertEqual("", rows[6].strip())
-        self.assertIn("n15  ", [row[:5] for row in list_rows])
-        # The scroll bar takes the last column of the list.
-        self.assertNotEqual({" "}, {row[-1] for row in list_rows})
+                self.assertEqual("", rows[6].strip())
+                expected = [f"n{number:02}  " for number in range(first, first + 5)]
+                self.assertEqual(expected, [row[:5] for row in list_rows])
+                # The scroll bar takes the last column of the list.
+                self.assertNotEqual({" "}, {row[-1] for row in list_rows})
 
     def test_list_opens_above_when_it_does_not_fit_below(self) -> None:
         drop_down = urwid.DropDown(numbers(4))

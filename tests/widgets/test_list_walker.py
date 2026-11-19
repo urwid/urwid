@@ -348,6 +348,33 @@ class PositionsArgumentTest(unittest.TestCase):
                         walker.positions(*args, **kwargs)  # type: ignore[call-overload]
 
 
+class InitialFocusWalkerTest(unittest.TestCase):
+    """The focus walkers pass ``focus`` on to the focus list or deque they are built on."""
+
+    walker_classes = (urwid.SimpleFocusListWalker, urwid.SimpleFocusDequeWalker)
+
+    def test_focus(self) -> None:
+        """Check the default, the keyword, and the row a ListBox over the walker draws focused."""
+        for walker_class in self.walker_classes:
+            with self.subTest(walker=walker_class.__name__):
+                self.assertEqual(0, walker_class(range(3)).focus)
+                walker = walker_class([urwid.SelectableIcon(str(number)) for number in range(5)], focus=3)
+                self.assertEqual(3, walker.focus)
+                listbox = urwid.ListBox(walker)
+                listbox.render((4, 2), focus=True)
+                self.assertEqual(3, listbox.focus_position)
+
+    def test_invalid_focus(self) -> None:
+        """Check an index outside the items and a non-integer are refused, and anything goes without items."""
+        for walker_class in self.walker_classes:
+            with self.subTest(walker=walker_class.__name__):
+                with self.assertRaises(IndexError):
+                    walker_class(range(3), focus=3)
+                with self.assertRaises(TypeError):
+                    walker_class(range(3), focus="1")  # type: ignore[arg-type]
+                self.assertEqual(0, len(walker_class([], focus=5)))
+
+
 class FollowEndWalkerTest(unittest.TestCase):
     """The focus walkers pass ``follow_end`` on, keep it in copies, and keep a ListBox on the newest line."""
 
