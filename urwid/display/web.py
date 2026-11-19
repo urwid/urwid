@@ -18,14 +18,14 @@
 # Urwid web site: https://urwid.org/
 
 
-"""
-Urwid web application display module
-"""
+"""Urwid web application display module."""
 
 from __future__ import annotations
 
+import codecs
 import dataclasses
 import glob
+import hashlib
 import html
 import os
 import pathlib
@@ -33,6 +33,7 @@ import secrets
 import selectors
 import signal
 import socket
+import stat
 import string
 import sys
 import tempfile
@@ -40,58 +41,46 @@ import typing
 from contextlib import suppress
 from email.message import Message
 
-from urwid.str_util import calc_text_pos, calc_width, move_next_char
-from urwid.util import StoppingContext, get_encoding
+from urwid.util import StoppingContext
 
-from .common import AttrSpec, BaseScreen
+from ._web_common import (  # pylint: disable=unused-import  # code_span is a public name of this module
+    MAX_COLS,
+    MAX_ROWS,
+    BrowserScreen,
+    code_span,  # noqa: F401  # a public name of this module
+    is_key_name,
+)
 
 if typing.TYPE_CHECKING:
-    from collections.abc import Iterable
+    from collections.abc import Collection
     from types import FrameType
-
-    from typing_extensions import Literal
+    from typing import Literal
 
     from urwid.canvas import Canvas
 
 TEMP_DIR = tempfile.gettempdir()
 CURRENT_DIR = pathlib.Path(__file__).parent
 
-_js_code = CURRENT_DIR.joinpath("_web.js").read_text("utf-8")
+# the page script: the shared row rendering and key names, then the CGI transport
+_js_code = CURRENT_DIR.joinpath("_web_common.js").read_text("utf-8") + CURRENT_DIR.joinpath("_web.js").read_text(
+    "utf-8"
+)
 
 ALARM_DELAY = 60
 POLL_CONNECT = 3
-MAX_COLS = 200
-MAX_ROWS = 100
 MAX_READ = 4096
+#: the longest initial client request, in bytes
+MAX_INITIAL_READ: typing.Final = 50
+#: the longest keyboard input line, in characters
+MAX_LINE_LENGTH: typing.Final = 256
+# encoding of the keyboard input pipe, written by handle_short_request() and read by Screen.get_input()
+_PIPE_ENCODING: typing.Final = "utf-8"
 BUF_SZ = 16384
 
 # Characters that may appear in an id produced by secrets.token_urlsafe():
-# the URL-safe base64 alphabet. Used to validate client-supplied ids before
-# they are interpolated into pipe file names.
+# the URL-safe base64 alphabet. Used to reject malformed client-supplied ids before any session file lookup.
 _URWID_ID_CHARS = frozenset(string.ascii_letters + string.digits + "-_")
 _URWID_ID_MAX_LEN = 43  # len(secrets.token_urlsafe(32)); generous upper bound
-
-_code_colours = {
-    "black": "0",
-    "dark red": "1",
-    "dark green": "2",
-    "brown": "3",
-    "dark blue": "4",
-    "dark magenta": "5",
-    "dark cyan": "6",
-    "light gray": "7",
-    "dark gray": "8",
-    "light red": "9",
-    "light green": "A",
-    "yellow": "B",
-    "light blue": "C",
-    "light magenta": "D",
-    "light cyan": "E",
-    "white": "F",
-}
-
-# replace control characters with ?'s
-_trans_table = "?" * 32 + "".join([chr(x) for x in range(32, 256)])
 
 _css_style = CURRENT_DIR.joinpath("_web.css").read_text("utf-8")
 
@@ -132,64 +121,29 @@ Status: <span id="status">Set up</span>
 ]
 
 
-class Screen(BaseScreen):
+class Screen(BrowserScreen):
+    """Screen backend that renders to a browser client over the web server's polling/streaming connection."""
+
     def __init__(self) -> None:
+        """Initialize an unstarted screen defaulting to true color."""
         super().__init__()
-        self.palette: dict[str | None, tuple[str, str, str | None]] = {}
-        self.has_color = True
         self._started = False
+        self.update_method = ""
+        self.pipe_name = ""
+        self.input_fd: int | None = None
+        self.input_tail = ""
+        # the rest of an over-long input line is still to be dropped, up to and including its newline
+        self._dropping_line = False
+        # keeps a character split between two reads of the input pipe until its last byte arrives
+        self._input_decoder = codecs.getincrementaldecoder(_PIPE_ENCODING)("replace")
+        self.content_head = ""
+        self.screen_size: tuple[int, int] | None = None
+        self.server_socket: socket.socket | None = None
 
     @property
     def started(self) -> bool:
+        """Return whether this screen has been started."""
         return self._started
-
-    def register_palette(
-        self,
-        palette: Iterable[tuple[str, str] | tuple[str, str, str] | tuple[str, str, str, str]],  # type: ignore[override]
-    ) -> None:
-        """Register a list of palette entries.
-
-        :param palette: list of (name, foreground, background) or (name, same_as_other_name) palette entries.
-        :raises ValueError: an entry is neither a 2- nor a 3-tuple.
-        :raises KeyError: an entry copies a name that is not registered yet.
-
-        calls self.register_palette_entry for each item in l
-        """
-
-        for item in palette:
-            if len(item) in {3, 4}:
-                self.register_palette_entry(*item)
-                continue
-            if len(item) != 2:
-                raise ValueError(f"Invalid register_palette usage: {item!r}")
-            name, like_name = item
-            if like_name not in self.palette:
-                raise KeyError(f"palette entry '{like_name}' doesn't exist")
-            self.palette[name] = self.palette[like_name]
-
-    def register_palette_entry(
-        self,
-        name: str | None,
-        foreground: str,
-        background: str,
-        mono: str | None = None,  # type: ignore[override]
-        foreground_high: str | None = None,
-        background_high: str | None = None,
-    ) -> None:
-        """Register a single palette entry.
-
-        :param name: new entry/attribute name
-        :param foreground: foreground colour
-        :param background: background colour
-        :param mono: monochrome terminal attribute
-
-        See curses_display.register_palette_entry for more info.
-        """
-        if foreground == "default":
-            foreground = "black"
-        if background == "default":
-            background = "light gray"
-        self.palette[name] = (foreground, background, mono)
 
     def _handle_resize_request(self, request: str) -> bool:
         """Apply the screen size from a "window resize <cols> <rows>" request.
@@ -202,30 +156,28 @@ class Screen(BaseScreen):
 
         input_resize = request.removeprefix("window resize ").split(" ")
         if len(input_resize) != 2:
-            self.logger.debug("Invalid resize input format: %r", request)
             return False
 
         x, y = input_resize
         if not x.isdecimal() or not y.isdecimal():
-            self.logger.debug("Invalid resize input format: %r", request)
             return False
 
         self._set_screen_size(int(x), int(y))
         return True
 
     def set_mouse_tracking(self, enable: bool = True) -> None:
-        """Not yet implemented"""
+        """Not yet implemented."""
 
     def tty_signal_keys(self, *args: typing.Any, **vargs: typing.Any) -> None:
         """Do nothing."""
 
     def start(self, *args: typing.Any, **kwargs: typing.Any) -> StoppingContext:
-        """
-        This function reads the initial screen size, generates a unique id and handles cleanup when fn exits.
+        """Read the initial screen size, generate a unique id and handle cleanup when fn exits.
 
         web_display.set_preferences(..) must be called before calling this function for the preferences to take effect
 
         :raises RuntimeError: the ``HTTP_X_URWID_METHOD`` environment variable is not set.
+        :raises PermissionError: the session directory is not private, see :func:`_session_dir`.
         """
         if self._started:
             return StoppingContext(self)
@@ -235,7 +187,7 @@ class Screen(BaseScreen):
             raise RuntimeError("'HTTP_X_URWID_METHOD' environment vairable is not set")
 
         if self.update_method not in {"multipart", "polling"}:
-            self.logger.debug("Unsupported update method requested: %r", self.update_method)
+            self.logger.debug("Unsupported update method requested, %d characters long", len(self.update_method))
             sys.stdout.write("Status: 400 Bad Request\r\n\r\n")
             sys.exit(0)
 
@@ -243,27 +195,39 @@ class Screen(BaseScreen):
             sys.stdout.write("Status: 403 Forbidden\r\n\r\n")
             sys.exit(0)
 
-        client_init = sys.stdin.read(50)
-        if not self._handle_resize_request(client_init.split("\n", 1)[0].strip()):
-            self.logger.debug("Invalid initial client request: %r", client_init)
+        client_init = _read_request_body(MAX_INITIAL_READ)
+        if client_init is None:
+            self.logger.debug("Initial client request with an invalid or too large CONTENT_LENGTH")
             sys.stdout.write("Status: 400 Bad Request\r\n\r\n")
             sys.exit(0)
 
-        self.last_screen: dict[tuple[tuple[AttrSpec | str | None, str] | int | None, ...], list[int]] = {}
+        try:
+            request = client_init.decode(_request_charset())
+        except (LookupError, UnicodeError):
+            request = ""
+        if not self._handle_resize_request(request.split("\n", 1)[0].strip()):
+            self.logger.debug("Invalid initial client request, %d bytes long", len(client_init))
+            sys.stdout.write("Status: 400 Bad Request\r\n\r\n")
+            sys.exit(0)
+
+        self.last_screen = {}
         self.last_screen_width = 0
 
-        clients = glob.glob(os.path.join(_prefs.pipe_dir, "urwid*.in"))
+        urwid_id = secrets.token_urlsafe(16)
+        pipe_name = _session_path(urwid_id)
+        clients = glob.glob("*.in", root_dir=os.path.dirname(pipe_name))
         if len(clients) >= _prefs.max_clients:
             sys.stdout.write("Status: 503 Sever Busy\r\n\r\n")
             sys.exit(0)
 
-        urwid_id = secrets.token_urlsafe(16)
-        self.pipe_name = os.path.join(_prefs.pipe_dir, f"urwid_{urwid_id}")
+        self.pipe_name = pipe_name
         os.mkfifo(f"{self.pipe_name}.in", 0o600)
         signal.signal(signal.SIGTERM, self._cleanup_pipe)
 
         self.input_fd = os.open(f"{self.pipe_name}.in", os.O_NONBLOCK | os.O_RDONLY)
         self.input_tail = ""
+        self._dropping_line = False
+        self._input_decoder.reset()
         self.content_head = (
             f"Content-type: multipart/x-mixed-replace;boundary=ZZ\r\nX-Urwid-ID: {urwid_id}\r\n\r\n\r\n--ZZ\r\n"
         )
@@ -277,9 +241,7 @@ class Screen(BaseScreen):
         return StoppingContext(self)
 
     def stop(self) -> None:
-        """
-        Restore settings and clean up.
-        """
+        """Restore settings and clean up."""
         if not self._started:
             return
 
@@ -287,6 +249,9 @@ class Screen(BaseScreen):
         with suppress(Exception):
             self._close_connection()
         signal.signal(signal.SIGTERM, signal.SIG_DFL)
+        if self.input_fd is not None:
+            with suppress(Exception):
+                os.close(self.input_fd)
         self._cleanup_pipe()
         self._started = False
 
@@ -294,7 +259,7 @@ class Screen(BaseScreen):
         """Not supported for web display."""
 
     def _close_connection(self) -> None:
-        if self.update_method == "polling child":
+        if self.update_method == "polling child" and self.server_socket is not None:
             self.server_socket.settimeout(0)
             sock, _addr = self.server_socket.accept()
             sock.sendall(b"Z")
@@ -314,7 +279,6 @@ class Screen(BaseScreen):
 
     def _set_screen_size(self, cols: int, rows: int) -> None:
         """Set the screen size (within max size)."""
-
         cols = min(cols, MAX_COLS)
         rows = min(rows, MAX_ROWS)
         self.screen_size = cols, rows
@@ -324,87 +288,21 @@ class Screen(BaseScreen):
 
         :raises ValueError: *canvas* does not have the number of rows given by *size*.
         """
+        sendq: list[str] = [self.content_head]
 
-        (cols, rows) = size
-        encoding = get_encoding()
-
-        if cols != self.last_screen_width:
-            self.last_screen = {}
-
-        sendq = [self.content_head]
-
-        if self.update_method == "polling":
-            send = sendq.append
-        elif self.update_method == "polling child":
+        if self.update_method == "polling child":
             signal.alarm(0)
             try:
-                s, _addr = self.server_socket.accept()
-            except socket.timeout:
+                s, _addr = typing.cast("socket.socket", self.server_socket).accept()
+            except TimeoutError:
                 sys.exit(0)
-            send = s.sendall  # type: ignore[assignment]  # use default flags
-        else:
+            sendq = []
+        elif self.update_method != "polling":
             signal.alarm(0)
-            send = sendq.append
-            send("\r\n")
+            sendq.append("\r\n")
             self.content_head = ""
 
-        if canvas.rows() != rows:
-            raise ValueError(rows)
-
-        if canvas.cursor is not None:
-            cx, cy = canvas.cursor
-        else:
-            cx = cy = None
-
-        new_screen: dict[tuple[tuple[AttrSpec | str | None, str] | int | None, ...], list[int]] = {}
-
-        y = -1
-        for row in canvas.content():
-            y += 1
-            l_row = tuple((attr_, line.decode(encoding)) for attr_, _, line in row)
-
-            line = []
-
-            sig: tuple[tuple[AttrSpec | str | None, str] | int | None, ...] = l_row
-            if y == cy:
-                sig = (*sig, cx)
-            new_screen[sig] = [*new_screen.get(sig, []), y]
-
-            if (old_line_numbers := self.last_screen.get(sig, None)) is not None:
-                if y in old_line_numbers:
-                    old_line = y
-                else:
-                    old_line = old_line_numbers[0]
-                send(f"<{old_line:d}\n")
-                continue
-
-            col = 0
-            for a, run in l_row:
-                t_run = run.translate(_trans_table)
-                faint = False
-                if a is None:
-                    fg, bg, _mono = "black", "light gray", None
-                # Check if a is an AttrSpec with faint attribute
-                elif isinstance(a, AttrSpec):
-                    faint = a.faint
-                    fg = a.foreground
-                    bg = a.background
-                    _mono = None
-                else:
-                    fg, bg, _mono = self.palette[typing.cast("str | None", a)]
-                if y == cy and col <= cx:
-                    run_width = calc_width(t_run, 0, len(t_run))
-                    if col + run_width > cx:
-                        line.append(code_span(t_run, fg, bg, cx - col, faint))
-                    else:
-                        line.append(code_span(t_run, fg, bg, faint=faint))
-                    col += run_width
-                else:
-                    line.append(code_span(t_run, fg, bg, faint=faint))
-
-            send(f"{''.join(line)}\n")
-        self.last_screen = new_screen
-        self.last_screen_width = cols
+        sendq.extend(self._render_rows(size, canvas))
 
         if self.update_method == "polling":
             sys.stdout.write("".join(sendq))
@@ -412,29 +310,28 @@ class Screen(BaseScreen):
             sys.stdout.close()
             self._fork_child()
         elif self.update_method == "polling child":
+            s.sendall("".join(sendq).encode("utf-8"))  # handle_short_request() decodes UTF-8
             s.close()
         else:  # update_method == "multipart"
-            send("\r\n--ZZ\r\n")
+            sendq.append("\r\n--ZZ\r\n")
             sys.stdout.write("".join(sendq))
             sys.stdout.flush()
 
         signal.alarm(ALARM_DELAY)
 
     def clear(self) -> None:
-        """
-        Force the screen to be completely repainted on the next
-        call to draw_screen().
+        """Force the screen to be completely repainted on the next call to draw_screen().
 
         (does nothing for web_display)
         """
 
     def _fork_child(self) -> None:
-        """
-        Fork a child to run CGI disconnected for polling update method.
+        """Fork a child to run CGI disconnected for polling update method.
+
         Force parent process to exit.
         """
-        daemonize(f"{self.pipe_name}.err")
-        self.input_fd = os.open(f"{self.pipe_name}.in", os.O_NONBLOCK | os.O_RDONLY)
+        # the reader stays open through the forks, so a keystroke request never finds the pipe without one
+        daemonize(f"{self.pipe_name}.err", keep_fds=(typing.cast("int", self.input_fd),))
         self.update_method = "polling child"
         s = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
         s.bind(f"{self.pipe_name}.update")
@@ -453,9 +350,9 @@ class Screen(BaseScreen):
         if self.update_method == "polling child":
             # send empty update
             try:
-                s, _addr = self.server_socket.accept()
+                s, _addr = typing.cast("socket.socket", self.server_socket).accept()
                 s.close()
-            except socket.timeout:
+            except TimeoutError:
                 sys.exit(0)
         else:
             # send empty update
@@ -465,7 +362,7 @@ class Screen(BaseScreen):
 
     def get_cols_rows(self) -> tuple[int, int]:
         """Return the screen size."""
-        return self.screen_size
+        return typing.cast("tuple[int, int]", self.screen_size)
 
     @typing.overload
     def get_input(self, raw_keys: Literal[False]) -> list[str]: ...
@@ -474,11 +371,16 @@ class Screen(BaseScreen):
     def get_input(self, raw_keys: Literal[True]) -> tuple[list[str], list[int]]: ...
 
     def get_input(self, raw_keys: bool = False) -> list[str] | tuple[list[str], list[int]]:
-        """Return pending input as a list."""
+        """Return pending input as a list.
+
+        An input line longer than :data:`MAX_LINE_LENGTH` is dropped whole, up to and including its newline.
+        A line that is neither a key name the page script sends nor a valid resize request is dropped too.
+        """
         pending_input = []
         resized = False
+        input_fd = typing.cast("int", self.input_fd)
         with selectors.DefaultSelector() as selector:
-            selector.register(self.input_fd, selectors.EVENT_READ)
+            selector.register(input_fd, selectors.EVENT_READ)
 
             iready = [event.fd for event, _ in selector.select(0.5)]
 
@@ -487,19 +389,34 @@ class Screen(BaseScreen):
                 return [], []
             return []
 
-        keydata = os.read(self.input_fd, MAX_READ).decode(get_encoding())
-        os.close(self.input_fd)
+        keydata = self._input_decoder.decode(os.read(input_fd, MAX_READ))
+        # The new reader is opened before the old one is closed, so the pipe always has a reader:
+        # a request opening it in between would otherwise fail, and bytes still in it would be lost.
         self.input_fd = os.open(f"{self.pipe_name}.in", os.O_NONBLOCK | os.O_RDONLY)
-        # sys.stderr.write( repr((keydata,self.input_tail))+"\n" )
-        keys = keydata.split("\n")
-        keys[0] = self.input_tail + keys[0]
-        self.input_tail = keys[-1]
+        os.close(input_fd)
+        lines = (self.input_tail + keydata).split("\n")
+        if self._dropping_line:
+            # input_tail is empty here, so the first piece is the rest of the over-long line
+            del lines[0]
+            self._dropping_line = not lines
+        self.input_tail = lines.pop() if lines else ""
+        if len(self.input_tail) > MAX_LINE_LENGTH:
+            self.logger.debug("Dropped an input line longer than %d characters", MAX_LINE_LENGTH)
+            self.input_tail = ""
+            self._dropping_line = True
 
-        for k in keys[:-1]:
-            if self._handle_resize_request(k):
+        not_keys = 0
+        for k in lines:
+            if len(k) > MAX_LINE_LENGTH:
+                self.logger.debug("Dropped an input line of %d characters", len(k))
+            elif self._handle_resize_request(k):
                 resized = True
-            else:
+            elif is_key_name(k):
                 pending_input.append(k)
+            else:
+                not_keys += 1
+        if not_keys:
+            self.logger.debug("Dropped %d input lines that are not key names", not_keys)
         if resized:
             pending_input.append("window resize")
 
@@ -508,41 +425,8 @@ class Screen(BaseScreen):
         return pending_input
 
 
-def code_span(s: str, fg: str, bg: str, cursor: int = -1, faint: bool = False) -> str:
-    code_fg = _code_colours[fg]
-    code_bg = _code_colours[bg]
-    # Use 'f' for faint, '0' for no attributes
-    attr_code = "f" if faint else "0"
-
-    if cursor >= 0:
-        c_off, _ign = calc_text_pos(s, 0, len(s), cursor)
-        c2_off = move_next_char(s, c_off, len(s))
-
-        return (
-            code_fg
-            + code_bg
-            + attr_code
-            + s[:c_off]
-            + "\n"
-            + code_bg
-            + code_fg
-            + attr_code
-            + s[c_off:c2_off]
-            + "\n"
-            + code_fg
-            + code_bg
-            + attr_code
-            + s[c2_off:]
-            + "\n"
-        )
-
-    return f"{code_fg + code_bg + attr_code + s}\n"
-
-
 def is_web_request() -> bool:
-    """
-    Return True if this is a CGI web request.
-    """
+    """Return True if this is a CGI web request."""
     return "REQUEST_METHOD" in os.environ
 
 
@@ -552,15 +436,64 @@ def _request_charset() -> str:
     return content_type.get_content_charset() or "utf-8"
 
 
-def handle_short_request() -> bool:
+def _read_request_body(limit: int) -> bytes | None:
+    """Read the request body of the length the web server gives in ``CONTENT_LENGTH``.
+
+    The read stops at that length, because the web server does not have to close stdin after the body.
+    A request without ``CONTENT_LENGTH`` has no body.
+
+    :param limit: the largest body accepted, in bytes.
+    :returns: the body, or None when ``CONTENT_LENGTH`` is not a decimal number or is larger than ``limit``.
     """
-    Handle short requests such as passing keystrokes to the application
-    or sending the initial HTML page.  If returns True, then this
-    function recognized and handled a short request, and the calling
+    length = os.environ.get("CONTENT_LENGTH") or "0"
+    # the digit count keeps int() away from a number with more digits than it converts
+    if not (length.isascii() and length.isdigit()) or len(length.lstrip("0")) > len(str(limit)) or int(length) > limit:
+        return None
+    return sys.stdin.buffer.read(int(length))
+
+
+def _session_dir() -> str:
+    """Return the private directory for the session files of the effective user.
+
+    The directory is ``urwid-web-<uid>`` under the configured ``pipe_dir``, created when missing.
+    It keeps the session files of one user out of reach of every other local user.
+
+    :raises PermissionError: the path is not a directory owned by the effective user,
+        or the group or other users have any access to it.
+    """
+    uid = os.geteuid()
+    path = os.path.join(_prefs.pipe_dir, f"urwid-web-{uid}")
+    with suppress(FileExistsError):
+        pathlib.Path(path).mkdir(mode=0o700)
+    # lstat: a symbolic link planted at the path is refused rather than followed
+    st = os.lstat(path)
+    if not stat.S_ISDIR(st.st_mode) or st.st_uid != uid or stat.S_IMODE(st.st_mode) & 0o077:
+        raise PermissionError(f"{path!r} must be a directory owned by uid {uid} with no group or other access")
+    return path
+
+
+def _session_path(urwid_id: str) -> str:
+    """Return the path prefix of the input pipe, update socket and error log of a session.
+
+    The file name is a hash of the session id, so a directory listing does not reveal the id.
+
+    :raises PermissionError: the session directory is not private, see :func:`_session_dir`.
+    """
+    # 128 bits of SHA-256
+    digest = hashlib.sha256(urwid_id.encode("ascii")).hexdigest()[:32]
+    return os.path.join(_session_dir(), digest)
+
+
+def handle_short_request() -> bool:
+    """Handle short requests such as passing keystrokes to the application or sending the initial HTML page.
+
+    If returns True, then this function recognized and handled a short request, and the calling
     script should immediately exit.
 
     web_display.set_preferences(..) should be called before calling this
-    function for the preferences to take effect
+    function for the preferences to take effect.
+
+    :raises PermissionError: the session directory is not private, see :func:`_session_dir`.
     """
     if not is_web_request():
         return False
@@ -590,11 +523,13 @@ def handle_short_request() -> bool:
         sys.stdout.write("Status: 403 Forbidden\r\n\r\n")
         return True
 
+    pipe_name = _session_path(urwid_id)
+
     if os.environ.get("HTTP_X_URWID_METHOD", None) == "polling":
         # this is a screen update request
         try:
             with socket.socket(socket.AF_UNIX, socket.SOCK_STREAM) as s:
-                s.connect(os.path.join(_prefs.pipe_dir, f"urwid_{urwid_id}.update"))
+                s.connect(f"{pipe_name}.update")
                 chunks = []
                 while data := s.recv(BUF_SZ):
                     chunks.append(data)
@@ -612,16 +547,23 @@ def handle_short_request() -> bool:
         return True
 
     # this is a keyboard input request
+    keydata = _read_request_body(MAX_READ)
+    if keydata is None:
+        sys.stdout.write("Status: 400 Bad Request\r\n\r\n")
+        return True
+
     try:
-        fd = os.open((os.path.join(_prefs.pipe_dir, f"urwid_{urwid_id}.in")), os.O_WRONLY)
+        # Non-blocking: with no screen reading the pipe, as after the screen process was killed,
+        # the open fails with ENXIO instead of waiting forever.
+        fd = os.open(f"{pipe_name}.in", os.O_WRONLY | os.O_NONBLOCK)
     except OSError:
         sys.stdout.write("Status: 404 Not Found\r\n\r\n")
         return True
 
     try:
+        os.set_blocking(fd, True)
         try:
-            keydata = sys.stdin.read(MAX_READ)
-            encoded_keydata = keydata.encode(_request_charset())
+            encoded_keydata = keydata.decode(_request_charset()).encode(_PIPE_ENCODING)
         except (LookupError, UnicodeError):
             sys.stdout.write("Status: 400 Bad Request\r\n\r\n")
             return True
@@ -655,10 +597,12 @@ def set_preferences(
     Set web_display preferences.
 
     :param app_name: application name to appear in html interface
-    :param pipe_dir: directory for input pipes, daemon update sockets and daemon error logs
+    :param pipe_dir: parent of the private per-user directory ``urwid-web-<uid>``
+        that holds the input pipes, daemon update sockets and daemon error logs.
+        Other users must not be able to rename its entries: use a private directory or a sticky one such as ``/tmp``.
     :param allow_polling: allow creation of daemon processes for browsers without multipart support
-    :param max_clients: maximum concurrent client connections. This pool is shared by all urwid applications using the
-        same pipe_dir
+    :param max_clients: maximum concurrent client connections. This pool is shared by all urwid applications that
+        run as the same user with the same pipe_dir
     """
     _prefs.app_name = app_name
     _prefs.pipe_dir = pipe_dir
@@ -667,30 +611,39 @@ def set_preferences(
 
 
 class ErrorLog:
+    """File-like object that appends written text to the given error log file."""
+
     def __init__(self, errfile: str | pathlib.PurePath) -> None:
+        """Wrap the error log file at `errfile`."""
         self.errfile = errfile
 
     def write(self, err: str) -> None:
+        """Append `err` to the error log file."""
         with open(self.errfile, "a", encoding="utf-8") as f:
             f.write(err)
 
 
-def daemonize(errfile: str) -> None:
-    """
-    Detach process and become a daemon.
+def daemonize(errfile: str, *, keep_fds: Collection[int] = ()) -> None:
+    """Detach process and become a daemon.
+
+    :param errfile: path of the file that receives what is written to :data:`sys.stderr`.
+    :param keep_fds: descriptors below 20 to leave open. Every other descriptor below 20 is closed.
     """
     if os.fork():
         os._exit(0)
 
     os.setsid()
     signal.signal(signal.SIGHUP, signal.SIG_IGN)
-    os.umask(0)
+    # the daemon creates the polling update socket and the error log: keep them private to the owner
+    os.umask(0o077)
 
     if os.fork():
         os._exit(0)
 
     os.chdir("/")
     for fd in range(20):
+        if fd in keep_fds:
+            continue
         with suppress(OSError):
             os.close(fd)
 

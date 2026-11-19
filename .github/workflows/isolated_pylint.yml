@@ -16,22 +16,14 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
-      - name: Install Ubuntu dependencies
-        run: |
-          sudo apt-get -qq update
-          sudo apt-get install -y python3-dev python3-gi python3-gi-cairo
-          sudo apt-get install -y gobject-introspection libgirepository-2.0-dev libcairo2-dev
-      - name: Set up Python
-        uses: actions/setup-python@v7
-        with:
-          python-version: '3.x'
       - name: Install uv
-        uses: astral-sh/setup-uv@v10.0.1
+        uses: astral-sh/setup-uv@v10.3.3
       - name: Create virtual environment
-        run: uv venv --python-preference only-system
+        run: uv venv --python 3.14
       - name: Install package with all extras
-        run: uv pip install -e ".[curses,glib,serial,tornado,trio,twisted,zmq]"
+        run: uv pip install -e ".[curses,serial,tornado,trio,twisted,zmq]"
       - name: Install dependencies
         run: uv pip install --upgrade -r pylint-requirements.txt
+      # tests are not checked, see [tool.ruff] extend-exclude in pyproject.toml
       - name: Lint with pylint
         run: uv run --no-project pylint --output-format=github urwid

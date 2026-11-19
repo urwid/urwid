@@ -5,6 +5,4 @@ Metaclasses
 
 .. autoclass:: WidgetMeta
 
-.. autoclass:: MetaSuper
-
 .. autoclass:: MetaSignals

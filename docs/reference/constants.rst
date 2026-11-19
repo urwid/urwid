@@ -130,6 +130,26 @@ Text Wrapping Modes
    character at the end
 
 
+Validation
+----------
+
+Used by the validator of an :class:`Edit` to report what is wrong with its
+text, and by :class:`Notifications` to colour a message.
+
+.. autoclass:: Severity
+
+.. autoclass:: ValidationMessage
+
+
+Mouse buttons
+-------------
+
+The *button* of a mouse event, see :ref:`mouse-input`.
+
+.. autoclass:: MouseButton
+   :undoc-members:
+
+
 Foreground and Background Colors
 --------------------------------
 
@@ -201,6 +221,16 @@ User's terminal configuration default foreground or background
    :annotation: = 'default'
 
 
+Color of the enclosing display attribute
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+.. data:: INHERIT
+   :annotation: = 'inherit'
+
+   Take the foreground or background color from the enclosing display
+   attribute, see :ref:`inherit-foreground-background`.
+
+
 256 and 88 Color Foregrounds and Backgrounds
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
@@ -209,7 +239,7 @@ Constants are not defined for these colors.
 .. seealso::
 
    :ref:`high-colors`
- 
+
 
 
 Signal Names
@@ -218,16 +248,21 @@ Signal Names
 .. data:: UPDATE_PALETTE_ENTRY
    :annotation: = 'update palette entry'
 
-   sent by :class:`BaseScreen` (and subclasses like 
-   :class:`raw_display.Screen`) when a palette entry is changed.
-   :class:`MainLoop` handles this signal by redrawing the whole
-   screen.
+   sent by :class:`BaseScreen` (and subclasses like
+   :class:`display.raw.Screen`) when a palette entry is changed.
+   :class:`MainLoop` does not handle it. :class:`display.raw.Screen`
+   subscribes to it itself, so that its next :meth:`~BaseScreen.draw_screen`
+   redraws every row.
 
-.. data:: INPUT_DESCRIPTORS_CHANGED
+   An entry that :meth:`BaseScreen.register_palette` removes with ``replace=True``
+   is sent with the specifications it is drawn with from then on: the terminal's
+   default colors.
+
+.. data:: display.common.INPUT_DESCRIPTORS_CHANGED
    :annotation: = 'input descriptors changed'
 
-   sent by :class:`BaseScreen` (and subclasses like 
-   :class:`raw_display.Screen`) when the list of input file descriptors
+   sent by :class:`BaseScreen` (and subclasses like
+   :class:`display.raw.Screen`) when the list of input file descriptors
    has changed.  :class:`MainLoop` handles this signal by updating
    the file descriptors being watched by its event loop.
 
@@ -315,4 +350,3 @@ included in Urwid.
    Default associated keypress: 'end'
 
    Move the cursor or selection to the rightmost column.
-

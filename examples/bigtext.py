@@ -19,9 +19,7 @@
 #
 # Urwid web site: https://urwid.org/
 
-"""
-Urwid example demonstrating use of the BigText widget.
-"""
+"""Urwid example demonstrating use of the BigText widget."""
 
 from __future__ import annotations
 
@@ -34,11 +32,19 @@ if typing.TYPE_CHECKING:
 
 
 class SwitchingPadding(urwid.Padding[urwid.BigText]):
+    """Padding that switches its alignment based on the available width."""
+
     def padding_values(
         self,
         size: tuple[int],  # type: ignore[override]
         focus: bool,
     ) -> tuple[int, int]:
+        """Return the left and right padding, aligning left or right depending on the available width.
+
+        :param size: render size passed by the parent widget
+        :param focus: whether the wrapped widget is in focus
+        :returns: left and right padding widths
+        """
         maxcol = size[0]
         width, _height = self.original_widget.pack((), focus=focus)  # urwid.BigText is FIXED size widget
         if maxcol > width:
@@ -49,6 +55,8 @@ class SwitchingPadding(urwid.Padding[urwid.BigText]):
 
 
 class BigTextDisplay:
+    """Interactive demo application for the :class:`urwid.BigText` widget."""
+
     palette: typing.ClassVar[list[tuple[str, str, str] | tuple[str, str, str, str]]] = [
         ("body", "black", "light gray", "standout"),
         ("header", "white", "dark red", "bold"),
@@ -66,57 +74,89 @@ class BigTextDisplay:
         g: list[urwid.RadioButton],
         name: str,
         font: urwid.Font,
-        fn: Callable[[urwid.RadioButton, bool], typing.Any],
-    ) -> urwid.AttrMap:
-        w = urwid.RadioButton(g, name, False, on_state_change=fn)
-        w.font = font
-        w = urwid.AttrMap(w, "button normal", "button select")
-        return w
+        fn: Callable[[urwid.RadioButton, bool, urwid.Font], typing.Any],
+    ) -> urwid.AttrMap[urwid.RadioButton]:
+        """Create a radio button for selecting a font.
 
-    def create_disabled_radio_button(self, name: str) -> urwid.AttrMap:
-        w = urwid.Text(f"    {name} (UTF-8 mode required)")
-        w = urwid.AttrMap(w, "button disabled")
-        return w
+        :param g: radio button group to add the new button to
+        :param name: label for the radio button
+        :param font: font this button selects
+        :param fn: callback connected to the button's ``change`` signal, with *font* as its user data
+        :returns: the radio button wrapped in an :class:`urwid.AttrMap`
+        """
+        w = urwid.RadioButton(g, name, False, on_state_change=fn, user_data=font)
+        return urwid.AttrMap(w, "button normal", "button select")
+
+    def create_disabled_radio_button(self, name: str) -> urwid.AttrMap[urwid.Text]:
+        """Create a disabled placeholder shown for fonts unavailable in the current encoding mode.
+
+        :param name: name of the unavailable font
+        :returns: the placeholder text wrapped in an :class:`urwid.AttrMap`
+        """
+        return urwid.AttrMap(urwid.Text(f"    {name} (UTF-8 mode required)"), "button disabled")
 
     def create_edit(
         self,
         label: str,
         text: str,
         fn: Callable[[urwid.Edit, str], typing.Any],
-    ) -> urwid.AttrMap:
+    ) -> urwid.AttrMap[urwid.Edit]:
+        """Create an edit widget and connect it to a change callback.
+
+        :param label: caption shown before the editable text
+        :param text: initial contents of the edit widget
+        :param fn: callback connected to the widget's ``change`` signal, also invoked immediately
+        :returns: the edit widget wrapped in an :class:`urwid.AttrMap`
+        """
         w = urwid.Edit(label, text)
         urwid.connect_signal(w, "change", fn)
         fn(w, text)
-        w = urwid.AttrMap(w, "edit")
-        return w
+        return urwid.AttrMap(w, "edit")
 
-    def set_font_event(self, w: urwid.RadioButton, state: bool) -> None:
+    def set_font_event(self, w: urwid.RadioButton, state: bool, font: urwid.Font) -> None:
+        """Switch the displayed :class:`urwid.BigText` to the selected font.
+
+        :param w: radio button whose state changed
+        :param state: new state of the radio button
+        :param font: font the radio button selects
+        """
         if state:
-            self.bigtext.set_font(w.font)
-            self.chars_avail.set_text(w.font.characters())
+            self.bigtext.set_font(font)
+            self.chars_avail.set_text(font.characters())
 
     def edit_change_event(self, widget: urwid.Edit, text: str) -> None:
+        """Update the :class:`urwid.BigText` display with the edited text.
+
+        :param widget: edit widget that changed
+        :param text: new contents of the edit widget
+        """
         self.bigtext.set_text(text)
 
     def setup_view(
         self,
     ) -> tuple[
-        urwid.Frame[urwid.AttrMap[urwid.ListBox], urwid.AttrMap[urwid.Text], None],
-        urwid.Overlay[urwid.BigText, urwid.Frame[urwid.AttrMap[urwid.ListBox], urwid.AttrMap[urwid.Text], None]],
+        urwid.Frame[urwid.AttrMap[urwid.ListBox[int]], urwid.AttrMap[urwid.Text], None],
+        urwid.Overlay[urwid.BigText, urwid.Frame[urwid.AttrMap[urwid.ListBox[int]], urwid.AttrMap[urwid.Text], None]],
     ]:
+        """Build the main view and the exit-confirmation overlay.
+
+        :returns: the main frame, and an overlay of the exit prompt on top of that frame
+        """
         fonts = urwid.get_all_fonts()
         # setup mode radio buttons
-        self.font_buttons = []
+        self.font_buttons: list[urwid.AttrMap[urwid.RadioButton] | urwid.AttrMap[urwid.Text]] = []
         group: list[urwid.RadioButton] = []
         utf8 = urwid.get_encoding_mode() == "utf8"
         for name, fontcls in fonts:
             font = fontcls()
+            rb: urwid.AttrMap[urwid.RadioButton] | urwid.AttrMap[urwid.Text]
             if font.utf8_required and not utf8:
                 rb = self.create_disabled_radio_button(name)
             else:
-                rb = self.create_radio_button(group, name, font, self.set_font_event)
+                radio = self.create_radio_button(group, name, font, self.set_font_event)
+                rb = radio
                 if fontcls == urwid.Thin6x6Font:
-                    chosen_font_rb = rb
+                    chosen_font_rb = radio
                     exit_font = font
             self.font_buttons.append(rb)
 
@@ -147,11 +187,12 @@ class BigTextDisplay:
 
         # ListBox
         chars = urwid.Pile([cah, ca])
-        fonts_pile = urwid.Pile([urwid.Text("Fonts:"), *self.font_buttons], focus_item=1)
-        col = urwid.Columns([(16, chars), fonts_pile], 3, focus_column=1)
-        bt_pile = urwid.Pile([bt, edit], focus_item=1)
+        # select_navigation lets TAB / SHIFT TAB move between the edit and the font buttons
+        fonts_pile = urwid.Pile([urwid.Text("Fonts:"), *self.font_buttons], focus_item=1, select_navigation=True)
+        col = urwid.Columns([(16, chars), fonts_pile], 3, focus_column=1, select_navigation=True)
+        bt_pile = urwid.Pile([bt, edit], focus_item=1, select_navigation=True)
         lines: list[urwid.widget.AbstractFlowWidget] = [bt_pile, urwid.Divider(), col]
-        listbox = urwid.ListBox(urwid.SimpleListWalker(lines))
+        listbox = urwid.ListBox(urwid.SimpleListWalker(lines), select_navigation=True)
 
         # Frame
         w: urwid.Frame[
@@ -160,7 +201,9 @@ class BigTextDisplay:
             None,
         ] = urwid.Frame(
             body=urwid.AttrMap(listbox, "body"),
-            header=urwid.AttrMap(urwid.Text("Urwid BigText example program - F8 exits."), "header"),
+            header=urwid.AttrMap(
+                urwid.Text("Urwid BigText example program - TAB / SHIFT TAB move focus, F8 exits."), "header"
+            ),
         )
 
         # Exit message
@@ -175,18 +218,25 @@ class BigTextDisplay:
         return w, exit_w
 
     def main(self) -> None:
+        """Build the view and run the main loop until the user exits."""
         self.view, self.exit_view = self.setup_view()
         self.loop = urwid.MainLoop(self.view, self.palette, unhandled_input=self.unhandled_input)
         self.loop.run()
 
     def unhandled_input(self, key: str | tuple[str, int, int, int]) -> bool | None:
+        """Handle keys not consumed by the widgets: :kbd:`f8` to confirm exit, :kbd:`y`/:kbd:`n` to answer it.
+
+        :param key: unhandled key or mouse event
+        :returns: ``True`` if the key was handled, ``None`` otherwise
+        :raises urwid.ExitMainLoop: when the user confirms the exit prompt with :kbd:`y`
+        """
         if key == "f8":
             self.loop.widget = self.exit_view
             return True
         if self.loop.widget != self.exit_view:
             return None
         if key in {"y", "Y"}:
-            raise urwid.ExitMainLoop()
+            raise urwid.ExitMainLoop
         if key in {"n", "N"}:
             self.loop.widget = self.view
             return True
@@ -194,6 +244,7 @@ class BigTextDisplay:
 
 
 def main() -> None:
+    """Run the BigText example program."""
     BigTextDisplay().main()
 
 

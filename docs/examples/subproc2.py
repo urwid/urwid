@@ -1,3 +1,5 @@
+"""Print a fixed list of factors in place of examples/subproc2.py, for repeatable screenshots."""
+
 from __future__ import annotations
 
 import time

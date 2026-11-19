@@ -19,14 +19,16 @@
 # Urwid web site: https://urwid.org/
 
 
+"""Urwid, a console user interface library: the public API re-exported from its submodules."""
+
 from __future__ import annotations
 
 import importlib.util
 import sys
 import types
 import typing
-import warnings
 
+from urwid import _deprecation
 from urwid.canvas import (
     BlankCanvas,
     Canvas,
@@ -64,6 +66,7 @@ from urwid.font import (
     Sextant3x3Font,
     Thin3x3Font,
     Thin4x3Font,
+    Thin5x4Font,
     Thin6x6Font,
     get_all_fonts,
 )
@@ -77,17 +80,21 @@ from urwid.signals import (
     register_signal,
 )
 from urwid.str_util import calc_text_pos, calc_width, is_wide_char, move_next_char, move_prev_char, within_double_byte
+from urwid.term_canvas import TermCanvas, TermCharset, TermModes
 from urwid.text_layout import LayoutSegment, StandardTextLayout, TextLayout, default_layout
 from urwid.util import (
+    LayeredAttr,
     MetaSuper,
     TagMarkupException,
     apply_target_encoding,
     calc_trim_text,
     decompose_tagmarkup,
     detected_encoding,
+    get_ascii_fallbacks,
     get_encoding_mode,
     int_scale,
     is_mouse_event,
+    set_ascii_fallbacks,
     set_encoding,
     supports_unicode,
 )
@@ -105,22 +112,35 @@ from .display import (
     DARK_MAGENTA,
     DARK_RED,
     DEFAULT,
+    INHERIT,
     LIGHT_BLUE,
     LIGHT_CYAN,
     LIGHT_GRAY,
     LIGHT_GREEN,
     LIGHT_MAGENTA,
     LIGHT_RED,
+    NO_HYPERLINK,
     UPDATE_PALETTE_ENTRY,
     WHITE,
     YELLOW,
     AttrSpec,
     AttrSpecError,
     BaseScreen,
+    Hyperlink,
+    InputClosedError,
     RealTerminal,
     ScreenError,
 )
-from .event_loop import AsyncioEventLoop, EventLoop, ExitMainLoop, MainLoop, SelectEventLoop
+from .event_loop import (
+    AsyncioEventLoop,
+    EventLoop,
+    ExitMainLoop,
+    GuardedEventLoop,
+    MainLoop,
+    SelectEventLoop,
+    get_running_loop,
+    get_running_loop_or_none,
+)
 from .widget import (
     ANY,
     BOTTOM,
@@ -141,6 +161,7 @@ from .widget import (
     TOP,
     WEIGHT,
     AbstractWidget,
+    ActionMenu,
     Align,
     ANSIText,
     AttrMap,
@@ -158,10 +179,12 @@ from .widget import (
     Columns,
     ColumnsError,
     Divider,
+    DropDown,
     Edit,
     EditError,
     Filler,
     FillerError,
+    FilteredListWalker,
     Frame,
     FrameError,
     GraphVScale,
@@ -173,12 +196,17 @@ from .widget import (
     ListBoxError,
     ListWalker,
     ListWalkerError,
+    MenuItem,
     MonitoredDeque,
     MonitoredFocusDeque,
     MonitoredFocusList,
     MonitoredList,
+    MouseButton,
+    Notification,
+    Notifications,
     Overlay,
     OverlayError,
+    OverlayStack,
     Padding,
     PaddingError,
     ParentNode,
@@ -191,12 +219,23 @@ from .widget import (
     Scrollable,
     ScrollBar,
     SelectableIcon,
+    SelectNavigationListContentsMixin,
+    SelectNavigationMixin,
+    Severity,
     SimpleDequeWalker,
     SimpleFocusDequeWalker,
     SimpleFocusListWalker,
     SimpleListWalker,
     Sizing,
     SolidFill,
+    Spinner,
+    Table,
+    TableColumn,
+    TableError,
+    TableRow,
+    Tabs,
+    TabsError,
+    TerminalOutput,
     Text,
     TextError,
     TreeListBox,
@@ -204,6 +243,7 @@ from .widget import (
     TreeWalker,
     TreeWidget,
     TreeWidgetError,
+    ValidationMessage,
     VAlign,
     WHSettings,
     Widget,
@@ -213,6 +253,7 @@ from .widget import (
     WidgetError,
     WidgetMeta,
     WidgetPlaceholder,
+    WidgetSizingError,
     WidgetWrap,
     WidgetWrapError,
     WrapMode,
@@ -249,6 +290,7 @@ __all__: tuple[str, ...] = (
     "FIXED",
     "FLOW",
     "GIVEN",
+    "INHERIT",
     "LEFT",
     "LIGHT_BLUE",
     "LIGHT_CYAN",
@@ -257,6 +299,7 @@ __all__: tuple[str, ...] = (
     "LIGHT_MAGENTA",
     "LIGHT_RED",
     "MIDDLE",
+    "NO_HYPERLINK",
     "PACK",
     "REDRAW_SCREEN",
     "RELATIVE",
@@ -270,6 +313,7 @@ __all__: tuple[str, ...] = (
     "YELLOW",
     "ANSIText",
     "AbstractWidget",
+    "ActionMenu",
     "Align",
     "AsyncioEventLoop",
     "AttrMap",
@@ -299,12 +343,14 @@ __all__: tuple[str, ...] = (
     "CommandMap",
     "CompositeCanvas",
     "Divider",
+    "DropDown",
     "Edit",
     "EditError",
     "EventLoop",
     "ExitMainLoop",
     "Filler",
     "FillerError",
+    "FilteredListWalker",
     "Font",
     "FontRegistry",
     "Frame",
@@ -312,11 +358,15 @@ __all__: tuple[str, ...] = (
     "GraphVScale",
     "GridFlow",
     "GridFlowError",
+    "GuardedEventLoop",
     "HalfBlock5x4Font",
     "HalfBlock6x5Font",
     "HalfBlock7x7Font",
     "HalfBlockHeavy6x5Font",
+    "Hyperlink",
+    "InputClosedError",
     "IntEdit",
+    "LayeredAttr",
     "LayoutSegment",
     "LineBox",
     "ListBox",
@@ -324,14 +374,19 @@ __all__: tuple[str, ...] = (
     "ListWalker",
     "ListWalkerError",
     "MainLoop",
+    "MenuItem",
     "MetaSignals",
     "MetaSuper",
     "MonitoredDeque",
     "MonitoredFocusDeque",
     "MonitoredFocusList",
     "MonitoredList",
+    "MouseButton",
+    "Notification",
+    "Notifications",
     "Overlay",
     "OverlayError",
+    "OverlayStack",
     "Padding",
     "PaddingError",
     "ParentNode",
@@ -346,7 +401,10 @@ __all__: tuple[str, ...] = (
     "ScrollBar",
     "Scrollable",
     "SelectEventLoop",
+    "SelectNavigationListContentsMixin",
+    "SelectNavigationMixin",
     "SelectableIcon",
+    "Severity",
     "Sextant2x2Font",
     "Sextant3x3Font",
     "Signals",
@@ -357,14 +415,26 @@ __all__: tuple[str, ...] = (
     "Sizing",
     "SolidCanvas",
     "SolidFill",
+    "Spinner",
     "StandardTextLayout",
+    "Table",
+    "TableColumn",
+    "TableError",
+    "TableRow",
+    "Tabs",
+    "TabsError",
     "TagMarkupException",
+    "TermCanvas",
+    "TermCharset",
+    "TermModes",
+    "TerminalOutput",
     "Text",
     "TextCanvas",
     "TextError",
     "TextLayout",
     "Thin3x3Font",
     "Thin4x3Font",
+    "Thin5x4Font",
     "Thin6x6Font",
     "TreeListBox",
     "TreeNode",
@@ -372,6 +442,7 @@ __all__: tuple[str, ...] = (
     "TreeWidget",
     "TreeWidgetError",
     "VAlign",
+    "ValidationMessage",
     "WHSettings",
     "Widget",
     "WidgetContainerMixin",
@@ -380,6 +451,7 @@ __all__: tuple[str, ...] = (
     "WidgetError",
     "WidgetMeta",
     "WidgetPlaceholder",
+    "WidgetSizingError",
     "WidgetWrap",
     "WidgetWrapError",
     "WrapMode",
@@ -402,7 +474,10 @@ __all__: tuple[str, ...] = (
     "event_loop",
     "fixed_size",
     "get_all_fonts",
+    "get_ascii_fallbacks",
     "get_encoding_mode",
+    "get_running_loop",
+    "get_running_loop_or_none",
     "int_scale",
     "is_mouse_event",
     "is_wide_char",
@@ -410,6 +485,7 @@ __all__: tuple[str, ...] = (
     "move_prev_char",
     "register_signal",
     "scale_bar_values",
+    "set_ascii_fallbacks",
     "set_encoding",
     "supports_unicode",
     "widget",
@@ -449,9 +525,9 @@ else:
 
 # OS Specific
 if sys.platform != "win32":
-    from .vterm import TermCanvas, TermCharset, Terminal, TermModes
+    from .vterm import Terminal
 
-    __all__ += ("TermCanvas", "TermCharset", "TermModes", "Terminal")
+    __all__ += ("Terminal",)
 
     # ZMQEventLoop cause interpreter crash on Windows
     try:
@@ -469,8 +545,12 @@ VERSION = __version_tuple__
 __locals: dict[str, typing.Any] = locals()  # use mutable access for pure lazy loading
 
 # Backward compatible lazy load with deprecation warnings
-_moved_warn: dict[str, str] = {}
-# Before DeprecationWarning need to start PendingDeprecationWarning process.
+_moved_warn: dict[str, str] = {
+    "display_common": "urwid.display.common",
+    "raw_display": "urwid.display.raw",
+    "curses_display": "urwid.display.curses",
+    "escape": "urwid.display.escape",
+}
 
 
 def lazy_import(name: str, package: str | None = None) -> types.ModuleType:
@@ -512,31 +592,35 @@ class _MovedModule(types.ModuleType):
         self._moved_to = moved_to
 
     def __getattr__(self, name: str) -> typing.Any:
-        real_module = importlib.import_module(self._moved_to)
+        """Resolve `name` by importing the module this one moved to.
+
+        :raises AttributeError: *name* is not found, including when *self._moved_to* itself cannot be imported.
+        """
+        try:
+            real_module = importlib.import_module(self._moved_to)
+        except ImportError as exc:
+            raise AttributeError(name) from exc
         sys.modules[self._moved_from] = real_module
         return getattr(real_module, name)
-
-
-display_common = lazy_import("urwid.display.common")
-raw_display = lazy_import("urwid.display.raw")
-curses_display = lazy_import("urwid.display.curses")
-escape = lazy_import("urwid.display.escape")
 
 
 class _MovedModuleWarn(_MovedModule):
     """Special class to handle moved modules.
 
     Produce DeprecationWarning messages for imports.
+
+    .. deprecated:: 2.4.0
+        This API will be removed in version 7.0.
     """
 
     __slots__ = ()
 
     def __getattr__(self, name: str) -> typing.Any:
-        warnings.warn(
-            f"{self._moved_from} is moved to {self._moved_to}",
-            DeprecationWarning,
-            stacklevel=2,
-        )
+        if name.startswith("__") and name.endswith("__"):
+            # Introspection (for example `unittest` reading `__warningregistry__` of every module in `sys.modules`)
+            # must neither warn nor replace this stub with the real module.
+            raise AttributeError(name)
+        _deprecation.warn(f"{self._moved_from} is moved to {self._moved_to}.", since="2.4.0", removed_in="7.0")
         return super().__getattr__(name)
 
 
@@ -548,17 +632,21 @@ for _name, _module in _moved_warn.items():
 def __getattr__(name: str) -> typing.Any:
     """Get attributes lazy.
 
-    :return: attribute by name
+    :returns: attribute by name
     :raises AttributeError: attribute is not defined for lazy load
+
+    .. deprecated:: 2.4.0
+        ``urwid.display_common``, ``urwid.raw_display``, ``urwid.curses_display`` and ``urwid.escape`` moved to
+        ``urwid.display.common``, ``urwid.display.raw``, ``urwid.display.curses`` and ``urwid.display.escape``.
+        This API will be removed in version 7.0.
     """
     if name in _moved_warn:
-        warnings.warn(
-            f"{name} is moved to {_moved_warn[name]}",
-            DeprecationWarning,
-            stacklevel=2,
-        )
+        _deprecation.warn(f"urwid.{name} is moved to {_moved_warn[name]}.", since="2.4.0", removed_in="7.0")
 
-        mod = importlib.import_module(_moved_warn[name])
+        try:
+            mod = importlib.import_module(_moved_warn[name])
+        except ImportError as exc:
+            raise AttributeError(name) from exc
         __locals[name] = mod
         return mod
     raise AttributeError(f"{name} not found in {__package__}")

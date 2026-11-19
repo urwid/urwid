@@ -1,7 +1,10 @@
+"""Widget classes: the base widget API, decorations, containers and basic widgets."""
+
 from __future__ import annotations
 
 import typing
 
+from .action_menu import ActionMenu, MenuItem
 from .ansi_text import ANSIText
 from .attr_map import AttrMap, AttrMapError
 from .attr_wrap import AttrWrap
@@ -12,7 +15,10 @@ from .columns import Columns, ColumnsError, ColumnsWarning
 from .constants import (
     RELATIVE_100,
     Align,
+    MouseButton,
+    Severity,
     Sizing,
+    ValidationMessage,
     VAlign,
     WHSettings,
     WrapMode,
@@ -25,11 +31,18 @@ from .constants import (
     simplify_valign,
     simplify_width,
 )
-from .container import WidgetContainerListContentsMixin, WidgetContainerMixin
+from .container import (
+    SelectNavigationListContentsMixin,
+    SelectNavigationMixin,
+    WidgetContainerListContentsMixin,
+    WidgetContainerMixin,
+)
 from .deque_walker import SimpleDequeWalker, SimpleFocusDequeWalker
 from .divider import Divider
+from .drop_down import DropDown
 from .edit import Edit, EditError, IntEdit
 from .filler import Filler, FillerError, FillerWarning, calculate_top_bottom_filler
+from .filtered_walker import FilteredListWalker
 from .frame import Frame, FrameError
 from .grid_flow import GridFlow, GridFlowError, GridFlowWarning
 from .line_box import LineBox
@@ -37,13 +50,19 @@ from .list_walker import ListWalker, ListWalkerError, SimpleFocusListWalker, Sim
 from .listbox import ListBox, ListBoxError
 from .monitored_deque import MonitoredDeque, MonitoredFocusDeque
 from .monitored_list import MonitoredFocusList, MonitoredList
+from .notifications import Notification, Notifications
 from .overlay import Overlay, OverlayError, OverlayWarning
+from .overlay_stack import OverlayStack
 from .padding import Padding, PaddingError, PaddingWarning, calculate_left_right_padding
 from .pile import Pile, PileError, PileWarning
 from .popup import PopUpLauncher, PopUpTarget
 from .progress_bar import ProgressBar
 from .scrollable import Scrollable, ScrollableError, ScrollBar
 from .solid_fill import SolidFill
+from .spinner import Spinner
+from .table import Table, TableColumn, TableError, TableLayout, TableRow
+from .tabs import Tabs, TabsError
+from .terminal_output import TerminalOutput
 from .text import Text, TextError
 from .treetools import ParentNode, TreeListBox, TreeNode, TreeWalker, TreeWidget, TreeWidgetError
 from .widget import (
@@ -54,6 +73,7 @@ from .widget import (
     Widget,
     WidgetError,
     WidgetMeta,
+    WidgetSizingError,
     WidgetWarning,
     WidgetWrap,
     WidgetWrapError,
@@ -89,6 +109,7 @@ __all__ = (
     "AbstractFixedWidget",
     "AbstractFlowWidget",
     "AbstractWidget",
+    "ActionMenu",
     "Align",
     "AttrMap",
     "AttrMapError",
@@ -106,11 +127,13 @@ __all__ = (
     "ColumnsError",
     "ColumnsWarning",
     "Divider",
+    "DropDown",
     "Edit",
     "EditError",
     "Filler",
     "FillerError",
     "FillerWarning",
+    "FilteredListWalker",
     "Frame",
     "FrameError",
     "GraphVScale",
@@ -123,12 +146,17 @@ __all__ = (
     "ListBoxError",
     "ListWalker",
     "ListWalkerError",
+    "MenuItem",
     "MonitoredDeque",
     "MonitoredFocusDeque",
     "MonitoredFocusList",
     "MonitoredList",
+    "MouseButton",
+    "Notification",
+    "Notifications",
     "Overlay",
     "OverlayError",
+    "OverlayStack",
     "OverlayWarning",
     "Padding",
     "PaddingError",
@@ -144,13 +172,25 @@ __all__ = (
     "ScrollBar",
     "Scrollable",
     "ScrollableError",
+    "SelectNavigationListContentsMixin",
+    "SelectNavigationMixin",
     "SelectableIcon",
+    "Severity",
     "SimpleDequeWalker",
     "SimpleFocusDequeWalker",
     "SimpleFocusListWalker",
     "SimpleListWalker",
     "Sizing",
     "SolidFill",
+    "Spinner",
+    "Table",
+    "TableColumn",
+    "TableError",
+    "TableLayout",
+    "TableRow",
+    "Tabs",
+    "TabsError",
+    "TerminalOutput",
     "Text",
     "TextError",
     "TreeListBox",
@@ -159,6 +199,7 @@ __all__ = (
     "TreeWidget",
     "TreeWidgetError",
     "VAlign",
+    "ValidationMessage",
     "WHSettings",
     "Widget",
     "WidgetContainerListContentsMixin",
@@ -168,6 +209,7 @@ __all__ = (
     "WidgetError",
     "WidgetMeta",
     "WidgetPlaceholder",
+    "WidgetSizingError",
     "WidgetWarning",
     "WidgetWrap",
     "WidgetWrapError",
@@ -189,7 +231,7 @@ __all__ = (
     "simplify_width",
 )
 
-# Backward compatibility
+# Backward compatibility aliases of the enum members. Not deprecated: too widely used to be removed.
 FLOW: typing.Literal[Sizing.FLOW] = Sizing.FLOW
 BOX: typing.Literal[Sizing.BOX] = Sizing.BOX
 FIXED: typing.Literal[Sizing.FIXED] = Sizing.FIXED

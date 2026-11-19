@@ -18,19 +18,23 @@
 # Urwid web site: https://urwid.org/
 
 
+"""Helpers for building a readable ``repr`` of widgets."""
+
 from __future__ import annotations
 
+import inspect
+import sys
 import typing
-from inspect import getfullargspec
 
 if typing.TYPE_CHECKING:
+    from collections.abc import Callable
+
     from urwid.widget import Widget
 
 
 def split_repr(self: Widget) -> str:
-    """
-    Return a helpful description of the object using self._repr_words() and self._repr_attrs()
-    to add to the description.
+    """Return a helpful description of the object using self._repr_words() and self._repr_attrs().
+
     This function may be used by adding code to your class like this:
 
     >>> class Foo(object):
@@ -57,8 +61,18 @@ def split_repr(self: Widget) -> str:
     words = self._repr_words()
     if not words and not alist:
         # if we're just going to print the classname fall back
-        # to the previous __repr__ implementation instead
-        return super(self.__class__, self).__repr__()
+        # to the __repr__ implementation that split_repr replaced
+        mro = type(self).__mro__
+        for idx, cls in enumerate(mro):
+            if vars(cls).get("__repr__") is split_repr:
+                # skip further split_repr levels; object is last in every MRO and defines __repr__
+                replaced: Callable[[object], str] = next(
+                    vars(base)["__repr__"]
+                    for base in mro[idx + 1 :]
+                    if vars(base).get("__repr__", split_repr) is not split_repr
+                )
+                return replaced(self)
+        return object.__repr__(self)
     if words and alist:
         words.append("")
     return f"<{self.__class__.__name__} {' '.join(words) + ' '.join([f'{k}={v}' for k, v in alist])}>"
@@ -66,7 +80,7 @@ def split_repr(self: Widget) -> str:
 
 def normalize_repr(v: object) -> str:
     """
-    Return dictionary repr sorted by keys, leave others unchanged
+    Return dictionary repr sorted by keys, leave others unchanged.
 
     >>> normalize_repr({1: 2, 3: 4, 5: 6, 7: 8})
     '{1: 2, 3: 4, 5: 6, 7: 8}'
@@ -81,15 +95,12 @@ def normalize_repr(v: object) -> str:
     return repr(v)
 
 
-def remove_defaults(d: dict[str, object], fn: object) -> dict[str, object]:
-    """
-    Remove keys in d that are set to the default values from
-    fn.  This method is used to unclutter the _repr_attrs()
-    return value.
+def remove_defaults(d: dict[str, object], fn: Callable[..., object]) -> dict[str, object]:
+    """Remove keys in d that are set to the default values from fn.
+
+    This method is used to unclutter the _repr_attrs() return value.
 
     d will be modified by this function.
-
-    Returns d.
 
     >>> class Foo(object):
     ...     def __init__(self, a=1, b=2):
@@ -109,22 +120,21 @@ def remove_defaults(d: dict[str, object], fn: object) -> dict[str, object]:
     <Foo object a=10>
     >>> Foo()
     <Foo object>
+
+    :returns: d.
+    :raises TypeError: *fn* is not callable. No signature can be read from *fn*.
     """
-    args, varargs, varkw, defaults, _, _, _ = getfullargspec(fn)
+    try:
+        if sys.version_info >= (3, 14):
+            import annotationlib
 
-    # ignore *varargs and **kwargs
-    if varkw:
-        del args[-1]
-    if varargs:
-        del args[-1]
-
-    # create a dictionary of args with default values
-    ddict = dict(
-        zip(
-            args[len(args) - len(typing.cast("tuple[object]", defaults)) :],
-            typing.cast("tuple[object]", defaults),
-        )
-    )
+            # Only the defaults are read: an annotation naming a type-checking-only import must not raise NameError.
+            parameters = inspect.signature(fn, annotation_format=annotationlib.Format.FORWARDREF).parameters
+        else:
+            parameters = inspect.signature(fn).parameters
+    except ValueError as exc:
+        raise TypeError(f"no signature to read defaults from: {fn!r}") from exc
+    ddict = {name: param.default for name, param in parameters.items() if param.default is not inspect.Parameter.empty}
 
     for k in list(d.keys()):
         if k in ddict and ddict[k] == d[k]:

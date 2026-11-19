@@ -1,0 +1,833 @@
+from __future__ import annotations
+
+import collections
+import decimal
+import fractions
+import functools
+import math
+import operator
+import sys
+import typing
+import unittest
+import warnings
+
+import urwid
+from tests.util import CountingIndex, Index
+
+if typing.TYPE_CHECKING:
+    from collections.abc import Callable
+
+IS_PYPY = sys.implementation.name == "pypy"
+
+
+class MonitoredDequeMaxlenParityTest(unittest.TestCase):
+    """Verify a bounded MonitoredDeque matches a plain collections.deque with the same maxlen.
+
+    Runs the same operation sequence against both, asserting equal contents after each step.
+    """
+
+    def test_parity(self) -> None:
+        maxlen = 4
+        monitored = urwid.MonitoredDeque(maxlen=maxlen)
+        reference: collections.deque = collections.deque(maxlen=maxlen)
+
+        operations = [
+            ("append", 1),
+            ("append", 2),
+            ("append", 3),
+            ("appendleft", 0),
+            ("append", 4),  # triggers eviction of head
+            ("appendleft", -1),  # triggers eviction of tail
+            ("extend", [10, 11, 12]),
+            ("extendleft", [20, 21]),
+            ("rotate", 1),
+            ("rotate", -2),
+            ("reverse", None),
+            ("pop", None),
+            ("popleft", None),
+        ]
+        for name, arg in operations:
+            with self.subTest(name=name, arg=arg):
+                if arg is None:
+                    # pylint incorrectly infers a fixed signature for these dynamically-dispatched
+                    # calls, treating `name` as though it always resolved to an argument-taking
+                    # method such as ``append``.
+                    getattr(monitored, name)()  # pylint: disable=no-value-for-parameter
+                    getattr(reference, name)()  # pylint: disable=no-value-for-parameter
+                else:
+                    getattr(monitored, name)(arg)
+                    getattr(reference, name)(arg)
+                self.assertEqual(list(reference), list(monitored))
+
+
+class MonitoredDequeModifiedCallbackTest(unittest.TestCase):
+    def test_extension_from_self(self) -> None:
+        """Retain deque's self-extension behavior with and without bounded eviction."""
+        for operation in ("extend", "extendleft", "__iadd__"):
+            for maxlen in (None, 3):
+                with self.subTest(operation=operation, maxlen=maxlen):
+                    items = urwid.MonitoredDeque([1, 2], maxlen=maxlen)
+                    reference = collections.deque(items, maxlen=maxlen)
+                    seen = []
+                    items.set_modified_callback(lambda items=items, seen=seen: seen.append(list(items)))
+                    getattr(reference, operation)(reference)
+                    getattr(items, operation)(items)
+                    self.assertEqual(list(reference), list(items))
+                    self.assertEqual([list(reference)], seen)
+
+    def test_partial_extension_notifies(self) -> None:
+        """A failed iterator retains consumed items and notifies once, including bounded evictions."""
+        for operation in ("extend", "extendleft", "__iadd__"):
+            for maxlen in (None, 2):
+                with self.subTest(operation=operation, maxlen=maxlen):
+                    items = urwid.MonitoredDeque([1, 2], maxlen=maxlen)
+                    seen = []
+                    items.set_modified_callback(lambda items=items, seen=seen: seen.append(list(items)))
+                    error = ValueError("broken input")
+
+                    def incoming(error=error):
+                        yield 3
+                        raise error
+
+                    with self.assertRaises(ValueError) as caught:
+                        getattr(items, operation)(incoming())
+                    self.assertIs(error, caught.exception)
+                    expected = [3, 1, 2] if operation == "extendleft" else [1, 2, 3]
+                    if maxlen is not None:
+                        expected = expected[:maxlen] if operation == "extendleft" else expected[-maxlen:]
+                    self.assertEqual(expected, list(items))
+                    self.assertEqual([expected], seen)
+
+    def test_failed_extension_without_change_does_not_notify(self) -> None:
+        """An immediate failure and a zero-capacity deque leave observers untouched."""
+        for operation in ("extend", "extendleft", "__iadd__"):
+            for maxlen, yields in ((None, False), (0, True)):
+                with self.subTest(operation=operation, maxlen=maxlen):
+                    items = urwid.MonitoredDeque([1, 2], maxlen=maxlen)
+                    seen = []
+                    items.set_modified_callback(lambda items=items, seen=seen: seen.append(list(items)))
+
+                    def incoming(yields=yields):
+                        if yields:
+                            yield 3
+                        raise ValueError("broken input")
+
+                    with self.assertRaises(ValueError):
+                        getattr(items, operation)(incoming())
+                    self.assertEqual([], seen)
+
+    def test_modified_fires_once(self) -> None:
+        counter = {"count": 0}
+
+        def bump() -> None:
+            counter["count"] += 1
+
+        md = urwid.MonitoredDeque([1, 2, 3], maxlen=3)
+        md.set_modified_callback(bump)
+
+        md.append(4)  # evicts head
+        self.assertEqual(1, counter["count"])
+
+        md.appendleft(0)  # evicts tail
+        self.assertEqual(2, counter["count"])
+
+        md.extend([5, 6])  # evicts multiple
+        self.assertEqual(3, counter["count"])
+
+        md.extendleft([7, 8])
+        self.assertEqual(4, counter["count"])
+
+        md.pop()
+        self.assertEqual(5, counter["count"])
+
+        md.popleft()
+        self.assertEqual(6, counter["count"])
+
+        md.rotate(1)
+        self.assertEqual(7, counter["count"])
+
+        md.clear()
+        self.assertEqual(8, counter["count"])
+
+        md.extend([1, 2])
+        md *= 2
+        self.assertEqual(10, counter["count"])
+        expected = collections.deque([1, 2], maxlen=3)
+        expected *= 2
+        self.assertEqual(list(expected), list(md))
+
+
+class MonitoredFocusDequeModifiedCallbackTest(unittest.TestCase):
+    """The modified callback runs once, after both the contents and the focus are updated."""
+
+    def test_callback_sees_final_focus(self) -> None:
+        """Every mutating operation notifies once, with the contents and the focus already final."""
+        operations = {
+            "del item": lambda md: md.__delitem__(0),
+            "set item": lambda md: md.__setitem__(2, 7),
+            "append": lambda md: md.append(6),
+            "appendleft": lambda md: md.appendleft(-1),
+            "extend": lambda md: md.extend([6, 7]),
+            "iadd": lambda md: md.__iadd__([6, 7]),
+            "extendleft": lambda md: md.extendleft([-1, -2]),
+            "insert": lambda md: md.insert(0, -1),
+            "pop": lambda md: md.pop(),
+            "popleft": lambda md: md.popleft(),
+            "remove": lambda md: md.remove(0),
+            "reverse": lambda md: md.reverse(),
+            "rotate": lambda md: md.rotate(2),
+            "clear": lambda md: md.clear(),
+        }
+        for maxlen in (None, 6):
+            for name, operation in operations.items():
+                if maxlen is not None and name == "insert":
+                    continue  # deque.insert raises on a full bounded deque
+                with self.subTest(name, maxlen=maxlen):
+                    md = urwid.MonitoredFocusDeque(range(6), maxlen, focus=2)
+                    seen = []
+                    md.set_modified_callback(lambda md=md, seen=seen: seen.append((list(md), md.focus)))
+                    operation(md)
+                    self.assertEqual([(list(md), md.focus)], seen)
+
+    def test_iadd_keeps_focused_item_like_extend(self) -> None:
+        """In-place addition evicts from a bounded deque and keeps the focused item, the same as extend."""
+        for maxlen in (None, 4):
+            with self.subTest(maxlen=maxlen):
+                extended = urwid.MonitoredFocusDeque("abc", maxlen, focus=2)
+                extended.extend("xyz")
+                added = urwid.MonitoredFocusDeque("abc", maxlen, focus=2)
+                added += "xyz"
+                self.assertIsInstance(added, urwid.MonitoredFocusDeque)
+                self.assertEqual((list(extended), extended.focus), (list(added), added.focus))
+                self.assertEqual("c", added[added.focus])
+
+    def test_focus_set_by_callback_is_kept(self) -> None:
+        """A focus set by the modified callback is not overwritten afterwards."""
+        md = urwid.MonitoredFocusDeque(range(6), focus=2)
+        md.set_modified_callback(lambda: setattr(md, "focus", 0) if md.focus else None)
+        md.appendleft(-1)
+        self.assertEqual(0, md.focus)
+
+    def test_insert_by_callback_keeps_focus_item(self) -> None:
+        """An insertion made by the modified callback keeps the focus on the same item."""
+        md = urwid.MonitoredFocusDeque(["a", "b", "c", "d"], focus=2)
+        md.set_modified_callback(lambda: md.appendleft("x") if len(md) == 3 else None)
+        md.popleft()
+        self.assertEqual(["x", "b", "c", "d"], list(md))
+        self.assertEqual("c", md[md.focus])
+
+
+class MonitoredFocusDequeFocusMovedCallbackTest(unittest.TestCase):
+    """The focus moved callback runs after the focus changed, once per operation, as on a focus list."""
+
+    @staticmethod
+    def record_with_state(
+        md: urwid.MonitoredFocusDeque[int],
+        seen: list[tuple[int | None, int | None, list[int], int | None]],
+        old: int | None,
+        new: int | None,
+    ) -> None:
+        """Record a focus move with the contents and the focus the deque has when it is reported."""
+        seen.append((old, new, list(md), md.focus))
+
+    def test_operations_report_once_with_final_state(self) -> None:
+        """A change of the contents reports the old and the final focus once, with the contents already final."""
+        operations: dict[str, tuple[Callable[[urwid.MonitoredFocusDeque[int]], object], int | None, int | None]] = {
+            "del before focus": (lambda md: md.__delitem__(0), None, 1),
+            "del after focus": (lambda md: md.__delitem__(4), None, 2),
+            "set item": (lambda md: md.__setitem__(2, 7), None, 2),
+            "insert before focus": (lambda md: md.insert(0, -1), None, 3),
+            "append": (lambda md: md.append(6), None, 2),
+            "append evicting the head": (lambda md: md.append(6), 6, 1),
+            "appendleft": (lambda md: md.appendleft(-1), None, 3),
+            "extend": (lambda md: md.extend([6, 7]), None, 2),
+            "iadd": (lambda md: md.__iadd__([6, 7]), None, 2),
+            "extendleft": (lambda md: md.extendleft([-1, -2]), None, 4),
+            "pop": (lambda md: md.pop(), None, 2),
+            "popleft": (lambda md: md.popleft(), None, 1),
+            "remove": (lambda md: md.remove(0), None, 1),
+            "reverse": (lambda md: md.reverse(), None, 3),
+            "rotate": (lambda md: md.rotate(2), None, 4),
+            "rotate a whole turn": (lambda md: md.rotate(6), None, 2),
+            "clear": (lambda md: md.clear(), None, None),
+            "focus": (lambda md: setattr(md, "focus", 4), None, 4),
+            "same focus": (lambda md: setattr(md, "focus", 2), None, 2),
+        }
+        for name, (operation, maxlen, new_focus) in operations.items():
+            with self.subTest(name):
+                md: urwid.MonitoredFocusDeque[int] = urwid.MonitoredFocusDeque(range(6), maxlen, focus=2)
+                seen: list[tuple[int | None, int | None, list[int], int | None]] = []
+                md.set_focus_moved_callback(functools.partial(self.record_with_state, md, seen))
+                operation(md)
+                self.assertEqual(new_focus, md.focus)
+                self.assertEqual([] if new_focus == 2 else [(2, new_focus, list(md), new_focus)], seen)
+
+    def test_empty_deque(self) -> None:
+        """Emptying the deque reports ``None`` as the new focus, and filling it reports ``None`` as the old one."""
+        md = urwid.MonitoredFocusDeque([1, 2], focus=1)
+        seen: list[tuple[int | None, int | None]] = []
+        md.set_focus_moved_callback(lambda old, new: seen.append((old, new)))
+        md.clear()
+        md.extend([3, 4, 5])
+        self.assertEqual([(1, None), (None, md.focus)], seen)
+
+    def test_focus_set_by_modified_callback(self) -> None:
+        """A focus the modified callback sets is reported once, together with the change."""
+        md = urwid.MonitoredFocusDeque(range(6), focus=2)
+        md.set_modified_callback(lambda: setattr(md, "focus", 5) if md.focus != 5 else None)
+        seen: list[tuple[int | None, int | None]] = []
+        md.set_focus_moved_callback(lambda old, new: seen.append((old, new)))
+        md.appendleft(-1)
+        self.assertEqual([(2, 5)], seen)
+
+    def test_independent_of_focus_changed_callback(self) -> None:
+        """Replacing the focus changed callback keeps the focus moved callback, which runs after it."""
+        md = urwid.MonitoredFocusDeque(range(3), focus=0)
+        order: list[str] = []
+        md.set_focus_moved_callback(lambda old, new: order.append(f"moved {old} {new} {md.focus}"))
+        md.set_focus_changed_callback(lambda new: order.append(f"changed {new} {md.focus}"))
+        md.focus = 1
+        self.assertEqual(["changed 1 0", "moved 0 1 1"], order)
+
+    def test_applied_change_reported_when_a_callback_raises(self) -> None:
+        """A change whose modified callback raises is still reported, once."""
+        md = urwid.MonitoredFocusDeque(range(6), focus=3)
+        seen: list[tuple[int | None, int | None]] = []
+        md.set_focus_moved_callback(lambda old, new: seen.append((old, new)))
+
+        def fail() -> None:
+            raise RuntimeError
+
+        md.set_modified_callback(fail)
+        with self.assertRaises(RuntimeError):
+            md.popleft()
+        self.assertEqual([(3, 2)], seen)
+
+    def test_callback_set_during_a_change_is_kept(self) -> None:
+        """A focus moved callback set by the modified callback replaces the one in use, and reports the change."""
+        md = urwid.MonitoredFocusDeque(range(3), focus=1)
+        first: list[tuple[int | None, int | None]] = []
+        second: list[tuple[int | None, int | None]] = []
+        md.set_focus_moved_callback(lambda old, new: first.append((old, new)))
+        md.set_modified_callback(lambda: md.set_focus_moved_callback(lambda old, new: second.append((old, new))))
+        md.appendleft(-1)
+        self.assertEqual(([], [(1, 2)]), (first, second))
+
+    def test_failed_change_reports_nothing(self) -> None:
+        """A change that raises reports nothing, and the next change is reported again."""
+        md = urwid.MonitoredFocusDeque(range(6), focus=2)
+        seen: list[tuple[int | None, int | None]] = []
+        md.set_focus_moved_callback(lambda old, new: seen.append((old, new)))
+        with self.assertRaises(ValueError):
+            md.remove(99)
+        self.assertEqual([], seen)
+        md.focus = 3
+        self.assertEqual([(2, 3)], seen)
+
+    def test_walker(self) -> None:
+        """A focus deque walker reports through the same callback, for set_focus() and for a change."""
+        walker = urwid.SimpleFocusDequeWalker([urwid.Text(str(idx)) for idx in range(4)])
+        seen: list[tuple[int | None, int | None]] = []
+        walker.set_focus_moved_callback(lambda old, new: seen.append((old, new)))
+        walker.set_focus(2)
+        walker.appendleft(urwid.Text("-1"))
+        self.assertEqual([(0, 2), (2, 3)], seen)
+
+
+class MonitoredFocusDequeFocusAdjustmentTest(unittest.TestCase):
+    def test_focus_evicted_by_append(self) -> None:
+        mfd = urwid.MonitoredFocusDeque([1, 2, 3], maxlen=3, focus=0)
+        mfd.append(4)  # evicts head (the focus item)
+        self.assertEqual([2, 3, 4], list(mfd))
+        self.assertEqual(0, mfd.focus)
+
+    def test_focus_evicted_by_appendleft(self) -> None:
+        mfd = urwid.MonitoredFocusDeque([1, 2, 3], maxlen=3, focus=2)
+        mfd.appendleft(0)  # evicts tail (the focus item)
+        self.assertEqual([0, 1, 2], list(mfd))
+        self.assertEqual(2, mfd.focus)
+
+    def test_focus_shift_without_eviction(self) -> None:
+        mfd = urwid.MonitoredFocusDeque([1, 2, 3], focus=1)
+        mfd.appendleft(0)
+        self.assertEqual([0, 1, 2, 3], list(mfd))
+        self.assertEqual(2, mfd.focus)
+
+    def test_rotate(self) -> None:
+        for rotation, contents, focus in ((1, [4, 0, 1, 2, 3], 1), (-1, [1, 2, 3, 4, 0], 4)):
+            with self.subTest(rotation=rotation):
+                mfd = urwid.MonitoredFocusDeque([0, 1, 2, 3, 4], focus=0)
+                mfd.rotate(rotation)
+                self.assertEqual(contents, list(mfd))
+                self.assertEqual(focus, mfd.focus)
+
+    def test_clear_focus_is_none(self) -> None:
+        mfd = urwid.MonitoredFocusDeque([1, 2, 3], focus=1)
+        mfd.clear()
+        self.assertIsNone(mfd.focus)
+
+    def test_imul(self) -> None:
+        mfd = urwid.MonitoredFocusDeque([1, 2, 3], focus=2)
+        seen = []
+        mfd.set_modified_callback(lambda: seen.append((list(mfd), mfd.focus)))
+        mfd *= 2
+        self.assertEqual([([1, 2, 3, 1, 2, 3], 2)], seen)
+        mfd *= 0
+        self.assertEqual([([1, 2, 3, 1, 2, 3], 2), ([], None)], seen)
+        mfd.append(1)
+        self.assertEqual(0, mfd.focus)
+
+    def test_imul_bounded_by_maxlen(self) -> None:
+        """A bounded deque keeps only maxlen items; a huge count is not repeated item by item on any interpreter."""
+        for focus, count in ((2, 2), (0, 2), (2, 5)):
+            with self.subTest(focus=focus, count=count):
+                mfd = urwid.MonitoredFocusDeque([1, 2, 3], maxlen=4, focus=focus)
+                expected = collections.deque([1, 2, 3], maxlen=4)
+                expected *= count
+                mfd *= count
+                self.assertEqual(list(expected), list(mfd))
+                self.assertEqual(max(0, focus - (3 * count - 4)), mfd.focus)
+
+        mfd = urwid.MonitoredFocusDeque([1, 2, 3], maxlen=4, focus=2)
+        mfd *= 2**61
+        self.assertEqual([3, 1, 2, 3], list(mfd))
+        self.assertEqual(0, mfd.focus)
+        md = urwid.MonitoredDeque([1, 2, 3], maxlen=4)
+        md *= 2**61
+        self.assertEqual([3, 1, 2, 3], list(md))
+
+    def test_focus_out_of_range_rejected(self) -> None:
+        for focus in (3, -1):
+            with self.subTest(focus=focus), self.assertRaises(IndexError):
+                urwid.MonitoredFocusDeque([1, 2, 3], focus=focus)
+        with self.assertRaises(IndexError):
+            urwid.MonitoredFocusDeque([1, 2, 3], maxlen=2, focus=2)  # only two items are kept
+        with self.assertRaises(TypeError):
+            urwid.MonitoredFocusDeque([1, 2, 3], focus="1")
+
+    def test_maxlen_zero(self) -> None:
+        mfd = urwid.MonitoredFocusDeque([1, 2, 3], maxlen=0)
+        self.assertIsNone(mfd.focus)
+        mfd.append(1)
+        self.assertEqual(0, len(mfd))
+        self.assertIsNone(mfd.focus)
+
+
+class MonitoredFocusDequeFollowEndTest(unittest.TestCase):
+    """With ``follow_end``, items added after a focused last item take the focus, also when the head is evicted."""
+
+    def test_focus_follows_added_items(self) -> None:
+        """Check every way of adding items at the right end, bounded and not, with the focus last and elsewhere."""
+        operations = {
+            "append": lambda items: [items.append(item) for item in (3, 4)],
+            "extend": lambda items: items.extend((3, 4)),
+            "iadd": lambda items: operator.iadd(items, (3, 4)),
+            "insert at the end": lambda items: [items.insert(len(items) + 5, item) for item in (3, 4)],
+        }
+        for name, operation in operations.items():
+            for maxlen, contents in ((None, [0, 1, 2, 3, 4]), (5, [0, 1, 2, 3, 4]), (3, [2, 3, 4])):
+                if maxlen == 3 and name == "insert at the end":
+                    continue  # deque.insert raises on a full bounded deque
+                evicted = maxlen == 3
+                for focus, expected in ((2, 2 if evicted else 4), (1, 0 if evicted else 1)):
+                    with self.subTest(operation=name, maxlen=maxlen, focus=focus):
+                        mfd = urwid.MonitoredFocusDeque([0, 1, 2], maxlen, focus=focus, follow_end=True)
+                        operation(mfd)
+                        self.assertEqual(contents, list(mfd))
+                        self.assertEqual(expected, mfd.focus)
+
+    def test_default_keeps_the_focused_item(self) -> None:
+        """Check that without ``follow_end`` a focused last item keeps the focus, or loses it to eviction."""
+        for maxlen, expected in ((None, 2), (3, 0)):
+            with self.subTest(maxlen=maxlen):
+                mfd = urwid.MonitoredFocusDeque([0, 1, 2], maxlen, focus=2)
+                mfd.extend((3, 4))
+                self.assertEqual(expected, mfd.focus)
+
+    def test_imul(self) -> None:
+        """Check that repeating the contents moves a focused last item to the new last item."""
+        for maxlen, expected in ((None, 5), (4, 3)):
+            with self.subTest(maxlen=maxlen):
+                mfd = urwid.MonitoredFocusDeque([0, 1, 2], maxlen, focus=2, follow_end=True)
+                mfd *= 2
+                self.assertEqual(expected, mfd.focus)
+
+    def test_left_end_changes_keep_the_focused_item(self) -> None:
+        """Check that adding at the left end or inserting before the last item does not move the focus to the end."""
+        mfd = urwid.MonitoredFocusDeque([0, 1, 2], focus=2, follow_end=True)
+        mfd.appendleft(-1)
+        mfd.extendleft((-2, -3))
+        mfd.insert(-1, 9)
+        self.assertEqual([-3, -2, -1, 0, 1, 9, 2], list(mfd))
+        self.assertEqual(6, mfd.focus)
+
+    def test_notifies_once_with_the_new_focus(self) -> None:
+        """Check the focus-changed and modified callbacks see the new last item."""
+        mfd = urwid.MonitoredFocusDeque([0], maxlen=2, follow_end=True)
+        modified: list[int | None] = []
+        focus_changes: list[int] = []
+        mfd.set_modified_callback(lambda: modified.append(mfd.focus))
+        mfd.set_focus_changed_callback(focus_changes.append)
+        mfd.append(1)
+        mfd.append(2)
+        self.assertEqual([1, 1], modified)
+        self.assertEqual([1], focus_changes)
+
+
+class _Index:
+    """Integer-like object that supports only ``__index__``, as ``deque.insert()`` requires."""
+
+    def __index__(self) -> int:
+        return 1
+
+
+class _IntOnly:
+    """Object that supports only ``__int__``."""
+
+    def __int__(self) -> int:
+        return 1
+
+
+class MonitoredDequeInsertIndexTest(unittest.TestCase):
+    """Check ``insert()`` index conversion against ``collections.deque.insert()``."""
+
+    classes = (urwid.MonitoredDeque, urwid.MonitoredFocusDeque)
+
+    def test_integer_index_does_not_warn(self) -> None:
+        """Insert at an ``int``, a ``bool`` and an ``__index__`` object like ``deque`` does, with no warning."""
+        for cls in self.classes:
+            for index in (1, True, _Index()):
+                with self.subTest(cls=cls.__name__, index=index), warnings.catch_warnings():
+                    warnings.simplefilter("error")
+                    reference = collections.deque([0, 1, 2])
+                    reference.insert(index, 9)
+                    deq = cls([0, 1, 2])
+                    deq.insert(index, 9)
+                    self.assertEqual(list(reference), list(deq))
+
+    def test_non_integer_index_raises(self) -> None:
+        """Raise ``TypeError`` for an index without ``__index__`` like ``deque`` does, with no change."""
+        strict = (1.5, "1", None, "abc", math.inf, b"1", 1j)
+        int_only = (decimal.Decimal(1), fractions.Fraction(7, 2), _IntOnly())
+        for cls in self.classes:
+            for index in (*strict, *int_only):
+                with self.subTest(cls=cls.__name__, index=index):
+                    deq = cls([0, 1, 2])
+                    with self.assertRaises(TypeError):
+                        deq.insert(index, 9)
+                    self.assertEqual([0, 1, 2], list(deq))
+                    if IS_PYPY and any(index is lenient for lenient in int_only):
+                        self.skipTest("PyPy deque.insert() converts an index that has only __int__")
+                    with self.assertRaises(TypeError):
+                        collections.deque([0, 1, 2]).insert(index, 9)
+
+
+class MonitoredFocusDequeIndexTest(unittest.TestCase):
+    def test_base_rotation_uses_index(self) -> None:
+        items = urwid.MonitoredDeque(["a", "b", "c"])
+        seen = []
+        items.set_modified_callback(lambda: seen.append(list(items)))
+        index = CountingIndex(1)
+        items.rotate(index)
+        self.assertEqual(["c", "a", "b"], list(items))
+        self.assertEqual([["c", "a", "b"]], seen)
+        self.assertEqual(1, index.calls)
+
+    def test_deletion_preserves_focus(self) -> None:
+        for value in (0, -1):
+            with self.subTest(index=value):
+                items = urwid.MonitoredFocusDeque(["a", "b", "c"], focus=1)
+                expected = list(items)
+                del expected[value]
+                del items[Index(value)]
+                self.assertEqual(expected, list(items))
+                self.assertEqual(expected.index("b"), items.focus)
+
+    def test_deletion_evaluates_index_once(self) -> None:
+        items = urwid.MonitoredFocusDeque(["a", "b", "c"], focus=1)
+        index = CountingIndex()
+        del items[index]
+        self.assertEqual(1, index.calls)
+        self.assertEqual(0, items.focus)
+
+    def test_rotation_uses_index(self) -> None:
+        for value in (0, 1, -1, 4):
+            with self.subTest(rotation=value):
+                items = urwid.MonitoredFocusDeque(["a", "b", "c"], focus=1)
+                items.rotate(Index(value))
+                self.assertEqual("b", items[items.focus])
+                self.assertEqual((1 + value) % 3, items.focus)
+
+
+# operations a MonitoredFocusList and a MonitoredFocusDeque both have, with the same meaning
+SHARED_OPERATIONS: typing.Final[dict[str, Callable[[typing.Any], object]]] = {
+    "setitem": lambda items: operator.setitem(items, 1, 9),
+    "setitem negative": lambda items: operator.setitem(items, -1, 9),
+    "delitem": lambda items: operator.delitem(items, 1),
+    "delitem negative": lambda items: operator.delitem(items, -1),
+    "append": lambda items: items.append(9),
+    "extend": lambda items: items.extend((8, 9)),
+    "+=": lambda items: operator.iadd(items, (8, 9)),
+    "*= 2": lambda items: operator.imul(items, 2),
+    "*= 0": lambda items: operator.imul(items, 0),
+    "insert first": lambda items: items.insert(0, 9),
+    "insert middle": lambda items: items.insert(2, 9),
+    "insert negative": lambda items: items.insert(-1, 9),
+    "insert past end": lambda items: items.insert(10, 9),
+    "pop": lambda items: items.pop(),
+    "remove": lambda items: items.remove(2),
+    "clear": lambda items: items.clear(),
+    "replace longer": lambda items: items.replace((5, 6, 7, 8, 9)),
+    "replace shorter": lambda items: items.replace((5,)),
+    "replace empty": lambda items: items.replace(()),
+}
+
+
+class MonitoredFocusDequeValidationTest(unittest.TestCase):
+    """The validation callback of a focus deque matches the one of a focus list."""
+
+    @staticmethod
+    def recording(items: typing.Any) -> list[tuple[tuple[int, int, int], list[typing.Any], list[typing.Any]]]:
+        """Record each validation call as its indices, its new items and the contents before the change."""
+        seen: list[tuple[tuple[int, int, int], list[typing.Any], list[typing.Any]]] = []
+        items.set_validate_contents_modified(
+            lambda indices, new_items: seen.append((indices, list(new_items), list(items))),
+        )
+        return seen
+
+    def test_parity_with_list(self) -> None:
+        """Check the validation calls, contents and focus against a focus list for each shared operation."""
+        for name, operation in SHARED_OPERATIONS.items():
+            for focus in (0, 1, 3):
+                with self.subTest(operation=name, focus=focus):
+                    reference = urwid.MonitoredFocusList([0, 1, 2, 3], focus=focus)
+                    items = urwid.MonitoredFocusDeque([0, 1, 2, 3], focus=focus)
+                    expected = self.recording(reference)
+                    seen = self.recording(items)
+                    operation(reference)
+                    operation(items)
+                    self.assertEqual(expected, seen)
+                    self.assertEqual(list(reference), list(items))
+                    self.assertEqual(reference.focus, items.focus)
+
+    def test_out_of_range_index_parity_with_list(self) -> None:
+        """Check that an index out of range is validated as an empty range and raises IndexError, as on a list."""
+        operations: dict[str, Callable[[typing.Any, int], object]] = {
+            "setitem": lambda items, index: operator.setitem(items, index, 9),
+            "delitem": operator.delitem,
+        }
+        for name, operation in operations.items():
+            for index in (-8, -6, -5, 4, 10):
+                with self.subTest(operation=name, index=index):
+                    reference = urwid.MonitoredFocusList([0, 1, 2, 3], focus=1)
+                    items = urwid.MonitoredFocusDeque([0, 1, 2, 3], focus=1)
+                    expected = self.recording(reference)
+                    seen = self.recording(items)
+                    with self.assertRaises(IndexError):
+                        operation(reference, index)
+                    with self.assertRaises(IndexError):
+                        operation(items, index)
+                    self.assertEqual(expected, seen)
+                    self.assertEqual([0, 1, 2, 3], list(items))
+                    self.assertEqual(1, items.focus)
+
+    def test_bounded_validation_arguments(self) -> None:
+        """Check the range and the new items a bounded deque passes for changes larger than its maxlen."""
+        cases: dict[str, tuple[int, Callable[[typing.Any], object], tuple[int, int, int], list[int]]] = {
+            "*= large count": (3, lambda items: operator.imul(items, 10**9), (2, 2, 1), [0, 1]),
+            "replace longer than maxlen": (3, lambda items: items.replace(range(5)), (0, 2, 1), [0, 1, 2, 3, 4]),
+            "append to maxlen 0": (0, lambda items: items.append(9), (0, 0, 1), [9]),
+        }
+        for name, (maxlen, operation, indices, new_items) in cases.items():
+            with self.subTest(case=name):
+                items = urwid.MonitoredFocusDeque([0, 1], maxlen=maxlen)
+                before = list(items)
+                seen = self.recording(items)
+                operation(items)
+                self.assertEqual([(indices, new_items, before)], seen)
+
+    def test_left_end_operations(self) -> None:
+        """Check that a change at the left end is described as a range starting at 0."""
+        operations: dict[str, tuple[Callable[[typing.Any], object], tuple[int, int, int], list[int]]] = {
+            "appendleft": (lambda items: items.appendleft(9), (0, 0, 1), [9]),
+            "extendleft": (lambda items: items.extendleft((8, 9)), (0, 0, 1), [9, 8]),
+            "popleft": (lambda items: items.popleft(), (0, 1, 1), []),
+        }
+        for name, (operation, indices, new_items) in operations.items():
+            with self.subTest(operation=name):
+                items = urwid.MonitoredFocusDeque([0, 1, 2, 3], focus=1)
+                seen = self.recording(items)
+                operation(items)
+                self.assertEqual([(indices, new_items, [0, 1, 2, 3])], seen)
+
+    def test_reordering_is_not_validated(self) -> None:
+        """Check that a reordering is not passed to the callback, as for a focus list."""
+        for name in ("reverse", "rotate"):
+            with self.subTest(operation=name):
+                items = urwid.MonitoredFocusDeque([0, 1, 2, 3], focus=1)
+                seen = self.recording(items)
+                getattr(items, name)()
+                self.assertEqual([], seen)
+
+    def test_bounded_add_reports_the_added_items_only(self) -> None:
+        """Check that an item evicted by a bounded deque is not part of the validated range."""
+        items = urwid.MonitoredFocusDeque([0, 1, 2], maxlen=3, focus=1)
+        seen = self.recording(items)
+        items.append(9)
+        self.assertEqual([((3, 3, 1), [9], [0, 1, 2])], seen)
+        self.assertEqual([1, 2, 9], list(items))
+
+    def test_empty_pop_validates_nothing_removed(self) -> None:
+        """Check that a pop from an empty deque validates an empty range before it raises."""
+        for name in ("pop", "popleft"):
+            with self.subTest(operation=name):
+                items: urwid.MonitoredFocusDeque[int] = urwid.MonitoredFocusDeque()
+                seen = self.recording(items)
+                with self.assertRaises(IndexError):
+                    getattr(items, name)()
+                self.assertEqual([((0, 0, 1), [], [])], seen)
+
+    def test_rejection_leaves_the_deque_unchanged(self) -> None:
+        """Check that a rejected change keeps the items and the focus, and notifies nothing."""
+        operations: dict[str, Callable[[typing.Any], object]] = {
+            **SHARED_OPERATIONS,
+            "appendleft": lambda items: items.appendleft(9),
+            "extendleft": lambda items: items.extendleft((8, 9)),
+            "popleft": lambda items: items.popleft(),
+        }
+        for name, operation in operations.items():
+            with self.subTest(operation=name):
+                items = urwid.MonitoredFocusDeque([0, 1, 2, 3], focus=1)
+                modified: list[bool] = []
+                moved: list[tuple[int | None, int | None]] = []
+                items.set_modified_callback(functools.partial(modified.append, True))
+                items.set_focus_moved_callback(lambda old, new, sink=moved: sink.append((old, new)))
+
+                def reject(indices: tuple[int, int, int], new_items: object) -> None:
+                    raise ValueError("rejected")
+
+                items.set_validate_contents_modified(reject)
+                with self.assertRaisesRegex(ValueError, "rejected"):
+                    operation(items)
+                self.assertEqual([0, 1, 2, 3], list(items))
+                self.assertEqual(1, items.focus)
+                self.assertEqual([], modified)
+                self.assertEqual([], moved)
+
+    def test_returned_focus_is_used(self) -> None:
+        """Check that a focus returned by the callback replaces the default one."""
+        operations: dict[str, Callable[[typing.Any], object]] = {
+            **{name: operation for name, operation in SHARED_OPERATIONS.items() if "empty" not in name},
+            "appendleft": lambda items: items.appendleft(9),
+            "extendleft": lambda items: items.extendleft((8, 9)),
+            "popleft": lambda items: items.popleft(),
+        }
+        for name, operation in operations.items():
+            if name in {"clear", "*= 0"}:
+                continue
+            with self.subTest(operation=name):
+                # follow_end would move the focus to the new last item if the returned focus were ignored
+                items = urwid.MonitoredFocusDeque([0, 1, 2, 3], focus=3, follow_end=True)
+                items.set_validate_contents_modified(lambda indices, new_items: 0)
+                operation(items)
+                self.assertEqual(0, items.focus)
+
+    def test_container_validator(self) -> None:
+        """A container's validator accepts and rejects deque changes as it does list changes."""
+        pile = urwid.Pile([urwid.Text("a")])
+        items = urwid.MonitoredFocusDeque(pile.contents)
+        items.set_validate_contents_modified(pile._validate_contents_modified)
+        items.appendleft((urwid.Text("top"), pile.options()))
+        self.assertEqual(2, len(items))
+        with self.assertRaises(urwid.PileError):
+            items.appendleft(urwid.Text("bad"))
+        self.assertEqual(2, len(items))
+
+
+class MonitoredFocusDequeFillEmptyTest(unittest.TestCase):
+    """Filling an empty focus deque focuses the item a focus list would focus."""
+
+    def test_right_end_gives_focus_to_last_new_item(self) -> None:
+        """Check the focus of a focus deque and a deque walker after each way of filling them at the right end."""
+        targets: dict[str, Callable[[], typing.Any]] = {
+            "MonitoredFocusDeque": urwid.MonitoredFocusDeque,
+            "bounded MonitoredFocusDeque": lambda: urwid.MonitoredFocusDeque(maxlen=2),
+            "SimpleFocusDequeWalker": lambda: urwid.SimpleFocusDequeWalker([]),
+        }
+        operations: dict[str, Callable[[typing.Any], object]] = {
+            "extend": lambda items: items.extend((7, 8, 9)),
+            "+=": lambda items: operator.iadd(items, (7, 8, 9)),
+            "append": lambda items: items.append(9),
+            "insert": lambda items: items.insert(0, 9),
+            "replace": lambda items: items.replace((7, 8, 9)),
+        }
+        for target, make in targets.items():
+            for name, operation in operations.items():
+                with self.subTest(target=target, operation=name):
+                    items = make()
+                    operation(items)
+                    self.assertEqual(len(items) - 1, items.focus)
+
+    def test_left_end_gives_focus_to_item_added_last(self) -> None:
+        """Check that filling at the left end focuses the item added last, which is the first one."""
+        for name in ("appendleft", "extendleft"):
+            with self.subTest(operation=name):
+                items: urwid.MonitoredFocusDeque[int] = urwid.MonitoredFocusDeque()
+                getattr(items, name)((7, 8, 9) if name == "extendleft" else 9)
+                self.assertEqual(0, items.focus)
+                self.assertEqual(9, items[0])
+
+    def test_follow_end_keeps_following_after_fill(self) -> None:
+        """Check that a deque following its end still does so after it is filled from empty."""
+        items: urwid.MonitoredFocusDeque[int] = urwid.MonitoredFocusDeque(follow_end=True)
+        items.extend((7, 8, 9))
+        items.append(10)
+        self.assertEqual(3, items.focus)
+
+    def test_empty_extension_keeps_the_deque_empty(self) -> None:
+        """Check that extending an empty deque with nothing leaves no focus."""
+        items: urwid.MonitoredFocusDeque[int] = urwid.MonitoredFocusDeque()
+        items.extend(())
+        self.assertIsNone(items.focus)
+
+
+class MonitoredFocusDequeReplaceTest(unittest.TestCase):
+    """Replacing all items of a focus deque behaves as on a focus list."""
+
+    def test_focus(self) -> None:
+        """Check that the focus after a replacement matches a focus list."""
+        cases = {
+            "keeps index": ([0, 1, 2], 1, [5, 6, 7], 1),
+            "clamps to last": ([0, 1, 2], 2, [5], 0),
+            "fills empty with last": ([], 0, [5, 6, 7], 2),
+            "empties": ([0, 1], 1, [], None),
+        }
+        for name, (initial, focus, new, expected) in cases.items():
+            with self.subTest(case=name):
+                reference = urwid.MonitoredFocusList(initial, focus=focus)
+                items = urwid.MonitoredFocusDeque(initial, focus=focus)
+                reference.replace(new)
+                items.replace(new)
+                self.assertEqual(expected, reference.focus)
+                self.assertEqual(expected, items.focus)
+                self.assertEqual(new, list(items))
+
+    def test_bounded_keeps_last_items(self) -> None:
+        """Check that a bounded deque keeps the last items of a longer replacement."""
+        items = urwid.MonitoredFocusDeque([0, 1], maxlen=3, focus=1)
+        items.replace(range(5, 10))
+        self.assertEqual([7, 8, 9], list(items))
+        self.assertEqual(1, items.focus)
+
+    def test_notifies_once(self) -> None:
+        """Check that a replacement sends one modified notification and one focus moved notification."""
+        items = urwid.MonitoredFocusDeque([0, 1, 2], focus=2)
+        events: list[object] = []
+        items.set_modified_callback(lambda: events.append(("modified", list(items), items.focus)))
+        items.set_focus_moved_callback(lambda old, new: events.append(("moved", old, new)))
+        items.replace(iter((5, 6)))
+        self.assertEqual([("modified", [5, 6], 1), ("moved", 2, 1)], events)
+
+
+if __name__ == "__main__":
+    unittest.main()

@@ -18,26 +18,57 @@
 # Urwid web site: https://urwid.org/
 
 
+"""Display modules for character LCD panels, including the Crystalfontz CF635.
+
+.. deprecated:: 5.1.0
+    The LCD display module will be removed in version 6.0, with no replacement.
+"""
+
 from __future__ import annotations
 
 import abc
 import time
 import typing
 
+from urwid import _deprecation
+
 from .common import BaseScreen
 
 if typing.TYPE_CHECKING:
-    from collections.abc import Collection, Iterable, Sequence
+    from collections.abc import Callable, Collection, Iterable, Sequence
+    from typing import Literal, SupportsIndex
 
-    from typing_extensions import Literal, SupportsIndex
+    # Imported by name for type checkers, see urwid._deprecation.
+    from typing_extensions import deprecated
 
-    from urwid import Canvas
+    from urwid import Canvas, EventLoop
+else:
+    from urwid._deprecation import deprecated
+
+# Bytes read from the serial device at once; the port is non-blocking, so a read returns what is waiting.
+_READ_SIZE: typing.Final = 4096
 
 
+@deprecated(
+    "LCDScreen is deprecated with the LCD display module. "
+    "Deprecated since urwid 5.1.0, will be removed in version 6.0.",
+    category=None,
+)
 class LCDScreen(BaseScreen, abc.ABC):
-    """Base class for LCD-based screens."""
+    """Base class for LCD-based screens.
+
+    .. deprecated:: 5.1.0
+        The LCD display module will be removed in version 6.0, with no replacement.
+    """
 
     DISPLAY_SIZE: tuple[int, int]
+
+    def __init__(self) -> None:
+        """Set up the screen state shared by every display module."""
+        # Named after the urwid class it builds on, also for an application's subclass.
+        name = next(cls.__name__ for cls in type(self).__mro__ if cls.__module__ == __name__)
+        _deprecation.warn(f"{name} is deprecated with the LCD display module.", since="5.1.0", removed_in="6.0")
+        super().__init__()
 
     def set_terminal_properties(
         self,
@@ -45,21 +76,29 @@ class LCDScreen(BaseScreen, abc.ABC):
         bright_is_bold: bool | None = None,
         has_underline: bool | None = None,
     ) -> None:
-        pass
+        """Set terminal attributes. A no-op here; an LCD screen has no colors, bold, or underline to configure."""
 
     def set_input_timeouts(self, *args: typing.Any) -> None:
-        pass
+        """Set the maximum time in seconds to wait for input characters. A no-op here."""
 
     def reset_default_terminal_palette(self, *args: typing.Any) -> None:
-        pass
+        """Reset the terminal's default palette. A no-op here; an LCD screen has no palette to reset."""
 
     def get_cols_rows(self) -> tuple[int, int]:
+        """Return the size of the LCD display as ``(cols, rows)``."""
         return self.DISPLAY_SIZE
 
 
+@deprecated(
+    "CFLCDScreen is deprecated with the LCD display module. "
+    "Deprecated since urwid 5.1.0, will be removed in version 6.0.",
+    category=None,
+)
 class CFLCDScreen(LCDScreen, abc.ABC):
-    """
-    Common methods for Crystal Fonts LCD displays
+    """Common methods for Crystal Fonts LCD displays.
+
+    .. deprecated:: 5.1.0
+        The LCD display module will be removed in version 6.0, with no replacement.
     """
 
     KEYS: typing.ClassVar[list[str | None]] = [
@@ -112,7 +151,8 @@ class CFLCDScreen(LCDScreen, abc.ABC):
     has_underline = False
 
     def __init__(self, device_path: str, baud: int) -> None:
-        """
+        """Open the serial connection.
+
         :param device_path: serial device to talk to, e.g. :file:`/dev/ttyUSB0`
         :param baud: baud rate
         """
@@ -125,6 +165,7 @@ class CFLCDScreen(LCDScreen, abc.ABC):
 
     @classmethod
     def get_crc(cls, buf: Iterable[int]) -> bytes:
+        """Return the 16-bit CRC of *buf*, as the two bytes sent in a packet's checksum field."""
         # This seed makes the output of this shift-based algorithm match
         # the table-based algorithm. The center 16 bits of the 32-bit
         # "newCRC" are used for the CRC. The MSB of the lower byte is used
@@ -160,8 +201,8 @@ class CFLCDScreen(LCDScreen, abc.ABC):
         return (((~new_crc) >> 8) & 0xFFFF).to_bytes(2, "little")
 
     def _send_packet(self, command: int, data: Collection[SupportsIndex]) -> None:
-        """
-        low-level packet sending.
+        """Send a low-level packet.
+
         Following the protocol requires waiting for ack packet between
         sending each packet to the device.
         """
@@ -171,20 +212,20 @@ class CFLCDScreen(LCDScreen, abc.ABC):
         self._device.write(buf)
 
     def _read_packet(self) -> tuple[int, bytearray] | None:
-        """
-        low-level packet reading.
-        returns (command/report code, data) or None
+        """Read a low-level packet.
 
-        This method stored data read and tries to resync when bad data
+        This method stores data read and tries to resync when bad data
         is received.
+
+        :returns: ``(command/report code, data)`` or ``None``.
         """
         # pull in any new data available
-        self._unprocessed += self._device.read()
+        self._unprocessed += self._device.read(_READ_SIZE)
         while True:
             try:
                 command, data, unprocessed = self._parse_data(self._unprocessed)
                 self._unprocessed = unprocessed
-            except self.MoreDataRequired:  # noqa: PERF203
+            except self.MoreDataRequired:
                 return None
             except self.InvalidPacket:
                 # throw out a byte and try to parse again
@@ -193,18 +234,16 @@ class CFLCDScreen(LCDScreen, abc.ABC):
                 return command, data
 
     class InvalidPacket(Exception):
-        pass
+        """Raised when a packet is longer than the protocol allows, or its CRC does not match."""
 
     class MoreDataRequired(Exception):
-        pass
+        """Raised when the buffered data does not yet hold a complete packet."""
 
     @classmethod
     def _parse_data(cls, data: bytearray) -> tuple[int, bytearray, bytearray]:
-        """
-        Try to read a packet from the start of data, returning
-        (command/report code, packet_data, remaining_data)
-        or raising InvalidPacket or MoreDataRequired
+        """Try to read a packet from the start of *data*.
 
+        :returns: ``(command/report code, packet_data, remaining_data)``.
         :raises MoreDataRequired: *data* does not yet hold a complete packet.
         :raises InvalidPacket: the packet is longer than the protocol allows, or its CRC does not match.
         """
@@ -227,31 +266,44 @@ class CFLCDScreen(LCDScreen, abc.ABC):
         return command, data[2:data_end], data[data_end + 2 :]
 
 
+@deprecated(
+    "KeyRepeatSimulator is deprecated with the LCD display module. "
+    "Deprecated since urwid 5.1.0, will be removed in version 6.0.",
+    category=None,
+)
 class KeyRepeatSimulator:
-    """
-    Provide simulated repeat key events when given press and
-    release events.
+    """Provide simulated repeat key events when given press and release events.
 
     If two or more keys are pressed, disable repeating until all
     keys are released.
+
+    .. deprecated:: 5.1.0
+        The LCD display module will be removed in version 6.0, with no replacement.
     """
 
     def __init__(self, repeat_delay: float, repeat_next: float) -> None:
-        """
+        """Set up the repeat timing.
+
         :param repeat_delay: seconds to wait before starting to repeat keys
         :param repeat_next: time between each repeated key
         """
+        if not isinstance(self, _KeyRepeatSimulator):
+            _deprecation.warn(
+                "KeyRepeatSimulator is deprecated with the LCD display module.", since="5.1.0", removed_in="6.0"
+            )
         self.repeat_delay = repeat_delay
         self.repeat_next = repeat_next
         self.pressed: dict[str, float] = {}
         self.multiple_pressed = False
 
     def press(self, key: str) -> None:
+        """Record that *key* was pressed, disabling repeat if another key is already held down."""
         if self.pressed:
             self.multiple_pressed = True
         self.pressed[key] = time.time()
 
     def release(self, key: str) -> None:
+        """Record that *key* was released, re-enabling repeat once no key is held down."""
         if key not in self.pressed:
             return  # ignore extra release events
         del self.pressed[key]
@@ -259,10 +311,9 @@ class KeyRepeatSimulator:
             self.multiple_pressed = False
 
     def next_event(self) -> tuple[float, str] | None:
-        """
-        Return (remaining, key) where remaining is the number of seconds
-        (float) until the key repeat event should be sent, or None if no
-        events are pending.
+        """Return ``(remaining, key)``, or ``None`` if no events are pending.
+
+        *remaining* is the number of seconds (float) until the key repeat event should be sent.
         """
         if len(self.pressed) != 1 or self.multiple_pressed:
             return None
@@ -271,9 +322,9 @@ class KeyRepeatSimulator:
         return None
 
     def sent_event(self) -> None:
-        """
-        Cakk this method when you have sent a key repeat event so the
-        timer will be reset for the next event
+        """Call this method when a key repeat event was sent.
+
+        The timer will be reset for the next event.
         """
         if len(self.pressed) != 1:
             return  # ignore event that shouldn't have been sent
@@ -282,9 +333,18 @@ class KeyRepeatSimulator:
             return
 
 
+class _KeyRepeatSimulator(KeyRepeatSimulator):
+    """The :class:`KeyRepeatSimulator` a :class:`CF635Screen` builds for itself, which does not warn again."""
+
+
+@deprecated(
+    "CF635Screen is deprecated with the LCD display module. "
+    "Deprecated since urwid 5.1.0, will be removed in version 6.0.",
+    category=None,
+)
 class CF635Screen(CFLCDScreen):
     """
-    Crystal Fontz 635 display
+    Crystal Fontz 635 display.
 
     20x4 character display + cursor
     no foreground/background colors or settings supported
@@ -293,6 +353,9 @@ class CF635Screen(CFLCDScreen):
 
     6 button input
     up, down, left, right, enter (check mark), exit (cross)
+
+    .. deprecated:: 5.1.0
+        The LCD display module will be removed in version 6.0, with no replacement.
     """
 
     DISPLAY_SIZE = (20, 4)
@@ -326,6 +389,15 @@ class CF635Screen(CFLCDScreen):
 
     cursor_style = CFLCDScreen.CURSOR_INVERTING_BLINKING_BLOCK
 
+    #: Seconds to wait for a command's ACK before sending the command again.
+    ACK_TIMEOUT: float = 0.25
+    #: How many times a command is sent again before it is dropped.
+    ACK_RESENDS: int = 3
+    # Commands a later draw_screen() sends again once the screen buffer is cleared.
+    _DRAW_COMMANDS: typing.Final = frozenset(
+        {CFLCDScreen.CMD_LCD_DATA, CFLCDScreen.CMD_CURSOR_POSITION, CFLCDScreen.CMD_CURSOR_STYLE},
+    )
+
     def __init__(
         self,
         device_path: str,
@@ -333,8 +405,9 @@ class CF635Screen(CFLCDScreen):
         repeat_delay: float = 0.5,
         repeat_next: float = 0.125,
         key_map: Iterable[str] = ("up", "down", "left", "right", "enter", "esc"),
-    ):
-        """
+    ) -> None:
+        """Open the serial connection and set up key repeat handling.
+
         :param device_path: serial device to talk to, e.g. :file:`/dev/ttyUSB0`
         :param baud: baud rate
         :param repeat_delay: seconds to wait before starting to repeat keys
@@ -345,27 +418,81 @@ class CF635Screen(CFLCDScreen):
 
         self.repeat_delay = repeat_delay
         self.repeat_next = repeat_next
-        self.key_repeat = KeyRepeatSimulator(repeat_delay, repeat_next)
+        self.key_repeat = _KeyRepeatSimulator(repeat_delay, repeat_next)
         self.key_map = tuple(key_map)
 
         self._last_command: int | None = None
-        self._last_command_time = 0.0
+        self._last_data = bytearray()  # the data of the command awaiting its ACK, sent again when it is late
+        self._resends = 0  # how often that command was sent again
+        # A command answered while copies of it may still be answered: the device answers in order,
+        # so that many further answers with this code belong to those copies and are ignored.
+        self._stray_code: int | None = None
+        self._strays = 0
+        self._took_stray = False  # an answer was ignored as a stray while the current command waited
+        self._answering = True  # False from a dropped command until the device answers again
+        self._refused: set[int] = set()  # codes of the commands the device refused, each logged once
         self._command_queue: list[tuple[int, bytearray]] = []
         self._screen_buf: list[list[bytes]] = []
         self._previous_canvas: Canvas | None = None
         self._update_cursor = False
+        # set while hooked into an event loop: the loop, the watch of the serial device,
+        # the alarm of the next key repeat, and the alarm, set for each command sent,
+        # that sends the command awaiting its ACK again
+        self._event_loop: EventLoop | None = None
+        self._watch_handle: typing.Any = None
+        self._repeat_alarm: typing.Any = None
+        self._ack_alarm: typing.Any = None
+
+    def hook_event_loop(
+        self,
+        event_loop: EventLoop,
+        callback: Callable[[list[str], list[int]], typing.Any],
+    ) -> None:
+        """Watch the serial device on *event_loop* and pass what :meth:`get_input_nonblocking` returns to *callback*.
+
+        The device's answers, an ACK or an error response, are answered with the next queued command as they arrive,
+        and a held key is repeated from an alarm, since the device sends no repeats.
+        A command whose ACK does not arrive within :attr:`ACK_TIMEOUT` seconds is sent again,
+        up to :attr:`ACK_RESENDS` times, and then dropped, so the queue never stops.
+
+        Logged:
+
+        - a warning when the device stops answering, and an info message when it answers again;
+        - an error the first time the device refuses a command with a given code.
+        """
+
+        def read_device() -> None:
+            if self._repeat_alarm is not None:
+                event_loop.remove_alarm(self._repeat_alarm)
+                self._repeat_alarm = None
+            timeout, keys, raw = self.get_input_nonblocking()
+            if timeout is not None:
+                self._repeat_alarm = event_loop.alarm(timeout, read_device)
+            callback(keys, raw)
+
+        self._remove_ack_alarm()  # left by an earlier hook that was not undone
+        self._event_loop = event_loop
+        self._watch_handle = event_loop.watch_file(self._device.fileno(), read_device)
+        if self._last_command is not None:  # sent before the hook, with nothing timing its ACK
+            self._set_ack_alarm()
+
+    def unhook_event_loop(self, event_loop: EventLoop) -> None:
+        """Remove the watch and the alarms that :meth:`hook_event_loop` and the commands sent since added."""
+        self._remove_ack_alarm()
+        self._event_loop = None
+        if self._repeat_alarm is not None:
+            event_loop.remove_alarm(self._repeat_alarm)
+            self._repeat_alarm = None
+        if self._watch_handle is not None:
+            event_loop.remove_watch_file(self._watch_handle)
+            self._watch_handle = None
 
     def get_input_descriptors(self) -> list[int]:
-        """
-        return the fd from our serial device so we get called
-        on input and responses
-        """
-        return [self._device.fd]
+        """Return the descriptor of the serial device."""
+        return [self._device.fileno()]
 
     def get_input_nonblocking(self) -> tuple[float | None, list[str], list[int]]:
-        """
-        Return a (next_input_timeout, keys_pressed, raw_keycodes)
-        tuple.
+        """Return a ``(next_input_timeout, keys_pressed, raw_keycodes)`` tuple.
 
         The protocol for our device requires waiting for acks between
         each command, so this method responds to those as well as key
@@ -398,8 +525,20 @@ class CF635Screen(CFLCDScreen):
                         self.key_repeat.press(key)
                     raw_data_input.append(d0)
 
-            elif command & 0xC0 == 0x40 and command & 0x3F == self._last_command:  # "ACK"
-                self._send_next_command()
+            elif command & 0x40:  # an ACK (0x40 | code) or an error response (0xC0 | code)
+                code = command & 0x3F
+                if code == self._stray_code and self._strays:
+                    self._strays -= 1  # the answer to a copy of a command already answered
+                    self._took_stray = True
+                elif code == self._last_command:
+                    if not self._answering:
+                        self.logger.info("The LCD answers again")
+                        self._answering = True
+                    if command & 0x80 and code not in self._refused:
+                        # Sending it again cannot help; logged once per code, so repeated refusals do not flood the log.
+                        self.logger.error(f"The LCD refused command {code}; later refusals of it are not logged")
+                        self._refused.add(code)
+                    self._finish_command(self._resends)
 
             packet = self._read_packet()
 
@@ -408,23 +547,82 @@ class CF635Screen(CFLCDScreen):
             if not timeout:
                 data_input.append(key)
                 self.key_repeat.sent_event()
-                timeout = None
+                timeout = self.key_repeat.repeat_next  # the key is still held: the next repeat is due then
 
         return timeout, data_input, raw_data_input
 
+    def _finish_command(self, unanswered: int) -> None:
+        """Send the next command, ignoring *unanswered* later answers to copies of the one sent last."""
+        self._stray_code = self._last_command
+        self._strays = unanswered
+        self._send_next_command()
+
+    def _clear_screen_buf(self) -> None:
+        """Make the next :meth:`draw_screen` send every row and the cursor again."""
+        self._screen_buf = []
+        self._previous_canvas = None
+
     def _send_next_command(self) -> None:
-        """
-        send out the next command in the queue
-        """
+        """Send out the next command in the queue."""
+        self._remove_ack_alarm()
         if not self._command_queue:
             self._last_command = None
             return
-        command, data = self._command_queue.pop(0)
-        self._send_packet(command, data)
-        self._last_command = command  # record command for ACK
-        self._last_command_time = time.time()
+        self._last_command, self._last_data = self._command_queue.pop(0)  # record command for ACK
+        self._resends = 0
+        self._took_stray = False
+        self._send_packet(self._last_command, self._last_data)
+        self._set_ack_alarm()
+
+    def _set_ack_alarm(self) -> None:
+        """Time the ACK of the command just sent, when an event loop is hooked."""
+        if self._event_loop is not None:
+            self._ack_alarm = self._event_loop.alarm(self.ACK_TIMEOUT, self._ack_timed_out)
+
+    def _remove_ack_alarm(self) -> None:
+        """Stop timing the ACK of the command sent last."""
+        if self._ack_alarm is not None:
+            typing.cast("EventLoop", self._event_loop).remove_alarm(self._ack_alarm)
+            self._ack_alarm = None
+
+    def _ack_timed_out(self) -> None:
+        """Send the command awaiting its ACK again, or drop it once it was sent again :attr:`ACK_RESENDS` times.
+
+        Nothing arrived in order for :attr:`ACK_TIMEOUT` seconds,
+        so answers to copies of earlier commands count as lost.
+        The outcomes, the first that applies:
+
+        - An answer was ignored as such a stray while this command waited, so it was most likely its own.
+          The command counts as answered, and the next :meth:`draw_screen` sends everything again in case it was not.
+        - The command was sent again fewer than :attr:`ACK_RESENDS` times: it is sent again.
+        - Otherwise it is dropped, with the queued draw commands, which the next :meth:`draw_screen` sends again.
+
+        :raises RuntimeError: no command awaits an ACK, which every path that ends one prevents by removing this alarm.
+        """
+        self._ack_alarm = None
+        if (command := self._last_command) is None:
+            msg = "an ACK alarm fired with no command awaiting its ACK"
+            raise RuntimeError(msg)
+        self._strays = 0
+        if self._took_stray:
+            self._clear_screen_buf()
+            self._finish_command(0)
+            return
+        if self._resends < self.ACK_RESENDS:
+            self._resends += 1
+            self._send_packet(command, self._last_data)
+            self._set_ack_alarm()
+            return
+        if self._answering:
+            self.logger.warning("The LCD does not answer: commands are dropped until it does")
+            self._answering = False
+        self.logger.debug(f"Dropped LCD command {command}")
+        self._clear_screen_buf()
+        self._command_queue = [entry for entry in self._command_queue if entry[0] not in self._DRAW_COMMANDS]
+        self._finish_command(0)
 
     def queue_command(self, command: int, data: bytearray) -> None:
+        """Queue *command* with *data* for sending, sending it immediately if no command is awaiting an ACK."""
         self._command_queue.append((command, data))
         # not waiting? send away!
         if self._last_command is None:
@@ -439,6 +637,7 @@ class CF635Screen(CFLCDScreen):
         if size != self.DISPLAY_SIZE:
             raise ValueError(size)
 
+        osb: list[list[bytes]]
         if self._screen_buf:
             osb = self._screen_buf
         else:
@@ -452,7 +651,7 @@ class CF635Screen(CFLCDScreen):
                 data = bytearray([0, y])
                 for elem in text:
                     data.extend(elem)
-                self.queue_command(self.CMD_LCD_DATA, data)
+                self._queue_draw(self.CMD_LCD_DATA, data)
             sb.append(text)
 
         if (
@@ -462,15 +661,28 @@ class CF635Screen(CFLCDScreen):
         ):
             pass
         elif canvas.cursor is None:
-            self.queue_command(self.CMD_CURSOR_STYLE, bytearray([self.CURSOR_NONE]))
+            self._queue_draw(self.CMD_CURSOR_STYLE, bytearray([self.CURSOR_NONE]))
         else:
             x, y = canvas.cursor
-            self.queue_command(self.CMD_CURSOR_POSITION, bytearray([x, y]))
-            self.queue_command(self.CMD_CURSOR_STYLE, bytearray([self.cursor_style]))
+            self._queue_draw(self.CMD_CURSOR_POSITION, bytearray([x, y]))
+            self._queue_draw(self.CMD_CURSOR_STYLE, bytearray([self.cursor_style]))
 
         self._update_cursor = False
         self._screen_buf = sb
         self._previous_canvas = canvas
+
+    def _queue_draw(self, command: int, data: bytearray) -> None:
+        """Queue a draw command, replacing a queued one for the same row or the same cursor setting.
+
+        A device that answers more slowly than frames are drawn then gets each row's latest text once,
+        instead of a queue that grows by a frame per draw and replays stale frames.
+        """
+        row = data[1] if command == self.CMD_LCD_DATA else None
+        for index, (queued, queued_data) in enumerate(self._command_queue):
+            if queued == command and (row is None or queued_data[1] == row):
+                self._command_queue[index] = (command, data)
+                return
+        self.queue_command(command, data)
 
     def program_cgram(self, index: int, data: Sequence[int]) -> None:
         """
@@ -490,7 +702,8 @@ class CF635Screen(CFLCDScreen):
         self.queue_command(self.CMD_CGRAM, bytearray([index]) + bytearray(data))
 
     def set_cursor_style(self, style: Literal[1, 2, 3, 4]) -> None:
-        """
+        """Set the cursor style.
+
         :param style: CURSOR_BLINKING_BLOCK, CURSOR_UNDERSCORE, CURSOR_BLINKING_BLOCK_UNDERSCORE or
             CURSOR_INVERTING_BLINKING_BLOCK
         :raises ValueError: *style* is not one of the four cursor styles.
@@ -502,7 +715,7 @@ class CF635Screen(CFLCDScreen):
 
     def set_backlight(self, value: int) -> None:
         """
-        Set backlight brightness
+        Set backlight brightness.
 
         :param value: 0 to 100
         :raises ValueError: *value* is outside 0-100.
@@ -512,7 +725,8 @@ class CF635Screen(CFLCDScreen):
         self.queue_command(self.CMD_BACKLIGHT, bytearray([value]))
 
     def set_lcd_contrast(self, value: int) -> None:
-        """
+        """Set the LCD contrast.
+
         :param value: 0 to 255
         :raises ValueError: *value* is outside 0-255.
         """
@@ -521,7 +735,8 @@ class CF635Screen(CFLCDScreen):
         self.queue_command(self.CMD_LCD_CONTRAST, bytearray([value]))
 
     def set_led_pin(self, led: Literal[0, 1, 2, 3], rg: Literal[0, 1], value: int) -> None:
-        """
+        """Set an LED pin's brightness.
+
         :param led: 0 to 3
         :param rg: 0 for red, 1 for green
         :param value: 0 to 100

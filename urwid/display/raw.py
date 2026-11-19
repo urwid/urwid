@@ -18,9 +18,7 @@
 # Urwid web site: https://urwid.org/
 
 
-"""
-Direct terminal UI implementation
-"""
+"""Direct terminal UI implementation."""
 
 from __future__ import annotations
 
@@ -28,10 +26,8 @@ import sys
 
 __all__ = ("Screen",)
 
-IS_WINDOWS = sys.platform == "win32"
-
-if IS_WINDOWS:
+if sys.platform == "win32":
     from ._win32_raw_display import Screen
 
 else:
-    from ._posix_raw_display import Screen  # type: ignore[assignment]
+    from ._posix_raw_display import Screen

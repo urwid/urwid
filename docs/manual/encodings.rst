@@ -17,23 +17,25 @@ based on the configured locale. You may change that setting with the
     urwid.set_encoding("UTF-8")
 
 There are two distinct modes of handling encodings with Urwid: Unicode or
-Pass-through. The mode corresponds to using Unicode strings or normal strings
-in your widgets.
+Pass-through. The mode corresponds to using Unicode strings (:class:`str`) or
+byte strings (:class:`bytes`) in your widgets. Unicode strings are the
+recommended way; byte strings are only useful when the output screen encoding
+does not map to Unicode code points.
 
 ::
 
-    txt_a = urwid.Text(u"El Niño")
-    txt_b = urwid.Text("El Niño")
+    txt_a = urwid.Text("El Niño")
+    txt_b = urwid.Text(b"\xf5\xa1")  # EUC-JP char in user-defined area
 
-``txt_a`` will be automatically encoded when it is displayed (Unicode mode).
+``txt_a`` is a Unicode string and will be automatically encoded when it is
+displayed (Unicode mode).
 
-``txt_b`` is **assumed** to be in the encoding the user is expecting and passed
-through as-is (Pass-through mode). If the encodings are different then the
-user will see "mojibake" (garbage) on their screen.
+``txt_b`` is made from bytes. They are **assumed** to be in the encoding the
+user is expecting and passed through as-is (Pass-through mode). If the
+encodings are different then the user will see "mojibake" (garbage) on their
+screen.
 
-The only time it makes sense to use pass-through mode is if you're handling an
-encoding that does not round-trip to Unicode properly, or if you're absolutely
-sure you know what you're doing.
+.. _unicode-support:
 
 Unicode Support
 ===============
@@ -55,7 +57,29 @@ graphic characters:
     \u252c (┬), \u2534 (┴), \u253c (┼), \u2592 (▒), \u25c6 (◆)
 
 If you use these characters with a non-UTF-8 encoding they will be sent using
-the alternate character set sequences supported by some terminals.
+the alternate character set sequences supported by some terminals. This also
+applies to the UTF-8 output of a program running in a :class:`Terminal`
+widget.
+
+Any other character that a non-UTF-8 encoding cannot represent is sent as
+``?``. :func:`urwid.set_ascii_fallbacks` sets a replacement for such
+characters, for example for the Linux console or a serial console:
+
+::
+
+    urwid.set_ascii_fallbacks({
+        "\N{BULLET}": "*",
+        "\N{FULL BLOCK}": "\N{BOX DRAWINGS LIGHT VERTICAL}",
+    })
+
+Each key is a single character one column wide, and each replacement is a
+single printable ASCII character or one of the DEC graphic characters above.
+Text layout is measured before the replacement is applied, so a combining or
+wide character is rejected as a key: its replacement would not occupy the same
+columns. The DEC graphic characters are translated first, so a replacement for
+one of them is never used, and the table is not used with UTF-8. Byte text
+markup uses only the printable ASCII replacements, since byte text cannot carry
+the DEC graphic characters.
 
 Pass-through Support
 ====================
@@ -79,7 +103,7 @@ bytes are assumed to be 1 column wide characters. For the remaining supported
 encodings any byte with the high-bit set is considered to be half of a 2-column
 wide character.
 
-The additional plains in EUC are not currently supported.
+The additional planes in EUC are not currently supported.
 
 Future Work
 ===========
@@ -89,8 +113,3 @@ setting. It should be possible to simultaneously support different encodings on
 different screens with Urwid. Making this work involves possibly changing the
 function signature of many widget methods, because encoding needs to be
 specified along with size and focus.
-
-Device-specific encodings should also be possible for Unicode mode. The LCD
-display module in development drives a device with a non-standard mapping of
-Unicode code points to 8-bit values, but it should still be possible to use a
-Unicode text to display the characters it supports.

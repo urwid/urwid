@@ -1,6 +1,7 @@
 {
   "build": {
-    "dockerfile": "dev.dockerfile"
+    "dockerfile": "dev.dockerfile",
+    "target": "dev"
   },
   "features": {
     "ghcr.io/devcontainers/features/github-cli": {}
@@ -32,7 +33,5 @@
   "init": true,
   "postCreateCommand": "uv venv /home/ubuntu/.venv-urwid && uv sync --all-groups",
   "postStartCommand": "uv sync --all-groups --all-extras",
-  "mounts": [
-    "source=${localEnv:HOME}/.ssh,target=/home/ubuntu/.ssh,type=bind,readonly"
-  ]
+  "mounts": ["source=${localEnv:HOME}/.ssh,target=/home/ubuntu/.ssh,type=bind,readonly"]
 }

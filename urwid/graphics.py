@@ -18,49 +18,33 @@
 # Urwid web site: https://urwid.org/
 
 
+"""The PythonLogo widget, and graphics widgets re-exported from :mod:`urwid.widget`."""
+
 from __future__ import annotations
 
 import typing
 
 from urwid.display import AttrSpec
 from urwid.widget import (
-    BarGraph,
-    BarGraphError,
-    BarGraphMeta,
-    BigText,
-    GraphVScale,
-    LineBox,
-    ProgressBar,
     Sizing,
     Text,
     Widget,
     fixed_size,
-    scale_bar_values,
 )
 
 if typing.TYPE_CHECKING:
     from urwid import canvas
 
-__all__ = (
-    "BarGraph",
-    "BarGraphError",
-    "BarGraphMeta",
-    "BigText",
-    "GraphVScale",
-    "LineBox",
-    "ProgressBar",
-    "scale_bar_values",
-)
+__all__ = ("PythonLogo",)
 
 
 class PythonLogo(Widget):
+    """Fixed widget that draws an ASCII-art rendering of the Python logo."""
+
     _sizing = frozenset([Sizing.FIXED])
 
     def __init__(self) -> None:
-        """
-        Create canvas containing an ASCII version of the Python
-        Logo and store it.
-        """
+        """Create canvas containing an ASCII version of the Python Logo and store it."""
         super().__init__()
         blu = AttrSpec("light blue", "default")
         yel = AttrSpec("yellow", "default")
@@ -78,15 +62,11 @@ class PythonLogo(Widget):
         # fmt: on
 
     def pack(self, size: tuple[()] | None = None, focus: bool = False) -> tuple[int, int]:  # type: ignore[override]
-        """
-        Return the size from our pre-rendered canvas.
-        """
+        """Return the size from our pre-rendered canvas."""
         return self._canvas.cols(), self._canvas.rows()
 
     def render(self, size: tuple[()], focus: bool = False) -> canvas.TextCanvas:  # type: ignore[override]
-        """
-        Return the pre-rendered canvas.
-        """
+        """Return the pre-rendered canvas."""
         fixed_size(size)
         return self._canvas
 

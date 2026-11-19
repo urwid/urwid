@@ -1,15 +1,15 @@
+"""SolidFill: a box widget filled with a single character."""
+
 from __future__ import annotations
 
 from urwid.canvas import SolidCanvas
 
 from .constants import SHADE_SYMBOLS, Sizing
-from .widget import Widget
+from .widget import Widget, _InvalidatingAttribute
 
 
 class SolidFill(Widget):
-    """
-    A box widget that fills an area with a single character
-    """
+    """A box widget that fills an area with a single character."""
 
     _selectable = False
     ignore_focus = True
@@ -17,10 +17,12 @@ class SolidFill(Widget):
 
     Symbols = SHADE_SYMBOLS
 
+    #: Character the area is filled with.
+    fill_char = _InvalidatingAttribute[str]()
+
     def __init__(self, fill_char: str = " ") -> None:
         """
         :param fill_char: character to fill area with
-        :type fill_char: bytes or unicode
 
         >>> SolidFill("8")
         <SolidFill box widget '8'>

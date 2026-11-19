@@ -19,17 +19,58 @@
 #
 # Urwid web site: https://urwid.org/
 
-"""
-Urwid tour.  Shows many of the standard widget types and features.
+"""Urwid tour.
+
+Shows many of the standard widget types and features.
 """
 
 from __future__ import annotations
 
+import typing
+
 import urwid
+from urwid.command_map import Command
+
+if typing.TYPE_CHECKING:
+    from collections.abc import Sequence
+
+PORTS = range(1, 65536)
+PRIVILEGED_PORTS = range(1, 1024)
+COLOURS = ("black", "brown", "dark blue", "dark cyan", "dark green", "dark red", "light blue", "light gray")
+
+
+class ReadlineEdit(urwid.Edit):
+    """Edit that takes the readline editing keys, from its own copy of the shared command map."""
+
+    _command_map = urwid.command_map.copy()
+    _command_map.bind_readline()
+
+
+class ContextMenuArea(urwid.WidgetWrap[urwid.ActionMenu]):
+    """Area whose right click opens its context menu below the pointer, through :meth:`ActionMenu.open_at`."""
+
+    def mouse_event(
+        self,
+        size: tuple[()] | tuple[int] | tuple[int, int],
+        event: str,
+        button: int,
+        col: int,
+        row: int,
+        focus: bool,
+    ) -> bool | None:
+        """Open the menu below the pressed cell on a right click; pass every other event on."""
+        if button == urwid.MouseButton.RIGHT and urwid.util.is_mouse_press(event):
+            self._w.open_at(col, row)
+            return True
+        return super().mouse_event(size, event, button, col, row, focus)
 
 
 def main() -> None:
-    text_header = "Welcome to the urwid tour!  UP / DOWN / PAGE UP / PAGE DOWN scroll.  F8 exits."
+    """Build and run the tour of standard widget types and features."""
+    text_header = (
+        "Welcome to the urwid tour!  UP / DOWN / PAGE UP / PAGE DOWN scroll.  "
+        "TAB / SHIFT TAB move between fields.  F8 exits."
+    )
     text_intro: list[str | tuple[str, str]] = [
         ("important", "Text"),
         (
@@ -101,6 +142,12 @@ def main() -> None:
     )
     text_edit_cap3 = ("editcp", "This one is clipped, try editing past the edge: ")
     text_edit_text3 = "add some text here -> -> -> ...."
+    text_edit_cap4 = ("editcp", "This one takes at most 8 characters: ")
+    text_edit_text4 = "12345"
+    text_edit_cap5 = ("editcp", "This one shows a hint while empty and checks the port: ")
+    text_edit_cap6 = ("editcp", "This one completes a colour with TAB: ")
+    text_edit_cap7 = ("editcp", "This one takes readline keys, such as ctrl a, ctrl w, meta b and ctrl _ to undo: ")
+    text_edit_text7 = "ls /usr/local/share"
     text_edit_alignments = "Different Alignments:"
     text_edit_left = "left aligned (default)"
     text_edit_center = "center aligned"
@@ -157,11 +204,89 @@ def main() -> None:
         ("important", "CheckBox"),
         " and ",
         ("important", "RadioButton"),
-        " widgets.",
+        " widgets.  The ",
+        ("important", "GridFlow"),
+        " of buttons below sets ",
+        ("important", "unfocused_focus_attr"),
+        ", so its focus button stays marked while the focus is elsewhere.",
     ]
     text_button_list = ["Yes", "No", "Perhaps", "Certainly", "Partially", "Tuesdays Only", "Help"]
     text_cb_list = ["Wax", "Wash", "Buff", "Clear Coat", "Dry", "Racing Stripe"]
     text_rb_list = ["Morning", "Afternoon", "Evening", "Weekend"]
+    text_table: list[str | tuple[str, str]] = [
+        "A ",
+        ("important", "Table"),
+        (
+            " widget lines up rows of cells between a fixed header and footer: every column is as wide as its "
+            "widest cell, a number, or a share of the rest.  This one shows at most four rows at a time, with a "
+            "scrollbar while they do not all fit, a footer row of totals, and keeps the focused row marked while the "
+            "focus is elsewhere.  A narrow window hides the Size column first, since its priority is the lowest.  "
+            "Click a column label, or press UP at the first row and ENTER on a label, to sort by that column; again "
+            "to reverse the order.  The check box below it shows or hides the Size column."
+        ),
+    ]
+    # (name, size, size in bytes for sorting, note)
+    table_rows = [
+        ("urwid", "1.2M", 1_258_291, "console user interface library"),
+        ("table.py", "34K", 34_816, "the widget shown here"),
+        ("tour.py", "18K", 18_432, "this program"),
+        ("palette", "1", 1, "a single entry"),
+        ("canvas.py", "52K", 53_248, "what widgets render to"),
+        ("\u4e2d\u6587", "2", 2, "wide characters line up too"),
+    ]
+    text_drop_down: list[str | tuple[str, str]] = [
+        "A ",
+        ("important", "DropDown"),
+        (
+            " widget shows the selected option.  ENTER, SPACE or a mouse click "
+            "opens a list of all the options below it, or above it when there is no room "
+            "below; ESC or a click outside closes the list without a change.  A long list scrolls.  "
+            "A line separates groups of options, and a disabled option is shown but cannot be chosen.  "
+            "The list is a pop-up, so the MainLoop is created with pop_ups=True."
+        ),
+    ]
+    text_drop_down_cap1 = "Color:"
+    # The separator splits the primary colours from the secondary ones; "Yellow" is disabled.
+    text_drop_down_list1 = ["Red", "Green", "Blue", None, "Cyan", "Magenta", "Yellow"]
+    text_drop_down_cap2 = "Month:"
+    text_drop_down_list2 = [
+        "January",
+        "February",
+        "March",
+        "April",
+        "May",
+        "June",
+        "July",
+        "August",
+        "September",
+        "October",
+        "November",
+        "December",
+    ]
+    text_action_menu: list[str | tuple[str, str]] = [
+        "An ",
+        ("important", "ActionMenu"),
+        (
+            " opens a list of actions with ENTER, SPACE or a click.  The key in brackets chooses an item, "
+            "a disabled item cannot be focused, and Send to opens a submenu with RIGHT; LEFT or ESC closes it.  "
+            "Near the right edge the submenu opens to the left of the list."
+        ),
+    ]
+    text_context_menu = (
+        "Right-click anywhere in this paragraph.  Its menu has no launcher of its own: the paragraph's mouse "
+        "handler calls open_at(), so the menu opens below the pointer, while a click on a launcher such as "
+        "Actions opens the list at the launcher's edge, as ENTER does."
+    )
+    text_tabs: list[str | tuple[str, str]] = [
+        "A ",
+        ("important", "Tabs"),
+        (
+            " widget shows one row of tab labels over the body of the selected tab.  "
+            "META RIGHT / META LEFT or a mouse click switch tabs.  UP from the body moves to the label row, "
+            "where LEFT / RIGHT and ENTER pick a tab and DOWN goes back.  "
+            "Make the window narrow to see the label row scroll."
+        ),
+    ]
     text_listbox: list[str | tuple[str, str]] = [
         "All these widgets have been displayed with the help of a ",
         ("important", "ListBox"),
@@ -174,6 +299,110 @@ def main() -> None:
         frame.footer = urwid.AttrMap(urwid.Text(["Pressed: ", button.get_label()]), "header")
 
     radio_button_group: list[urwid.RadioButton] = []
+
+    drop_down_options: tuple[Sequence[str | None], ...] = (text_drop_down_list1, text_drop_down_list2)
+    drop_down_selected = urwid.Text("")
+
+    def show_drop_down_selection(changed: urwid.DropDown | None = None, new_index: int = 0) -> None:
+        # 'change' is sent before changed.selected moves, so its new option is read from new_index.
+        markup: list[str | tuple[str, str]] = ["Selected: "]
+        for number, (drop_down, options) in enumerate(zip(drop_downs, drop_down_options, strict=True)):
+            index = new_index if drop_down is changed else drop_down.selected
+            if number:
+                markup.append(", ")
+            # The selected option is never a separator.
+            markup.append(("important", typing.cast("str", options[index])))
+        drop_down_selected.set_text(markup)
+
+    drop_downs = [
+        urwid.DropDown(drop_down_options[0], disabled={6}, attr_map="buttn", focus_map="buttnf", disabled_map="tab"),
+        urwid.DropDown(drop_down_options[1], selected=5, max_visible_items=5, attr_map="buttn", focus_map="buttnf"),
+    ]
+    for drop_down in drop_downs:
+        urwid.connect_signal(drop_down, "change", show_drop_down_selection)
+    show_drop_down_selection()
+    # One width for both, so the two drop-downs line up.
+    drop_down_width = max(drop_down.pack()[0] for drop_down in drop_downs)
+
+    table = urwid.Table(
+        [
+            urwid.TableColumn("Name"),
+            urwid.TableColumn("Size", align=urwid.RIGHT, attr="bright", priority=-1),
+            urwid.TableColumn("Note", width=(urwid.WEIGHT, 1), wrap=urwid.ELLIPSIS),
+        ],
+        header_attr="important",
+        footer=["6 entries", "1.3M"],
+        footer_attr="important",
+        focus_attr={None: "buttnf", "bright": "buttnf"},
+        unfocused_focus_attr={None: "buttnl", "bright": "buttnl"},
+        max_rows=4,
+        scrollbar=None,
+        scrollbar_thumb_char=urwid.ScrollBar.Symbols.DARK_SHADE,
+        scrollbar_trough_char=urwid.ScrollBar.Symbols.LITE_SHADE,
+        sortable=True,
+        header_focus_attr="buttnf",
+    )
+    table.body.extend(
+        table.layout.row([name, size, note], data=size_bytes) for name, size, size_bytes, note in table_rows
+    )
+
+    def sort_table(sorted_table: urwid.Table, column: int) -> bool:
+        # the same column again reverses the order; the Size column sorts by the number of bytes, not by its text
+        reverse = sorted_table.sort_column == column and not sorted_table.sort_reverse
+        if column == 1:
+            sorted_table.sort(column, key=lambda row: row.data, reverse=reverse)
+        else:
+            sorted_table.sort(column, reverse=reverse)
+        return True
+
+    urwid.connect_signal(table, "header activated", sort_table)
+
+    def show_sizes(_check_box: urwid.CheckBox, state: bool) -> None:
+        # the columns are named by the keys generated from their labels
+        table.layout.column_order = ("name", "size", "note") if state else ("name", "note")
+
+    show_sizes_box = urwid.CheckBox("Show sizes", state=True)
+    urwid.connect_signal(show_sizes_box, "change", show_sizes)
+
+    action_chosen = urwid.Text(["Action: ", ("important", "none yet")])
+
+    def show_action(_menu: urwid.ActionMenu, item: urwid.MenuItem) -> None:
+        action_chosen.set_text(["Action: ", ("important", str(item.value))])
+
+    action_menu = urwid.ActionMenu(
+        "Actions",
+        [
+            urwid.MenuItem("(O)pen", "open", key="o"),
+            urwid.MenuItem("Re(n)ame", "rename", enabled=False, key="n"),
+            None,
+            urwid.MenuItem(
+                "(S)end to",
+                submenu=[
+                    urwid.MenuItem("(M)ail", "send by mail", key="m"),
+                    urwid.MenuItem("(P)rinter", "print", key="p"),
+                ],
+                key="s",
+            ),
+            urwid.MenuItem("(D)elete", "delete", key="d"),
+        ],
+        on_action=show_action,
+        attr_map="buttn",
+        focus_map="buttnf",
+        disabled_map="tab",
+    )
+    context_menu = urwid.ActionMenu(
+        None,
+        [
+            urwid.MenuItem("(C)opy", "copy", key="c"),
+            urwid.MenuItem("Select (a)ll", "select all", key="a"),
+        ],
+        launcher=urwid.Text(text_context_menu),
+        # The paragraph opens the menu itself, so the menu takes no button of its own.
+        open_buttons=(),
+        on_action=show_action,
+        attr_map="buttn",
+        focus_map="buttnf",
+    )
 
     blank = urwid.Divider()
     listbox_content: list[urwid.widget.AbstractFlowWidget] = [
@@ -207,6 +436,28 @@ def main() -> None:
         urwid.AttrMap(urwid.Edit(text_edit_cap2, text_edit_text2, multiline=True), "editbx", "editfc"),
         blank,
         urwid.AttrMap(urwid.Edit(text_edit_cap3, text_edit_text3, wrap=urwid.CLIP), "editbx", "editfc"),
+        blank,
+        urwid.AttrMap(urwid.Edit(text_edit_cap4, text_edit_text4, max_length=8), "editbx", "editfc"),
+        blank,
+        urwid.AttrMap(
+            urwid.Edit(
+                text_edit_cap5,
+                placeholder=("edithint", "e.g. 8080"),
+                validator=check_port,
+                validation_attr={urwid.Severity.WARNING: "editwarn", urwid.Severity.ERROR: "editerr"},
+                validation_focus_attr={urwid.Severity.WARNING: "editwarnf", urwid.Severity.ERROR: "editerrf"},
+            ),
+            "editbx",
+            "editfc",
+        ),
+        blank,
+        urwid.AttrMap(
+            urwid.Edit(text_edit_cap6, text_completer=complete_colour),
+            "editbx",
+            "editfc",
+        ),
+        blank,
+        urwid.AttrMap(ReadlineEdit(text_edit_cap7, text_edit_text7, undo_limit=50, kill_buffer=[]), "editbx", "editfc"),
         blank,
         urwid.Text(text_edit_alignments),
         urwid.AttrMap(urwid.Edit("", text_edit_left, align=urwid.LEFT), "editbx", "editfc"),
@@ -287,10 +538,12 @@ def main() -> None:
                         urwid.AttrMap(urwid.Edit(text_edit_col_cap2, text_edit_col_text2), "editbx", "editfc"),
                         blank,
                         urwid.AttrMap(urwid.Edit(text_edit_col_cap3, text_edit_col_text3), "editbx", "editfc"),
-                    ]
+                    ],
+                    select_navigation=True,
                 ),
             ],
             1,
+            select_navigation=True,
         ),
         blank,
         urwid.AttrMap(
@@ -316,6 +569,8 @@ def main() -> None:
                 3,
                 1,
                 urwid.LEFT,
+                select_navigation=True,
+                unfocused_focus_attr={"buttn": "buttnl"},
             ),
             left=4,
             right=3,
@@ -329,6 +584,7 @@ def main() -> None:
                 3,
                 1,
                 urwid.LEFT,
+                select_navigation=True,
             ),
             left=4,
             right=3,
@@ -342,10 +598,82 @@ def main() -> None:
                 3,
                 1,
                 urwid.LEFT,
+                select_navigation=True,
             ),
             left=4,
             right=3,
             min_width=13,
+        ),
+        blank,
+        blank,
+        urwid.Padding(urwid.Text(text_table), left=2, right=2, min_width=20),
+        blank,
+        urwid.Padding(
+            urwid.Pile([table, urwid.AttrMap(show_sizes_box, "buttn", "buttnf")]),
+            left=4,
+            right=3,
+            min_width=20,
+        ),
+        blank,
+        blank,
+        urwid.Padding(urwid.Text(text_drop_down), left=2, right=2, min_width=20),
+        blank,
+        urwid.Padding(
+            urwid.Columns(
+                [
+                    (7, urwid.Text(text_drop_down_cap1)),
+                    (drop_down_width, urwid.AttrMap(drop_downs[0], "buttn", "buttnf")),
+                ]
+            ),
+            left=4,
+            right=3,
+            min_width=20,
+        ),
+        urwid.Padding(
+            urwid.Columns(
+                [
+                    (7, urwid.Text(text_drop_down_cap2)),
+                    (drop_down_width, urwid.AttrMap(drop_downs[1], "buttn", "buttnf")),
+                ]
+            ),
+            left=4,
+            right=3,
+            min_width=20,
+        ),
+        blank,
+        urwid.Padding(drop_down_selected, left=4, right=3, min_width=20),
+        blank,
+        blank,
+        urwid.Padding(urwid.Text(text_action_menu), left=2, right=2, min_width=20),
+        blank,
+        urwid.Padding(
+            urwid.Columns([(action_menu.pack()[0], urwid.AttrMap(action_menu, "buttn", "buttnf")), action_chosen]),
+            left=4,
+            right=3,
+            min_width=20,
+        ),
+        blank,
+        urwid.Padding(ContextMenuArea(context_menu), left=4, right=3, min_width=20),
+        blank,
+        blank,
+        urwid.Padding(urwid.Text(text_tabs), left=2, right=2, min_width=20),
+        blank,
+        urwid.Padding(
+            urwid.Tabs(
+                [
+                    ("Overview", urwid.Text("Each tab has its own body; only the selected one is drawn.")),
+                    ("Name", urwid.AttrMap(urwid.Edit("Name: "), "editbx", "editfc")),
+                    ("Options", urwid.Pile([urwid.CheckBox("Verbose"), urwid.CheckBox("Dry run")])),
+                ],
+                bar_selectable=True,
+                underline=(urwid.Tabs.Symbols.LINE_LIGHT, urwid.Tabs.Symbols.LINE_HEAVY),
+                attr_map="tab",
+                selected_map="tab selected",
+                focus_map="buttnf",
+            ),
+            left=4,
+            right=3,
+            min_width=20,
         ),
         blank,
         blank,
@@ -355,10 +683,13 @@ def main() -> None:
     ]
 
     header = urwid.AttrMap(urwid.Text(text_header), "header")
-    listbox = urwid.ListBox(urwid.SimpleListWalker(listbox_content))
+    # select_navigation lets TAB / SHIFT TAB visit every edit, button and check box in order
+    listbox = urwid.ListBox(urwid.SimpleListWalker(listbox_content), select_navigation=True)
     scrollable = urwid.ScrollBar(
         listbox,
         trough_char=urwid.ScrollBar.Symbols.LITE_SHADE,
+        end_markers=(urwid.ScrollBar.Symbols.ARROW_TRIANGLE_UP, urwid.ScrollBar.Symbols.ARROW_TRIANGLE_DOWN),
+        scroll_by_focus=True,
     )
     frame: urwid.Frame[
         urwid.AttrMap[urwid.ScrollBar[urwid.ListBox[int]]],
@@ -377,9 +708,17 @@ def main() -> None:
         ("editfc", "white", "dark blue", "bold"),
         ("editbx", "light gray", "dark blue"),
         ("editcp", "black", "light gray", "standout"),
+        ("edithint", "light cyan", "dark blue"),
+        ("editwarn", "yellow", "dark blue"),
+        ("editwarnf", "yellow", "dark blue", "bold"),
+        ("editerr", "light red", "dark blue"),
+        ("editerrf", "light red", "dark blue", "bold"),
         ("bright", "dark gray", "light gray", "bold,standout"),
         ("buttn", "black", "dark cyan"),
         ("buttnf", "white", "dark blue", "bold"),
+        ("buttnl", "white", "dark cyan", "bold"),
+        ("tab", "dark gray", "light gray"),
+        ("tab selected", "dark blue", "light gray", "bold"),
     ]
 
     # use appropriate Screen class
@@ -390,12 +729,33 @@ def main() -> None:
 
     def unhandled(key: str | tuple[str, int, int, int]) -> None:
         if key == "f8":
-            raise urwid.ExitMainLoop()
+            raise urwid.ExitMainLoop
 
-    urwid.MainLoop(frame, palette, screen, unhandled_input=unhandled).run()
+    urwid.command_map.bind(Command.NEXT_TAB, "meta right")
+    urwid.command_map.bind(Command.PREVIOUS_TAB, "meta left")
+    # pop_ups=True adds the PopUpTarget that shows the open DropDown and ActionMenu lists.
+    urwid.MainLoop(frame, palette, screen, unhandled_input=unhandled, pop_ups=True).run()
+
+
+def check_port(text: str) -> urwid.ValidationMessage | str | None:
+    """Return what is wrong with *text* as a TCP port number, or ``None`` for an empty or usable one."""
+    if not text:
+        return None
+    if not text.isdecimal() or int(text) not in PORTS:
+        return "not a port number"
+    if int(text) in PRIVILEGED_PORTS:
+        return urwid.ValidationMessage(urwid.Severity.WARNING, "a privileged port")
+    return None
+
+
+def complete_colour(text: str, pos: int) -> list[tuple[str, int]]:
+    """Return the colours that start with the text before the cursor, none for an empty field."""
+    prefix = text[:pos]
+    return [(name, len(name)) for name in COLOURS if name.startswith(prefix)] if prefix else []
 
 
 def setup() -> None:
+    """Run the tour as a web request when applicable, otherwise as a standalone program."""
     urwid.display.web.set_preferences("Urwid Tour")
     # try to handle short web requests quickly
     if urwid.display.web.handle_short_request():

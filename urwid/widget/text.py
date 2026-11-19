@@ -1,33 +1,33 @@
+"""Text: a widget that displays text with display attributes."""
+
 from __future__ import annotations
 
+import itertools
 import typing
 
 from urwid import text_layout
 from urwid.canvas import apply_text_layout
 from urwid.split_repr import remove_defaults
 from urwid.str_util import calc_width
-from urwid.util import decompose_tagmarkup, get_encoding
+from urwid.util import decompose_tagmarkup
 
 from .constants import Align, Sizing, WrapMode
 from .widget import Widget, WidgetError
 
 if typing.TYPE_CHECKING:
     from collections.abc import Hashable
-
-    from typing_extensions import Literal
+    from typing import Literal
 
     from urwid.canvas import TextCanvas
     from urwid.util import _TagMarkup
 
 
 class TextError(WidgetError):
-    pass
+    """Error raised for invalid :class:`Text` widget usage."""
 
 
 class Text(Widget):
-    """
-    a horizontally resizeable text widget
-    """
+    """A horizontally resizeable text widget."""
 
     _sizing = frozenset([Sizing.FLOW, Sizing.FIXED])
 
@@ -40,6 +40,8 @@ class Text(Widget):
         align: Literal["left", "center", "right"] | Align = Align.LEFT,
         wrap: Literal["space", "any", "clip", "ellipsis"] | WrapMode = WrapMode.SPACE,
         layout: text_layout.TextLayout | None = None,
+        *,
+        selectable: bool = False,
     ) -> None:
         """
         :param markup: content of text widget, one of:
@@ -54,13 +56,11 @@ class Text(Widget):
             [*text markup*, *text markup*, ... ]
               all *text markup* in the list joined together
 
-        :type markup: :ref:`text-markup`
         :param align: typically ``'left'``, ``'center'`` or ``'right'``
-        :type align: text alignment mode
         :param wrap: typically ``'space'``, ``'any'``, ``'clip'`` or ``'ellipsis'``
-        :type wrap: text wrapping mode
         :param layout: defaults to a shared :class:`StandardTextLayout` instance
-        :type layout: text layout instance
+        :param selectable: ``True`` makes the widget take the focus, for example as a row of a list
+            that is chosen by moving the focus to it; it shows no cursor and returns every key
 
         >>> Text("Hello")
         <Text fixed/flow widget 'Hello'>
@@ -71,19 +71,26 @@ class Text(Widget):
         stuff
         >>> t.attrib
         [('bold', 5)]
+        >>> Text("Row", selectable=True)
+        <Text selectable fixed/flow widget 'Row'>
         """
         super().__init__()
-        self._cache_maxcol: int | None = None
+        # (maxcol, translation) as one value: a reader either sees a width together with the translation
+        # laid out for it, or nothing, even while another thread is replacing the pair.
+        self._cache: tuple[int, list[list[tuple[int, int, int | bytes] | tuple[int, int | None]]]] | None = None
         self._layout: text_layout.TextLayout = layout or text_layout.default_layout
         self._text: str | bytes
         self._attrib: list[tuple[Hashable, int]]
+        self._align_mode: Literal["left", "center", "right"] | Align = Align.LEFT
+        self._wrap_mode: Literal["space", "any", "clip", "ellipsis"] | WrapMode = WrapMode.SPACE
         self.set_text(markup)
         self.set_layout(align, wrap, layout)
+        if selectable:
+            # Only set when True, so a subclass's class-level ``_selectable = True`` is not shadowed.
+            self._selectable = True
 
     def _repr_words(self) -> list[str]:
-        """
-        Show the text in the repr in python3 format (b prefix for byte strings) and truncate if it's too long
-        """
+        """Show the text in the repr and truncate if it's too long."""
         first = super()._repr_words()
         text = self.get_text()[0]
         rest = repr(text)
@@ -102,7 +109,7 @@ class Text(Widget):
         return remove_defaults(attrs, Text.__init__)
 
     def _invalidate(self) -> None:
-        self._cache_maxcol = None
+        self._cache = None
         super()._invalidate()
 
     def set_text(self, markup: _TagMarkup) -> None:
@@ -110,7 +117,6 @@ class Text(Widget):
         Set content of text widget.
 
         :param markup: see :class:`Text` for description.
-        :type markup: text markup
 
         >>> t = Text("foo")
         >>> print(t.text)
@@ -126,15 +132,15 @@ class Text(Widget):
         self._invalidate()
 
     def get_text(self) -> tuple[str | bytes, list[tuple[Hashable, int]]]:
-        """
-        :returns: (*text*, *display attributes*)
+        """Return (*text*, *display attributes*).
 
             *text*
               complete bytes/unicode content of text widget
 
             *display attributes*
               run length encoded display attributes for *text*, eg.
-              ``[('attr1', 10), ('attr2', 5)]``
+              ``[('attr1', 10), ('attr2', 5)]``; nested markup gives a
+              :class:`~urwid.LayeredAttr` of the inner and the enclosing attributes
 
         >>> Text("Hello").get_text()
         ('Hello', [])
@@ -142,32 +148,28 @@ class Text(Widget):
         ('Headline', [('bright', 8)])
         >>> Text([("a", "one"), "two", ("b", "three")]).get_text()
         ('onetwothree', [('a', 3), (None, 3), ('b', 5)])
+        >>> Text(("a", ["one", ("b", "two")])).get_text()
+        ('onetwo', [('a', 3), (LayeredAttr('b', 'a'), 3)])
         """
         return self._text, self._attrib
 
     @property
     def text(self) -> str | bytes:
-        """
-        Read-only property returning the complete bytes/unicode content
-        of this widget
-        """
+        """Read-only property returning the complete bytes/unicode content of this widget."""
         return self.get_text()[0]
 
     @property
     def attrib(self) -> list[tuple[Hashable, int]]:
-        """
-        Read-only property returning the run-length encoded display
-        attributes of this widget
-        """
+        """Read-only property returning the run-length encoded display attributes of this widget."""
         return self.get_text()[1]
 
     def set_align_mode(self, mode: Literal["left", "center", "right"] | Align) -> None:
-        """
-        Set text alignment mode. Supported modes depend on text layout
-        object in use but defaults to a :class:`StandardTextLayout` instance
+        """Set text alignment mode.
+
+        Supported modes depend on text layout object in use but defaults to a
+        :class:`StandardTextLayout` instance.
 
         :param mode: typically ``'left'``, ``'center'`` or ``'right'``
-        :type mode: text alignment mode
         :raises TextError: *mode* is not supported by the layout in use.
 
         >>> t = Text("word")
@@ -189,12 +191,12 @@ class Text(Widget):
         self._invalidate()
 
     def set_wrap_mode(self, mode: Literal["space", "any", "clip", "ellipsis"] | WrapMode) -> None:
-        """
-        Set text wrapping mode. Supported modes depend on text layout
-        object in use but defaults to a :class:`StandardTextLayout` instance
+        """Set text wrapping mode.
+
+        Supported modes depend on text layout object in use but defaults to a
+        :class:`StandardTextLayout` instance.
 
         :param mode: typically ``'space'``, ``'any'``, ``'clip'`` or ``'ellipsis'``
-        :type mode: text wrapping mode
         :raises TextError: *mode* is not supported by the layout in use.
 
         >>> t = Text("some words")
@@ -223,15 +225,11 @@ class Text(Widget):
         wrap: Literal["space", "any", "clip", "ellipsis"] | WrapMode,
         layout: text_layout.TextLayout | None = None,
     ) -> None:
-        """
-        Set the text layout object, alignment and wrapping modes at
-        the same time.
+        """Set the text layout object, alignment and wrapping modes at the same time.
 
-        :type align: text alignment mode
+        :param align: typically 'left', 'center' or 'right'
         :param wrap: typically 'space', 'any', 'clip' or 'ellipsis'
-        :type wrap: text wrapping mode
         :param layout: defaults to a shared :class:`StandardTextLayout` instance
-        :type layout: text layout instance
 
         >>> t = Text("hi")
         >>> t.set_layout("right", "clip")
@@ -249,6 +247,7 @@ class Text(Widget):
 
     @property
     def layout(self) -> text_layout.TextLayout:
+        """Return the :class:`TextLayout` instance used to lay out and wrap this widget's text."""
         return self._layout
 
     def render(
@@ -296,47 +295,55 @@ class Text(Widget):
         maxcol: int,
         ta: tuple[str | bytes, list[tuple[Hashable, int]]] | None = None,
     ) -> list[list[tuple[int, int, int | bytes] | tuple[int, int | None]]]:
-        """
-        Return layout structure used to map self.text to a canvas.
+        """Return layout structure used to map self.text to a canvas.
+
         This method is used internally, but may be useful for debugging custom layout classes.
 
         :param maxcol: columns available for display
-        :type maxcol: int
         :param ta: ``None`` or the (*text*, *display attributes*) tuple
                    returned from :meth:`.get_text`
-        :type ta: text and display attributes
         """
-        if not self._cache_maxcol or self._cache_maxcol != maxcol:
-            self._update_cache_translation(maxcol, ta)
-        return self._cache_translation
+        cache = self._cache
+        if cache is not None and cache[0] == maxcol:
+            return cache[1]
+        return self._update_cache_translation(maxcol, ta)
 
     def _update_cache_translation(
         self,
         maxcol: int,
         ta: tuple[str | bytes, list[tuple[Hashable, int]]] | None,
-    ) -> None:
+    ) -> list[list[tuple[int, int, int | bytes] | tuple[int, int | None]]]:
         if ta:
             text, _attr = ta
         else:
             text, _attr = self.get_text()
-        self._cache_maxcol = maxcol
-        self._cache_translation = self.layout.layout(text, maxcol, self._align_mode, self._wrap_mode)
+        translation = self.layout.layout(text, maxcol, self._align_mode, self._wrap_mode)
+        self._cache = (maxcol, translation)
+        return translation
 
     def pack(  # type: ignore[override]
         self,
         size: tuple[()] | tuple[int] | None = None,
         focus: bool = False,
     ) -> tuple[int, int]:
-        """
-        Return the number of screen columns and rows required for
-        this Text widget to be displayed without wrapping or
-        clipping, as a single element tuple.
+        """Return the number of screen columns and rows required for this Text widget.
+
+        The widget is expected to be displayed without wrapping or clipping, as a single element tuple.
+        With *maxcol* the size is taken from the layout at that width.
+        Without it the width is searched for::
+
+            maxcol = text width + 1, with StandardTextLayout tabs at their widest
+                |
+                v
+            lay out at maxcol --> layout has pack()? --no--> widest line, line count
+                ^                        |
+                |                       yes
+                |                        v
+            double maxcol <--no-- layout.pack() < maxcol? --yes--> pack() columns, line count
 
         :param size: ``None`` or ``()`` for unlimited screen columns (like FIXED sizing)
                      or (*maxcol*,) to specify a maximum column size
-        :type size: widget size
         :param focus: widget is focused on
-        :type focus: bool
 
         >>> Text("important things").pack()
         (16, 1)
@@ -346,8 +353,10 @@ class Text(Widget):
         (8, 2)
         >>> Text("important things").pack(())
         (16, 1)
-        >>> not_common_separated_text = "Line feed\\nLine Separator\\u2028Paragraph Separator\\u2029"
-        >>> # \u2028 (Line Separator) and \u2029 (Paragraph Separator) are not splitted by StandardTextLayout
+        >>> not_common_separated_text = (
+        ...     "Line feed" + chr(10) + "Line Separator" + chr(0x2028) + "Paragraph Separator" + chr(0x2029)
+        ... )
+        >>> # U+2028 (Line Separator) and U+2029 (Paragraph Separator) are not splitted by StandardTextLayout
         >>> not_common_separated = Text(not_common_separated_text)
 
         >>> not_common_separated.pack()
@@ -369,14 +378,19 @@ class Text(Widget):
             cols = self.layout.pack(maxcol, trans)
             return (cols, len(trans))
 
-        if text:
-            if isinstance(text, bytes):
-                text = text.decode(get_encoding())
-
-            split_text = text.split("\n")
-
-            return (
-                max(calc_width(line, 0, len(line)) for line in split_text),
-                len(split_text),
-            )
-        return 0, 1
+        layout = self.layout
+        # No line is wider than the whole text with every tab taking the widest gap between tab stops.
+        # A custom layout may still widen a line.
+        maxcol = calc_width(text, 0, len(text)) + 1
+        tabs = text.count("\t") if isinstance(text, str) else text.count(b"\t")
+        if tabs and isinstance(layout, text_layout.StandardTextLayout):
+            stops = (0, *layout.tab_stops)
+            widest_tab = max((layout.tab_stop_every, *(end - start for start, end in itertools.pairwise(stops))))
+            maxcol += widest_tab * tabs
+        while True:
+            trans = layout.layout(text, maxcol, self._align_mode, self._wrap_mode)
+            if not hasattr(layout, "pack"):
+                return max(text_layout.line_width(line) for line in trans), len(trans)
+            if (cols := layout.pack(maxcol, trans)) < maxcol:
+                return cols, len(trans)
+            maxcol *= 2

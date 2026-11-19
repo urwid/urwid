@@ -11,6 +11,7 @@ Minimal Application
 -------------------
 
 .. image:: minimal1.png
+   :scale: 50%
 
 This program displays the string ``Hello World`` in the top left corner of the
 screen and will run until interrupted with *CTRL+C* (*^C*).
@@ -43,10 +44,15 @@ Global Input
 ------------
 
 .. image:: input1.png
+   :scale: 50%
 .. image:: input2.png
+   :scale: 50%
 .. image:: input3.png
+   :scale: 50%
 .. image:: input4.png
+   :scale: 50%
 .. image:: input5.png
+   :scale: 50%
 
 This program initially displays the string ``Hello World``, then it displays
 each key pressed, exiting when the user presses *Q*.
@@ -70,13 +76,17 @@ Display Attributes
 ------------------
 
 .. image:: urwid_attr1.png
+   :scale: 50%
 .. image:: urwid_attr2.png
+   :scale: 50%
 .. image:: urwid_attr3.png
+   :scale: 50%
 .. image:: urwid_attr4.png
+   :scale: 50%
 
 This program displays the string ``Hello World`` in the center of the screen.
 It uses different attributes for the text, the space on either side of the text
-and the space above and below the text. It waits for a keypress before exiting.
+and the space above and below the text. It exits when the user presses *Q*.
 
 The screenshots above show how these widgets react to being resized.
 
@@ -123,6 +133,7 @@ High Color Modes
 ----------------
 
 .. image:: highcolors1.png
+   :scale: 50%
 
 This program displays the string ``Hello World`` in the center of the screen.
 It uses a number of 256-color-mode colors to decorate the text,
@@ -138,9 +149,9 @@ should define values for all the modes in their palette. Valid foreground,
 background and setting values are documented in :ref:`foreground-background`.
 
 * Behind the scenes our :class:`MainLoop` class has created a
-  :class:`raw_display.Screen` object for drawing the screen. The program
+  :class:`display.raw.Screen` object for drawing the screen. The program
   is put into 256-color mode by using the screen object's
-  :meth:`set_terminal_properties() <raw_display.Screen.set_terminal_properties>` method.
+  :meth:`set_terminal_properties() <display.raw.Screen.set_terminal_properties>` method.
 
 This example also demonstrates how you can build the widgets to display
 in a top-down order instead of the usual bottom-up order. In some
@@ -168,8 +179,11 @@ Question and Answer
 -------------------
 
 .. image:: qa1.png
+   :scale: 50%
 .. image:: qa2.png
+   :scale: 50%
 .. image:: qa3.png
+   :scale: 50%
 
 This program asks for your name then responds ``Nice to meet you, (your
 name).``
@@ -205,9 +219,13 @@ Signal Handlers
 ---------------
 
 .. image:: sig1.png
+   :scale: 50%
 .. image:: sig2.png
+   :scale: 50%
 .. image:: sig3.png
+   :scale: 50%
 .. image:: sig4.png
+   :scale: 50%
 
 This program asks for your name and responds ``Nice to meet you, (your name)``
 *while* you type your name.  Press *DOWN* then *SPACE* or *ENTER* to exit.
@@ -225,16 +243,20 @@ This program asks for your name and responds ``Nice to meet you, (your name)``
 * Finally we attach our *on_exit_clicked()* function to our
   exit :class:`Button`'s ``'click'`` signal.
 * *on_ask_change()* updates the reply text as the user enters their
-  name and *on_exit_click()* exits.
+  name and *on_exit_clicked()* exits.
 
 
 Multiple Questions
 ------------------
 
 .. image:: multiple1.png
+   :scale: 50%
 .. image:: multiple2.png
+   :scale: 50%
 .. image:: multiple3.png
+   :scale: 50%
 .. image:: multiple4.png
+   :scale: 50%
 
 This program asks for your name and responds ``Nice to meet you, (your name).``
 It then asks again, and again. Old values may be changed and the responses will
@@ -278,8 +300,11 @@ Simple Menu
 -----------
 
 .. image:: smenu1.png
+   :scale: 50%
 .. image:: smenu2.png
+   :scale: 50%
 .. image:: smenu3.png
+   :scale: 50%
 
 We can create a very simple menu using a list of :class:`Button` widgets.
 This program lets you choose an option then repeats what you chose.
@@ -294,7 +319,7 @@ This program lets you choose an option then repeats what you chose.
   a display attribute when a button is in focus.
 * *item_chosen()* replaces the menu displayed with text indicating the users'
   choice.
-* *exit_program()* causes the program to exit on any keystroke.
+* *exit_program()* exits the program when the Ok button is pressed.
 * The menu is created and decorated with an :class:`Overlay` using a
   :class:`SolidFill` as the background.  The :class:`Overlay` is given a
   miniumum width and height but is allowed to expand to 60% of the available
@@ -305,13 +330,17 @@ Cascading Menu
 --------------
 
 .. image:: cmenu1.png
+   :scale: 50%
 .. image:: cmenu2.png
+   :scale: 50%
 .. image:: cmenu3.png
+   :scale: 50%
 .. image:: cmenu4.png
+   :scale: 50%
 
 A nested menu effect can be created by having some buttons open new menus.  This program
 lets you choose an option from a nested menu that cascades across the screen.  You may
-return to previous menus by pressing *ESC*.
+return to the previous menu by pressing *ESC* or by clicking outside the current menu.
 
 .. literalinclude:: cmenu.py
    :linenos:
@@ -328,29 +357,34 @@ return to previous menus by pressing *ESC*.
 * *menu_top* is the top level menu with all of its child menus and
   options built using the functions above.
 
-This example introduces :class:`WidgetPlaceholder`. :class:`WidgetPlaceholder` is a
-:ref:`decoration widget <decoration-widgets>` that does nothing to the widget it
-decorates.  It is useful if you need a simple way to replace a widget that doesn't
-involve knowing its position in a :ref:`container <container-widgets>`, or in this
-case as a base class for a widget that will be replacing its own contents regularly.
+This example introduces :class:`OverlayStack`. :class:`OverlayStack` is a box widget that
+holds a base widget, here a :class:`SolidFill`, and the dialogs opened on top of it, each one
+an :class:`Overlay` over the one below.  :meth:`OverlayStack.open` shows a new dialog on top,
+and :meth:`OverlayStack.close` removes the top one to show the previous one again.  Only the top
+dialog receives keys and mouse clicks.  Without the stack, an application builds the chain of
+overlays itself, for example in a :class:`WidgetPlaceholder`
+(see :ref:`decoration widgets <decoration-widgets>`).
 
-* *CascadingBoxes* is a new widget that extends :class:`WidgetPlaceholder`.
-  It provides an *open_box()* method that displays a box widget *box* "on top of"
-  all the previous content with an :class:`Overlay` and a :class:`LineBox`.
+* *top* is the :class:`OverlayStack`, with a :class:`SolidFill` as its base.
+* *open_box()* opens a box widget *box* in a :class:`LineBox` on top of the stack.
   The position of each successive box is shifted right and down from the
-  previous one.
-* *CascadingBoxes.keypress()* intercepts *ESC* keys to cause the current box
-  to be removed and the previous one to be shown.  This allows the user to
-  return to a previous menu level.
+  previous one, by the number of boxes already open, :attr:`OverlayStack.depth`.
+* Every box after the first is opened with *close_on_menu* and *close_on_click_outside*,
+  so it closes when it leaves an *ESC* key unhandled or when the user clicks outside it.
+  This allows the user to return to a previous menu level, while the main menu stays open.
 
 
 Horizontal Menu
 ---------------
 
 .. image:: hmenu1.png
+   :scale: 50%
 .. image:: hmenu2.png
+   :scale: 50%
 .. image:: hmenu3.png
+   :scale: 50%
 .. image:: hmenu4.png
+   :scale: 50%
 
 This example is like the previous but new menus appear on the right and push
 old menus off the left side of the screen.
@@ -387,9 +421,13 @@ Adventure Game
 --------------
 
 .. image:: adventure1.png
+   :scale: 50%
 .. image:: adventure2.png
+   :scale: 50%
 .. image:: adventure3.png
+   :scale: 50%
 .. image:: adventure4.png
+   :scale: 50%
 
 We can use the same sort of code to build a simple adventure game.  Instead
 of menus we have "places" and instead of submenus and parent menus we just

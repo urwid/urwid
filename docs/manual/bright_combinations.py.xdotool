@@ -1,1 +1,1 @@
-windowsize --usehints $RXVTWINDOWID 70 26
+windowsize --usehints $TERMWINDOWID 70 26

@@ -1,2 +1,0 @@
-windowsize --usehints $RXVTWINDOWID 39 18
-key --window $RXVTWINDOWID space

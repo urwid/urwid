@@ -1,0 +1,42 @@
+name: Documentation PDF
+
+on:
+  workflow_dispatch:  # started by hand: a full TeX Live install is too slow for every push
+
+jobs:
+  PDF:
+    runs-on: ubuntu-26.04  # the release .devcontainer/dev.dockerfile is based on
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0  # need for setuptools_scm
+      # The same packages as the dev and docs-pdf stages of .devcontainer/dev.dockerfile need for the PDF build;
+      # a change to one list is made to the other.
+      - name: Install LaTeX, fonts and GLib build dependencies
+        run: |
+          sudo apt-get -qq update
+          sudo apt-get install -y --no-install-recommends \
+            latexmk \
+            texlive-luatex \
+            texlive-latex-recommended \
+            texlive-latex-extra \
+            texlive-fonts-recommended \
+            xindy \
+            fonts-freefont-otf \
+            fonts-dejavu-core \
+            fonts-noto-core \
+            fonts-noto-cjk \
+            fonts-noto-color-emoji \
+            python3-dev \
+            gobject-introspection \
+            gir1.2-glib-2.0 \
+            libgirepository-2.0-dev \
+            libcairo2-dev
+      - name: Install uv
+        uses: astral-sh/setup-uv@v10.3.3
+      - name: Build PDF documentation
+        run: docs/tools/build_pdf.sh
+      - uses: actions/upload-artifact@v7
+        with:
+          path: build/pdf/latex/Urwid.pdf
+          name: documentation-pdf

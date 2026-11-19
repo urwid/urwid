@@ -5,7 +5,7 @@ import urwid
 
 def show_or_exit(key: str) -> None:
     if key in {"q", "Q"}:
-        raise urwid.ExitMainLoop()
+        raise urwid.ExitMainLoop
     txt.set_text(repr(key))
 
 

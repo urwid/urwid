@@ -19,10 +19,9 @@
 #
 # Urwid web site: https://urwid.org/
 
-"""
-Urwid example demonstrating use of the BarGraph widget and creating a
-floating-window appearance.  Also shows use of alarms to create timed
-animation.
+"""Urwid example demonstrating use of the BarGraph widget and creating a floating-window appearance.
+
+Also shows use of alarms to create timed animation.
 """
 
 from __future__ import annotations
@@ -34,54 +33,60 @@ import typing
 import urwid
 
 if typing.TYPE_CHECKING:
-    from collections.abc import Callable
+    from collections.abc import Callable, Sequence
 
 UPDATE_INTERVAL = 0.2
 
 
 def sin100(x: int) -> float:
-    """
-    A sin function that returns values between 0 and 100 and repeats
-    after x == 100.
+    """Return a sine value scaled to the range 0-100 that repeats every 100 steps.
+
+    :param x: input step
+    :returns: sine wave value in the range 0-100
     """
     return 50 + 50 * math.sin(x * math.pi / 50)
 
 
 class GraphModel:
-    """
-    A class responsible for storing the data that will be displayed
-    on the graph, and keeping track of which mode is enabled.
-    """
+    """Store the data that will be displayed on the graph, and keep track of which mode is enabled."""
 
-    data_max_value = 100
+    data_max_value: typing.ClassVar[int] = 100
 
     def __init__(self) -> None:
-        data = [
+        """Initialize with the built-in sample data sets, defaulting to the first mode."""
+        data: list[tuple[str, Sequence[float | int]]] = [
             ("Saw", list(range(0, 100, 2)) * 2),
             ("Square", [0] * 30 + [100] * 30),
             ("Sine 1", [sin100(x) for x in range(100)]),
             ("Sine 2", [(sin100(x) + sin100(x * 2)) / 2 for x in range(100)]),
             ("Sine 3", [(sin100(x) + sin100(x * 3)) / 2 for x in range(100)]),
         ]
-        self.modes = []
-        self.data = {}
+        self.modes: list[str] = []
+        self.data: dict[str, Sequence[float | int]] = {}
         for m, d in data:
             self.modes.append(m)
             self.data[m] = d
+        self.current_mode = self.modes[0]
 
     def get_modes(self) -> list[str]:
+        """Return the available mode names."""
         return self.modes
 
     def set_mode(self, m: str) -> None:
+        """Set the current mode.
+
+        :param m: name of the mode to switch to
+        """
         self.current_mode = m
 
-    def get_data(self, offset: int, r):
+    def get_data(self, offset: int, r: int) -> tuple[list[float | int], int, int]:
+        """Return a slice of the current mode's data, its maximum value, and the length it repeats at.
+
+        :param offset: start offset into the data, wrapped to the data length
+        :param r: number of data points to return
+        :returns: the requested data points, the maximum value among all items, and the length the data repeats at
         """
-        Return the data in [offset:offset+r], the maximum value
-        for items returned, and the offset at which the data
-        repeats.
-        """
-        lines = []
+        lines: list[float | int] = []
         d = self.data[self.current_mode]
         while r:
             offset %= len(d)
@@ -92,11 +97,8 @@ class GraphModel:
         return lines, self.data_max_value, len(d)
 
 
-class GraphView(urwid.WidgetWrap):
-    """
-    A class responsible for providing the application's interface and
-    graph display.
-    """
+class GraphView(urwid.WidgetWrap[urwid.Widget]):
+    """Provide the application's interface and graph display."""
 
     palette: typing.ClassVar[list[tuple[str, str, str] | tuple[str, str, str, str]]] = [
         ("body", "black", "light gray", "standout"),
@@ -117,19 +119,24 @@ class GraphView(urwid.WidgetWrap):
         ("pg smooth", "dark magenta", "black"),
     ]
 
-    graph_samples_per_bar = 10
-    graph_num_bars = 5
-    graph_offset_per_second = 5
+    graph_samples_per_bar: typing.ClassVar[int] = 10
+    graph_num_bars: typing.ClassVar[int] = 5
+    graph_offset_per_second: typing.ClassVar[int] = 5
 
-    def __init__(self, controller) -> None:
+    def __init__(self, controller: GraphController) -> None:
+        """Initialize the graph display, stopped and not yet timed, wrapping `controller`."""
         self.controller = controller
         self.started = True
-        self.start_time = None
+        self.start_time: float | None = None
         self.offset = 0
         self.last_offset: int | None = None
         super().__init__(self.main_window())
 
     def get_offset_now(self) -> int:
+        """Return the current graph offset, accounting for elapsed animation time.
+
+        :returns: graph offset
+        """
         if self.start_time is None:
             return 0
         if not self.started:
@@ -138,6 +145,11 @@ class GraphView(urwid.WidgetWrap):
         return int(self.offset + (tdelta * self.graph_offset_per_second))
 
     def update_graph(self, force_update: bool = False) -> bool:
+        """Recompute the graph and progress bar for the current offset.
+
+        :param force_update: redraw even if the offset has not changed since the last update
+        :returns: whether the graph was actually redrawn
+        """
         o = self.get_offset_now()
         if o == self.last_offset and not force_update:
             return False
@@ -145,7 +157,7 @@ class GraphView(urwid.WidgetWrap):
         gspb = self.graph_samples_per_bar
         r = gspb * self.graph_num_bars
         d, max_value, repeat = self.controller.get_data(o, r)
-        lines = []
+        lines: list[list[float | int]] = []
         for n in range(self.graph_num_bars):
             value = sum(d[n * gspb : (n + 1) * gspb]) / gspb
             # toggle between two bar types
@@ -156,6 +168,7 @@ class GraphView(urwid.WidgetWrap):
         self.graph.set_data(lines, max_value)
 
         # also update progress
+        prog: float
         if (o // repeat) & 1:
             # show 100% for first half, 0 for second half
             if o % repeat > repeat // 2:
@@ -167,8 +180,11 @@ class GraphView(urwid.WidgetWrap):
         self.animate_progress.current = prog
         return True
 
-    def on_animate_button(self, button: urwid.AttrMap[urwid.Button]) -> None:
-        """Toggle started state and button text."""
+    def on_animate_button(self, button: urwid.Button) -> None:
+        """Toggle started state and button text.
+
+        :param button: button that was pressed
+        """
         if self.started:  # stop animation
             button.set_label("Start")
             self.offset = self.get_offset_now()
@@ -181,35 +197,55 @@ class GraphView(urwid.WidgetWrap):
             self.controller.animate_graph()
 
     def on_reset_button(self, w: urwid.Button) -> None:
+        """Reset the animation offset and restart the clock.
+
+        :param w: button that was pressed
+        """
         self.offset = 0
         self.start_time = time.time()
         self.update_graph(True)
 
     def on_mode_button(self, button: urwid.RadioButton, state: bool) -> None:
-        """Notify the controller of a new mode setting."""
+        """Notify the controller of a new mode setting.
+
+        :param button: radio button whose state changed, carrying the mode name as its label
+        :param state: new state of the radio button
+        """
         if state:
             # The new mode is the label of the button
-            self.controller.set_mode(button.get_label())
+            self.controller.set_mode(typing.cast("str", button.get_label()))
         self.last_offset = None
 
     def on_mode_change(self, m: str) -> None:
-        """Handle external mode change by updating radio buttons."""
+        """Handle external mode change by updating radio buttons.
+
+        :param m: name of the mode that is now selected
+        """
         for rb in self.mode_buttons:
-            if rb.base_widget.label == m:
-                rb.base_widget.set_state(True, do_callback=False)
+            if rb.original_widget.label == m:
+                rb.original_widget.set_state(True, do_callback=False)
                 break
         self.last_offset = None
 
     def on_unicode_checkbox(self, w: urwid.CheckBox, state: bool) -> None:
+        """Switch the graph and progress bar between Unicode and ASCII rendering.
+
+        :param w: checkbox that changed
+        :param state: new state of the checkbox
+        """
         self.graph = self.bar_graph(state)
         self.graph_wrap._w = self.graph
         self.animate_progress = self.progress_bar(state)
         self.animate_progress_wrap._w = self.animate_progress
         self.update_graph(True)
 
-    def main_shadow(self, w):
-        """Wrap a shadow and background around widget w."""
-        bg = urwid.AttrMap(urwid.SolidFill("▒"), "screen edge")
+    def main_shadow(self, w: urwid.Widget) -> urwid.Widget:
+        """Wrap a shadow and background around a widget.
+
+        :param w: widget to wrap
+        :returns: the wrapped widget
+        """
+        bg: urwid.Widget = urwid.AttrMap(urwid.SolidFill("▒"), "screen edge")
         shadow = urwid.AttrMap(urwid.SolidFill(" "), "main shadow")
 
         bg = urwid.Overlay(
@@ -239,6 +275,11 @@ class GraphView(urwid.WidgetWrap):
         return w
 
     def bar_graph(self, smooth: bool = False) -> urwid.BarGraph:
+        """Create the bar graph widget.
+
+        :param smooth: use smoothed (sub-character resolution) bars
+        :returns: the bar graph widget
+        """
         satt = None
         if smooth:
             satt = {(1, 0): "bg 1 smooth", (2, 0): "bg 2 smooth"}
@@ -250,9 +291,14 @@ class GraphView(urwid.WidgetWrap):
         t: str,
         fn: Callable[[urwid.Button], None],
     ) -> urwid.AttrMap[urwid.Button]:
+        """Create a styled push button.
+
+        :param t: button label
+        :param fn: callback connected to the button's ``click`` signal
+        :returns: the button wrapped in an :class:`urwid.AttrMap`
+        """
         w = urwid.Button(t, fn)
-        w = urwid.AttrMap(w, "button normal", "button select")
-        return w
+        return urwid.AttrMap(w, "button normal", "button select")
 
     def radio_button(
         self,
@@ -260,11 +306,22 @@ class GraphView(urwid.WidgetWrap):
         label: str,
         fn: Callable[[urwid.RadioButton, bool], None],
     ) -> urwid.AttrMap[urwid.RadioButton]:
+        """Create a styled radio button for selecting a mode.
+
+        :param g: radio button group to add the new button to
+        :param label: button label, also used as the mode name
+        :param fn: callback connected to the button's ``change`` signal
+        :returns: the radio button wrapped in an :class:`urwid.AttrMap`
+        """
         w = urwid.RadioButton(g, label, False, on_state_change=fn)
-        w = urwid.AttrMap(w, "button normal", "button select")
-        return w
+        return urwid.AttrMap(w, "button normal", "button select")
 
     def progress_bar(self, smooth: bool = False) -> urwid.ProgressBar:
+        """Create the animation progress bar widget.
+
+        :param smooth: use smoothed (sub-character resolution) rendering
+        :returns: the progress bar widget
+        """
         return urwid.ProgressBar(
             "pg normal",
             "pg complete",
@@ -273,14 +330,23 @@ class GraphView(urwid.WidgetWrap):
             "pg smooth" if smooth else None,
         )
 
-    def exit_program(self, w) -> typing.NoReturn:
-        raise urwid.ExitMainLoop()
+    def exit_program(self, w: urwid.Button) -> typing.NoReturn:
+        """Exit the main loop.
+
+        :param w: button that was pressed
+        :raises urwid.ExitMainLoop: always
+        """
+        raise urwid.ExitMainLoop
 
     def graph_controls(self) -> urwid.ListBox[int]:
+        """Build the list of mode, animation and quit controls shown beside the graph.
+
+        :returns: the controls list box
+        """
         modes = self.controller.get_modes()
         # setup mode radio buttons
-        self.mode_buttons = []
-        group = []
+        self.mode_buttons: list[urwid.AttrMap[urwid.RadioButton]] = []
+        group: list[urwid.RadioButton] = []
         for m in modes:
             rb = self.radio_button(group, m, self.on_mode_button)
             self.mode_buttons.append(rb)
@@ -298,8 +364,10 @@ class GraphView(urwid.WidgetWrap):
             2,
             0,
             urwid.CENTER,
+            select_navigation=True,
         )
 
+        unicode_checkbox: urwid.Widget
         if urwid.get_encoding_mode() == "utf8":
             unicode_checkbox = urwid.CheckBox("Enable Unicode Graphics", on_state_change=self.on_unicode_checkbox)
         else:
@@ -307,7 +375,7 @@ class GraphView(urwid.WidgetWrap):
 
         self.animate_progress_wrap = urwid.WidgetWrap(self.animate_progress)
 
-        lines = [
+        lines: list[urwid.Widget] = [
             urwid.Text("Mode", align=urwid.CENTER),
             *self.mode_buttons,
             urwid.Divider(),
@@ -319,15 +387,25 @@ class GraphView(urwid.WidgetWrap):
             urwid.Divider(),
             self.button("Quit", self.exit_program),
         ]
-        w = urwid.ListBox(urwid.SimpleListWalker(lines))
+        # select_navigation lets TAB / SHIFT TAB move between the controls
+        walker = urwid.SimpleListWalker(lines)
+        w = urwid.ListBox(walker, select_navigation=True)  # type: ignore[arg-type]  # all lines are flow widgets
         return w
 
-    def main_window(self):
+    def main_window(self) -> urwid.Widget:
+        """Build the complete application window.
+
+        :returns: the top-level widget
+        """
         self.graph = self.bar_graph()
         self.graph_wrap = urwid.WidgetWrap(self.graph)
         vline = urwid.AttrMap(urwid.SolidFill("│"), "line")
         c = self.graph_controls()
-        w = urwid.Columns([(urwid.WEIGHT, 2, self.graph_wrap), (1, vline), c], dividechars=1, focus_column=2)
+        w: urwid.Widget = urwid.Columns(
+            [(urwid.WEIGHT, 2, self.graph_wrap), (1, vline), c],
+            dividechars=1,
+            focus_column=2,
+        )
         w = urwid.Padding(w, urwid.LEFT, left=1)
         w = urwid.AttrMap(w, "body")
         w = urwid.LineBox(w)
@@ -337,13 +415,11 @@ class GraphView(urwid.WidgetWrap):
 
 
 class GraphController:
-    """
-    A class responsible for setting up the model and view and running
-    the application.
-    """
+    """Set up the model and view and run the application."""
 
     def __init__(self) -> None:
-        self.animate_alarm = None
+        """Initialize the model and view and switch to the first available mode."""
+        self.animate_alarm: typing.Any = None
         self.model = GraphModel()
         self.view = GraphView(self)
         # use the first mode as the default
@@ -353,36 +429,47 @@ class GraphController:
         self.view.on_mode_change(mode)
         self.view.update_graph(True)
 
-    def get_modes(self):
+    def get_modes(self) -> list[str]:
         """Allow our view access to the list of modes."""
         return self.model.get_modes()
 
-    def set_mode(self, m) -> None:
+    def set_mode(self, m: str) -> None:
         """Allow our view to set the mode."""
         self.model.set_mode(m)
         self.view.update_graph(True)
 
-    def get_data(self, offset, data_range):
-        """Provide data to our view for the graph."""
+    def get_data(self, offset: int, data_range: int) -> tuple[list[float | int], int, int]:
+        """Provide data to our view for the graph.
+
+        :param offset: start offset into the data
+        :param data_range: number of data points to return
+        :returns: the requested data points, their maximum value, and the length the data repeats at
+        """
         return self.model.get_data(offset, data_range)
 
     def main(self) -> None:
-        self.loop = urwid.MainLoop(self.view, self.view.palette)
+        """Run the main loop."""
+        self.loop: urwid.MainLoop = urwid.MainLoop(self.view, self.view.palette)
         self.loop.run()
 
-    def animate_graph(self, loop=None, user_data=None) -> None:
-        """update the graph and schedule the next update"""
+    def animate_graph(self, loop: urwid.MainLoop | None = None, user_data: typing.Any = None) -> None:
+        """Update the graph and schedule the next update.
+
+        :param loop: main loop that triggered this alarm, unused
+        :param user_data: alarm user data, unused
+        """
         self.view.update_graph()
         self.animate_alarm = self.loop.set_alarm_in(UPDATE_INTERVAL, self.animate_graph)
 
     def stop_animation(self) -> None:
-        """stop animating the graph"""
+        """Stop animating the graph."""
         if self.animate_alarm:
             self.loop.remove_alarm(self.animate_alarm)
         self.animate_alarm = None
 
 
 def main() -> None:
+    """Run the graph example program."""
     GraphController().main()
 
 

@@ -1,0 +1,96 @@
+"""Type checker fixture for the Table widget and its layout.
+
+mypy and Pyrefly check this module; nothing in it runs.
+"""
+
+from __future__ import annotations
+
+import typing
+
+if typing.TYPE_CHECKING:
+    from collections.abc import Callable, Hashable, Mapping
+    from typing import assert_type
+
+    import urwid
+    from urwid.widget import TableLayout
+
+    def table(edit: urwid.Edit) -> None:
+        """Accept widgets and text markup as cells, and type the rows as TableRow."""
+        columns = [
+            urwid.TableColumn("Name"),
+            urwid.TableColumn("Size", width=6, align=urwid.RIGHT),
+            urwid.TableColumn(("bold", "Note"), width=(urwid.WEIGHT, 1), wrap=urwid.ELLIPSIS),
+            urwid.TableColumn("Kind", attr={None: "kind", "bold": "kind bold"}),
+            urwid.TableColumn("Path", priority=1),
+        ]
+        widget = urwid.Table(columns, [["a", "1", edit], [("attr", "b")]], max_rows=4)
+        widget.body.append(["c", "2"])
+        widget.set_focus(1)
+        widget.set_focus(1, coming_from="above")
+
+        def by_row(row: urwid.TableRow) -> dict[str, str] | None:
+            return None if row.attr is None else {"a": "b"}
+
+        marked = urwid.Table(columns, unfocused_focus_attr_func=by_row)
+        marked.unfocused_focus_attr_func = by_row
+        marked.unfocused_focus_attr_func = None
+        assert_type(
+            urwid.Table(columns).unfocused_focus_attr_func,
+            Callable[[urwid.TableRow], Hashable | dict[typing.Any, typing.Any] | Mapping[typing.Any, Hashable] | None]
+            | None,
+        )
+        assert_type(widget.body[0], urwid.TableRow)
+        assert_type(widget.focus, urwid.TableRow | None)
+        assert_type(widget.body[0].data, typing.Any)
+        assert_type(widget.layout.widths(20), tuple[int, ...])
+        footed = urwid.Table(columns, footer=["total", "3"], footer_attr="foot", header_drop=2, footer_drop=1)
+        assert_type(footed.footer, urwid.TableRow | None)
+        footed.footer = footed.layout.row(["3 rows"], span=True)
+        footed.footer = None
+
+    def container(table: urwid.Table) -> None:
+        """Type the positions and the children of a table and of its rows."""
+        assert_type(table.focus_position, int)
+        assert_type(table.contents[0], tuple[urwid.AbstractWidget, None])
+        row = table.body[0]
+        assert_type(row.focus, urwid.AbstractWidget | None)
+        assert_type(row.focus_position, int)
+
+    def layout() -> None:
+        """Build rows without a table."""
+        shared = TableLayout([urwid.TableColumn(), urwid.TableColumn(align=urwid.RIGHT)])
+        assert_type(shared.row(["label", "value"], data=1), urwid.TableRow)
+        urwid.Pile([shared.row(["a", "b"])])
+
+    def column_order() -> None:
+        """Name the columns by index or key and reorder them."""
+        keyed = TableLayout([urwid.TableColumn("Name", key="name"), urwid.TableColumn("Size")])
+        assert_type(keyed.column_index("size"), int)
+        assert_type(keyed.column_order, tuple[int, ...])
+        keyed.column_order = (1, "name")
+        keyed.column_order = []
+        table = urwid.Table(keyed.columns, sortable=True)
+        table.sort("size")
+        table.sort("size", key=lambda row: str(row.data))
+        table.header_column = "name"
+
+    def sorting(table: urwid.Table) -> None:
+        """Type the sort call, its state and the header focus."""
+        table.sort(0)
+        table.sort(0, reverse=True)
+        table.sort(key=lambda row: row.index or 0)
+        table.sort(1, key=lambda row: str(row.data))
+        assert_type(table.sortable, bool)
+        assert_type(table.sort_column, int | None)
+        assert_type(table.sort_reverse, bool)
+        assert_type(table.header_column, int | None)
+        table.header_column = 0
+        table.header_column = None
+        sortable = urwid.Table(
+            [urwid.TableColumn("Name")],
+            sortable=True,
+            sort_marks=(urwid.ScrollBar.Symbols.ARROW_TRIANGLE_UP, urwid.ScrollBar.Symbols.ARROW_TRIANGLE_DOWN),
+            header_focus_attr="focused label",
+        )
+        urwid.Table([urwid.TableColumn("Name")], sortable=True, sort_marks=None)
+        assert_type(sortable.sortable, bool)

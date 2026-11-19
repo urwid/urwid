@@ -5,6 +5,8 @@ Display Modules
 
 .. autoclass:: BaseScreen
 
+.. autoclass:: urwid.display.PaletteEntrySpecs
+
 RAW display
 -----------
 
@@ -25,6 +27,39 @@ WEB display
 .. module:: urwid.display.web
 
 .. autoclass:: Screen
+
+.. autodata:: MAX_LINE_LENGTH
+
+.. autodata:: MAX_INITIAL_READ
+
+WebSocket display
+-----------------
+
+.. module:: urwid.display.websocket
+
+.. autoclass:: Screen
+    :members: feed, close, closed
+
+.. autoclass:: Transport
+    :members:
+
+.. autoexception:: InvalidMessageError
+
+.. autofunction:: html_page
+
+.. autodata:: STATIC_FILES
+    :no-value:
+
+.. autoclass:: StaticFile
+    :members:
+
+.. autodata:: MAX_COLS
+
+.. autodata:: MAX_ROWS
+
+.. autodata:: MAX_MESSAGE_LENGTH
+
+.. autodata:: MAX_PENDING_INPUT
 
 HTML fragment
 -------------

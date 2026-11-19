@@ -3,9 +3,9 @@ from __future__ import annotations
 import urwid
 
 
-def exit_on_q(key):
+def exit_on_q(key: str) -> None:
     if key in {"q", "Q"}:
-        raise urwid.ExitMainLoop()
+        raise urwid.ExitMainLoop
 
 
 palette = [

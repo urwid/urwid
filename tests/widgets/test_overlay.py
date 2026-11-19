@@ -1,11 +1,143 @@
 from __future__ import annotations
 
+import typing
 import unittest
+import warnings
 
 import urwid
+import urwid.testing
+from urwid.command_map import Command
+from urwid.widget import overlay as overlay_mod
+from tests.util import FocusHeightWidget, assert_attribute_redraws
+
+
+class NotAWidget:
+    """A top widget deliberately missing the :class:`urwid.AbstractWidget` protocol methods.
+
+    See :meth:`Pile._check_widget_subclass` (`tests/widgets/test_pile.py`) for the same pattern.
+    """
+
+
+class FixedCursorSolidFill(urwid.SolidFill):
+    """A box widget reporting a cursor row far beyond any size it will ever be rendered at."""
+
+    def get_cursor_coords(self, size: tuple[int, int]) -> tuple[int, int]:
+        return 0, 100
+
+
+class ZeroHeightFixed(urwid.Widget):
+    """A FIXED widget whose `pack()` reports zero rows."""
+
+    _sizing = frozenset((urwid.FIXED,))
+
+    def pack(self, size: tuple[()] = (), focus: bool = False) -> tuple[int, int]:
+        return 5, 0
+
+    def render(self, size: tuple[()] | tuple[int, int], focus: bool = False) -> urwid.Canvas:
+        maxcol, maxrow = size or (5, 0)
+        return urwid.SolidCanvas(" ", maxcol, maxrow)
+
+
+class KeyEater(urwid.SolidFill):
+    """A box widget that handles every key."""
+
+    _selectable = True
+
+    def keypress(self, size: tuple[int, int], key: str) -> None:
+        return None
+
+
+def make_table_dialog(num_rows: int, **kwargs: typing.Any) -> urwid.Overlay[urwid.LineBox, urwid.SolidFill]:
+    """Return a 6 column wide, top aligned bordered table of *num_rows* rows over ``#``, with a PACK height.
+
+    A table supports both FLOW and BOX sizing, and scrolls at a box size.
+    """
+    table = urwid.Table([urwid.TableColumn()], [[f"r{i}"] for i in range(num_rows)], header=False)
+    return urwid.Overlay(urwid.LineBox(table), urwid.SolidFill("#"), urwid.LEFT, 6, urwid.TOP, urwid.PACK, **kwargs)
 
 
 class OverlayTest(unittest.TestCase):
+    def test_menu_signal(self) -> None:
+        """A ``menu`` command key the top widget leaves unhandled is sent as ``"menu"``; ``True`` consumes it."""
+        cases = (
+            # label, top widget, key, key bound to menu, handler result (None: no handler), returned, calls
+            ("no handler", urwid.SolidFill, "esc", None, None, "esc", 0),
+            ("handler consumes", urwid.SolidFill, "esc", None, True, None, 1),
+            ("handler declines", urwid.SolidFill, "esc", None, False, "esc", 1),
+            ("top widget handles the key", KeyEater, "esc", None, True, None, 0),
+            ("other command", urwid.SolidFill, "enter", None, True, "enter", 0),
+            ("rebound key", urwid.SolidFill, "q", "q", True, None, 1),
+        )
+        for label, top_class, key, menu_key, result, returned, calls in cases:
+            with self.subTest(label):
+                overlay = urwid.Overlay(top_class("x"), urwid.SolidFill("."), "left", 2, "top", 1)
+                if menu_key is not None:
+                    overlay._command_map = overlay._command_map.copy()
+                    overlay._command_map[menu_key] = Command.MENU
+                senders: list[urwid.Overlay] = []
+                if result is not None:
+                    urwid.connect_signal(overlay, "menu", lambda sender: senders.append(sender) or result)  # noqa: B023
+
+                self.assertEqual(returned, overlay.keypress((6, 3), key))
+                self.assertEqual([overlay] * calls, senders)
+
+        for inner_result, outer_calls in ((False, 1), (True, 0)):
+            with self.subTest("nested", inner_consumes=inner_result):
+                inner = urwid.Overlay(urwid.SolidFill("x"), urwid.SolidFill("."), "left", 2, "top", 1)
+                outer = urwid.Overlay(inner, urwid.SolidFill(":"), "left", 4, "top", 2)
+                order: list[str] = []
+                urwid.connect_signal(inner, "menu", lambda _sender: order.append("inner") or inner_result)  # noqa: B023
+                urwid.connect_signal(outer, "menu", lambda _sender: order.append("outer") or True)
+
+                self.assertIsNone(outer.keypress((6, 3), "esc"))
+                self.assertEqual(["inner"] + ["outer"] * outer_calls, order)
+
+    def test_click_outside_signal(self) -> None:
+        """A button 1-3 press outside the top widget is sent as ``"click outside"``; ``True`` consumes it."""
+        # The top widget covers columns 0-1 of row 0 in the 6x3 overlay.
+        cases = (
+            # label, event, button, col, row, handler result (None: no handler), returned, calls
+            ("no handler", "mouse press", 1, 4, 2, None, False, 0),
+            ("handler consumes", "mouse press", 1, 4, 2, True, True, 1),
+            ("handler declines", "mouse press", 3, 0, 1, False, False, 1),
+            ("press inside", "mouse press", 1, 1, 0, True, False, 0),
+            ("wheel", "mouse press", 4, 4, 2, True, False, 0),
+            ("release", "mouse release", 0, 4, 2, True, False, 0),
+            ("drag", "mouse drag", 1, 4, 2, True, False, 0),
+        )
+        for label, event, button, col, row, result, returned, calls in cases:
+            with self.subTest(label):
+                overlay = urwid.Overlay(urwid.SolidFill("x"), urwid.SolidFill("."), "left", 2, "top", 1)
+                senders: list[urwid.Overlay] = []
+                if result is not None:
+                    urwid.connect_signal(
+                        overlay,
+                        "click outside",
+                        lambda sender, seen=senders, outcome=result: seen.append(sender) or outcome,
+                    )
+
+                self.assertEqual(returned, bool(overlay.mouse_event((6, 3), event, button, col, row, True)))
+                self.assertEqual([overlay] * calls, senders)
+
+    def test_layout_attributes_invalidate(self) -> None:
+        """Setting a layout attribute of a rendered ``Overlay`` redraws it."""
+
+        def maker(**base: typing.Any) -> typing.Callable[..., urwid.Overlay]:
+            options = {"align": "left", "width": 2, "valign": "top", "height": 1, **base}
+            return lambda **kwargs: urwid.Overlay(urwid.SolidFill("x"), urwid.SolidFill("."), **{**options, **kwargs})
+
+        for name, make, value in (
+            ("left", maker(), 2),
+            ("right", maker(align="right"), 2),
+            ("top", maker(), 1),
+            ("bottom", maker(valign="bottom"), 1),
+            ("min_width", maker(width=("relative", 10)), 4),
+            ("min_height", maker(height=("relative", 25)), 3),
+            ("shrink_to_fit", lambda **kwargs: make_table_dialog(12, **kwargs), True),
+        ):
+            with self.subTest(name):
+                assert_attribute_redraws(self, make, (6, 4), name, value)
+
     def test_sizing_flow_fixed(self) -> None:
         top_w = urwid.Text("Flow and Fixed widget")
         bottom_w = urwid.SolidFill("#")
@@ -425,6 +557,51 @@ class OverlayTest(unittest.TestCase):
             (1, 1),
         )
 
+    def test_replaced_top_w_is_rendered(self):
+        """Replacing the top widget invalidates the canvas rendered from the previous one.
+
+        Regression test: `top_w` used to be a plain attribute, so the canvas cached for the
+        overlay survived the replacement and the old widget kept being rendered until something
+        else invalidated the overlay. The first canvas is kept referenced on purpose:
+        :class:`urwid.CanvasCache` holds weak references, so a canvas dropped by the test takes
+        the stale cache entry with it and the replacement would render correctly either way.
+        """
+        ovl = urwid.Overlay(
+            urwid.SolidFill("X"),
+            urwid.SolidFill("."),
+            urwid.CENTER,
+            4,
+            urwid.MIDDLE,
+            2,
+        )
+        cached = ovl.render((8, 4))
+        self.assertEqual(("........", "..XXXX..", "..XXXX..", "........"), cached.decoded_text)
+
+        ovl.top_w = urwid.SolidFill("O")
+
+        self.assertEqual(("........", "..OOOO..", "..OOOO..", "........"), ovl.render((8, 4)).decoded_text)
+
+    def test_replaced_bottom_w_is_rendered(self):
+        """Replacing the bottom widget invalidates the canvas rendered from the previous one.
+
+        The counterpart of `test_replaced_top_w_is_rendered`, keeping the first canvas referenced
+        for the same reason.
+        """
+        ovl = urwid.Overlay(
+            urwid.SolidFill("X"),
+            urwid.SolidFill("."),
+            urwid.CENTER,
+            4,
+            urwid.MIDDLE,
+            2,
+        )
+        cached = ovl.render((8, 4))
+        self.assertEqual(("........", "..XXXX..", "..XXXX..", "........"), cached.decoded_text)
+
+        ovl.bottom_w = urwid.SolidFill(",")
+
+        self.assertEqual((",,,,,,,,", ",,XXXX,,", ",,XXXX,,", ",,,,,,,,"), ovl.render((8, 4)).decoded_text)
+
     def test_length(self):
         ovl = urwid.Overlay(
             urwid.SolidFill("X"),
@@ -450,4 +627,563 @@ class OverlayTest(unittest.TestCase):
         self.assertEqual(
             o.contents[1],
             (s1, ("center", None, "relative", 50, None, 0, 0, "middle", None, "relative", 50, None, 0, 0)),
+        )
+
+    def test_not_a_widget_warns_on_construction(self) -> None:
+        """A top widget missing the Widget API triggers the same warning as `Frame`/`Pile`/`Columns`."""
+        with self.assertWarns(DeprecationWarning) as ctx:
+            urwid.Overlay(
+                NotAWidget(),
+                urwid.SolidFill("#"),
+                urwid.CENTER,
+                (urwid.RELATIVE, 100),
+                urwid.MIDDLE,
+                (urwid.RELATIVE, 100),
+            )
+        self.assertIn("is not implementing Widget API", str(ctx.warning))
+
+    def test_sizing_warning_pack_width_without_fixed_support(self) -> None:
+        ovl = urwid.Overlay(urwid.SolidFill("*"), urwid.SolidFill("#"), urwid.CENTER, None, urwid.MIDDLE, None)
+        with self.assertWarns(overlay_mod.OverlayWarning):
+            self.assertEqual(frozenset((urwid.BOX,)), ovl.sizing())
+
+    def test_sizing_warning_pack_height_without_flow_support(self) -> None:
+        ovl = urwid.Overlay(urwid.SolidFill("*"), urwid.SolidFill("#"), urwid.CENTER, 10, urwid.MIDDLE, None)
+        with self.assertWarns(overlay_mod.OverlayWarning):
+            self.assertEqual(frozenset((urwid.BOX,)), ovl.sizing())
+
+    def test_sizing_pack_height_flow_supported_without_fixed_amount(self) -> None:
+        """PACK height with a FLOW-capable top widget adds FLOW, but not FIXED without a width amount."""
+        ovl = urwid.Overlay(
+            urwid.Text("hi"),
+            urwid.SolidFill("#"),
+            urwid.CENTER,
+            (urwid.RELATIVE, 50),
+            urwid.MIDDLE,
+            None,
+        )
+        with warnings.catch_warnings():
+            warnings.simplefilter("error")
+            self.assertEqual(frozenset((urwid.BOX, urwid.FLOW)), ovl.sizing())
+
+    def test_sizing_given_height_without_given_or_min_skips_flow(self) -> None:
+        """A GIVEN height with no matching GIVEN width and no min_height resolves to BOX only."""
+        ovl = urwid.Overlay(
+            urwid.SolidFill("*"),
+            urwid.SolidFill("#"),
+            urwid.CENTER,
+            10,
+            urwid.MIDDLE,
+            (urwid.RELATIVE, 50),
+        )
+        with warnings.catch_warnings():
+            warnings.simplefilter("error")
+            self.assertEqual(frozenset((urwid.BOX,)), ovl.sizing())
+
+    def test_sizing_box_height_amount_flow_without_fixed_amount(self) -> None:
+        """A BOX-capable top widget with height amount adds FLOW, but not FIXED without a width amount."""
+        ovl = urwid.Overlay(
+            urwid.SolidFill("*"),
+            urwid.SolidFill("#"),
+            urwid.CENTER,
+            (urwid.RELATIVE, 50),
+            urwid.MIDDLE,
+            (urwid.RELATIVE, 50),
+            min_height=5,
+        )
+        with warnings.catch_warnings():
+            warnings.simplefilter("error")
+            self.assertEqual(frozenset((urwid.BOX, urwid.FLOW)), ovl.sizing())
+
+    def test_sizing_warning_height_amount_without_box_support(self) -> None:
+        ovl = urwid.Overlay(
+            urwid.Text("hi"),
+            urwid.SolidFill("#"),
+            urwid.CENTER,
+            10,
+            urwid.MIDDLE,
+            (urwid.RELATIVE, 50),
+            min_height=5,
+        )
+        with self.assertWarns(overlay_mod.OverlayWarning):
+            self.assertEqual(frozenset((urwid.BOX,)), ovl.sizing())
+
+    def test_pack_errors(self) -> None:
+        top_w = urwid.SolidFill("*")
+        bottom_w = urwid.SolidFill("#")
+        for description, kwargs in (
+            ("width_amount falsy", {"width": 0, "height": 5}),
+            ("relative width without min_width", {"width": (urwid.RELATIVE, 50), "height": 5}),
+            ("height_amount falsy", {"width": 10, "height": 0}),
+            ("relative height without min_height", {"width": 10, "height": (urwid.RELATIVE, 50)}),
+        ):
+            with self.subTest(description):
+                ovl = urwid.Overlay(top_w, bottom_w, urwid.CENTER, kwargs["width"], urwid.MIDDLE, kwargs["height"])
+                self.assertRaises(overlay_mod.OverlayError, ovl.pack, ())
+
+    def test_rows_pack_height_measured_at_top_widget_width(self) -> None:
+        """A flow-sized Overlay counts the rows top_w takes at the width it is rendered at.
+
+        Measured at any other width, the last rows of top_w would be cut off.
+        """
+        text = "word " * 30
+        for description, maxcol, width, kwargs, top_cols in (
+            ("given width narrower than the overlay", 999, 10, {}, 10),
+            ("given width wider than the overlay", 60, 100, {}, 60),
+            ("relative width with left padding", 60, (urwid.RELATIVE, 100), {"left": 20}, 40),
+            ("relative width with right padding", 60, (urwid.RELATIVE, 100), {"right": 20}, 40),
+        ):
+            with self.subTest(description):
+                top_w = urwid.Text(text)
+                ovl = urwid.Overlay(top_w, urwid.SolidFill("."), urwid.CENTER, width, urwid.TOP, urwid.PACK, **kwargs)
+                self.assertEqual(top_w.rows((top_cols,)), ovl.rows((maxcol,)))
+                rendered = "".join(ovl.render((maxcol,)).decoded_text)
+                self.assertEqual(30, rendered.count("word"))
+
+    def test_rows_error_pack_width_and_height(self) -> None:
+        ovl = urwid.Overlay(urwid.Text("hi"), urwid.SolidFill("#"), urwid.CENTER, None, urwid.MIDDLE, None)
+        self.assertRaises(overlay_mod.OverlayError, ovl.rows, (10,))
+
+    def test_align_width_valign_height_properties(self) -> None:
+        ovl = urwid.Overlay(
+            urwid.SolidFill("*"),
+            urwid.SolidFill("#"),
+            align=urwid.CENTER,
+            width=10,
+            valign=urwid.MIDDLE,
+            height=5,
+            min_width=3,
+            min_height=2,
+        )
+        self.assertEqual(urwid.CENTER, ovl.align)
+        self.assertEqual(10, ovl.width)
+        self.assertEqual(urwid.MIDDLE, ovl.valign)
+        self.assertEqual(5, ovl.height)
+
+    def test_options_invalid_align_type(self) -> None:
+        with self.assertRaises(ValueError):
+            urwid.Overlay.options("bogus", None, "given", 5, "top", None, "given", 5)
+
+    def test_options_invalid_valign_type(self) -> None:
+        with self.assertRaises(ValueError):
+            urwid.Overlay.options("left", None, "given", 5, "bogus", None, "given", 5)
+
+    def test_set_overlay_parameters_invalid_valign(self) -> None:
+        with self.assertRaises(overlay_mod.OverlayError):
+            urwid.Overlay(urwid.SolidFill("*"), urwid.SolidFill("#"), urwid.CENTER, 10, 123, 5)
+
+    def test_selectable_delegates_to_top_w(self) -> None:
+        ovl = urwid.Overlay(urwid.Edit(), urwid.SolidFill("#"), urwid.CENTER, 10, urwid.MIDDLE, 1)
+        self.assertTrue(ovl.selectable())
+
+        ovl = urwid.Overlay(urwid.SolidFill("*"), urwid.SolidFill("#"), urwid.CENTER, 10, urwid.MIDDLE, 1)
+        self.assertFalse(ovl.selectable())
+
+    def test_keypress_delegates_to_top_w(self) -> None:
+        edit = urwid.Edit()
+        ovl = urwid.Overlay(edit, urwid.SolidFill("#"), urwid.CENTER, 10, urwid.MIDDLE, 1)
+        self.assertIsNone(ovl.keypress((20, 5), "x"))
+        self.assertEqual("x", edit.edit_text)
+
+    def test_focus_position_set_to_one_is_noop(self) -> None:
+        ovl = urwid.Overlay(urwid.SolidFill("*"), urwid.SolidFill("#"), urwid.CENTER, 10, urwid.MIDDLE, 5)
+        ovl.focus_position = 1
+        self.assertEqual(1, ovl.focus_position)
+
+    def test_contents_is_fixed_size(self) -> None:
+        ovl = urwid.Overlay(urwid.SolidFill("*"), urwid.SolidFill("#"), urwid.CENTER, 10, urwid.MIDDLE, 5)
+        with self.assertRaises(TypeError):
+            del ovl.contents[0]
+        with self.assertRaises(TypeError):
+            ovl.contents.insert(0, (urwid.SolidFill("x"), ovl.contents[1][1]))
+        self.assertEqual([ovl.contents[0], ovl.contents[1]], list(ovl.contents))
+
+    def test_contents_setter_replaces_bottom_and_top_options(self) -> None:
+        top_w = urwid.SolidFill("1")
+        ovl = urwid.Overlay(top_w, urwid.SolidFill("2"), urwid.CENTER, 10, urwid.MIDDLE, 5)
+        new_bottom = urwid.SolidFill("4")
+        new_top = urwid.SolidFill("5")
+        new_options = ovl.options(
+            urwid.LEFT, None, urwid.WHSettings.GIVEN, 4, urwid.TOP, None, urwid.WHSettings.GIVEN, 2
+        )
+
+        ovl.contents = [(new_bottom, ovl._DEFAULT_BOTTOM_OPTIONS), (new_top, new_options)]
+
+        self.assertIs(ovl.bottom_w, new_bottom)
+        self.assertIs(ovl.top_w, new_top)
+        self.assertEqual((4, 2), (ovl.width, ovl.height))
+
+        with self.assertRaises(ValueError):
+            ovl.contents = [(new_bottom, ovl._DEFAULT_BOTTOM_OPTIONS)]
+
+    def test_contents_getitem_invalid_index(self) -> None:
+        ovl = urwid.Overlay(urwid.SolidFill("*"), urwid.SolidFill("#"), urwid.CENTER, 10, urwid.MIDDLE, 5)
+        with self.assertRaises(IndexError):
+            ovl.contents[2]  # accessing for the side effect of raising
+
+    def test_contents_setitem_errors(self) -> None:
+        ovl = urwid.Overlay(urwid.SolidFill("*"), urwid.SolidFill("#"), urwid.CENTER, 10, urwid.MIDDLE, 5)
+
+        with self.subTest("value is not a (widget, options) pair"), self.assertRaises(overlay_mod.OverlayError):
+            ovl.contents[0] = "not-a-pair"
+
+        with self.subTest("bottom options mismatch"), self.assertRaises(overlay_mod.OverlayError):
+            ovl.contents[0] = (urwid.SolidFill("x"), ovl.contents[1][1])
+
+        with self.subTest("top options malformed"), self.assertRaises(overlay_mod.OverlayError):
+            ovl.contents[1] = (urwid.SolidFill("y"), (1, 2, 3))
+
+        with self.subTest("invalid index"), self.assertRaises(IndexError):
+            ovl.contents[5] = (urwid.SolidFill("z"), ovl.contents[1][1])
+
+        top_options = ovl.contents[1][1]
+        for name, changes in (
+            ("clip width", {"width_type": urwid.CLIP, "width_amount": None}),
+            ("weight width", {"width_type": urwid.WEIGHT, "width_amount": 1}),
+            ("flow height", {"height_type": urwid.FLOW, "height_amount": None}),
+            ("weight height", {"height_type": urwid.WEIGHT, "height_amount": 1}),
+        ):
+            with self.subTest(name), self.assertRaises(overlay_mod.OverlayError):
+                ovl.contents[1] = (urwid.SolidFill("y"), top_options._replace(**changes))
+
+    def test_get_cursor_coords_none_without_support(self) -> None:
+        ovl = urwid.Overlay(urwid.SolidFill("*"), urwid.SolidFill("#"), urwid.CENTER, 10, urwid.MIDDLE, 5)
+        self.assertIsNone(ovl.get_cursor_coords((20, 10)))
+        # the top widget supports cursors but has none to show
+        ovl = urwid.Overlay(urwid.Filler(urwid.Text("x")), urwid.SolidFill("#"), urwid.CENTER, 10, urwid.MIDDLE, 5)
+        self.assertIsNone(ovl.get_cursor_coords((20, 10)))
+
+    def test_get_cursor_coords_flow_top_widget(self) -> None:
+        """A flow top widget gets a flow size, as it does for render."""
+        ovl = urwid.Overlay(urwid.Edit("", "ab"), urwid.SolidFill("#"), urwid.CENTER, 10, urwid.MIDDLE, urwid.PACK)
+        self.assertEqual((7, 2), ovl.get_cursor_coords((20, 5)))
+
+    def test_get_cursor_coords_clamped_to_last_row(self) -> None:
+        ovl = urwid.Overlay(FixedCursorSolidFill("*"), urwid.SolidFill("#"), urwid.CENTER, 5, urwid.MIDDLE, 5)
+        self.assertEqual((0, 4), ovl.get_cursor_coords((5, 5)))
+
+    def test_calculate_padding_filler_raises_for_zero_height_fixed(self) -> None:
+        ovl = urwid.Overlay(ZeroHeightFixed(), urwid.SolidFill("#"), urwid.CENTER, None, urwid.MIDDLE, None)
+        with self.assertRaises(overlay_mod.OverlayError):
+            ovl.calculate_padding_filler((10, 5), False)
+
+    def test_margins_leave_no_rows_for_a_box_top_widget(self) -> None:
+        """The top widget is rendered at no rows when the margins take every row, and only the bottom shows."""
+        ovl = urwid.Overlay(
+            urwid.SolidFill("x"),
+            urwid.SolidFill("#"),
+            urwid.CENTER,
+            4,
+            urwid.MIDDLE,
+            (urwid.RELATIVE, 100),
+            top=1,
+            bottom=1,
+        )
+        self.assertEqual(["######", "######"], urwid.testing.render_text(ovl, (6, 2)))
+        urwid.testing.check_box_sizing(ovl)
+
+    def test_calculate_padding_filler_shrinks_bottom_for_oversized_flow(self) -> None:
+        """A PACK-height flow widget taller than maxrow has its bottom filler go negative instead of raising."""
+        top_w = urwid.Text("one two three four five six seven eight nine ten")
+        ovl = urwid.Overlay(top_w, urwid.SolidFill("#"), urwid.CENTER, 5, urwid.TOP, None)
+        height = top_w.rows((5,))
+        self.assertGreater(height, 3)
+        self.assertEqual((0, 0, 0, 3 - height), ovl.calculate_padding_filler((5, 3), False))
+
+    def test_shrink_to_fit(self) -> None:
+        """With shrink_to_fit, a PACK top widget taller than the screen is rendered as a box at the screen rows.
+
+        It keeps its border and scrolls.
+        A top widget that fits is rendered at its flow size, and the flag off clips the top widget as before.
+        """
+        flow_text = urwid.testing.render_text(make_table_dialog(6).top_w, (6,), focus=True)
+        self.assertEqual(8, len(flow_text))
+        clipped = make_table_dialog(6)
+        self.assertEqual(flow_text[:4], urwid.testing.render_text(clipped, (6, 4), focus=True))
+
+        ovl = make_table_dialog(6, shrink_to_fit=True)
+        self.assertEqual((0, 0, 0, 0), ovl.calculate_padding_filler((6, 4), True))
+        self.assertEqual((6, 4), ovl.top_w_size((6, 4), 0, 0, 0, 0))
+        self.assertEqual(
+            ["┌────┐", "│r0  │", "│r1  │", "└────┘"],
+            urwid.testing.render_text(ovl, (6, 4), focus=True),
+        )
+        self.assertEqual([], urwid.testing.press(ovl, (6, 4), *["down"] * 5))
+        self.assertEqual(
+            ["┌────┐", "│r4  │", "│r5  │", "└────┘"],
+            urwid.testing.render_text(ovl, (6, 4), focus=True),
+        )
+        self.assertEqual((6,), ovl.top_w_size((6, 9), *ovl.calculate_padding_filler((6, 9), True)))
+        self.assertEqual([*flow_text, "######"], urwid.testing.render_text(ovl, (6, 9), focus=True))
+        urwid.testing.check_box_sizing(ovl)
+
+    def test_shrink_to_fit_with_margins(self) -> None:
+        """The rows between the top and bottom margins are the box a top widget taller than them is rendered at.
+
+        A negative margin adds no rows to that box.
+        """
+        for margins, fillers, lines in (
+            (
+                {"top": 1, "bottom": 1},
+                (0, 0, 1, 1),
+                ["######", "┌────┐", "│r0  │", "│r1  │", "└────┘", "######"],
+            ),
+            (
+                {"top": -1},
+                (0, 0, 0, 0),
+                ["┌────┐", "│r0  │", "│r1  │", "│r2  │", "│r3  │", "└────┘"],
+            ),
+        ):
+            with self.subTest(**margins):
+                ovl = make_table_dialog(6, shrink_to_fit=True, **margins)
+                self.assertEqual(fillers, ovl.calculate_padding_filler((6, 6), True))
+                self.assertEqual(lines, urwid.testing.render_text(ovl, (6, 6), focus=True))
+
+    def test_shrink_to_fit_focus_dependent_height(self) -> None:
+        """A top widget taller than the rows available only in focus is rendered as a box in either focus.
+
+        A box canvas has the rows it is given, so it matches the fillers of either focus.
+        """
+        ovl = urwid.Overlay(
+            FocusHeightWidget(),
+            urwid.SolidFill("#"),
+            urwid.LEFT,
+            4,
+            urwid.TOP,
+            urwid.PACK,
+            shrink_to_fit=True,
+        )
+        size = (4, 3)
+        for focus, fillers, lines in (
+            (False, (0, 0, 0, 1), ["xxxx", "xxxx", "####"]),
+            (True, (0, 0, 0, 0), ["xxxx", "xxxx", "xxxx"]),
+        ):
+            with self.subTest(focus=focus):
+                self.assertEqual(fillers, ovl.calculate_padding_filler(size, focus))
+                self.assertEqual((4, 3 - fillers[3]), ovl.top_w_size(size, *fillers))
+                self.assertEqual(lines, urwid.testing.render_text(ovl, size, focus=focus))
+
+    def test_shrink_to_fit_input_sizes(self) -> None:
+        """Keys, mouse events and the cursor reach a top widget taller than the screen at the box size.
+
+        With the flag off they reach it at the flow size.
+        """
+        for shrink_to_fit, top_w_size in ((True, (4, 3)), (False, (4,))):
+            with self.subTest(shrink_to_fit=shrink_to_fit):
+                top_w = FocusHeightWidget()
+                ovl = urwid.Overlay(
+                    top_w,
+                    urwid.SolidFill("#"),
+                    urwid.LEFT,
+                    4,
+                    urwid.TOP,
+                    urwid.PACK,
+                    shrink_to_fit=shrink_to_fit,
+                )
+                size = (4, 3)
+                self.assertEqual("x", ovl.keypress(size, "x"))
+                self.assertEqual((0, 0), ovl.get_cursor_coords(size))
+                self.assertTrue(ovl.mouse_event(size, "mouse press", 1, 0, 0, True))
+                self.assertEqual(
+                    [(method, top_w_size) for method in ("keypress", "get_cursor_coords", "mouse_event")],
+                    top_w.sizes,
+                )
+
+    def test_shrink_to_fit_without_box_support(self) -> None:
+        """A top widget without BOX support is clipped with the flag set, as without it."""
+        top_w = urwid.Text("one two three four five six seven eight nine ten")
+        height = top_w.rows((5,))
+        for shrink_to_fit in (False, True):
+            with self.subTest(shrink_to_fit=shrink_to_fit):
+                ovl = urwid.Overlay(
+                    top_w,
+                    urwid.SolidFill("#"),
+                    urwid.CENTER,
+                    5,
+                    urwid.TOP,
+                    None,
+                    shrink_to_fit=shrink_to_fit,
+                )
+                self.assertEqual((0, 0, 0, 3 - height), ovl.calculate_padding_filler((5, 3), False))
+                self.assertEqual((5,), ovl.top_w_size((5, 3), 0, 0, 0, 3 - height))
+                self.assertEqual(["one  ", "two  ", "three"], urwid.testing.render_text(ovl, (5, 3)))
+
+    @staticmethod
+    def make_list_dialog(**kwargs: typing.Any) -> tuple[urwid.Overlay, urwid.ListBox]:
+        """Return a dialog of six buttons in a ListBox with flow set, above an OK button, and the ListBox."""
+        lbox = urwid.ListBox(urwid.SimpleFocusListWalker([urwid.Button(f"b{i}") for i in range(6)]), flow=True)
+        body = urwid.Pile([("weight", 1, urwid.ScrollBar(lbox)), ("pack", urwid.Button("ok"))])
+        overlay = urwid.Overlay(
+            urwid.LineBox(body),
+            urwid.SolidFill("#"),
+            urwid.CENTER,
+            12,
+            urwid.MIDDLE,
+            urwid.PACK,
+            **kwargs,
+        )
+        return overlay, lbox
+
+    def test_list_dialog_fits(self) -> None:
+        """A dialog that fits takes the rows of all its buttons and draws no scrollbar, with the flag set or not."""
+        for shrink_to_fit in (False, True):
+            with self.subTest(shrink_to_fit=shrink_to_fit), warnings.catch_warnings():
+                warnings.simplefilter("error")
+                overlay, _lbox = self.make_list_dialog(shrink_to_fit=shrink_to_fit)
+                self.assertEqual(
+                    [
+                        "##############",
+                        "#┌──────────┐#",
+                        *(f"#│< b{i}     >│#" for i in range(6)),
+                        "#│< ok     >│#",
+                        "#└──────────┘#",
+                        "##############",
+                        "##############",
+                    ],
+                    urwid.testing.render_text(overlay, (14, 12), focus=True),
+                )
+
+    def test_list_dialog_taller_than_the_screen(self) -> None:
+        """With shrink_to_fit, a dialog taller than the screen keeps its OK button, and its list scrolls.
+
+        The focus stays visible as it moves down the list.
+        Without the flag the dialog is clipped at the bottom.
+        """
+        overlay, lbox = self.make_list_dialog(shrink_to_fit=True)
+        size = (14, 6)
+        self.assertEqual(
+            [
+                "#┌──────────┐#",
+                "#│< b0    >█│#",
+                "#│< b1    >█│#",
+                "#│< b2    > │#",
+                "#│< ok     >│#",
+                "#└──────────┘#",
+            ],
+            urwid.testing.render_text(overlay, size, focus=True),
+        )
+        self.assertEqual([], urwid.testing.press(overlay, size, *["down"] * 5))
+        self.assertEqual(5, lbox.focus_position)
+        self.assertEqual(
+            [
+                "#┌──────────┐#",
+                "#│< b3    > │#",
+                "#│< b4    >█│#",
+                "#│< b5    >█│#",
+                "#│< ok     >│#",
+                "#└──────────┘#",
+            ],
+            urwid.testing.render_text(overlay, size, focus=True),
+        )
+        self.assertEqual((4, 3), overlay.get_cursor_coords(size))
+
+        clipped, _lbox = self.make_list_dialog()
+        self.assertEqual(
+            ["#┌──────────┐#", *(f"#│< b{i}     >│#" for i in range(5))],
+            urwid.testing.render_text(clipped, size, focus=True),
+        )
+
+    def test_shrink_to_fit_repr(self) -> None:
+        """The flag is shown in the repr when it is set."""
+        for shrink_to_fit in (False, True):
+            with self.subTest(shrink_to_fit=shrink_to_fit):
+                ovl = make_table_dialog(1, shrink_to_fit=shrink_to_fit)
+                self.assertEqual(shrink_to_fit, "shrink_to_fit=True" in repr(ovl))
+                self.assertIn(("shrink_to_fit", shrink_to_fit, False), list(ovl.__rich_repr__()))
+
+    def test_render_returns_bottom_only_when_bottom_canvas_is_empty(self) -> None:
+        for description, top_w, height in (
+            ("given height", urwid.SolidFill("X"), 2),
+            ("pack height", urwid.Text("X"), urwid.PACK),
+        ):
+            with self.subTest(description):
+                ovl = urwid.Overlay(top_w, urwid.SolidFill("."), urwid.CENTER, 4, urwid.MIDDLE, height)
+                canvas = ovl.render((0, 5))
+                self.assertIsInstance(canvas, urwid.CompositeCanvas)
+                self.assertEqual(0, canvas.cols())
+                self.assertEqual(5, canvas.rows())
+
+    def test_render_calls_overridden_layout_methods(self) -> None:
+        """A subclass overriding calculate_padding_filler or top_w_size gets it called by render for a PACK height."""
+        calls: list[str] = []
+
+        class PaddingFillerOverlay(urwid.Overlay[urwid.Text, urwid.SolidFill]):
+            """An Overlay recording each call of calculate_padding_filler."""
+
+            def calculate_padding_filler(self, size: tuple[int, int], focus: bool) -> tuple[int, int, int, int]:
+                calls.append("calculate_padding_filler")
+                return super().calculate_padding_filler(size, focus)
+
+        class TopSizeOverlay(urwid.Overlay[urwid.Text, urwid.SolidFill]):
+            """An Overlay recording each call of top_w_size."""
+
+            def top_w_size(
+                self,
+                size: tuple[int, int],
+                left: int,
+                right: int,
+                top: int,
+                bottom: int,
+            ) -> tuple[()] | tuple[int] | tuple[int, int]:
+                calls.append("top_w_size")
+                return super().top_w_size(size, left, right, top, bottom)
+
+        for overlay_class, method in (
+            (PaddingFillerOverlay, "calculate_padding_filler"),
+            (TopSizeOverlay, "top_w_size"),
+        ):
+            with self.subTest(method):
+                calls.clear()
+                ovl = overlay_class(
+                    urwid.Text("one two"), urwid.SolidFill("."), urwid.CENTER, 5, urwid.MIDDLE, urwid.PACK
+                )
+                self.assertEqual((".......", ".one  .", ".two  .", "......."), ovl.render((7, 4)).decoded_text)
+                self.assertEqual([method], calls)
+
+    def test_render_pack_height_box_only_top_widget(self) -> None:
+        """A PACK height over a BOX-only top_w fails with AttributeError, also when bottom_w renders empty.
+
+        A wrapper whose own rows() fails on the wrapped BOX widget fails the same way.
+        """
+        for description, make_top, warns_about_sizing in (
+            ("box widget", lambda: urwid.SolidFill("x"), False),
+            ("padded box widget", lambda: urwid.Padding(urwid.SolidFill("x")), False),
+            ("box widget in a pile", lambda: urwid.Pile([urwid.SolidFill("x")]), True),
+        ):
+            for size in ((8, 6), (0, 6), (8, 0)):
+                with self.subTest(description, size=size):
+                    ovl = urwid.Overlay(make_top(), urwid.SolidFill("."), urwid.CENTER, 5, urwid.MIDDLE, urwid.PACK)
+                    with warnings.catch_warnings(record=True) as caught, self.assertRaises(AttributeError):
+                        warnings.simplefilter("always")
+                        ovl.render(size)
+                    self.assertEqual(
+                        [urwid.widget.pile.PileWarning] if warns_about_sizing else [],
+                        [warning.category for warning in caught],
+                    )
+
+    def test_mouse_event_without_support(self) -> None:
+        with self.assertWarns(DeprecationWarning):
+            ovl = urwid.Overlay(
+                NotAWidget(),
+                urwid.SolidFill("#"),
+                urwid.CENTER,
+                (urwid.RELATIVE, 100),
+                urwid.MIDDLE,
+                (urwid.RELATIVE, 100),
+            )
+        self.assertFalse(ovl.mouse_event((10, 5), "mouse press", 1, 0, 0, True))
+
+    def test_mouse_event_outside_top_w_area(self) -> None:
+        ovl = urwid.Overlay(urwid.SolidFill("X"), urwid.SolidFill("."), urwid.CENTER, 4, urwid.MIDDLE, 2)
+        self.assertEqual((2, 2, 1, 1), ovl.calculate_padding_filler((8, 4), True))
+        self.assertFalse(ovl.mouse_event((8, 4), "mouse press", 1, 0, 0, True))
+
+    def test_squish(self):
+        urwid.testing.check_box_sizing(
+            urwid.Overlay(
+                urwid.BigText("hello", urwid.Thin6x6Font()), urwid.SolidFill(), "center", None, "middle", None
+            )
+        )
+        urwid.testing.check_box_sizing(
+            urwid.Overlay(urwid.Text("hello"), urwid.SolidFill(), "center", ("relative", 100), "middle", None)
         )
