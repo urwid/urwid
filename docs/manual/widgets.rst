@@ -1646,6 +1646,15 @@ above and below the focus widget.
 A :class:`SimpleFocusListWalker`
 is a list walker that behaves like a normal Python list. It may be used any
 time you will be displaying a moderate number of widgets.
+``SimpleFocusListWalker(widgets, focus=3)`` and
+:class:`SimpleFocusDequeWalker` with the same keyword start with the focus on
+that index instead of the first widget.  A :class:`ListBox` treats it as the
+initial focus of its body: its first render draws the focus widget on the top
+row, and moves the focus to the first selectable widget shown below it when the
+focus widget is not selectable.  Setting :attr:`ListBox.focus_position` after
+creating the ListBox does neither: the focus stays where it was set, below the
+widgets before it when they fit in the view, and in the middle of the view
+otherwise.
 
 A log or a progress view that grows at the end can be created with
 ``SimpleFocusListWalker(..., follow_end=True)``, or with a bounded
