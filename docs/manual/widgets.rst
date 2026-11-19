@@ -1496,6 +1496,16 @@ above or below the list.  Created with ``edge="stop"`` it consumes those keys
 and the focus stays in the list; the attribute :attr:`ListBox.edge` can be
 changed later.  An empty ListBox returns the keys in both modes.
 
+:kbd:`home` and :kbd:`end` move the focus to the first and the last widget of
+the body, whether it is selectable or not.  Created with
+``home_end="selectable"`` they move it to the first and the last selectable
+widget instead, so a heading or a divider never takes the focus, and the
+widgets before or after it stay in view as far as there is room for them.
+A body without a selectable widget is handled as in the default mode, and the
+attribute :attr:`ListBox.home_end` can be changed later.
+:meth:`ListBox.scroll_to_selectable` does the same for a program, such as one
+that binds its own keys to those moves.
+
 A list that loads more rows on demand connects to the ``"edge reached"`` signal
 of the ListBox.  It is sent with ``"top"`` or ``"bottom"`` when :kbd:`up`,
 :kbd:`down`, :kbd:`page up`, :kbd:`page down` or a wheel notch asks the view to

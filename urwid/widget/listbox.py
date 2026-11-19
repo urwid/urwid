@@ -280,6 +280,7 @@ class ListBox(Widget, SelectNavigationMixin[_K], _UnfocusedFocusAttrMixin):
         focus_when_empty: bool = True,
         edge: Literal["return", "stop"] = "return",
         wheel: Literal["focus", "view"] = "focus",
+        home_end: Literal["any", "selectable"] = "any",
         flow: bool = False,
     ) -> None: ...
 
@@ -294,6 +295,7 @@ class ListBox(Widget, SelectNavigationMixin[_K], _UnfocusedFocusAttrMixin):
         focus_when_empty: bool = True,
         edge: Literal["return", "stop"] = "return",
         wheel: Literal["focus", "view"] = "focus",
+        home_end: Literal["any", "selectable"] = "any",
         flow: bool = False,
     ) -> None: ...
 
@@ -307,6 +309,7 @@ class ListBox(Widget, SelectNavigationMixin[_K], _UnfocusedFocusAttrMixin):
         focus_when_empty: bool = True,
         edge: Literal["return", "stop"] = "return",
         wheel: Literal["focus", "view"] = "focus",
+        home_end: Literal["any", "selectable"] = "any",
         flow: bool = False,
     ) -> None:
         """Create the ListBox widget.
@@ -323,6 +326,7 @@ class ListBox(Widget, SelectNavigationMixin[_K], _UnfocusedFocusAttrMixin):
             ``False`` lets a container move the focus past an empty ListBox.
         :param edge: what :kbd:`up` at the first row and :kbd:`down` at the last row do; see :attr:`edge`.
         :param wheel: what a notch of the vertical mouse wheel moves; see :attr:`wheel`.
+        :param home_end: what :kbd:`home` and :kbd:`end` move the focus to; see :attr:`home_end`.
         :param flow: report FLOW sizing as well, so that a container can lay the ListBox out with the rows of all
             its widgets; see :meth:`sizing`.
 
@@ -376,6 +380,7 @@ class ListBox(Widget, SelectNavigationMixin[_K], _UnfocusedFocusAttrMixin):
         self.focus_when_empty = focus_when_empty
         self.edge = edge
         self.wheel = wheel
+        self.home_end = home_end
         self.flow = flow
 
     def sizing(self) -> frozenset[Sizing]:
@@ -448,6 +453,29 @@ class ListBox(Widget, SelectNavigationMixin[_K], _UnfocusedFocusAttrMixin):
         """Drop the cached canvases and the cached :meth:`rows_max` result."""
         self._rows_max_cached = 0
         super()._invalidate()
+
+    @property
+    def home_end(self) -> Literal["any", "selectable"]:
+        """What :kbd:`home` and :kbd:`end` move the focus to.
+
+        - ``"any"``: the first or the last widget of the body, as :meth:`scroll_to_top` and :meth:`scroll_to_bottom`
+          move it.
+        - ``"selectable"``: the first or the last selectable widget, with the widgets before or after it in view,
+          as :meth:`scroll_to_selectable` moves it.
+          A body with no selectable widget is handled as in ``"any"``.
+        """
+        return self._home_end
+
+    @home_end.setter
+    def home_end(self, home_end: Literal["any", "selectable"]) -> None:
+        """Set what :kbd:`home` and :kbd:`end` move the focus to.
+
+        :raises ValueError: *home_end* is neither ``"any"`` nor ``"selectable"``.
+        """
+        if home_end not in {"any", "selectable"}:
+            msg = f'home_end must be "any" or "selectable", not {home_end!r}'
+            raise ValueError(msg)
+        self._home_end: Literal["any", "selectable"] = home_end
 
     @property
     def body(self) -> ListWalker[_K, AbstractFlowWidget]:
@@ -1579,6 +1607,10 @@ class ListBox(Widget, SelectNavigationMixin[_K], _UnfocusedFocusAttrMixin):
             move cursor up one listbox length (or widget)
         :kbd:`page down`
             move cursor down one listbox length (or widget)
+        :kbd:`home`
+            move to the first widget, or to the first selectable one; see :attr:`home_end`
+        :kbd:`end`
+            move to the last widget, or to the last selectable one; see :attr:`home_end`
 
         With :attr:`edge` ``"stop"``, :kbd:`up` at the first row and :kbd:`down` at the last row are consumed.
         Whatever :attr:`edge` is, a key that moves nothing at an end sends the ``"edge reached"`` signal.
@@ -1825,12 +1857,75 @@ class ListBox(Widget, SelectNavigationMixin[_K], _UnfocusedFocusAttrMixin):
                 return typing.cast("_K", position)
         return None
 
+    def scroll_to_selectable(self, size: tuple[int, int], end: Literal["top", "bottom"]) -> bool:
+        """Move the focus to the first or the last selectable widget and show the widgets beyond it.
+
+        The widgets between *end* and the new focus are shown as far as the view has room for them,
+        so a heading above the first selectable widget stays in view.
+        Unlike :meth:`focus_first_selectable` and :meth:`focus_last_selectable`,
+        it places the view, and it does not enter the widget.
+
+        >>> import urwid
+        >>> fruit = [urwid.Button(name) for name in ("apple", "pear", "plum")]
+        >>> listbox = urwid.ListBox([urwid.Text("Fruit"), *fruit, urwid.Text("3 items")])
+        >>> listbox.focus_position = 3
+        >>> listbox.scroll_to_selectable((12, 3), "top")
+        True
+        >>> listbox.focus_position
+        1
+        >>> [line.decode() for line in listbox.render((12, 3)).text]
+        ['Fruit       ', '< apple    >', '< pear     >']
+
+        :param size: the box size the list box is rendered at.
+        :param end: ``"top"`` for the first selectable widget, ``"bottom"`` for the last one.
+        :returns: whether the body has a selectable widget; without one nothing changes.
+        :raises ValueError: *end* is neither ``"top"`` nor ``"bottom"``.
+        :raises TypeError: the body does not implement ``set_focus``.
+        :raises ListBoxError: the body has no widget at a position its walk returned.
+        """
+        if end not in {"top", "bottom"}:
+            msg = f'end must be "top" or "bottom", not {end!r}'
+            raise ValueError(msg)
+        maxcol, maxrow = size
+        last = end == "bottom"
+        # A focus or alignment still pending would be completed at the next render and replace this placement.
+        if self.set_focus_pending or self.set_focus_valign_pending:
+            self._set_focus_complete(size, focus=True)
+        missing = object()
+        position = next(self._select_candidates(reverse=last, from_edge=True), missing)
+        if position is missing:
+            return False
+        widget = self._body_widget_at(position)
+        if widget is None:
+            raise ListBoxError(f"The body has no widget at {position!r}, a position its walk returned.")
+        room = maxrow - widget.rows((maxcol,), True)
+        # Rows between the widget and the end, read only while they still fit in the view next to it.
+        beyond = 0
+        seen = _SeenPositions()
+        seen.add(position)
+        for neighbour, _neighbour_pos in self._select_walk(
+            position,
+            forward=last,
+            seen=seen,
+            edges=self._select_wrap_edges(),
+        ):
+            if beyond >= room:
+                break
+            beyond += neighbour.rows((maxcol,), False)
+        shown = max(0, min(beyond, room))
+        self.change_focus(size, typing.cast("_K", position), offset_inset=max(0, room - shown) if last else shown)
+        return True
+
     def _keypress_max_left(self, size: tuple[int, int]) -> None:
-        """Move the focus to the first position of the body, through :meth:`scroll_to_top`."""
+        """Move the focus to the first widget of the body, or to the first selectable one, as :attr:`home_end` says."""
+        if self._home_end == "selectable" and self.scroll_to_selectable(size, "top"):
+            return
         self.scroll_to_top()
 
     def _keypress_max_right(self, size: tuple[int, int]) -> None:
-        """Move the focus to the last position of the body, through :meth:`scroll_to_bottom`."""
+        """Move the focus to the last widget of the body, or to the last selectable one, as :attr:`home_end` says."""
+        if self._home_end == "selectable" and self.scroll_to_selectable(size, "bottom"):
+            return
         self.scroll_to_bottom()
 
     def _keypress_up(self, size: tuple[int, int]) -> bool | None:
