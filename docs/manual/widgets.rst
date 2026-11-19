@@ -348,6 +348,9 @@ click outside closes the list without a choice.
   child.  In the top list either arrow opens a child.
 - ``align="right"`` lines up the right edges of the list and the launcher,
   for a menu at the right edge or a right-to-left interface.
+- ``placement="center"`` opens the list in the middle of the
+  :class:`PopUpTarget` rather than at the launcher's edge, for a chooser
+  that belongs to the whole screen rather than to the launcher.
 - ``border=False`` draws the list without its box.
 - The ``scrollbar_`` keyword arguments are passed to the :class:`ScrollBar`
   of each list, as for :class:`DropDown`.
@@ -355,11 +358,11 @@ click outside closes the list without a choice.
 The launcher is a label with :attr:`ActionMenu.menu_indicator` after it, or
 any widget given as ``launcher``, such as a row of a :class:`ListBox`.  The
 keys in ``open_keys`` and a press of a button in ``open_buttons`` open the
-list at the launcher's edge, and every other key and button goes to the
+list where ``placement`` says, and every other key and button goes to the
 launcher.  A mouse opening also gives the row the focus through
 :meth:`Widget.request_focus`.  :meth:`ActionMenu.open_at` opens the list
-below a cell of the launcher, so an application's own mouse handler can open
-a context menu at the pointer.
+below a cell of the launcher, whatever ``placement`` says, so an
+application's own mouse handler can open a context menu at the pointer.
 
 A menu with no item that can be chosen opens nothing.  Its label launcher is
 then not selectable and is drawn with ``disabled_map``; a launcher widget

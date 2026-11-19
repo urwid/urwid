@@ -269,7 +269,8 @@ def main() -> None:
         (
             " opens a list of actions with ENTER, SPACE or a click.  The key in brackets chooses an item, "
             "a disabled item cannot be focused, and Send to opens a submenu with RIGHT; LEFT or ESC closes it.  "
-            "Near the right edge the submenu opens to the left of the list."
+            "Near the right edge the submenu opens to the left of the list.  Centred opens the same list in the "
+            "middle of the screen."
         ),
     ]
     text_context_menu = (
@@ -386,6 +387,15 @@ def main() -> None:
             urwid.MenuItem("(D)elete", "delete", key="d"),
         ],
         on_action=show_action,
+        attr_map="buttn",
+        focus_map="buttnf",
+        disabled_map="tab",
+    )
+    centred_menu = urwid.ActionMenu(
+        "Centred",
+        action_menu.items,
+        on_action=show_action,
+        placement="center",
         attr_map="buttn",
         focus_map="buttnf",
         disabled_map="tab",
@@ -647,7 +657,14 @@ def main() -> None:
         urwid.Padding(urwid.Text(text_action_menu), left=2, right=2, min_width=20),
         blank,
         urwid.Padding(
-            urwid.Columns([(action_menu.pack()[0], urwid.AttrMap(action_menu, "buttn", "buttnf")), action_chosen]),
+            urwid.Columns(
+                [
+                    (action_menu.pack()[0], urwid.AttrMap(action_menu, "buttn", "buttnf")),
+                    (centred_menu.pack()[0], urwid.AttrMap(centred_menu, "buttn", "buttnf")),
+                    action_chosen,
+                ],
+                dividechars=2,
+            ),
             left=4,
             right=3,
             min_width=20,

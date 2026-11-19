@@ -440,6 +440,7 @@ class ActionMenu(_MenuOwner):
     """Launcher that opens a list of actions; choosing one closes the list and sends ``"action"``.
 
     The list opens below the launcher and moves above it when it does not fit there.
+    With ``placement="center"`` it opens in the middle of the screen instead.
     :kbd:`up`, :kbd:`down`, :kbd:`home` and :kbd:`end` skip separators and disabled items.
     :kbd:`enter`, :kbd:`space`, a click, or an item's own `key` chooses it.
     An item with a `submenu` opens its child menu beside the list instead: a child of the top list on the side
@@ -491,6 +492,7 @@ class ActionMenu(_MenuOwner):
         open_keys: Collection[str] | None = ...,
         open_buttons: Collection[int] = ...,
         align: Literal["left", "right"] = ...,
+        placement: Literal["launcher", "center"] = ...,
         border: bool = ...,
         show_keys: bool = ...,
         max_visible_items: int = ...,
@@ -512,6 +514,7 @@ class ActionMenu(_MenuOwner):
         open_keys: Collection[str] | None = ...,
         open_buttons: Collection[int] = ...,
         align: Literal["left", "right"] = ...,
+        placement: Literal["launcher", "center"] = ...,
         border: bool = ...,
         show_keys: bool = ...,
         max_visible_items: int = ...,
@@ -532,6 +535,7 @@ class ActionMenu(_MenuOwner):
         open_keys: Collection[str] | None = None,
         open_buttons: Collection[int] = (MouseButton.LEFT,),
         align: Literal["left", "right"] = "left",
+        placement: Literal["launcher", "center"] = "launcher",
         border: bool = True,
         show_keys: bool = False,
         max_visible_items: int = 10,
@@ -550,12 +554,14 @@ class ActionMenu(_MenuOwner):
         :param on_action: connected to ``"action"``, called as ``on_action(menu, item)``,
             or ``on_action(menu, item, user_data)`` when `user_data` is given.
         :param user_data: passed to `on_action`.
-        :param open_keys: keys that open the list at the launcher's edge; ``None`` for the keys of the ``activate``
+        :param open_keys: keys that open the list where `placement` says; ``None`` for the keys of the ``activate``
             command.
-        :param open_buttons: mouse buttons whose press on the launcher opens the list at the launcher's edge,
-            as an opening key does.
+        :param open_buttons: mouse buttons whose press on the launcher opens the list as an opening key does.
         :param align: ``"right"`` lines up the right edge of the list with the launcher's, and opens submenus to the
             left; ``"left"`` does the opposite.
+        :param placement: where an opening key or button opens the list: ``"launcher"`` at the launcher's edge,
+            ``"center"`` in the middle of the :class:`PopUpTarget <urwid.PopUpTarget>`.
+            :meth:`open_at` opens it at the given cell either way.
         :param border: draw a box around each list, with separators joined to it.
         :param show_keys: draw each item's key in a column before its label.
         :param max_visible_items: most entries a list shows at once; it scrolls through the rest.
@@ -568,7 +574,8 @@ class ActionMenu(_MenuOwner):
             ``scrollbar_side`` and ``scrollbar_attr``; ``visible`` and ``delegate_selectable`` are left out.
         :raises ValueError: there is no item, `max_visible_items` is less than 1, two items of one list have the
             same key, an item label given as markup holds a line break, `align` is neither ``"left"`` nor
-            ``"right"``, `label` and `launcher` are both given or both ``None``,
+            ``"right"``, `placement` is neither ``"launcher"`` nor ``"center"``,
+            `label` and `launcher` are both given or both ``None``,
             or :class:`ScrollBar <urwid.ScrollBar>` rejects the value of a ``scrollbar_`` parameter.
         :raises TypeError: `open_keys` is a single string rather than a collection of keys,
             or a keyword argument is neither a parameter of the menu nor one of `scrollbar_options`.
@@ -577,6 +584,9 @@ class ActionMenu(_MenuOwner):
             raise ValueError(f"max_visible_items must be at least 1, got {max_visible_items!r}")
         if align not in ("left", "right"):
             raise ValueError(f"align must be 'left' or 'right', got {align!r}")
+        if placement not in ("launcher", "center"):
+            raise ValueError(f"placement must be 'launcher' or 'center', got {placement!r}")
+        self._placement: Literal["launcher", "center"] = placement
         self._items = _menu_entries(items)
         self._style = _MenuStyle(
             align=align,
@@ -625,7 +635,7 @@ class ActionMenu(_MenuOwner):
         return super().selectable()
 
     def open_pop_up(self) -> None:
-        """Open the list at the launcher's edge; with no item that can be chosen, do nothing."""
+        """Open the list where `placement` says; with no item that can be chosen, do nothing."""
         self._pointer = None
         if self._usable:
             super().open_pop_up()
@@ -647,30 +657,42 @@ class ActionMenu(_MenuOwner):
         self._emit("action", item)
 
     def get_pop_up_parameters(self) -> PopUpParametersModel:
-        """Return the list below the launcher's edge, or below the cell given to :meth:`open_at`.
+        """Return the list below the launcher's edge, in the middle, or below the cell given to :meth:`open_at`.
 
-        The launcher rows above it are the vertical anchor, so it moves above them when it does not fit below.
+        Below an edge or a cell, the rows above the list are the vertical anchor,
+        so it moves above them when it does not fit below.
         """
         layout = _list_layout(self._items, self._style)
-        # Before the first render, the size the default launcher packs to with no size given.
-        launcher_width, launcher_rows = self.launcher_size or (self._fixed_width or layout.width, 1)
-        width = layout.width
-        if self._pointer is None:
-            if self._style.align == "left":
-                width = max(launcher_width, width)
-            col, top, anchor_height = 0, launcher_rows, launcher_rows
-            left = 0 if self._style.align == "left" else launcher_width - width
-        else:
+        if self._pointer is not None:
             col, row = self._pointer
-            top, anchor_height = row + 1, 1
-            left = col if self._style.align == "left" else col + 1 - width
-        return {
-            "left": left,
-            "top": top,
-            "overlay_width": width,
-            "overlay_height": layout.height,
-            "anchor_height": anchor_height,
-        }
+            return {
+                "left": col if self._style.align == "left" else col + 1 - layout.width,
+                "top": row + 1,
+                "overlay_width": layout.width,
+                "overlay_height": layout.height,
+                "anchor_height": 1,
+            }
+        match self._placement:
+            case "center":
+                return {
+                    "left": "center",
+                    "top": "middle",
+                    "overlay_width": layout.width,
+                    "overlay_height": layout.height,
+                }
+            case "launcher":
+                # Before the first render, the size the default launcher packs to with no size given.
+                launcher_width, launcher_rows = self.launcher_size or (self._fixed_width or layout.width, 1)
+                width = max(launcher_width, layout.width) if self._style.align == "left" else layout.width
+                return {
+                    "left": 0 if self._style.align == "left" else launcher_width - width,
+                    "top": launcher_rows,
+                    "overlay_width": width,
+                    "overlay_height": layout.height,
+                    "anchor_height": launcher_rows,
+                }
+            case _:
+                typing.assert_never(self._placement)
 
     def pack(
         self,
@@ -718,7 +740,7 @@ class ActionMenu(_MenuOwner):
     ) -> bool | None:
         """Open the list on a press of an opening button; pass every other event to the launcher.
 
-        The list opens at the launcher's edge, as it does for an opening key.
+        The list opens where `placement` says, as it does for an opening key.
         The opening press also asks the containers around the menu for the focus, see :meth:`Widget.request_focus`.
         With no item that can be chosen, every event goes to the launcher.
         """

@@ -90,6 +90,7 @@ class MenuItemTest(unittest.TestCase):
             ("no visible items", lambda: urwid.ActionMenu("A", ["x"], max_visible_items=0)),
             ("duplicate keys", lambda: urwid.ActionMenu("A", [MenuItem("a", key="k"), MenuItem("b", key="k")])),
             ("unknown align", lambda: urwid.ActionMenu("A", ["x"], align="center")),
+            ("unknown placement", lambda: urwid.ActionMenu("A", ["x"], placement="middle")),
             ("label and launcher", lambda: urwid.ActionMenu("A", ["x"], launcher=urwid.Text("row"))),
             ("neither label nor launcher", lambda: urwid.ActionMenu(None, ["x"])),
             ("submenu of separators", lambda: MenuItem("Send", submenu=[None])),
@@ -322,6 +323,31 @@ class LayoutTest(unittest.TestCase):
             lines(target, (40, 10))[1:4],
         )
 
+    def test_placement_center(self) -> None:
+        """The list opens in the middle of the target, as wide as its own entries rather than the launcher."""
+        target = screen(urwid.ActionMenu("Actions", ["Open", "Delete"], placement="center"))
+        keys(target, (20, 9), "enter")
+        self.assertEqual(
+            [
+                "line 0              ",
+                "Actions >           ",
+                "statu┌───────┐      ",
+                "     │Open   │      ",
+                "     │Delete │      ",
+                "     └───────┘      ",
+            ],
+            lines(target, (20, 9))[:6],
+        )
+
+    def test_placement_center_cut_short_by_the_screen(self) -> None:
+        """A centred list taller than the target is cut to the target's rows and gets a scroll bar."""
+        target = screen(urwid.ActionMenu("Actions", ["Open", "Copy", "Move", "Delete"], placement="center"))
+        keys(target, (12, 5), "enter")
+        self.assertEqual(
+            ["l┌──────┐   ", "A│Open  │█  ", "s│Copy  │█  ", " │Move  │   ", " └──────┘   "],
+            lines(target, (12, 5)),
+        )
+
 
 class ChoosingTest(unittest.TestCase):
     def test_choose_by_enter_after_skipping_disabled_and_separators(self) -> None:
@@ -484,6 +510,18 @@ class ContextMenuTest(unittest.TestCase):
             [line[:22] for line in lines(target, (34, 9))[2:4]],
         )
 
+    def test_open_at_with_placement_center(self) -> None:
+        """open_at() opens below the given cell, and an opening key opens the list in the middle."""
+        target, menus = file_list(placement="center")
+        target.render((34, 9), focus=True)
+        menus[1].open_at(4, 0)
+        self.assertEqual("phot│(O)pen   │", lines(target, (34, 9))[3][:15])
+        menus[1].close_pop_up()
+        keys(target, (34, 9), "m")
+        self.assertEqual(
+            ["report.txt ┌─────────┐", "todo.org   │(O)pen   │"], [line[:22] for line in lines(target, (34, 9))[1:3]]
+        )
+
 
 class SubmenuTest(unittest.TestCase):
     def open_child(
@@ -509,6 +547,18 @@ class SubmenuTest(unittest.TestCase):
         )
         self.assertIn("focus", attributes(target, (40, 10), 4, range(1, 13)))
         self.assertIn("focus", attributes(target, (40, 10), 4, range(15, 27)))
+
+    def test_child_opens_beside_a_centred_list(self) -> None:
+        """The child of a centred list opens beside it, level with its row."""
+        target, _menu, _sent = self.open_child(size=(44, 10), placement="center")
+        self.assertEqual(
+            [
+                "status: -      ┌────────────┐               ",
+                "               │(O)pen      │┌────────────┐ ",
+                "               │(S)end to  >││(M)ail      │ ",
+            ],
+            lines(target, (44, 10))[2:5],
+        )
 
     def test_child_flips_left_at_the_right_edge(self) -> None:
         """U3: near the right edge the child opens left of the parent, over none of its columns."""
