@@ -613,6 +613,11 @@ class TermCharset:
         self._sgr_mapping = False
         self.activate(g=self.active)
 
+    @property
+    def ibmpc_mapped(self) -> bool:
+        """Return whether the characters written are mapped as the IBM PC character set, by SGR 11 or a designation."""
+        return self._sgr_mapping or self._g[self._shown] == "ibmpc"
+
     def apply_mapping(self, char: bytes) -> bytes:
         """Map *char* through the active IBM PC/DEC special character set, tracking which slot the result came from.
 
@@ -1473,6 +1478,10 @@ class TermCanvas(Canvas):
                     if self.within_escape:
                         # an escape sequence takes bytes, not cells: no DEC drawing character here
                         char = sequence.encode(util.get_encoding(), "urwid_fallback_ascii")
+                    elif "\x80" <= sequence < "\xa0" and not (self.charset.ibmpc_mapped or self.modes.display_ctrl):
+                        # as in xterm, a C1 control written in UTF-8 is neither run nor drawn; the IBM PC mapping and
+                        # display control mode draw it
+                        return
                     else:
                         char, charsets = util.apply_target_encoding(sequence)
                         if charsets == [("0", 1)]:

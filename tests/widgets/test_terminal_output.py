@@ -110,8 +110,9 @@ class TerminalOutputTest(unittest.TestCase):
 
         Under UTF-8 a byte that cannot start a character, such as a lone continuation byte, shows nothing,
         also one in the C1 control range that is no control the terminal acts on.
+        A C1 control decoded as a character shows nothing either, as in xterm and kitty.
         """
-        for data in (b"caf\xe9", b"caf\xa9", b"caf\x81"):
+        for data, shown in ((b"caf\xe9", "caf\xe9"), (b"caf\xa9", "caf\xa9"), (b"caf\x81", "caf")):
             with self.subTest(data=data):
                 as_bytes, _events = _recording()
                 as_bytes.write(data)
@@ -119,10 +120,7 @@ class TerminalOutputTest(unittest.TestCase):
                 decoded.write(data.decode("latin-1"))
 
                 self.assertEqual([b"caf", b"", b"", b""], _text(as_bytes, (20, 4)))
-                self.assertEqual(
-                    [data.decode("latin-1").encode(), b"", b"", b""],
-                    _text(decoded, (20, 4)),
-                )
+                self.assertEqual([shown.encode(), b"", b"", b""], _text(decoded, (20, 4)))
 
     def test_character_pending_when_the_encoding_changes_is_dropped(self) -> None:
         """Do not complete a UTF-8 character with bytes written after the encoding stopped being UTF-8 and came back."""

@@ -1938,6 +1938,39 @@ class TermTest(unittest.TestCase):
                 "the cursor on the second half is drawn on the first",
             )
 
+    def test_c1_controls_in_utf8_are_dropped(self) -> None:
+        """Neither run nor draw a C1 control written in UTF-8, as xterm and kitty do."""
+        for label, data in (
+            ("NEL", "AB\u0085C"),
+            ("IND", "AB\u0084C"),
+            ("RI", "AB\u008dC"),
+            ("an unassigned one", "AB\u0081C"),
+            ("CSI", "AB\u009b2DC"),
+            ("OSC", "AB\u009d0;t\u009cC"),
+        ):
+            with self.subTest(label), set_temporary_encoding("utf-8"):
+                self.restart(12, 3)
+                self.write(data.encode().decode("iso8859-1"))
+                text = data.encode("ascii", "ignore").decode()
+                self.assertEqual(self.read(), text.encode())
+                self.assertEqual(self.term.term.term_cursor, (len(text), 0))
+
+        with set_temporary_encoding("iso8859-1"):
+            # U+009B is byte 0x9B in this encoding, which a display would send to the host terminal as CSI
+            self.restart(12, 3)
+            self.write("\\e%GAB" + "\u009b2DC".encode().decode("iso8859-1"))
+            self.assertEqual(self.read(), b"AB2DC")
+
+        for label, data in (
+            ("the IBM PC mapping designated", "\\e(UA\u0085B"),
+            ("display control mode", "\\e[3hA\u0085B"),
+        ):
+            with self.subTest(f"drawn with {label}"), set_temporary_encoding("utf-8"):
+                self.restart(12, 3)
+                self.write(data.encode().decode("iso8859-1"))
+                self.read()
+                self.assertEqual(self.term.term.term_cursor, (3, 0))
+
     def test_column_operations(self) -> None:
         """Insert and delete columns in the scrolling region with DECIC, DECDC, DECBI and DECFI, as xterm does."""
         for label, sequence, rows, cursor in (
