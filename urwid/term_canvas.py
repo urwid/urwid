@@ -142,9 +142,15 @@ _DEC_CHECKSUM_VALUES: typing.Final = types.MappingProxyType(
 #: the DECRQCRA value xterm gives a character with no 7-bit value: U+00A0 and anything past Latin-1
 _CHECKSUM_UNMAPPED: typing.Final = 0x1B
 
-#: the DEC private modes DECRQM reports as permanently reset (4): DECKBUM (68), and DECLRMM (69), since left and right
-#: margins are not implemented
-_PERMANENTLY_RESET_PRIVATE_MODES: typing.Final = frozenset((68, 69))
+#: the states the DEC private modes this canvas keeps no flag for are reported in, by DECRQM:
+#: 4 is permanently reset, as setting them has no effect: smooth scrolling (DECSCLM, 4) and autorepeat (DECARM, 8),
+#: which the display decides, printing (DECPFF 18, DECPEX 19), as no printer is attached, and the national replacement
+#: character sets (DECNRCM, 42), DECKBUM (68) and the margins (DECLRMM, 69), which are not implemented;
+#: 3 is permanently set, for ANSI mode (DECANM, 2), as VT52 mode is not implemented;
+#: 2 is reset, for 132 columns (DECCOLM, 3), as xterm reports it without its c132 resource
+_FIXED_PRIVATE_MODE_STATES: typing.Final = types.MappingProxyType(
+    {2: 3, 3: 2, **dict.fromkeys((4, 8, 18, 19, 42, 68, 69), 4)},
+)
 
 #: the DECRQCRA checksum bits of the AttrSpec flags, as xterm adds them to each character
 _CHECKSUM_BITS: typing.Final = (("bold", 0x80), ("blink", 0x40), ("standout", 0x20), ("underline", 0x10))
@@ -174,8 +180,11 @@ _FLAG_SS3: typing.Final = 4
 _FLAG_WRAP: typing.Final = 8
 
 #: the states the ANSI modes this canvas keeps no flag for are reported in, by DECRQM: 4 is permanently reset, for
-#: KAM (keyboard locked), and 3 permanently set, for SRM (no local echo)
-_FIXED_ANSI_MODE_STATES: typing.Final = types.MappingProxyType({2: 4, 12: 3})
+#: KAM (keyboard locked) and the ECMA-48 modes of a VT320 that keep their reset state, as xterm reports them, and 3 is
+#: permanently set, for SRM (no local echo)
+_FIXED_ANSI_MODE_STATES: typing.Final = types.MappingProxyType(
+    {2: 4, 12: 3, **dict.fromkeys((1, 5, 7, 10, 11, 13, 14, 15, 16, 17, 18, 19), 4)},
+)
 
 #: the SGR parameters of the attribute flags of an AttrSpec
 _SGR_FLAGS: typing.Final = (
@@ -2207,17 +2216,21 @@ class TermCanvas(Canvas):
         """Answer a DECRQM query for DEC private *mode* with a DECRPM reply (CSI ? mode ; state $ y).
 
         The state is 1 for a set mode, 2 for a reset one, and 0 for a mode this canvas keeps no state for.
-        DECKBUM (68) and DECLRMM (69) are reported as permanently reset (4), since setting them has no effect.
+        The modes in :data:`_FIXED_PRIVATE_MODE_STATES` are reported in the state it gives them.
         """
         state = self.private_mode_state(str(mode))
-        value = 4 if mode in _PERMANENTLY_RESET_PRIVATE_MODES else 0 if state is None else 1 if state else 2
+        if mode in _FIXED_PRIVATE_MODE_STATES:
+            value = _FIXED_PRIVATE_MODE_STATES[mode]
+        else:
+            value = 0 if state is None else 1 if state else 2
         self.widget.respond(f"{ESC}[?{mode:d};{value:d}$y")
 
     def csi_report_mode(self, mode: int) -> None:
         """Answer a DECRQM query for ANSI *mode* with a DECRPM reply (CSI mode ; state $ y).
 
         The state is 1 for a set mode and 2 for a reset one.
-        KAM (2) is reported as permanently reset (4), and SRM (12) as permanently set (3), since neither changes.
+        KAM (2) is reported as permanently reset (4), and SRM (12) as permanently set (3), since neither changes, and
+        so are the ECMA-48 modes of a VT320 that keep their reset state (1, 5, 7, 10, 11 and 13 to 19), as in xterm.
         Any other mode this canvas keeps no state for is reported as 0.
         """
         modes = self.modes

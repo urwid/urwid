@@ -1524,7 +1524,25 @@ class TermTest(unittest.TestCase):
                 r"\e[?1002h\e[?1002$p\e[?1000$p",
                 b"\x1b[?1002;1$y\x1b[?1000;2$y",
             ),
-            ("DECRQM reports a mode with no state as unknown", r"\e[?3$p\e[?9999$p", b"\x1b[?3;0$y\x1b[?9999;0$y"),
+            ("DECRQM reports a mode with no state as unknown", r"\e[?30$p\e[?9999$p", b"\x1b[?30;0$y\x1b[?9999;0$y"),
+            *(
+                (
+                    f"DECRQM reports ANSI mode {mode} permanently reset, as xterm does",
+                    rf"\e[{mode}$p",
+                    b"\x1b[%d;4$y" % mode,
+                )
+                for mode in (1, 5, 7, 10, 11, 13, 14, 15, 16, 17, 18, 19)
+            ),
+            *(
+                (f"DECRQM reports DEC mode {mode} permanently reset", rf"\e[?{mode}$p", b"\x1b[?%d;4$y" % mode)
+                for mode in (4, 8, 18, 19, 42)
+            ),
+            ("DECRQM reports DECCOLM reset, as xterm does without 132 columns", r"\e[?3h\e[?3$p", b"\x1b[?3;2$y"),
+            (
+                "DECRQM reports ANSI mode (DECANM) permanently set, as VT52 mode is not implemented",
+                r"\e[?2l\e[?2$p",
+                b"\x1b[?2;3$y",
+            ),
             ("DECRQM is not answered without a mode", r"\e[?$p\e[?1;2$p", b""),
             ("other sequences ending in p are not answered", r'\e[5p\e[!p\e[61;1"p', b""),
             (
