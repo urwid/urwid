@@ -130,6 +130,25 @@ class InputEscapeSequenceParserTest(unittest.TestCase):
                     with self.assertRaises(escape.MoreInputRequired):
                         escape.process_keyqueue(list(sequence[:length]), more_available=True)
 
+    def test_alt_with_command_string_introducers(self):
+        """Alt with P, ], X, ^ or _ is a key of its own, also when the keys after it look like a terminated string.
+
+        Terminal replies such as OSC strings start with the same codes, but key bindings of these keys are kept.
+        """
+        for codes, expected in (
+            ([*b"\x1bXabc"], ["meta X", "a", "b", "c"]),
+            ([*b"\x1b]11;x"], ["meta ]", "1", "1", ";", "x"]),
+            ([*b"\x1bP\x1b\\"], ["meta P", "meta \\"]),
+            ([*b"\x1b]\x07"], ["meta ]", "ctrl g"]),
+            ([*b"\x1bXabc\x1b\\"], ["meta X", "a", "b", "c", "meta \\"]),
+            ([*b"\x1b^a\x1b\\"], ["meta ^", "a", "meta \\"]),
+            ([*b"\x1b_a\x1b\\"], ["meta _", "a", "meta \\"]),
+            ([*b"\x1b]11;x\x07"], ["meta ]", "1", "1", ";", "x", "ctrl g"]),
+        ):
+            with self.subTest(codes=codes):
+                for more_available in (False, True):
+                    self.assertListEqual(expected, decode_by_key(codes, more_available=more_available)[0])
+
     def test_unrecognised_control_sequence_after_escape(self):
         """ESC before an unrecognised control sequence stays a key of its own, as the sequence may be a report."""
         self.assertListEqual(["esc", "<csi 99~>"], decode_by_key([27, *b"\x1b[99~"])[0])
