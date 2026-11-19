@@ -37,8 +37,6 @@ import weakref
 from itertools import dropwhile
 from unittest import mock
 
-import wcwidth
-
 import urwid
 import urwid.ansi_parser
 import urwid.vterm
@@ -1825,14 +1823,12 @@ class TermTest(unittest.TestCase):
         self.assertEqual(next(iter(self.term.render(self.termsize, focus=False).content()))[0], (None, None, b"A"))
 
     def test_wide_and_combining_characters(self) -> None:
-        """Give a wide character two cells and join a character with no width to the one before, as xterm draws them.
+        """Give a wide character two cells and a combining character the cell before it.
 
         Which characters are wide is urwid's own width calculation, which differs between Unicode versions and so
-        between terminals; the cases take characters whose width has not changed, or ask wcwidth.
+        between terminals; the cases take characters whose width has not changed.
         """
         wide = "\u4e2d"
-        # a variation selector joins the heart only where urwid then draws it as wide as before
-        heart = "\u2764\ufe0f" if wcwidth.width("\u2764\ufe0f") == wcwidth.width("\u2764") else "\u2764"
         for label, data, screen, cursor in (
             ("a wide character", wide, wide, (2, 0)),
             ("a character after a wide one", f"{wide}X", f"{wide}X", (3, 0)),
@@ -1878,7 +1874,6 @@ class TermTest(unittest.TestCase):
             ("a combining accent on a wide character", f"{wide}\u0301X", f"{wide}\u0301X", (3, 0)),
             ("a combining accent on a blank", "e\\e[C\u0301X", "e \u0301X", (3, 0)),
             ("a zero width joiner", "a\u200dX", "a\u200dX", (2, 0)),
-            ("a variation selector", "\u2764\ufe0fX", f"{heart}X", (2, 0)),
             ("a wide character after CR from the last column", f"{'A' * 12}\r{wide}", f"{wide}{'A' * 10}", (2, 0)),
             ("a wide character after BS from the last column", f"{'A' * 12}\b{wide}", f"{'A' * 10}{wide}", (11, 0)),
             (
@@ -1900,7 +1895,7 @@ class TermTest(unittest.TestCase):
                 "A" * 12 + "\nB",
                 (1, 1),
             ),
-            ("at most two combining accents", "e\u0301\u0302\u0303X", "e\u0301\u0302X", (2, 0)),
+            ("combining accents up to the cluster bound", "e" + "\u0301" * 40 + "X", "e" + "\u0301" * 31 + "X", (2, 0)),
             ("a combining accent on a DEC graphics character, dropped", "\\e(0q\u0301\\e(BX", "qX", (2, 0)),
         ):
             with self.subTest(label), set_temporary_encoding("utf-8"):
@@ -1939,6 +1934,73 @@ class TermTest(unittest.TestCase):
                 (urwid.AttrSpec("default,standout", "default"), None, wide.encode()),
                 "the cursor on the second half is drawn on the first",
             )
+
+    def test_grapheme_clusters(self) -> None:
+        """Give a grapheme cluster the cells urwid's width calculation draws it in, as kitty does.
+
+        The widths come from urwid itself, since they differ between Unicode versions.
+        """
+        for label, cluster in (
+            ("a zero width joiner sequence", "\U0001f468\u200d\U0001f469"),
+            ("a flag", "\U0001f1fa\U0001f1f8"),
+            ("a skin tone modifier", "\U0001f44d\U0001f3fd"),
+            ("an emoji variation selector", "\u2764\ufe0f"),
+            ("a keycap", "1\ufe0f\u20e3"),
+            ("Hangul jamo", "\u1100\u1161\u11a8"),
+            ("a Devanagari conjunct", "\u0915\u094d\u0937"),
+            ("a Thai spacing mark", "\u0e01\u0e33"),
+        ):
+            with self.subTest(label), set_temporary_encoding("utf-8"):
+                self.restart(12, 3)
+                self.write(f"{cluster}X".encode().decode("iso8859-1"))
+                self.assertEqual(self.read(), f"{cluster}X".encode())
+                width = urwid.str_util.calc_width(cluster, 0, len(cluster))
+                self.assertEqual(self.term.term.term_cursor, (width + 1, 0))
+                self.assertEqual(
+                    [cell[2] for cell in self.term.term.term[0][:width]],
+                    [cluster.encode(), *[b""] * (width - 1)],
+                    "the cluster is one cell, and its second half an empty one",
+                )
+
+        flag = "\U0001f1fa\U0001f1f8"
+        heart = "\u2764\ufe0f"
+        for label, data, screen, cursor in (
+            ("a third regional indicator starts a cluster", f"{flag}\U0001f1e9X", f"{flag}\U0001f1e9X", (5, 0)),
+            ("a cluster growing into the next cell", "\u2764AB\\e[1;2H\ufe0f", f"{heart}B", (2, 0)),
+            (
+                "a cluster growing in the last column moves to the next line",
+                "\\e[1;12H\u2764\ufe0fX",
+                f"\n{heart}X",
+                (3, 1),
+            ),
+            (
+                "a cluster cannot grow in the last column without autowrap",
+                "\\e[?7l\\e[1;12H\u2764\ufe0f",
+                " " * 11 + "\u2764",
+                (11, 0),
+            ),
+            ("the second half joins the cluster", "\U0001f1fa\\e[1;3H\U0001f1f8X", f"{flag}X", (3, 0)),
+            ("Hangul jamo that make no syllable take cells of their own", "\u1100\u1100X", "\u1100\u1100X", (5, 0)),
+            ("a cluster growing in insert mode", "ABCD\\e[1;2H\\e[4h\u2764\ufe0fX", f"A{heart}XBCD", (4, 0)),
+            ("a cluster growing over the first half of a wide character", "\u2764\u4e2d\\e[1;2H\ufe0f", heart, (2, 0)),
+            ("a cluster moving from the bottom row scrolls", "\\e[3;12H\u2764\ufe0fX", f"\n\n{heart}X", (3, 2)),
+        ):
+            with self.subTest(label), set_temporary_encoding("utf-8"):
+                self.restart(12, 3)
+                self.write(data.encode().decode("iso8859-1"))
+                self.assertEqual(self.read(), screen.encode())
+                self.assertEqual(self.term.term.term_cursor, cursor)
+
+        with set_temporary_encoding("utf-8"):
+            # a cluster growing on a screen too narrow for it keeps its character
+            self.restart(1, 3)
+            self.write("\u2764\ufe0f".encode().decode("iso8859-1"))
+            self.assertEqual(self.read(), "\u2764".encode())
+
+            # a protected cluster stays protected when it grows into the next cell
+            self.restart(12, 3)
+            self.write('\\e[1"q\u2764\\e[0"q\ufe0f\\e[?2J'.encode().decode("iso8859-1"))
+            self.assertEqual(self.read(), heart.encode())
 
     def test_scroll_up_and_down(self) -> None:
         """Scroll the scrolling region with SU and SD, keeping the cursor and the scrollback, as xterm does."""
