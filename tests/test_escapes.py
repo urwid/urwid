@@ -556,6 +556,7 @@ class InputEscapeSequenceParserTest(unittest.TestCase):
                 ("\xe9", list(b"\xc3\xa9")),  # 2-byte
                 ("€", list(b"\xe2\x82\xac")),  # 3-byte
                 ("\U0001f600", list(b"\xf0\x9f\x98\x80")),  # 4-byte
+                ("\xa0", list(b"\xc2\xa0")),  # the first character after the C1 controls
             ):
                 with self.subTest(text=text):
                     actual, rest = escape.process_keyqueue(codes, more_available=False)
@@ -566,6 +567,11 @@ class InputEscapeSequenceParserTest(unittest.TestCase):
             actual, rest = escape.process_keyqueue([0xC3, ord("A")], more_available=False)
             self.assertEqual(["<195>"], actual)
             self.assertListEqual([ord("A")], rest)
+
+            # a C1 control character is named by its value, as a byte that is not valid utf-8 is
+            actual, rest = escape.process_keyqueue([0xC2, 0x85], more_available=False)
+            self.assertEqual(["<133>"], actual)
+            self.assertListEqual([], rest)
 
             # a standalone byte that is not a valid utf-8 lead byte (a bare continuation byte)
             actual, rest = escape.process_keyqueue([0x80], more_available=False)
@@ -592,8 +598,11 @@ class InputEscapeSequenceParserTest(unittest.TestCase):
             for encoding, codes, expected, expected_rest in (
                 ("koi8-r", [0xC1], ["а"], []),  # single byte of a narrow encoding
                 ("iso-8859-1", [0xE9], ["é"], []),
+                ("iso-8859-1", [0x9B], ["<155>"], []),  # a C1 control character is named by its value
+                ("cp1252", [0x9B], ["\u203a"], []),  # the same byte is a printable character in cp1252
                 ("gbk", [0xD6, 0xD0, ord("A")], ["中"], [ord("A")]),  # double byte of a wide encoding
-                ("gbk", [0x81, 0xFF], ["\x81"], [0xFF]),  # lead byte with an invalid trail: decoded one by one
+                # lead byte with an invalid trail: decoded one by one, as a C1 control named by its value
+                ("gbk", [0x81, 0xFF], ["<129>"], [0xFF]),
                 ("ascii", [0xE9], ["é"], []),  # not a character of the encoding: read as Latin-1
             ):
                 with self.subTest(encoding=encoding, codes=codes):
@@ -978,11 +987,7 @@ class KeyReportTest(unittest.TestCase):
 
     def test_csi_u_carries_the_shifted_character_with_modify_other_keys(self):
         """xterm's formatOtherKeys sends modifyOtherKeys reports as CSI u, with the character typed with shift."""
-        for keyboard_protocol, key in (
-            (None, "shift ctrl !"),
-            ("kitty", "shift ctrl !"),
-            ("modify other keys", "ctrl !"),
-        ):
+        for keyboard_protocol, key in ((None, "shift ctrl !"), ("kitty", "shift ctrl !"), ("modify other keys", "ctrl !")):
             with self.subTest(keyboard_protocol=keyboard_protocol):
                 actual, _rest = escape.process_keyqueue(
                     [27, *b"[33;6u"], more_available=False, keyboard_protocol=keyboard_protocol

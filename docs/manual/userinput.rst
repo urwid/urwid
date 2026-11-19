@@ -64,7 +64,8 @@ Non-ASCII characters are returned as strings, whatever the
 decoded with that encoding. A byte that is not a character of a non-UTF-8
 encoding is returned as the Latin-1 character with the same value. A byte that
 is not valid UTF-8 is returned as its value in angle brackets, such as
-``'<255>'``.
+``'<255>'``, and so is a C1 control character, U+0080 to U+009F, in any
+encoding, such as ``'<155>'``, so that it is not received as typed text.
 
 =========== ==============
 Key pressed Input returned

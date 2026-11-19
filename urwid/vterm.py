@@ -215,6 +215,8 @@ _KITTY_KEYPAD_CODES: typing.Final = range(57399, 57428)
 #: the CSI u codes of Caps Lock, Scroll Lock, Num Lock and the modifier keys, which are reported only with all keys as
 #: escape codes
 _KITTY_MODIFIER_KEY_CODES: typing.Final = frozenset((*range(57358, 57361), *range(57441, 57455)))
+#: the C1 control character of each key name the input decoder gives it, which the child receives
+_C1_KEYS: typing.Final = {f"<{code:d}>": chr(code) for code in range(0x80, 0xA0)}
 #: the key of each CSI 1 ; modifiers letter report, by urwid name; "5" is left out, since it is also the digit key
 _KITTY_LETTER_KEYS: typing.Final = {name: chr(final) for final, name in _CSI_LETTER_KEYS.items() if name != "5"}
 #: the key of each CSI number ~ report, by urwid name: the editing keys, F3 and F5 to F12; F13 and above are CSI u keys
@@ -835,6 +837,10 @@ class Terminal(Widget):
         While the flags the child set with the kitty keyboard protocol change key reports, the keys are sent in that
         protocol, except for pasted text, which is sent as a legacy terminal sends it.
         """
+        name = key.removeprefix("meta ")
+        if name in _C1_KEYS:
+            key = key[: len(key) - len(name)] + _C1_KEYS[name]
+
         flags = self.term_modes.keyboard_flags[-1] if self.term_modes.keyboard_flags else 0
         if flags & _KITTY_KEYBOARD_REPORTING_FLAGS and not self._pasting and key not in _PASTE_KEYS:
             sent = _kitty_key_report(key, flags)
