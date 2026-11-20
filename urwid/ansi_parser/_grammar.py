@@ -45,9 +45,9 @@ _COMMAND_STRING_OPENERS: typing.Final = frozenset("PX^_")
 #: :func:`sys.set_int_max_str_digits` accepts, guarantees ``int()`` never rejects a parameter.
 MAX_CSI_LENGTH = 256
 
-#: OSC strings of this length or longer are skipped, and the rest of the string up to its terminator, or up to an ESC
-#: starting a new sequence, is discarded unbuffered, so an unterminated OSC costs neither memory nor quadratic string
-#: growth.
+#: OSC, DCS, SOS, PM and APC strings of this length or longer are skipped, and the rest of the string up to its
+#: terminator, or up to an ESC starting a new sequence, is discarded unbuffered, so an unterminated string costs neither
+#: memory nor quadratic string growth.
 MAX_OSC_LENGTH = 4096
 
 
@@ -67,12 +67,16 @@ class ParseState(enum.IntEnum):
     OSC_OVERFLOW = 4
     #: a DCS, SOS, PM or APC string, which only ST ends
     COMMAND_STRING = 5
+    #: the discarded rest of a command string of :data:`MAX_OSC_LENGTH` or more, up to its ST
+    COMMAND_STRING_OVERFLOW = 6
 
 
 #: the states of an OSC string, which BEL or ST ends
 _OSC_STATES: typing.Final = frozenset((ParseState.OSC, ParseState.OSC_OVERFLOW))
+#: the states of a DCS, SOS, PM or APC string, which only ST ends
+_COMMAND_STRING_STATES: typing.Final = frozenset((ParseState.COMMAND_STRING, ParseState.COMMAND_STRING_OVERFLOW))
 #: the states of a command string, in which control characters are ignored rather than executed
-_STRING_STATES: typing.Final = _OSC_STATES | {ParseState.COMMAND_STRING}
+_STRING_STATES: typing.Final = _OSC_STATES | _COMMAND_STRING_STATES
 
 
 def _csi_parameters(body: str | bytes | bytearray) -> list[int | None] | None:

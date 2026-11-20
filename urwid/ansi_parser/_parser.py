@@ -22,23 +22,21 @@
 from __future__ import annotations
 
 import logging
+import re
 import types
 import typing
 
 from urwid.ansi_parser._grammar import (
     _CANCEL,
-    _COMMAND_STRING_IGNORED,
-    _COMMAND_STRING_OPENERS,
-    _OSC_STATES,
     _STRING_STATES,
     MAX_CSI_LENGTH,
     MAX_OSC_LENGTH,
-    OSC_IGNORED_CONTROLS,
     ParseState,
     _csi_parameters,
 )
 from urwid.ansi_parser._resolve import attrspec_with_hyperlink, led_state, resolve_osc_hyperlink, resolve_osc_title
 from urwid.ansi_parser._results import _ASCII_SET, CharsetState, ParsedLine, SkippedOp
+from urwid.ansi_parser._vt_parser import _VTParser
 from urwid.display._sgr import parse_sgr_parameters, sgi_params_to_attrspec
 from urwid.display.escape import _C0_CONTROLS, ALT_DEC_SPECIAL_CHARS, BEL, DEC_SPECIAL_CHARS, DEC_TAG, ESC, SI, SO
 from urwid.util import rle_append_modify
@@ -70,9 +68,12 @@ _DEC_SPECIAL_GRAPHICS: typing.Final = str.maketrans(ALT_DEC_SPECIAL_CHARS, DEC_S
 #: foreground or the background.
 _FBTERM_COLOR_SGR: typing.Final = types.MappingProxyType({1: 38, 2: 48})
 
-#: C0 control characters and DEL passed to ``AnsiParser._execute_control()`` wherever they appear outside an OSC
-#: string, also inside another escape sequence, which then continues; ESC, CAN, SUB and the line ends are handled apart.
+#: C0 control characters and DEL a terminal executes outside an OSC string, also inside another escape sequence, which
+#: then continues; ESC, CAN, SUB and the line ends are handled apart. Importable from this package since 5.1.3.
 _INLINE_CONTROLS = frozenset(map(chr, (*_C0_CONTROLS, 0x7F))) - {ESC, *_CANCEL, "\r", "\n"}
+
+#: A run of characters that are no control characters, which feed() writes in one call outside any sequence.
+_TEXT_RUN: typing.Final = re.compile("[^\x00-\x1f\x7f-\x9f]+")
 
 #: Line-end byte pairs that collapse into a single structural split point.
 _LINE_END_PAIR: dict[str, str] = {"\r": "\n", "\n": "\r"}
@@ -97,7 +98,7 @@ _PADDING_PER_CHARACTER = 8
 _PADDING_PER_ROW = 8
 
 
-class AnsiParser:
+class AnsiParser(_VTParser[str]):
     r"""Incremental ANSI parser that resolves escape sequences against a 2-D cell grid, in one of two modes.
 
     Feed text in with :meth:`feed` -- any number of times, e.g. as chunks arrive from a subprocess -- and call
@@ -195,6 +196,12 @@ class AnsiParser:
     'hello\nworld'
     """
 
+    _VT_EMPTY = ""
+    _VT_ESC = ESC
+    _VT_PALETTE_SET = "P"
+    _VT_CSI_RUN = re.compile("[ -?]+")
+    _VT_STRING_RUN = re.compile("[^\x00-\x1f\x1b]+")
+
     def __init__(self, previous_attr: AttrSpec | ParsedLine | None = None, *, one_line: bool = False) -> None:
         """Create a parser, as described in the class docstring."""
         charsets = CharsetState()
@@ -272,10 +279,20 @@ class AnsiParser:
         n = len(text)
         while i < n:
             ch = text[i]
+            if not self._within_escape:
+                # the character test first: a regex match costs more, and most characters it rejects are ESC
+                if (ch >= "\xa0" or " " <= ch < "\x7f") and (run := _TEXT_RUN.match(text, i)) is not None:
+                    self._write_run(run[0])
+                    i = run.end()
+                    continue
+            elif ch >= " " and ch != ESC and (end := self._vt_append_run(text, i)) > i:
+                self._padding_budget += _PADDING_PER_CHARACTER * (end - i)
+                i = end
+                continue
             self._padding_budget += _PADDING_PER_CHARACTER
             if ch in _LINE_END_PAIR:
                 if self._parsestate in _STRING_STATES and self._escbuf[-1:] != ESC:
-                    # a line end inside a command string is ignored, see _step()
+                    # a line end inside a command string is ignored, as other control characters there are
                     i += 1
                     continue
                 if self._one_line:
@@ -302,7 +319,7 @@ class AnsiParser:
                     self._pending_line_end = ch
                 i += 1
                 continue
-            self._step(ch)
+            self._vt_step(ch, ord(ch))
             i += 1
 
     def finalize(self) -> tuple[ParsedLine, ...]:
@@ -402,70 +419,41 @@ class AnsiParser:
         self._ensure_row(self._row)
         self._col = 0
 
-    # -- internal: char-by-char state machine ---------------------------
+    # -- internal: the hooks of the state machine in urwid.ansi_parser._vt_parser -----------------------------------
 
-    def _step(self, ch: str) -> None:
-        if self._parsestate in _STRING_STATES and ch == "\x7f" and self._escbuf[-1:] == ESC:
-            # DEL after an ESC inside a string is ignored, as in xterm, so a following backslash still ends the string
-            return
-        if self._parsestate in _OSC_STATES:
-            if ch in _CANCEL:
-                # CAN/SUB abort the string unapplied
-                if self._parsestate == ParseState.OSC:
-                    self._skip("unknown", f"{ESC}]{self._escbuf.removesuffix(ESC)}", "unterminated OSC string")
-                self._leave_escape()
-            elif ch not in OSC_IGNORED_CONTROLS:
-                self._handle_osc_char(ch)
-            elif self._escbuf[-1:] == ESC:
-                # after an ESC, as in a terminal and urwid.vterm, the control character is executed and the ESC stays
-                # pending, so a following backslash still ends the string; line ends are handled so in feed()
-                self._execute_control(ch)
-            return
-        if self._parsestate == ParseState.COMMAND_STRING:
-            if ch in _CANCEL:
-                self._leave_escape()
-            elif ch not in _COMMAND_STRING_IGNORED:
-                if self._escbuf == ESC and ch != "\\":
-                    # any ESC other than the one of ST ends the string and starts a new escape sequence
-                    self._leave_escape()
-                    self._within_escape = True
-                    self._step(ch)
-                elif self._escbuf == ESC:
-                    self._leave_escape()
-                else:
-                    # only the last character is kept, which is enough to recognise ST
-                    self._escbuf = ch
-            elif self._escbuf == ESC and ch != BEL:
-                # after an ESC the control character is executed, as in an OSC string; BEL is no terminator here
-                self._execute_control(ch)
-            return
-        if ch in _INLINE_CONTROLS:
-            self._execute_control(ch)
-            return
-        if ch in _CANCEL:  # CAN/SUB -- abort any escape in progress
-            self._within_escape = False
-            self._parsestate = ParseState.ESCAPE
-            self._escbuf = ""
-            return
-        if ch == ESC:
-            if self._within_escape:
-                # as in a terminal, an ESC drops a sequence still being read and starts a new one
-                reason = "escape sequence interrupted by ESC"
-                if len(self._escbuf) >= MAX_CSI_LENGTH:
-                    reason += f", its CSI parameters of {MAX_CSI_LENGTH} characters or more truncated"
-                self._skip("unknown", f"{ESC}{'[' if self._parsestate == ParseState.CSI else ''}{self._escbuf}", reason)
-                self._leave_escape()
-            self._within_escape = True
-            return
-        if self._within_escape:
-            self._parse_escape(ch)
-            return
-        if "\x80" <= ch < "\xa0":
+    def _vt_print(self, token: str, code: int) -> None:
+        """Write a character outside any sequence in the current character set."""
+        if 0x80 <= code < 0xA0:
             # a C1 control in text is neither run nor drawn, as in xterm and urwid.vterm with UTF-8 input
             return
         if self._charsets[self._active_charset] == DEC_TAG:
-            ch = ch.translate(_DEC_SPECIAL_GRAPHICS)
-        self._write_char(ch, self._attrspec)
+            token = token.translate(_DEC_SPECIAL_GRAPHICS)
+        self._write_char(token, self._attrspec)
+
+    def _vt_execute(self, token: str, code: int) -> None:  # the hook's signature
+        """Execute a control character, see :meth:`_execute_control`."""
+        self._execute_control(token)
+
+    def _vt_interrupted(self) -> None:
+        """Record the sequence an ESC drops."""
+        reason = "escape sequence interrupted by ESC"
+        if len(self._escbuf) >= MAX_CSI_LENGTH:
+            reason += f", its CSI parameters of {MAX_CSI_LENGTH} characters or more truncated"
+        self._skip("unknown", f"{ESC}{'[' if self._parsestate == ParseState.CSI else ''}{self._escbuf}", reason)
+
+    def _vt_esc_dispatch(self, final: str, intermediates: str) -> None:
+        """Apply an ESC sequence, or record it as skipped."""
+        if intermediates or final in "cDEHMZ78>=":
+            self._dispatch_noncsi(final, intermediates)
+        else:
+            self._skip("unknown", f"{ESC}{final}", f"unrecognised escape sequence ESC {final!r}")
+
+    def _vt_string_start(self, opener: str) -> None:
+        """Record a DCS, SOS, PM or APC string, which this parser discards."""
+        self._skip("unknown", f"{ESC}{opener}", "DCS, SOS, PM and APC strings are not supported, discarded")
+
+    def _vt_string_end(self, body: str | None) -> None:
+        """Discard a DCS, SOS, PM or APC string, recorded when it started."""
 
     def _execute_control(self, ch: str) -> None:
         """Execute C0 control character or DEL *ch* as a terminal does, leaving any escape sequence in progress.
@@ -496,6 +484,20 @@ class AnsiParser:
         while self._col < target:
             self._write_char(" ", self._attrspec)
 
+    def _write_run(self, run: str) -> None:
+        """Write *run*, characters that are no control characters, as :meth:`_vt_print` writes each of them."""
+        if self._charsets[self._active_charset] == DEC_TAG:
+            run = run.translate(_DEC_SPECIAL_GRAPHICS)
+        # only the first character can pad up to the cursor, so the rest get their padding credit after it
+        self._padding_budget += _PADDING_PER_CHARACTER
+        attr = self._attrspec
+        self._write_char(run[0], attr)
+        if rest := len(run) - 1:
+            self._padding_budget += _PADDING_PER_CHARACTER * rest
+            col = self._col
+            self._rows[self._row][col : col + rest] = [(char, attr) for char in run[1:]]
+            self._col = col + rest
+
     def _write_char(self, ch: str, attr: Hashable | None) -> None:
         row = self._rows[self._row]
         if self._col < len(row):
@@ -515,11 +517,6 @@ class AnsiParser:
 
     # -- internal: escape/CSI/OSC framing --------------------------------
 
-    def _leave_escape(self) -> None:
-        self._within_escape = False
-        self._parsestate = ParseState.ESCAPE
-        self._escbuf = ""
-
     def _skip(self, kind: str, raw: str, reason: str) -> None:
         """Record a stripped sequence and log it at debug level.
 
@@ -531,62 +528,15 @@ class AnsiParser:
             self._skipped.append(SkippedOp(kind=kind, raw=raw, reason=reason))
         LOGGER.debug("%s: %r", reason, raw)
 
-    def _parse_escape(self, ch: str) -> None:
-        if self._parsestate == ParseState.CSI:  # within CSI
-            if " " <= ch <= "?":  # parameter and intermediate bytes, ECMA-48 5.4
-                # past the limit the parameters are dropped; _dispatch_csi skips the sequence by its length
-                if len(self._escbuf) < MAX_CSI_LENGTH:
-                    self._escbuf += ch
-                return
-            self._dispatch_csi(ch, self._escbuf)
-            self._leave_escape()
-            return
-
-        if self._parsestate == ParseState.ESCAPE and ch == "]":
-            self._escbuf = ""
-            self._parsestate = ParseState.OSC
-            return
-
-        if self._parsestate == ParseState.ESCAPE and ch == "[":
-            self._escbuf = ""
-            self._parsestate = ParseState.CSI  # pylint: disable=redefined-variable-type  # members of one enum
-            return
-
-        if self._parsestate == ParseState.ESCAPE and ch in _COMMAND_STRING_OPENERS:
-            self._skip("unknown", f"{ESC}{ch}", "DCS, SOS, PM and APC strings are not supported, discarded")
-            self._escbuf = ""
-            self._parsestate = ParseState.COMMAND_STRING
-            return
-
-        if self._parsestate in {ParseState.ESCAPE, ParseState.ESC_INTERMEDIATE} and " " <= ch <= "/":
-            # an intermediate byte of an escape sequence (ECMA-35), such as the "(" of a G0 designation; past the limit
-            # the intermediate bytes are dropped, and the sequence still ends at its final byte
-            if self._parsestate == ParseState.ESCAPE:
-                self._escbuf = ""
-                self._parsestate = ParseState.ESC_INTERMEDIATE
-            if len(self._escbuf) < MAX_CSI_LENGTH:
-                self._escbuf += ch
-            return
-
-        if self._parsestate == ParseState.ESC_INTERMEDIATE:
-            self._dispatch_noncsi(ch, self._escbuf)
-            self._leave_escape()
-            return
-
-        if ch in "cDEHMZ78>=":
-            self._dispatch_noncsi(ch, "")
-        else:
-            self._skip("unknown", f"{ESC}{ch}", f"unrecognised escape sequence ESC {ch!r}")
-        self._leave_escape()
-
-    def _dispatch_csi(self, final: str, escbuf: str) -> None:
-        raw = f"{ESC}[{escbuf}{final}"
-        if len(escbuf) >= MAX_CSI_LENGTH:
+    def _vt_csi_dispatch(self, final: str, parameters: str) -> None:
+        """Apply a CSI sequence, or record it as skipped."""
+        raw = f"{ESC}[{parameters}{final}"
+        if len(parameters) >= MAX_CSI_LENGTH:
             self._skip("unknown", raw, f"CSI parameters of {MAX_CSI_LENGTH} characters or more, truncated")
             return
 
-        qmark = escbuf.startswith("?")
-        body = escbuf[1:] if qmark else escbuf
+        qmark = parameters.startswith("?")
+        body = parameters[1:] if qmark else parameters
         if final == "m" and not qmark and not body.strip("0123456789;:"):
             # a color the text leaves unset shows the background or foreground of the widget around it, and bold
             # stays bold: the display brightens it again where the terminal draws bold text in bright colors
@@ -709,58 +659,15 @@ class AnsiParser:
         else:
             self._skip("unknown", raw, f"unrecognised escape sequence {raw!r}")
 
-    def _handle_osc_char(self, ch: str) -> None:
-        if self._escbuf[-1:] == ESC and ch != "\\":
-            # ECMA-48 allows no ESC inside a command string other than in ST, so any other ESC ends the string
-            # unapplied and starts a new escape sequence
-            if self._parsestate == ParseState.OSC:
-                self._skip("unknown", f"{ESC}]{self._escbuf[:-1]}", "unterminated OSC string")
-            self._leave_escape()
-            self._within_escape = True
-            self._step(ch)
-            return
-        if self._parsestate == ParseState.OSC_OVERFLOW:
-            # only the last character is kept, which is enough to recognise either terminator
-            if ch == BEL or (self._escbuf == ESC and ch == "\\"):
-                self._leave_escape()
-            else:
-                self._escbuf = ch
-            return
-        if ch == BEL:
-            self._finish_osc(self._escbuf)
-            return
-        if self._escbuf[-1:] == ESC and ch == "\\":
-            self._finish_osc(self._escbuf[:-1])
-            return
-        if len(self._escbuf) >= MAX_OSC_LENGTH:
-            if self._escbuf.lstrip("0").startswith("8;"):
-                # an over-long OSC 8 is refused like any other invalid one, ending the current link
-                self._attrspec = attrspec_with_hyperlink(self._attrspec, None, unset_color="inherit")
-            self._skip(
-                "unknown", f"{ESC}]{self._escbuf}", f"OSC string of {MAX_OSC_LENGTH} characters or more, truncated"
-            )
-            self._parsestate = ParseState.OSC_OVERFLOW
-            self._escbuf = ch
-            return
-        if not self._escbuf and ch == "R":
-            self._escbuf = ch
-            self._finish_osc_skip("OSC palette reset")
-            return
-        self._escbuf += ch
-        # an ESC is no digit: the next character decides whether it starts ST or a new sequence
-        if ch != ESC and self._escbuf.startswith("P") and len(self._escbuf) == 8:
-            # the Linux console's palette set, ESC ] P n rr gg bb, ends with its 7th hex digit
-            self._finish_osc_skip("OSC palette set")
-
-    def _finish_osc(self, buf: str) -> None:
-        raw = f"{ESC}]{buf}"
-        self._leave_escape()
-        title = resolve_osc_title(buf)
+    def _vt_osc_dispatch(self, body: str) -> None:
+        """Apply an OSC window title or hyperlink, or record another OSC string as skipped."""
+        raw = f"{ESC}]{body}"
+        title = resolve_osc_title(body)
         if title is not None:
             self._title = title
             return
         try:
-            link = resolve_osc_hyperlink(buf)
+            link = resolve_osc_hyperlink(body)
         except ValueError:
             # the text after it must not keep pointing at the previous link
             self._attrspec = attrspec_with_hyperlink(self._attrspec, None, unset_color="inherit")
@@ -771,10 +678,20 @@ class AnsiParser:
         else:
             self._skip("terminal-setting", raw, "unrecognised OSC prefix")
 
-    def _finish_osc_skip(self, reason: str) -> None:
-        raw = f"{ESC}]{self._escbuf}"
-        self._skip("terminal-setting", raw, reason)
-        self._leave_escape()
+    def _vt_osc_palette(self, body: str) -> None:
+        """Record a Linux console palette OSC as skipped."""
+        self._skip("terminal-setting", f"{ESC}]{body}", "OSC palette reset" if body == "R" else "OSC palette set")
+
+    def _vt_osc_overflow(self, body: str) -> None:
+        """Record an over-long OSC string as skipped; an over-long OSC 8 ends the current link."""
+        if body.lstrip("0").startswith("8;"):
+            # an over-long OSC 8 is refused like any other invalid one, ending the current link
+            self._attrspec = attrspec_with_hyperlink(self._attrspec, None, unset_color="inherit")
+        self._skip("unknown", f"{ESC}]{body}", f"OSC string of {MAX_OSC_LENGTH} characters or more, truncated")
+
+    def _vt_osc_unterminated(self, body: str) -> None:
+        """Record an OSC string CAN, SUB or another sequence dropped."""
+        self._skip("unknown", f"{ESC}]{body}", "unterminated OSC string")
 
 
 def parse_ansi_line(text: str, previous_attr: AttrSpec | ParsedLine | None = None) -> tuple[ParsedLine, ...]:
