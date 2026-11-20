@@ -33,9 +33,9 @@ _CANCEL = frozenset("\x18\x1a")
 #: executed nor part of the string. DEL is not among them: a terminal keeps it in the string.
 OSC_IGNORED_CONTROLS = frozenset(map(chr, _C0_CONTROLS)) - {BEL, ESC, *_CANCEL}
 
-#: The control characters ignored inside a DCS, SOS, PM or APC string: those of an OSC string, and BEL, which ends only
-#: OSC.
-_COMMAND_STRING_IGNORED: typing.Final = OSC_IGNORED_CONTROLS | {BEL}
+#: The control characters ignored inside a DCS, SOS, PM or APC string: those of an OSC string, BEL, which ends only
+#: OSC, and DEL, which the VT500 parser model ignores in a DCS string but keeps in an OSC string.
+_COMMAND_STRING_IGNORED: typing.Final = OSC_IGNORED_CONTROLS | {BEL, "\x7f"}
 
 #: The final bytes after ESC that open a DCS, SOS, PM and APC string, which are discarded up to their ST.
 _COMMAND_STRING_OPENERS: typing.Final = frozenset("PX^_")

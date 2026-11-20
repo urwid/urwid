@@ -110,7 +110,9 @@ class _ScreenCanvas(Canvas):
         "_hidden_screen",
         "_last_graphic",
         "_osc_invalid_utf8",
+        "_parsestate",
         "_repeat_graphic",
+        "_within_escape",
         "attribute_extent",
         "attrspec",
         "charset",
@@ -120,7 +122,6 @@ class _ScreenCanvas(Canvas):
         "height",
         "is_rotten_cursor",
         "modes",
-        "parsestate",
         "protected",
         "saved_attrs",
         "saved_cursor",
@@ -137,7 +138,6 @@ class _ScreenCanvas(Canvas):
         "utf8_eat_bytes",
         "widget",
         "width",
-        "within_escape",
     )
 
     cacheable = False
@@ -171,7 +171,7 @@ class _ScreenCanvas(Canvas):
 
         self.utf8_eat_bytes: int | None = None
         self.utf8_buffer = bytearray()
-        self._escbuf = bytearray()
+        self._escbuf = b""
         # the OSC string being read had a sequence that is not valid UTF-8, in UTF-8 mode
         self._osc_invalid_utf8 = False
 
@@ -179,8 +179,8 @@ class _ScreenCanvas(Canvas):
 
         self.term_cursor: tuple[int, int] = (0, 0)  # do not allow to shoot in the leg at `set_term_cursor`
 
-        self.within_escape = False
-        self.parsestate: ParseState = ParseState.ESCAPE
+        self._within_escape = False
+        self._parsestate: ParseState = ParseState.ESCAPE
 
         self.attrspec: AttrSpec | None = None
         #: DECSCA or SPA: the characters written are protected
@@ -283,9 +283,9 @@ class _ScreenCanvas(Canvas):
         if self.modes.alternate_screen:
             self._swap_screens()
 
-        self._escbuf = bytearray()
-        self.within_escape = False
-        self.parsestate = ParseState.ESCAPE
+        self._escbuf = b""
+        self._within_escape = False
+        self._parsestate = ParseState.ESCAPE
 
         self.attrspec = None
         self.protected = False

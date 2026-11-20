@@ -1103,6 +1103,23 @@ class TermTest(unittest.TestCase):
         self.expect_signal("title")
         self.disconnect_signal("title")
 
+    def test_parse_escape_feeds_the_sequence_being_read(self):
+        """Feed one character to the sequence being read, as parse_escape did in urwid 5.1.3."""
+        canvas = urwid.TermCanvas(10, 3, self.term)
+        canvas.parse_escape(b"A")
+        self.assertEqual((0, 0), canvas.term_cursor, "outside a sequence nothing is written")
+        canvas.within_escape = True
+        canvas.parsestate = 1
+        canvas.escbuf = bytearray(b"2")
+        canvas.parse_escape(b"C")
+        self.assertEqual((2, 0), canvas.term_cursor)
+        self.assertFalse(canvas.within_escape)
+        canvas.within_escape = True
+        canvas.parsestate = 1
+        canvas.parse_escape(b"\n")
+        self.assertEqual((2, 0), canvas.term_cursor, "a control character abandons the sequence unexecuted")
+        self.assertFalse(canvas.within_escape)
+
     def test_title_never_contains_escape(self):
         """Take the title from the OSC string an ESC starts, not from the unterminated one before it."""
         self.connect_signal("title")

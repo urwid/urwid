@@ -30,16 +30,13 @@ from urwid import util, version
 from urwid.ansi_parser import (
     MAX_CSI_LENGTH,
     MAX_OSC_LENGTH,
-    OSC_IGNORED_CONTROLS,
     ParseState,
     attrspec_with_hyperlink,
     resolve_osc_hyperlink,
     resolve_osc_title,
 )
-from urwid.ansi_parser._grammar import _CANCEL as CANCEL
-from urwid.ansi_parser._grammar import _COMMAND_STRING_IGNORED as COMMAND_STRING_IGNORED
-from urwid.ansi_parser._grammar import _COMMAND_STRING_OPENERS as COMMAND_STRING_OPENERS
-from urwid.ansi_parser._grammar import _OSC_STATES, _STRING_STATES, _csi_parameters
+from urwid.ansi_parser._grammar import _STRING_STATES, _csi_parameters
+from urwid.ansi_parser._vt_parser import _VTParser
 from urwid.canvas.term._cells import CHARSET_DEFAULT, CHARSET_UTF8, ESC_B, _drawn_width, _may_continue_cluster
 from urwid.canvas.term._modes import _ModesCanvas
 from urwid.canvas.term._rectangles import _RectanglesCanvas
@@ -52,22 +49,10 @@ from urwid.canvas.term._reports import (
 )
 from urwid.canvas.term._screen import _CONFORMANCE_LEVELS
 from urwid.display._sgr import parse_sgr_parameters
-from urwid.display.escape import _C0_CONTROLS, DCS, ST
+from urwid.display.escape import DCS, ST
 
 if typing.TYPE_CHECKING:
     from collections.abc import Callable, Iterable, Mapping
-
-
-#: :data:`urwid.ansi_parser.OSC_IGNORED_CONTROLS` as bytes
-_OSC_IGNORED = frozenset(char.encode("ascii") for char in OSC_IGNORED_CONTROLS)
-#: :data:`urwid.ansi_parser._grammar._CANCEL` as bytes
-_CANCEL: typing.Final = frozenset(char.encode("ascii") for char in CANCEL)
-#: :data:`urwid.ansi_parser._grammar._COMMAND_STRING_IGNORED` as bytes
-_COMMAND_STRING_IGNORED: typing.Final = frozenset(char.encode("ascii") for char in COMMAND_STRING_IGNORED)
-
-
-#: :data:`urwid.ansi_parser._grammar._COMMAND_STRING_OPENERS` as bytes
-_COMMAND_STRING_OPENERS: typing.Final = frozenset(char.encode("ascii") for char in COMMAND_STRING_OPENERS)
 
 
 #: the character set slot each intermediate byte of a 94-character set designation (ESC I F) selects
@@ -83,15 +68,37 @@ _GR_LOCKING_SHIFTS: typing.Final = types.MappingProxyType({b"~": 1, b"}": 2, b"|
 _LOCKING_SHIFTS: typing.Final = types.MappingProxyType({b"n": 2, b"o": 3})
 _SINGLE_SHIFTS: typing.Final = types.MappingProxyType({b"N": 2, b"O": 3})
 
-#: the control characters :meth:`TermCanvas.process_char` executes, also after an ESC inside an OSC string
-_EXECUTED_CONTROLS = frozenset((b"\r", b"\x0f", b"\x0e", b"\n", b"\v", b"\f", b"\t", b"\b"))
-
-#: the C0 control characters :meth:`TermCanvas.process_char` ignores: all but ESC, BEL, CAN, SUB and the executed ones
-_IGNORED_CONTROLS = frozenset(bytes((code,)) for code in _C0_CONTROLS) - {ESC_B, b"\a", *_CANCEL} - _EXECUTED_CONTROLS
-
 
 #: the private markers of the kitty keyboard protocol's CSI u sequences: query, push, pop and set the flags
 _KITTY_KEYBOARD_MARKERS: typing.Final = frozenset((b"?", b">", b"<", b"="))
+
+
+#: the final bytes of the ESC sequences without intermediate bytes that parse_noncsi() applies
+_ESC_FINALS: typing.Final = frozenset(
+    (
+        b"c",
+        b"D",
+        b"E",
+        b"H",
+        b"M",
+        b"V",
+        b"W",
+        b"Z",
+        b"7",
+        b"6",
+        b"8",
+        b"9",
+        b">",
+        b"=",
+        *_LOCKING_SHIFTS,
+        *_SINGLE_SHIFTS,
+        *_GR_LOCKING_SHIFTS,
+    )
+)
+
+# the parser states the per-byte path compares against
+_GROUND: typing.Final = ParseState.ESCAPE
+_CSI: typing.Final = ParseState.CSI
 
 
 class CSIAlias(typing.NamedTuple):
@@ -192,19 +199,45 @@ CSI_COMMANDS: dict[bytes, CSIAlias | CSICommand] = {
 _CSI_PRIVATE_FINAL_BYTES: typing.Final = frozenset((b"J", b"K", b"c", b"h", b"l", b"n"))
 
 
-class TermCanvas(_ReportsCanvas, _RectanglesCanvas, _ModesCanvas):
+class TermCanvas(_ReportsCanvas, _RectanglesCanvas, _ModesCanvas, _VTParser[bytes]):
     """Canvas holding a terminal's screen and scrollback content, for the widget that owns it."""
 
     __slots__ = ()
 
+    _escbuf: bytes
+    _VT_EMPTY = b""
+    _VT_ESC = ESC_B
+    _VT_PALETTE_SET = b"P"
+
     @property
     def escbuf(self) -> bytes:
         """Return the buffered bytes of the escape sequence being parsed."""
-        return bytes(self._escbuf)
+        return self._escbuf
 
     @escbuf.setter
-    def escbuf(self, value: bytes) -> None:
-        self._escbuf = bytearray(value)
+    def escbuf(self, value: bytes | bytearray) -> None:
+        self._escbuf = bytes(value)
+
+    @property
+    def parsestate(self) -> ParseState:
+        """Return the state of the escape-sequence parser.
+
+        Setting it to a number that names no :class:`~urwid.ansi_parser.ParseState` raises :exc:`ValueError`.
+        """
+        return self._parsestate
+
+    @parsestate.setter
+    def parsestate(self, value: ParseState | int) -> None:
+        self._parsestate = ParseState(value)
+
+    @property
+    def within_escape(self) -> bool:
+        """Return whether an escape sequence is being read."""
+        return self._within_escape
+
+    @within_escape.setter
+    def within_escape(self, value: bool) -> None:
+        self._within_escape = value
 
     @property
     def reads_utf8(self) -> bool:
@@ -239,7 +272,7 @@ class TermCanvas(_ReportsCanvas, _RectanglesCanvas, _ModesCanvas):
 
     def parse_csi(self, char: bytes) -> None:
         """Parse ECMA-48 CSI (Control Sequence Introducer) sequences."""
-        if char == b"u" and (marker := bytes(self._escbuf[:1])) in _KITTY_KEYBOARD_MARKERS:
+        if char == b"u" and (marker := self._escbuf[:1]) in _KITTY_KEYBOARD_MARKERS:
             if (params := _csi_parameters(self._escbuf[1:])) is not None:
                 self.csi_keyboard_flags(marker, params)
             return
@@ -253,13 +286,13 @@ class TermCanvas(_ReportsCanvas, _RectanglesCanvas, _ModesCanvas):
                 self.csi_report_mode(int(mode))
             return
 
-        if char == b"c" and bytes(self._escbuf) in {b"=", b"=0"}:
+        if char == b"c" and self._escbuf in {b"=", b"=0"}:
             # Tertiary DA: CSI = c, a DCS reply, which a VT100 (level 61) does not send
             if self.conformance_level > 61:
                 self.widget.respond(_TERTIARY_DEVICE_ATTRIBUTES)
             return
 
-        if (handler := _INTERMEDIATE_COMMANDS.get((bytes(self._escbuf[-1:]), char))) is not None:
+        if (handler := _INTERMEDIATE_COMMANDS.get((self._escbuf[-1:], char))) is not None:
             if (params := _csi_parameters(self._escbuf[:-1])) is not None:
                 handler(self, params)
             return
@@ -290,12 +323,12 @@ class TermCanvas(_ReportsCanvas, _RectanglesCanvas, _ModesCanvas):
                 self.csi_report_presentation_state(int(report))
             return
 
-        if char == b"c" and bytes(self._escbuf) in {b">", b">0"}:
+        if char == b"c" and self._escbuf in {b">", b">0"}:
             # Secondary DA: CSI > c
             self.widget.respond(_SECONDARY_DEVICE_ATTRIBUTES)
             return
 
-        if char == b"q" and bytes(self._escbuf) in {b">", b">0"}:
+        if char == b"q" and self._escbuf in {b">", b">0"}:
             # XTVERSION, the query of the terminal's name and version
             self.widget.respond(f"{DCS}>|urwid({version.version}){ST}")
             return
@@ -389,7 +422,7 @@ class TermCanvas(_ReportsCanvas, _RectanglesCanvas, _ModesCanvas):
         The OSC bodies are recognised by :func:`urwid.ansi_parser.resolve_osc_title` and
         :func:`urwid.ansi_parser.resolve_osc_hyperlink`, shared with :class:`~urwid.ANSIText`.
         An invalid OSC 8 command ends the current link, so the text after it does not point at the previous target;
-        :meth:`parse_escape` ends it for an over-long one, which never reaches this method.
+        An over-long one, which never reaches this method, ends it as well.
         The body is in the encoding :meth:`addbyte` passes characters on in, and as in tmux, a title that is not
         valid in it is not set.
         A string that had a sequence that is not valid UTF-8, in UTF-8 mode, sets no title and ends the current link.
@@ -441,122 +474,30 @@ class TermCanvas(_ReportsCanvas, _RectanglesCanvas, _ModesCanvas):
             self.dcs_restore_tab_stops(body[3:])
 
     def parse_escape(self, char: bytes) -> None:
-        """Feed *char* through the escape-sequence state machine, dispatching to CSI/OSC/non-CSI parsing as needed."""
-        if self.parsestate == ParseState.CSI:
-            # within CSI
-            if char in CSI_COMMANDS:
-                if len(self._escbuf) < MAX_CSI_LENGTH:
-                    self.parse_csi(char)
-                self.parsestate = ParseState.ESCAPE
-            elif b" " <= char <= b"?":  # parameter and intermediate bytes, ECMA-48 5.4
-                # past the limit the parameters are dropped, and the sequence is skipped by its length
-                if len(self._escbuf) < MAX_CSI_LENGTH:
-                    self._escbuf += char
-                return
-        elif self.parsestate == ParseState.ESCAPE and char == b"]":
-            # start of OSC
-            self._escbuf = bytearray()
-            self._osc_invalid_utf8 = False
-            self.parsestate = ParseState.OSC  # pylint: disable=redefined-variable-type  # members of one enum
-            return
-        elif self.parsestate == ParseState.ESCAPE and char in _COMMAND_STRING_OPENERS:
-            # start of a DCS, SOS, PM or APC string; the opening byte is kept, to tell a DCS from the others at ST
-            self._escbuf = bytearray(char)
-            self.parsestate = ParseState.COMMAND_STRING
-            return
-        elif self.parsestate in _STRING_STATES and self._escbuf[-1:] == ESC_B and char != b"\\":
-            # ECMA-48 allows no ESC inside a command string other than in ST, so any other ESC ends the string
-            # unapplied and starts a new escape sequence
-            self.leave_escape()
-            self.within_escape = True
-            self.process_char(char)
-            return
-        elif self.parsestate == ParseState.OSC_OVERFLOW and (
-            char == b"\a" or (self._escbuf == ESC_B and char == b"\\")
-        ):
-            # end of an over-long OSC string, discarded
-            pass
-        elif self.parsestate == ParseState.COMMAND_STRING and self._escbuf[-1:] == ESC_B and char == b"\\":
-            # end of a DCS, SOS, PM or APC string; only a DCS that was kept whole is applied
-            if self._escbuf.startswith(b"P") and len(self._escbuf) < MAX_OSC_LENGTH:
-                self.parse_dcs(bytes(self._escbuf[1:-1]))
-        elif self.parsestate == ParseState.COMMAND_STRING:
-            if len(self._escbuf) < MAX_OSC_LENGTH:
-                self._escbuf += char
-            else:
-                # past the limit only the last byte is replaced, which is enough to recognise ST, also when *char* is a
-                # multibyte character, so the buffer does not grow
-                self._escbuf[-1:] = char[-1:]
-            return
-        elif self.parsestate == ParseState.OSC and char == b"\a":
-            # end of OSC
-            self.parse_osc(bytes(self._escbuf.lstrip(b"0")))
-        elif self.parsestate == ParseState.OSC and self._escbuf[-1:] + char == ST.encode("iso8859-1"):
-            # end of OSC
-            self.parse_osc(bytes(self._escbuf[:-1].lstrip(b"0")))
-        elif self.parsestate == ParseState.OSC and not self._escbuf and char == b"R":
-            # reset palette
-            pass
-        elif self.parsestate in _OSC_STATES:
-            if self.parsestate == ParseState.OSC and len(self._escbuf) < MAX_OSC_LENGTH:
-                self._escbuf += char
-                # an ESC is no digit: the next byte decides whether it starts ST or a new sequence
-                if char != ESC_B and self._escbuf.startswith(b"P") and len(self._escbuf) == 8:
-                    # the Linux console's palette set, ESC ] P n rr gg bb, ends with its 7th hex digit; not applied
-                    self.leave_escape()
-            else:
-                if self.parsestate == ParseState.OSC and self._escbuf.lstrip(b"0").startswith(b"8;"):
-                    # an over-long OSC 8 is refused like any other invalid one, ending the current link
-                    self.attrspec = attrspec_with_hyperlink(self.attrspec, None, unset_color="default")
-                # the rest of an over-long OSC string: only the last byte is kept,
-                # which is enough to recognise either terminator
-                self.parsestate = ParseState.OSC_OVERFLOW
-                self._escbuf = bytearray(char)
-            return
-        elif self.parsestate == ParseState.ESCAPE and char == b"[":
-            # start of CSI
-            self._escbuf = bytearray()
-            self.parsestate = ParseState.CSI
-            return
-        elif self.parsestate in {ParseState.ESCAPE, ParseState.ESC_INTERMEDIATE} and b" " <= char <= b"/":
-            # an intermediate byte of an escape sequence (ECMA-35), such as the "(" of a G0 designation; past the
-            # limit the intermediate bytes are dropped, and the sequence still ends at its final byte
-            if self.parsestate == ParseState.ESCAPE:
-                self._escbuf = bytearray()
-                self.parsestate = ParseState.ESC_INTERMEDIATE
+        """Feed *char*, read inside an escape sequence, to that sequence.
+
+        It is a parameter or final byte of an ESC or CSI sequence, or a character of a string.
+        :meth:`process_char` handles control characters outside strings itself.
+        """
+        code = char[0]
+        state = self._parsestate
+        if state in _STRING_STATES:
+            self._vt_step(char, code)
+        elif state == _CSI and 0x20 <= code <= 0x3F:
             if len(self._escbuf) < MAX_CSI_LENGTH:
                 self._escbuf += char
-            return
-        elif self.parsestate == ParseState.ESC_INTERMEDIATE:
-            self.parse_noncsi(char, bytes(self._escbuf))
-        elif char in {
-            b"c",
-            b"D",
-            b"E",
-            b"H",
-            b"M",
-            b"V",
-            b"W",
-            b"Z",
-            b"7",
-            b"6",
-            b"8",
-            b"9",
-            b">",
-            b"=",
-            *_LOCKING_SHIFTS,
-            *_SINGLE_SHIFTS,
-            *_GR_LOCKING_SHIFTS,
-        }:
-            self.parse_noncsi(char)
-
-        self.leave_escape()
+        else:
+            self._vt_escape_char(char, code)
 
     def leave_escape(self) -> None:
         """Reset the escape-sequence parser state, discarding any sequence being read."""
-        self.within_escape = False
-        self.parsestate = ParseState.ESCAPE
-        self._escbuf = bytearray()
+        self._vt_leave()
+
+    def _vt_leave(self) -> None:
+        """Drop the sequence being read, also forgetting whether the OSC string had invalid UTF-8."""
+        self._within_escape = False
+        self._parsestate = _GROUND
+        self._escbuf = b""
         self._osc_invalid_utf8 = False
 
     def get_utf8_len(self, bytenum: int) -> int:
@@ -582,7 +523,7 @@ class TermCanvas(_ReportsCanvas, _RectanglesCanvas, _ModesCanvas):
             pending = self.utf8_eat_bytes is not None
             # A lone continuation byte, or a sequence cut short by a byte that does not continue it, is not valid UTF-8,
             # and parse_osc() refuses an OSC string that had one.
-            if self.parsestate == ParseState.OSC and continuation != pending:
+            if self._parsestate == ParseState.OSC and continuation != pending:
                 self._osc_invalid_utf8 = True
             if byte >= 0xC0:
                 # start multibyte sequence
@@ -600,7 +541,7 @@ class TermCanvas(_ReportsCanvas, _RectanglesCanvas, _ModesCanvas):
                 self.utf8_eat_bytes = None
 
                 if sequence := (self.utf8_buffer + bytes([byte])).decode("utf-8", "ignore"):
-                    if self.within_escape:
+                    if self._within_escape:
                         # an escape sequence takes bytes, not cells: no DEC drawing character here
                         char = sequence.encode(util.get_encoding(), "urwid_fallback_ascii")
                     elif "\x80" <= sequence < "\xa0" and not (self.charset.ibmpc_mapped or self.modes.display_ctrl):
@@ -639,7 +580,7 @@ class TermCanvas(_ReportsCanvas, _RectanglesCanvas, _ModesCanvas):
 
                 else:
                     # an invalid multibyte sequence is dropped, and parse_osc() refuses an OSC string that had one
-                    if self.parsestate == ParseState.OSC:
+                    if self._parsestate == ParseState.OSC:
                         self._osc_invalid_utf8 = True
                     return
             else:
@@ -660,73 +601,125 @@ class TermCanvas(_ReportsCanvas, _RectanglesCanvas, _ModesCanvas):
         """
         Process a single character (single- and multi-byte).
 
+        Display control mode and the 8-bit CSI are handled here, and REP is tracked; everything else is the
+        escape-sequence state machine's, see :class:`urwid.ansi_parser._vt_parser._VTParser`.
+
         :param char: a byte string
         """
-        x, y = self.term_cursor
-
         if isinstance(char, int):
             char = char.to_bytes(1, "little")
 
-        dc = self.modes.display_ctrl
         # as in xterm, REP repeats only a character written just before it: a control character, or a control function
         # such as SGR, between them cancels the repeat
         graphic, self._last_graphic = self._last_graphic, None
-        if not self.within_escape or char < b" " or char == b"\x7f":
+        within = self._within_escape
+        if not within or char < b" " or char == b"\x7f":
             self._repeat_graphic = None
 
-        if char == ESC_B and self.parsestate not in _STRING_STATES:  # escape
-            # as in a terminal, an ESC drops a sequence still being read and starts a new one
-            self.leave_escape()
-            self.within_escape = True
-            self._repeat_graphic = graphic
-        elif self.parsestate in _STRING_STATES and char in _CANCEL:
-            # CAN/SUB abort a command string, also with display_ctrl
-            self.leave_escape()
-        elif self.parsestate in _STRING_STATES and char == b"\x7f" and self._escbuf[-1:] == ESC_B:
-            # DEL after an ESC inside a string is ignored, as in xterm, so a following backslash still ends the string
-            pass
-        elif (
-            self.parsestate in _STRING_STATES
-            and char in (_COMMAND_STRING_IGNORED if self.parsestate == ParseState.COMMAND_STRING else _OSC_IGNORED)
-            and (self._escbuf[-1:] != ESC_B or dc or char not in _EXECUTED_CONTROLS)
-        ):
-            # as in a terminal, such a control character inside a command string is neither executed nor part of its
-            # body; after an ESC, one of _EXECUTED_CONTROLS is executed by the branches below, and the ESC stays pending
-            pass
-        elif not dc and char == b"\r":  # carriage return CR
+        if self._parsestate not in _STRING_STATES:
+            if char == ESC_B:
+                self._repeat_graphic = graphic
+            elif self.modes.display_ctrl:
+                if char < b" " or char == b"\x7f":
+                    # display control mode draws a control character, or reads it as part of the sequence being read
+                    if within:
+                        self._vt_escape_char(char, char[0])
+                    else:
+                        self.push_cursor(char)
+                    return
+            elif char == b"\x9b":
+                # CSI, equivalent to "ESC [": like ESC, it drops a sequence still being read
+                self._vt_leave()
+                self._within_escape = True
+                self._parsestate = _CSI
+                self._repeat_graphic = graphic
+                return
+        self._vt_step(char, char[0])
+
+    # -- the hooks of the state machine in urwid.ansi_parser._vt_parser ------------------------------------------------
+
+    def _vt_print(self, token: bytes, code: int) -> None:
+        """Write a character outside any sequence."""
+        self.push_cursor(token)
+
+    def _vt_execute(self, token: bytes, code: int) -> None:
+        """Execute a control character.
+
+        In display control mode only one inside a string, after an ESC, reaches this hook, and it is ignored there.
+        """
+        if self.modes.display_ctrl:
+            return
+        if code == 0x0D:  # carriage return CR
             self.carriage_return()
-        elif not dc and char == b"\x0f":  # activate G0
+        elif code == 0x0F:  # activate G0
             self.charset.activate(0)
-        elif not dc and char == b"\x0e":  # activate G1
+        elif code == 0x0E:  # activate G1
             self.charset.activate(1)
-        elif not dc and char in b"\n\v\f":  # line feed LF/VT/FF
+        elif code in {0x0A, 0x0B, 0x0C}:  # line feed LF/VT/FF
             self.linefeed()
             if self.modes.lfnl:
                 self.carriage_return()
-        elif not dc and char == b"\t":  # char tab
+        elif code == 0x09:  # char tab
             self.tab()
-        elif not dc and char == b"\b":  # backspace BS
+        elif code == 0x08:  # backspace BS
+            x, y = self.term_cursor
             if x > 0:
                 self.set_term_cursor(x - 1, y)
             self.is_rotten_cursor = False
-        elif not dc and char == b"\a" and self.parsestate not in _OSC_STATES:  # BEL
-            # inside an OSC string, also once over-long, BEL is its terminator
+        elif code == 0x07:  # BEL, which ends an OSC string instead of reaching this hook there
             self.widget.beep()
-        elif not dc and char in _CANCEL:  # CAN/SUB
-            self.leave_escape()
-        elif not dc and (char in _IGNORED_CONTROLS or (char == b"\x7f" and self.parsestate not in _OSC_STATES)):
-            # as in a terminal, any other C0 control character and DEL are ignored, and an escape sequence continues
-            pass
-        elif not dc and char == b"\x9b" and self.parsestate not in _STRING_STATES:  # CSI (equivalent to "ESC [")
-            # like ESC, it drops a sequence still being read; inside a command string it is part of the string
-            self.leave_escape()
-            self.within_escape = True
-            self.parsestate = ParseState.CSI
-            self._repeat_graphic = graphic
-        elif self.within_escape:
-            self.parse_escape(char)
-        else:
-            self.push_cursor(char)
+        # as in a terminal, any other C0 control character and DEL are ignored, and an escape sequence continues
+
+    def _vt_restart(self, token: bytes, code: int) -> None:
+        """Process a character again, as one read, after an ESC ended a string and started a new sequence."""
+        self.process_char(token)
+
+    def _vt_esc_dispatch(self, final: bytes, intermediates: bytes) -> None:
+        """Apply an ESC sequence.
+
+        Without intermediate bytes, a final byte that starts no sequence of a single character is ignored.
+        """
+        if intermediates:
+            self.parse_noncsi(final, intermediates)
+        elif final in _ESC_FINALS:
+            self.parse_noncsi(final)
+
+    def _vt_csi_dispatch(self, final: bytes, parameters: bytes) -> None:
+        """Apply a CSI sequence with a final byte in :data:`CSI_COMMANDS`.
+
+        One whose parameters reached the length limit is dropped.
+        """
+        if final in CSI_COMMANDS and len(parameters) < MAX_CSI_LENGTH:
+            self.parse_csi(final)
+
+    def _vt_osc_dispatch(self, body: bytes) -> None:
+        """Apply an OSC string, see :meth:`parse_osc`."""
+        self.parse_osc(body.lstrip(b"0"))
+
+    def _vt_osc_palette(self, body: bytes) -> None:
+        """Ignore the Linux console's palette OSC, which is not applied."""
+
+    def _vt_osc_overflow(self, body: bytes) -> None:
+        """End the current link at an over-long OSC 8, which is refused like any other invalid one."""
+        if body.lstrip(b"0").startswith(b"8;"):
+            self.attrspec = attrspec_with_hyperlink(self.attrspec, None, unset_color="default")
+
+    def _vt_osc_unterminated(self, body: bytes) -> None:
+        """Ignore an OSC string that CAN, SUB or another sequence dropped, as a terminal does."""
+
+    def _vt_interrupted(self) -> None:
+        """Ignore the sequence an ESC drops, as a terminal does."""
+
+    def _vt_string_start(self, opener: bytes) -> None:
+        """Do nothing at the start of a DCS, SOS, PM or APC string; a DCS is applied when it ends."""
+
+    def _vt_string_end(self, body: bytes | None) -> None:
+        """Apply a DCS string that was kept whole, see :meth:`parse_dcs`.
+
+        SOS, PM and APC strings are discarded.
+        """
+        if body is not None and body[:1] == b"P" and len(body) + 1 < MAX_OSC_LENGTH:
+            self.parse_dcs(body[1:])
 
 
 #: the CSI sequences with an intermediate byte before the final one, by intermediate and final byte, run with their

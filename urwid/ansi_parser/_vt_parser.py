@@ -17,12 +17,12 @@
 #
 # Urwid web site: https://urwid.org/
 
-"""The escape-sequence state machine of :class:`~urwid.ansi_parser.AnsiParser`: framing of ESC, CSI, OSC and strings.
+"""The escape-sequence state machine of the ANSI parser and the terminal canvas: framing of sequences and strings.
 
 The machine follows the DEC VT500 parser model (ground, escape, CSI, OSC and command-string states, with C0 controls
 executed inside sequences), in the states :class:`~urwid.ansi_parser.ParseState` names.
 It frames sequences and calls hook methods; what a sequence does is up to the class that inherits it.
-It reads text of either type, so a parser of bytes, such as the terminal canvas's, can run it too.
+:class:`~urwid.ansi_parser.AnsiParser` feeds it ``str`` and :class:`~urwid.TermCanvas` feeds it ``bytes``.
 """
 
 from __future__ import annotations
@@ -91,7 +91,9 @@ class _VTParser(typing.Generic[_TextT]):
       including a trailing ESC that may start its ST.
       A command string's body starts with the character that opened it.
 
-    The hooks have no default: the inheriting class implements each one.
+    A hook that takes a whole sequence runs while that sequence is still the current one, so these attributes still
+    describe it; the machine leaves the sequence after the hook returns.
+    The hooks have no default, except :meth:`_vt_restart`: the inheriting class implements each one.
     """
 
     # No __slots__: the terminal canvas inherits it beside slotted canvas classes, whose layouts would conflict with
@@ -107,7 +109,7 @@ class _VTParser(typing.Generic[_TextT]):
     _VT_ESC: _TextT
     _VT_PALETTE_SET: _TextT
     #: a run of CSI parameter and intermediate characters, and a run of characters a string keeps as they are:
-    #: anything but C0 controls and ESC
+    #: anything but C0 controls, ESC and DEL, which a DCS string ignores
     _VT_CSI_RUN: re.Pattern[typing.Any]
     _VT_STRING_RUN: re.Pattern[typing.Any]
 
@@ -167,11 +169,10 @@ class _VTParser(typing.Generic[_TextT]):
                     # string unapplied and starts a new escape sequence
                     self._vt_leave()
                     self._within_escape = True
-                    self._vt_step(token, code)
+                    self._vt_restart(token, code)
                 elif self._escbuf[-1:] == self._VT_ESC:
-                    body = self._escbuf[:-1] if state == _COMMAND_STRING else None
+                    self._vt_string_end(self._escbuf[:-1] if state == _COMMAND_STRING else None)
                     self._vt_leave()
-                    self._vt_string_end(body)
                 elif state == _COMMAND_STRING_OVERFLOW:
                     # only the last character is kept, which is enough to recognise ST
                     self._escbuf = self._VT_EMPTY + token
@@ -238,9 +239,8 @@ class _VTParser(typing.Generic[_TextT]):
         state = self._parsestate
         if state == _CSI:
             # the parameter and intermediate bytes were collected in _vt_step, so this is the final byte
-            parameters = self._escbuf
+            self._vt_csi_dispatch(token, self._escbuf)
             self._vt_leave()
-            self._vt_csi_dispatch(token, parameters)
             return
         if state == _ESCAPE:
             if code == 0x5D:  # ESC ]
@@ -266,9 +266,8 @@ class _VTParser(typing.Generic[_TextT]):
             if len(self._escbuf) < MAX_CSI_LENGTH:
                 self._escbuf += token
             return
-        intermediates = self._escbuf if state == _ESC_INTERMEDIATE else self._VT_EMPTY
+        self._vt_esc_dispatch(token, self._escbuf if state == _ESC_INTERMEDIATE else self._VT_EMPTY)
         self._vt_leave()
-        self._vt_esc_dispatch(token, intermediates)
 
     def _vt_osc_char(self, token: _TextT, code: int) -> None:
         """Feed *token*, which is no ignored control character, to the OSC string being read."""
@@ -280,7 +279,7 @@ class _VTParser(typing.Generic[_TextT]):
                 self._vt_osc_unterminated(buffer[:-1])
             self._vt_leave()
             self._within_escape = True
-            self._vt_step(token, code)
+            self._vt_restart(token, code)
             return
         if self._parsestate == _OSC_OVERFLOW:
             # only the last character is kept, which is enough to recognise either terminator
@@ -290,8 +289,8 @@ class _VTParser(typing.Generic[_TextT]):
                 self._escbuf = self._VT_EMPTY + token
             return
         if code == _BEL or (buffer[-1:] == self._VT_ESC and code == _BACKSLASH):
-            self._vt_leave()
             self._vt_osc_dispatch(buffer if code == _BEL else buffer[:-1])
+            self._vt_leave()
             return
         if len(buffer) >= MAX_OSC_LENGTH:
             self._vt_osc_overflow(buffer)
@@ -299,15 +298,15 @@ class _VTParser(typing.Generic[_TextT]):
             self._escbuf = self._VT_EMPTY + token
             return
         if not buffer and code == _PALETTE_RESET:
-            self._vt_leave()
             self._vt_osc_palette(self._VT_EMPTY + token)
+            self._vt_leave()
             return
         self._escbuf = buffer = buffer + token
         # an ESC is no digit: the next character decides whether it starts ST or a new sequence
         if code != _ESC and len(buffer) == _PALETTE_SET_LENGTH and buffer[:1] == self._VT_PALETTE_SET:
             # the Linux console's palette set, ESC ] P n rr gg bb, ends with its 7th hex digit
-            self._vt_leave()
             self._vt_osc_palette(buffer)
+            self._vt_leave()
 
     # -- hooks the inheriting class implements -----------------------------------------------------------------------
 
@@ -349,6 +348,13 @@ class _VTParser(typing.Generic[_TextT]):
     def _vt_osc_unterminated(self, body: _TextT) -> None:
         """Take the body of an OSC string that CAN, SUB or an ESC not starting ST dropped."""
         raise NotImplementedError
+
+    def _vt_restart(self, token: _TextT, code: int) -> None:
+        """Feed *token* again, after an ESC that does not start ST ended a string and started a new sequence.
+
+        The inheriting class may route it through its own per-character processing, as it would a token it reads.
+        """
+        self._vt_step(token, code)
 
     def _vt_interrupted(self) -> None:
         """Take note of an ESC that drops the ESC or CSI sequence still being read, before the machine drops it."""
