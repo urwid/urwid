@@ -166,9 +166,11 @@ class AnsiParser:
 
     The padding inserted to reach a moved cursor -- blank cells before a written character and empty rows below the
     last one -- is limited to ``1024 * 1024 + 8 * n`` cells over the parser's lifetime, ``n`` being the number of
-    characters fed so far, and an empty row counts as 8 cells. Once the limit is reached, a character is written at the
-    end of its row instead, a vertical move past the last row stays on the last row, and each such cut is recorded as
-    a :class:`SkippedOp` with ``kind="unknown"``.
+    characters parsed so far, and an empty row counts as 8 cells.
+    The limit is therefore the same however the input is split into :meth:`feed` calls.
+    Once the limit is reached, a character is written at the end of its row instead,
+    a vertical move past the last row stays on the last row,
+    and each such cut is recorded as a :class:`SkippedOp` with ``kind="unknown"``.
 
     :meth:`finalize` returns a uniform ``tuple[ParsedLine, ...]`` in both modes: in ``one_line=True`` mode, every
     line completed since construction (queue plus a final flush of whatever remains, possibly empty or
@@ -246,12 +248,13 @@ class AnsiParser:
         """
         if not text:
             return
-        self._padding_budget += _PADDING_PER_CHARACTER * len(text)
 
+        # the padding budget grows by each character as it is parsed, see the class docstring
         if self._pending_line_end is not None:
             pending = self._pending_line_end
             self._pending_line_end = None
             if text[:1] == _LINE_END_PAIR.get(pending):
+                self._padding_budget += _PADDING_PER_CHARACTER
                 text = text[1:]
                 if not self._one_line and pending == "\r":
                     # \r\n split across a feed() call boundary: the bare CR
@@ -267,6 +270,7 @@ class AnsiParser:
         n = len(text)
         while i < n:
             ch = text[i]
+            self._padding_budget += _PADDING_PER_CHARACTER
             if ch in _LINE_END_PAIR:
                 if self._parsestate in _STRING_STATES and self._escbuf[-1:] != ESC:
                     # a line end inside a command string is ignored, see _step()
@@ -276,6 +280,7 @@ class AnsiParser:
                     # an escape sequence in progress continues on the next line, as in a terminal
                     self._complete_line()
                     if i + 1 < n and text[i + 1] == _LINE_END_PAIR[ch]:
+                        self._padding_budget += _PADDING_PER_CHARACTER
                         i += 2
                     else:
                         if i + 1 == n:
@@ -283,6 +288,7 @@ class AnsiParser:
                         i += 1
                     continue
                 if i + 1 < n and text[i + 1] == _LINE_END_PAIR[ch]:
+                    self._padding_budget += _PADDING_PER_CHARACTER
                     self._newline()
                     i += 2
                     continue

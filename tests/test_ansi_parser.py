@@ -1055,15 +1055,23 @@ class UntrustedInputBoundsTest(unittest.TestCase):
         self.assertEqual(["\x1b[1024C"], cut)
 
     def test_padding_budget_spans_feed_calls(self) -> None:
-        """Grow the padding budget with every feed call, up to the same limit as one call with all the text."""
-        text = "\n\x1b[1024Gx" * 3000
-        parser = AnsiParser()
-        for start in range(0, len(text), 7):
-            parser.feed(text[start : start + 7])
-        result = parser.finalize()[0].text
-        cells = len(result) - result.count("\n")
-        self.assertLessEqual(cells, 1024 * 1024 + 8 * len(text) + 3000)
-        self.assertGreater(cells, 1024 * 1024 + 3000)
+        """Cut the padding at the same place however the text is split into feed calls."""
+        for unit in ("\n\x1b[1024Gx", "\r\n\x1b[1024Gx", "\x1b[1024Cx", "\x1b[1024Bx"):
+            text = unit * 3000
+            whole = AnsiParser()
+            whole.feed(text)
+            expected = whole.finalize()[0]
+            rows = expected.text.count("\n")
+            cells = len(expected.text) - rows
+            self.assertLessEqual(cells, 1024 * 1024 + 8 * len(text) + 3000)
+            # the characters parsed grow the limit: an empty row costs 8 cells, see test_row_padding_is_bounded
+            self.assertGreater(cells + 8 * rows, 1024 * 1024 + 4 * len(text))
+            for size in (1, 7):
+                with self.subTest(unit=unit, size=size):
+                    parser = AnsiParser()
+                    for start in range(0, len(text), size):
+                        parser.feed(text[start : start + size])
+                    self.assertEqual(expected, parser.finalize()[0])
 
     def test_sparse_full_screen_drawing_is_kept(self) -> None:
         """Keep the padding of a sparse drawing far below the padding limit."""
