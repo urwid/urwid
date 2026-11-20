@@ -1055,15 +1055,23 @@ class UntrustedInputBoundsTest(unittest.TestCase):
         self.assertEqual(["\x1b[1024C"], cut)
 
     def test_padding_budget_spans_feed_calls(self) -> None:
-        """Grow the padding budget with every feed call, up to the same limit as one call with all the text."""
-        text = "\n\x1b[1024Gx" * 3000
-        parser = AnsiParser()
-        for start in range(0, len(text), 7):
-            parser.feed(text[start : start + 7])
-        result = parser.finalize()[0].text
-        cells = len(result) - result.count("\n")
-        self.assertLessEqual(cells, 1024 * 1024 + 8 * len(text) + 3000)
-        self.assertGreater(cells, 1024 * 1024 + 3000)
+        """Cut the padding at the same place however the text is split into feed calls."""
+        for unit in ("\n\x1b[1024Gx", "\r\n\x1b[1024Gx", "\x1b[1024Cx", "\x1b[1024Bx"):
+            text = unit * 3000
+            whole = AnsiParser()
+            whole.feed(text)
+            expected = whole.finalize()[0]
+            rows = expected.text.count("\n")
+            cells = len(expected.text) - rows
+            self.assertLessEqual(cells, 1024 * 1024 + 8 * len(text) + 3000)
+            # the characters parsed grow the limit: an empty row costs 8 cells, see test_row_padding_is_bounded
+            self.assertGreater(cells + 8 * rows, 1024 * 1024 + 4 * len(text))
+            for size in (1, 7):
+                with self.subTest(unit=unit, size=size):
+                    parser = AnsiParser()
+                    for start in range(0, len(text), size):
+                        parser.feed(text[start : start + size])
+                    self.assertEqual(expected, parser.finalize()[0])
 
     def test_sparse_full_screen_drawing_is_kept(self) -> None:
         """Keep the padding of a sparse drawing far below the padding limit."""
@@ -1291,6 +1299,20 @@ class ControlCharacterTest(unittest.TestCase):
                 self.assertEqual("abRc", line.text)
                 self.assertEqual([(None, 2), (self.RED, 1), (None, 1)], line.attrib)
                 self.assertEqual([], line.skipped)
+
+    def test_c1_controls_in_text_are_dropped(self) -> None:
+        """Drop U+0080 to U+009F written as text.
+
+        They take no column, as in xterm and urwid.vterm with UTF-8 input.
+        """
+        for control in ("\x80", "\x85", "\x9b", "\x9f"):
+            for one_line in (True, False):
+                with self.subTest(control=control, one_line=one_line):
+                    parser = AnsiParser(one_line=one_line)
+                    parser.feed(f"a{control}b\x1b[4Gc")
+                    (line,) = parser.finalize()
+                    self.assertEqual("ab c", line.text)
+                    self.assertEqual([], line.skipped)
 
     def test_c1_characters_in_osc_are_kept(self) -> None:
         """Keep U+0080 to U+009F inside an OSC string as part of it, as tmux does with UTF-8 input."""
