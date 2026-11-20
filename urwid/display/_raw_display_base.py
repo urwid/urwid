@@ -64,7 +64,7 @@ from .common import (
 if typing.TYPE_CHECKING:
     from collections.abc import Callable, Hashable, Iterable, Mapping, Sequence
     from types import FrameType
-    from typing import Literal
+    from typing import Literal, Self
 
     from urwid import Canvas, EventLoop
 
@@ -137,6 +137,7 @@ _NO_UNDERLINE_FAMILIES = frozenset({"dumb", "unknown", "vt52"})
 # holding their version, and the first version taken to draw them: VTE 0.52 and Konsole 22.04; these first versions
 # are not confirmed against the projects' release notes, the ones checked are VTE 0.84 and Konsole 25.12
 _UNDERLINE_STYLE_VERSIONS: Sequence[tuple[str, int]] = (("VTE_VERSION", 5200), ("KONSOLE_VERSION", 220400))
+_T = typing.TypeVar("_T")
 
 # Windows 10 TH2 (1511) gained 256-color VT; 1703-era build 14931 gained 24-bit color.
 _WINDOWS_256COLOR_BUILD = 10586
@@ -176,9 +177,13 @@ _ATTRSPEC_INDEX_BY_COLORS: Mapping[_ColorCount, int] = {16: 0, 1: 1, 88: 2, 256:
 _DECRQM_SET_VALUES: typing.Final = frozenset({1, 3})
 
 
-@dataclasses.dataclass(frozen=True)
+@dataclasses.dataclass(frozen=True, slots=True, weakref_slot=True)
 class TerminalProperties:
-    """Capabilities inferred from TERM, its terminfo entry and standard colour environment variables."""
+    """The properties of a terminal that a raw screen draws with.
+
+    :func:`detect_terminal_properties` takes them from TERM, its terminfo entry and the environment; it never turns
+    on :attr:`hyperlinks`, since no query for OSC 8 support exists.
+    """
 
     colors: _ColorCount
     has_underline: bool
@@ -186,6 +191,44 @@ class TerminalProperties:
     bg_bright_is_blink: bool
     back_color_erase: bool
     underline_styles: bool = False
+    hyperlinks: bool = False
+
+
+class _TerminalProperty(typing.Generic[_T]):
+    """A screen attribute that reads and replaces one field of the screen's :class:`TerminalProperties`."""
+
+    __slots__ = ("name",)
+
+    def __init__(self) -> None:
+        self.name = ""
+
+    def __set_name__(self, owner: type, name: str) -> None:
+        self.name = name
+
+    @typing.overload
+    def __get__(self, instance: None, owner: type | None = None) -> Self: ...
+
+    @typing.overload
+    def __get__(self, instance: Screen, owner: type | None = None) -> _T: ...
+
+    def __get__(self, instance: Screen | None, owner: type | None = None) -> _T | Self:
+        if instance is None:
+            return self
+        return typing.cast("_T", getattr(instance._terminal_properties, self.name))
+
+    def __set__(self, instance: Screen, value: _T) -> None:
+        # the field is named at run time, so its type cannot be checked against the keyword
+        change: dict[str, typing.Any] = {self.name: value}
+        instance._terminal_properties = dataclasses.replace(instance._terminal_properties, **change)
+
+    def __delete__(self, instance: Screen) -> None:
+        """Refuse to delete the setting, which every screen has.
+
+        :raises AttributeError: always. ``mock.patch.object`` restores a patched attribute by deleting it, so a test
+            assigns the setting, and its previous value back, instead.
+        """
+        message = f"{self.name} is a setting of every screen and cannot be deleted; assign it instead"
+        raise AttributeError(message)
 
 
 @dataclasses.dataclass
@@ -669,6 +712,16 @@ class Screen(BaseScreen, RealTerminal):
 
     _term_input_file: SupportsFileno
     _term_output_file: TextWriter
+    _terminal_properties: TerminalProperties
+
+    # the fields of the terminal properties the screen draws with, set directly or by set_terminal_properties()
+    colors = _TerminalProperty[_ColorCount]()
+    has_underline = _TerminalProperty[bool]()
+    fg_bright_is_bold = _TerminalProperty[bool]()
+    bg_bright_is_blink = _TerminalProperty[bool]()
+    back_color_erase = _TerminalProperty[bool]()
+    underline_styles = _TerminalProperty[bool]()
+    hyperlinks = _TerminalProperty[bool]()
 
     def __init__(
         self,
@@ -740,14 +793,11 @@ class Screen(BaseScreen, RealTerminal):
         # keeping its sockets open until the cyclic garbage collector happened to run.
         signals.connect_signal(self, UPDATE_PALETTE_ENTRY, type(self)._on_update_palette_entry, weak_args=(self,))
         self.term = os.environ.get("TERM", "")
-        self.colors = (properties := detect_terminal_properties(self.term, os.environ)).colors
-        self.has_underline = properties.has_underline
-        self.underline_styles = properties.underline_styles if underline_styles is None else underline_styles
-        self.fg_bright_is_bold = properties.fg_bright_is_bold
-        self.bg_bright_is_blink = properties.bg_bright_is_blink
-        self.back_color_erase = properties.back_color_erase
-        # OSC 8 hyperlinks are drawn only when the application turns them on: no query exists
-        self.hyperlinks = False
+        self._terminal_properties = detect_terminal_properties(self.term, os.environ)
+        if underline_styles is not None:
+            self._terminal_properties = dataclasses.replace(
+                self._terminal_properties, underline_styles=underline_styles
+            )
         # the window title set_title() asked for, shown while the screen runs
         self._title: str | None = None
         # the title the terminal had before is saved, and is given back when the screen stops
@@ -1158,7 +1208,7 @@ class Screen(BaseScreen, RealTerminal):
                 move_cursor += "\n"
             move_cursor += escape.PrivateMode.ALTERNATE_SCREEN_BUFFER.disable_seq
         # an application's own "U" run, or a partly written frame, can leave a hyperlink open
-        close = escape.HYPERLINK_CLOSE if self.hyperlinks else ""
+        close = escape.HYPERLINK_CLOSE if self._terminal_properties.hyperlinks else ""
         self.write(close + self._attrspec_to_escape(AttrSpec("", "")) + escape.SI + move_cursor + escape.SHOW_CURSOR)
         self.flush()
         # a later start that fails before switching screens has no alternate screen to leave
@@ -1662,6 +1712,8 @@ class Screen(BaseScreen, RealTerminal):
         :raises ValueError: *canvas* does not have the number of rows given by *size*.
         :raises OSError: the terminal could not be written to, for a reason other than an interrupted system call.
         """
+        # the settings cannot change during a draw
+        properties = self._terminal_properties
 
         def set_cursor_position(x: int, y: int) -> str:
             if self._rows_used is None:
@@ -1694,7 +1746,7 @@ class Screen(BaseScreen, RealTerminal):
 
             if last_attributes != attr:
                 attr_escape = self._attr_to_escape(attr)
-                if self.hyperlinks:
+                if properties.hyperlinks:
                     # only an escape that opens a hyperlink ends with ST, and an open replaces any open link
                     opens = attr_escape.endswith(escape.ST)
                     if link_open and not opens:
@@ -1738,7 +1790,7 @@ class Screen(BaseScreen, RealTerminal):
                 if encoding != "utf-8" and charset == "U":
                     output.append(escape.IBMPC_OFF)
 
-            if self.hyperlinks and charset == "U":
+            if properties.hyperlinks and charset == "U":
                 # the run may have closed or replaced urwid's hyperlink, so the next run reopens its own
                 last_attributes = link_closed
 
@@ -1829,11 +1881,11 @@ class Screen(BaseScreen, RealTerminal):
                 a, cs, run = row[-1]
                 if (
                     run[-1:] == b" "
-                    and self.back_color_erase
+                    and properties.back_color_erase
                     and not (
-                        (pal_a := self.resolve_attr(a, _ATTRSPEC_INDEX_BY_COLORS[self.colors])).standout
+                        (pal_a := self.resolve_attr(a, _ATTRSPEC_INDEX_BY_COLORS[properties.colors])).standout
                         or pal_a.underline
-                        or (self.hyperlinks and pal_a.hyperlink is not None and pal_a.hyperlink.uri)
+                        or (properties.hyperlinks and pal_a.hyperlink is not None and pal_a.hyperlink.uri)
                     )
                 ):
                     whitespace_at_end = True
@@ -1972,9 +2024,9 @@ class Screen(BaseScreen, RealTerminal):
         """
         if found := self._pal_escape.get(a):
             return found
-        spec = self.resolve_attr(a, _ATTRSPEC_INDEX_BY_COLORS[self.colors])
+        spec = self.resolve_attr(a, _ATTRSPEC_INDEX_BY_COLORS[self._terminal_properties.colors])
         found = self._attrspec_to_escape(spec)
-        if self.hyperlinks and spec.hyperlink is not None and spec.hyperlink.uri:
+        if self._terminal_properties.hyperlinks and spec.hyperlink is not None and spec.hyperlink.uri:
             found += escape.hyperlink_open(spec.hyperlink)
         if len(self._pal_escape) >= _RESOLVED_ATTRS_LIMIT:
             self._pal_escape.clear()
@@ -2021,7 +2073,7 @@ class Screen(BaseScreen, RealTerminal):
             fg = f"38;5;{a.foreground_number:d}"
         elif a.foreground_basic:
             if a.foreground_number > 7:
-                if self.fg_bright_is_bold:
+                if self._terminal_properties.fg_bright_is_bold:
                     fg = f"1;{a.foreground_number - _SGR_BRIGHT_OFFSET + _SGR_FG_BASE:d}"
                 else:
                     fg = f"{a.foreground_number - _SGR_BRIGHT_OFFSET + _SGR_FG_BRIGHT_BASE:d}"
@@ -2035,7 +2087,7 @@ class Screen(BaseScreen, RealTerminal):
             bg = f"48;5;{a.background_number:d}"
         elif a.background_basic:
             if a.background_number > 7:
-                if self.bg_bright_is_blink:
+                if self._terminal_properties.bg_bright_is_blink:
                     bg = f"5;{a.background_number - _SGR_BRIGHT_OFFSET + _SGR_BG_BASE:d}"
                 else:
                     # this doesn't work on most terminals
@@ -2054,7 +2106,7 @@ class Screen(BaseScreen, RealTerminal):
         """
         if not a.underline:
             return ""
-        if not self.underline_styles:
+        if not self._terminal_properties.underline_styles:
             return "4;"
         style = _UNDERLINE_STYLE_NAMES.index(typing.cast("str", a.underline_style))
         parameters = f"4:{style + 1:d};" if style else "4;"
@@ -2088,31 +2140,18 @@ class Screen(BaseScreen, RealTerminal):
         :param underline_styles: set to True to draw the underline styles and colors of display attributes,
             False to draw every underline single and in the text color, or None to leave unchanged.
         """
-        if colors is None:
-            colors = self.colors
-        if bright_is_bold is None:
-            bright_is_bold = self.fg_bright_is_bold
-        if has_underline is None:
-            has_underline = self.has_underline
-        if hyperlinks is None:
-            hyperlinks = self.hyperlinks
-        if underline_styles is None:
-            underline_styles = self.underline_styles
-
-        if (
-            colors == self.colors
-            and bright_is_bold == self.fg_bright_is_bold
-            and has_underline == self.has_underline
-            and hyperlinks == self.hyperlinks
-            and underline_styles == self.underline_styles
-        ):
+        current = self._terminal_properties
+        properties = dataclasses.replace(
+            current,
+            colors=current.colors if colors is None else colors,
+            fg_bright_is_bold=current.fg_bright_is_bold if bright_is_bold is None else bright_is_bold,
+            has_underline=current.has_underline if has_underline is None else has_underline,
+            hyperlinks=current.hyperlinks if hyperlinks is None else hyperlinks,
+            underline_styles=current.underline_styles if underline_styles is None else underline_styles,
+        )
+        if properties == current:
             return
-
-        self.colors = colors
-        self.fg_bright_is_bold = bright_is_bold
-        self.has_underline = has_underline
-        self.hyperlinks = hyperlinks
-        self.underline_styles = underline_styles
+        self._terminal_properties = properties
 
         self.clear()
         self._pal_escape.clear()
@@ -2122,12 +2161,12 @@ class Screen(BaseScreen, RealTerminal):
 
         Uses a number of colors from the current set_terminal_properties() screen setting.
         """
-        if self.colors == 1:
+        if self._terminal_properties.colors == 1:
             return
-        if self.colors == 2**24:
+        if self._terminal_properties.colors == 2**24:
             colors = 256
         else:
-            colors = self.colors
+            colors = self._terminal_properties.colors
 
         values = _COLOR_VALUES_88 if colors == 88 else _COLOR_VALUES_256
         entries = [(n, *values[n]) for n in range(min(colors, 256))]
@@ -2199,4 +2238,4 @@ class Screen(BaseScreen, RealTerminal):
         :raises AttrSpecError: *fg*, *bg* or *underline_color* is invalid or needs more colors than this screen has.
         :raises ValueError: *hyperlink* is a string that is not a valid :class:`Hyperlink` URI.
         """
-        return AttrSpec(fg, bg, self.colors, hyperlink=hyperlink, underline_color=underline_color)
+        return AttrSpec(fg, bg, self._terminal_properties.colors, hyperlink=hyperlink, underline_color=underline_color)

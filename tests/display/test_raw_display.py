@@ -306,6 +306,30 @@ class TestRawDisplay(unittest.TestCase):
         screen.set_terminal_properties(underline_styles=True)
         self.assertEqual("\x1b[0;39;4:3;49m", screen._attr_to_escape(aspec))
 
+    def test_terminal_property_attributes(self) -> None:
+        """Read and replace the fields of one set of terminal properties, by attribute or set_terminal_properties().
+
+        A setting cannot be deleted.
+        """
+        screen = urwid.display.raw.Screen(underline_styles=True)
+        screen.set_terminal_properties(colors=256, hyperlinks=True)
+        screen.back_color_erase = True
+        self.assertEqual(
+            (256, True, True, True),
+            (screen.colors, screen.hyperlinks, screen.back_color_erase, screen.underline_styles),
+        )
+        properties = screen._terminal_properties
+        self.assertEqual(
+            (256, True, True, True),
+            (properties.colors, properties.hyperlinks, properties.back_color_erase, properties.underline_styles),
+        )
+        screen.clear = mock.Mock()
+        screen.set_terminal_properties(colors=256, hyperlinks=True)
+        screen.clear.assert_not_called()
+        with self.assertRaisesRegex(AttributeError, "colors is a setting of every screen"):
+            del screen.colors
+        self.assertEqual(256, screen.colors)
+
     def test_named_palette_attr_to_escape(self):
         # Bright foreground colors render either as bold or as a 90-series color depending on the
         # terminal, so bright_is_bold is pinned instead of inherited from the ambient TERM.
