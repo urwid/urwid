@@ -138,7 +138,8 @@ class AnsiParser:
     continues: BEL is counted, tab and backspace move the cursor, VT and FF are line feeds (completing the line in
     ``one_line`` mode, else moving one row down in the same column), CAN and SUB abort the sequence, and the others
     are ignored, so none of them is part of the resolved text. An ESC outside an OSC string drops a sequence still
-    being read, recorded as a :class:`SkippedOp`, and starts a new one.
+    being read, recorded as a :class:`SkippedOp`, and starts a new one. A C1 control character (U+0080 to U+009F)
+    in the text is dropped and takes no column, as xterm does with C1 controls in UTF-8 text.
 
     SGR bold stays a setting of its own and does not brighten the foreground: ``CSI 1;31 m`` is
     ``'dark red,bold'``, and a display draws it in a bright color where the terminal does so for bold text.
@@ -454,6 +455,9 @@ class AnsiParser:
             return
         if self._within_escape:
             self._parse_escape(ch)
+            return
+        if "\x80" <= ch < "\xa0":
+            # a C1 control in text is neither run nor drawn, as in xterm and urwid.vterm with UTF-8 input
             return
         if self._charsets[self._active_charset] == DEC_TAG:
             ch = ch.translate(_DEC_SPECIAL_GRAPHICS)

@@ -1300,6 +1300,20 @@ class ControlCharacterTest(unittest.TestCase):
                 self.assertEqual([(None, 2), (self.RED, 1), (None, 1)], line.attrib)
                 self.assertEqual([], line.skipped)
 
+    def test_c1_controls_in_text_are_dropped(self) -> None:
+        """Drop U+0080 to U+009F written as text.
+
+        They take no column, as in xterm and urwid.vterm with UTF-8 input.
+        """
+        for control in ("\x80", "\x85", "\x9b", "\x9f"):
+            for one_line in (True, False):
+                with self.subTest(control=control, one_line=one_line):
+                    parser = AnsiParser(one_line=one_line)
+                    parser.feed(f"a{control}b\x1b[4Gc")
+                    (line,) = parser.finalize()
+                    self.assertEqual("ab c", line.text)
+                    self.assertEqual([], line.skipped)
+
     def test_c1_characters_in_osc_are_kept(self) -> None:
         """Keep U+0080 to U+009F inside an OSC string as part of it, as tmux does with UTF-8 input."""
         for one_line in (True, False):
