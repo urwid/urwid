@@ -1156,13 +1156,30 @@ class OscTerminationTest(unittest.TestCase):
                 self.assertEqual("ti\x7ftle", line.title)
 
     def test_control_after_escape_in_osc_is_executed(self) -> None:
-        """Execute a control character between an ESC and the rest of an OSC string, as a terminal does."""
-        for control, text in (("\n", "a\nb"), ("\t", "a       b"), ("\x00", "ab"), ("\x01", "ab"), ("\b", "b")):
+        """Execute a control character between an ESC and the rest of an OSC string, as a terminal does.
+
+        DEL there is ignored, as in xterm, so the ESC still starts the ST.
+        """
+        for control, text in (
+            ("\n", "a\nb"),
+            ("\t", "a       b"),
+            ("\x00", "ab"),
+            ("\x01", "ab"),
+            ("\b", "b"),
+            ("\x7f", "ab"),
+        ):
             with self.subTest(control=control):
                 line = parse_ansi_text(f"a\x1b]0;t\x1b{control}\\b")
                 self.assertEqual(text, line.text)
                 self.assertEqual("t", line.title)
                 self.assertEqual([], line.skipped)
+        for text, title in (("a\x1b]0;t\x1b\x7f\\b", "t"), (f"a\x1b]0;{'t' * MAX_OSC_LENGTH}\x1b\x7f\\b", None)):
+            for one_line in (True, False):
+                for split in (text.index("\x7f"), text.index("\x7f") + 1):
+                    with self.subTest("DEL after an ESC", title=title, one_line=one_line, split=split):
+                        line = self._parse_chunked([text[:split], text[split:]], one_line)
+                        self.assertEqual("ab", line.text)
+                        self.assertEqual(title, line.title)
         for one_line in (True, False):
             with self.subTest(one_line=one_line):
                 line = self._parse_chunked(["a\x1b]0;tx\x1b\tbc"], one_line)
@@ -1215,6 +1232,7 @@ class DiscardedSequenceTest(unittest.TestCase):
             ("an ESC ends the string and starts a sequence", "a\x1bPx\x1b[31mb", "ab", [(None, 1), (red, 1)], 0),
             ("a control after an ESC inside is executed", "a\x1bPx\x1b\t\\b", "a       b", [(None, 9)], 0),
             ("BEL after an ESC inside is not", "a\x1bPx\x1b\x07\\b", "ab", [(None, 2)], 0),
+            ("DEL after an ESC inside is ignored, as in xterm", "a\x1bPx\x1b\x7f\\b", "ab", [(None, 2)], 0),
         ):
             for one_line in (True, False):
                 for split in range(len(text) + 1):
@@ -1226,6 +1244,8 @@ class DiscardedSequenceTest(unittest.TestCase):
                         self.assertEqual(expected, line.text)
                         self.assertEqual(attrib, line.attrib)
                         self.assertEqual(bel, line.bel)
+                        # the ST ends the string; it is never left over as an escape sequence of its own
+                        self.assertNotIn("\x1b\\", [op.raw for op in line.skipped])
 
     def test_escape_with_intermediate_bytes_is_read_whole(self) -> None:
         """Read an escape sequence with any intermediate bytes up to its final byte, and skip it."""

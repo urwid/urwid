@@ -682,6 +682,9 @@ class TermCanvas(_ReportsCanvas, _RectanglesCanvas, _ModesCanvas):
         elif self.parsestate in _STRING_STATES and char in _CANCEL:
             # CAN/SUB abort a command string, also with display_ctrl
             self.leave_escape()
+        elif self.parsestate in _STRING_STATES and char == b"\x7f" and self._escbuf[-1:] == ESC_B:
+            # DEL after an ESC inside a string is ignored, as in xterm, so a following backslash still ends the string
+            pass
         elif (
             self.parsestate in _STRING_STATES
             and char in (_COMMAND_STRING_IGNORED if self.parsestate == ParseState.COMMAND_STRING else _OSC_IGNORED)
