@@ -9,7 +9,7 @@ import unittest
 from unittest import mock
 
 import urwid
-import urwid.term_canvas
+import urwid.canvas.term
 import urwid.widget.terminal_output
 from urwid.util import set_temporary_encoding
 
@@ -46,15 +46,17 @@ def _imported_without_posix_modules() -> Iterator[tuple[ModuleType, ModuleType]]
 
     Everything the import changes is restored afterwards, also when the body fails.
     """
-    parents = ((urwid, "term_canvas"), (urwid.widget, "terminal_output"))
+    parents = ((urwid.canvas, "term"), (urwid.widget, "terminal_output"))
     saved = [(parent, name, getattr(parent, name)) for parent, name in parents]
     try:
         with mock.patch.dict(sys.modules):
-            for name in ("urwid.term_canvas", "urwid.widget.terminal_output"):
+            # the canvas package and every module of it, so its code runs again rather than its cached submodules
+            for name in [name for name in sys.modules if name.startswith("urwid.canvas.term")]:
                 del sys.modules[name]
+            del sys.modules["urwid.widget.terminal_output"]
             for name in ("pty", "fcntl", "termios", "urwid.vterm"):
                 sys.modules[name] = None  # type: ignore[assignment]  # makes `import name` raise ImportError
-            yield importlib.import_module("urwid.term_canvas"), importlib.import_module("urwid.widget.terminal_output")
+            yield importlib.import_module("urwid.canvas.term"), importlib.import_module("urwid.widget.terminal_output")
     finally:
         for parent, name, module in saved:
             setattr(parent, name, module)
@@ -394,13 +396,13 @@ class TerminalOutputTest(unittest.TestCase):
     def test_exported_on_every_platform(self) -> None:
         for name, module in (
             ("TerminalOutput", "urwid.widget.terminal_output"),
-            ("TermCanvas", "urwid.term_canvas"),
-            ("TermCharset", "urwid.term_canvas"),
-            ("TermModes", "urwid.term_canvas"),
+            ("TermCanvas", "urwid.canvas.term"),
+            ("TermCharset", "urwid.canvas.term"),
+            ("TermModes", "urwid.canvas.term"),
         ):
             with self.subTest(name=name):
                 self.assertIn(name, urwid.__all__)
-                self.assertEqual(module, getattr(urwid, name).__module__)
+                self.assertIs(getattr(sys.modules[module], name), getattr(urwid, name))
 
     def test_imports_without_posix_modules(self) -> None:
         """Import the canvas and the widget without pty, fcntl, termios and urwid.vterm.
@@ -408,7 +410,7 @@ class TerminalOutputTest(unittest.TestCase):
         This simulates Windows on the platform the test runs on.
         The windows-latest CI job runs this module for real.
         """
-        old_term_canvas, old_terminal_output = urwid.term_canvas, urwid.widget.terminal_output
+        old_term_canvas, old_terminal_output = urwid.canvas.term, urwid.widget.terminal_output
         with _imported_without_posix_modules() as (term_canvas, terminal_output):
             self.assertIsNot(old_term_canvas, term_canvas)
             self.assertIsNot(old_terminal_output, terminal_output)
@@ -416,9 +418,9 @@ class TerminalOutputTest(unittest.TestCase):
             output.write("ok")
             self.assertIsInstance(output.render((5, 1)), term_canvas.TermCanvas)
 
-        self.assertIs(sys.modules["urwid.term_canvas"], urwid.term_canvas)
+        self.assertIs(sys.modules["urwid.canvas.term"], urwid.canvas.term)
         self.assertIs(sys.modules["urwid.widget.terminal_output"], urwid.widget.terminal_output)
-        self.assertIs(urwid.term_canvas.TermCanvas, urwid.TermCanvas)
+        self.assertIs(urwid.canvas.term.TermCanvas, urwid.TermCanvas)
         self.assertIs(urwid.widget.terminal_output.TerminalOutput, urwid.TerminalOutput)
         if sys.platform != "win32":
-            self.assertIs(urwid.term_canvas.TermCanvas, sys.modules["urwid.vterm"].TermCanvas)
+            self.assertIs(urwid.canvas.term.TermCanvas, sys.modules["urwid.vterm"].TermCanvas)

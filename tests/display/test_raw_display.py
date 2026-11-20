@@ -24,6 +24,8 @@ import urwid
 from tests.util import TtyRefusingSelector
 from urwid import signals
 from urwid.display import _raw_display_base, escape
+from urwid.display._raw_display_base import _detection as raw_detection
+from urwid.display._raw_display_base import _screen as raw_screen
 from urwid.display._raw_display_base import TermModes, detect_term_colors, detect_terminal_properties
 from urwid.display.common import INPUT_DESCRIPTORS_CHANGED, NO_HYPERLINK, AttrSpec
 from urwid.util import set_temporary_encoding
@@ -39,7 +41,7 @@ def draw(screen: urwid.display.raw.Screen, canvas: urwid.Canvas, *, windows: boo
     screen.write = written.append
     screen.flush = lambda: None
     screen._started = True
-    with mock.patch.object(_raw_display_base, "IS_WINDOWS", windows):
+    with mock.patch.object(raw_screen, "IS_WINDOWS", windows):
         screen.draw_screen((canvas.cols(), canvas.rows()), canvas)
     return "".join(written)
 
@@ -839,7 +841,7 @@ class TestRawDisplay(unittest.TestCase):
     def test_set_title_sends_nothing_to_a_terminal_that_prints_it(self) -> None:
         """The Linux virtual console and fbterm have no title, and a dumb terminal outside Windows would print it."""
         for term in ("linux", "fbterm", "dumb", "DUMB"):
-            with self.subTest(term=term), mock.patch.object(_raw_display_base, "IS_WINDOWS", new=False):
+            with self.subTest(term=term), mock.patch.object(raw_detection, "IS_WINDOWS", new=False):
                 s = urwid.display.raw.Screen()
                 s.term = term
                 written: list[str] = []
@@ -875,7 +877,7 @@ class TestRawDisplay(unittest.TestCase):
     def test_copy_to_clipboard_sends_nothing_to_a_terminal_that_prints_it(self) -> None:
         """The Linux virtual console and fbterm have no clipboard, and a dumb terminal outside Windows prints it."""
         for term in ("linux", "fbterm", "dumb", "DUMB"):
-            with self.subTest(term=term), mock.patch.object(_raw_display_base, "IS_WINDOWS", new=False):
+            with self.subTest(term=term), mock.patch.object(raw_detection, "IS_WINDOWS", new=False):
                 s = urwid.display.raw.Screen()
                 s.term = term
                 s._started = True
@@ -890,7 +892,7 @@ class TestRawDisplay(unittest.TestCase):
         for term, windows in (("", False), ("", True), ("dumb", True), ("fbterm", True)):
             with (
                 self.subTest(term=term, windows=windows),
-                mock.patch.object(_raw_display_base, "IS_WINDOWS", new=windows),
+                mock.patch.object(raw_detection, "IS_WINDOWS", new=windows),
             ):
                 s = urwid.display.raw.Screen()
                 s.term = term
@@ -1084,7 +1086,7 @@ def terminfo_entry(colors: int, *, magic: int = 0o432, names: bytes = b"test|tes
 class TestTerminalProperties(unittest.TestCase):
     def setUp(self) -> None:
         """Keep the host terminfo database out of the results, and give each test its own database root."""
-        self.enterContext(mock.patch.object(_raw_display_base, "_TERMINFO_SYSTEM_DIRS", ()))
+        self.enterContext(mock.patch.object(raw_detection, "_TERMINFO_SYSTEM_DIRS", ()))
         # Resolved, because the terminfo reader stats the realpath: on macOS the temporary directory is under /var,
         # a symlink to /private/var, and a test matching on the unresolved path never sees the reader's calls.
         self.root = pathlib.Path(tempfile.mkdtemp()).resolve()
@@ -1208,7 +1210,7 @@ class TestTerminalProperties(unittest.TestCase):
         for environ, colors in cases:
             with self.subTest(environ=environ):
                 self.assertEqual(colors, detect_term_colors("fancy", environ, windows_version=(0, 0, 0)))
-        with mock.patch.object(_raw_display_base, "_TERMINFO_SYSTEM_DIRS", (first,)):
+        with mock.patch.object(raw_detection, "_TERMINFO_SYSTEM_DIRS", (first,)):
             self.assertEqual(16777216, detect_term_colors("fancy", {}, windows_version=(0, 0, 0)))
 
     @unittest.skipUnless(hasattr(os, "mkfifo"), "FIFOs are POSIX only")
@@ -1270,7 +1272,7 @@ class TestTerminalProperties(unittest.TestCase):
         """Check that nothing is opened on Windows, where a file name such as COM1 can name a device."""
         terminfo = self.install_terminfo("terminfo/f/fancy", terminfo_entry(256))
         with (
-            mock.patch.object(_raw_display_base, "IS_WINDOWS", new=True),
+            mock.patch.object(raw_detection, "IS_WINDOWS", new=True),
             mock.patch.object(os, "stat", wraps=os.stat) as os_stat,
             mock.patch.object(os, "open", wraps=os.open) as os_open,
         ):
@@ -1590,7 +1592,7 @@ class TestParseInput(unittest.TestCase):
                     mock.patch.object(s, "_wait_for_input_ready", return_value=[]) as wait,
                     mock.patch.object(s, "get_available_raw_input", return_value=[]),
                     mock.patch.object(s, "parse_input", return_value=(["window resize"], [])),
-                    mock.patch.object(_raw_display_base.time, "monotonic", side_effect=clock),
+                    mock.patch.object(time, "monotonic", side_effect=clock),
                 ):
                     self.assertEqual(["window resize"], s.get_input())
                 waits = [call.args[0] for call in wait.call_args_list]
@@ -1628,7 +1630,7 @@ class TestParseInput(unittest.TestCase):
                 with (
                     mock.patch.object(s, "_wait_for_input_ready", return_value=[]) as wait,
                     mock.patch.object(s, "_get_input_codes", side_effect=[[27], later]),
-                    mock.patch.object(_raw_display_base.time, "monotonic", side_effect=clock),
+                    mock.patch.object(time, "monotonic", side_effect=clock),
                 ):
                     self.assertEqual([], s.get_input())
                     self.assertEqual(expected, s.get_input())
@@ -1647,7 +1649,7 @@ class TestParseInput(unittest.TestCase):
         with (
             mock.patch.object(s, "_wait_for_input_ready", return_value=[]),
             mock.patch.object(s, "_get_input_codes", side_effect=[[27], [ord("a"), 27], []]),
-            mock.patch.object(_raw_display_base.time, "monotonic", side_effect=clock),
+            mock.patch.object(time, "monotonic", side_effect=clock),
         ):
             self.assertEqual([], s.get_input())
             self.assertEqual(["meta a"], s.get_input())
@@ -1662,7 +1664,7 @@ class TestParseInput(unittest.TestCase):
         with (
             mock.patch.object(s, "_wait_for_input_ready", return_value=[]) as wait,
             mock.patch.object(s, "_get_input_codes", side_effect=[[27], []]),
-            mock.patch.object(_raw_display_base.time, "monotonic", side_effect=[100.0, 100.0, 100.0, 100.05]),
+            mock.patch.object(time, "monotonic", side_effect=[100.0, 100.0, 100.0, 100.05]),
         ):
             self.assertEqual([], s.get_input())
             self.assertEqual([], s.get_input())
@@ -1692,7 +1694,7 @@ class TestParseInput(unittest.TestCase):
         with (
             mock.patch.object(s, "_wait_for_input_ready", return_value=[]) as wait,
             mock.patch.object(s, "_get_input_codes", side_effect=[[ord("x"), 27], [ord("a")]]),
-            mock.patch.object(_raw_display_base.time, "monotonic", side_effect=[100.0, 100.0, 100.5]),
+            mock.patch.object(time, "monotonic", side_effect=[100.0, 100.0, 100.5]),
         ):
             self.assertEqual(["x"], s.get_input())
             self.assertEqual(["esc", "a"], s.get_input())
@@ -1849,7 +1851,7 @@ class UnderlineStylesDetectionTest(unittest.TestCase):
             ("VTE outside tmux", "tmux-256color", {"VTE_VERSION": "8400"}, plain, False),
             ("tmux with Smulx", "tmux-256color", {"VTE_VERSION": "8400"}, smulx, True),
         ):
-            with self.subTest(label), mock.patch.object(_raw_display_base, "_terminfo_entry", return_value=entry):
+            with self.subTest(label), mock.patch.object(raw_detection, "_terminfo_entry", return_value=entry):
                 self.assertIs(
                     expected, detect_terminal_properties(term, environ, windows_version=(0, 0, 0)).underline_styles
                 )

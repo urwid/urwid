@@ -51,4 +51,4 @@
   - any:
       - changed-files:
           - any-glob-to-any-file:
-              - "urwid/canvas.py"
+              - "urwid/canvas/**"

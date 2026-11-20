@@ -19,7 +19,7 @@
 """Standalone ANSI/VT100 escape-sequence parsing, decoupled from any canvas.
 
 This module extracts the platform-independent portion of the escape-sequence
-grammar historically embedded inside :mod:`urwid.term_canvas`'s ``TermCanvas`` --
+grammar historically embedded inside :mod:`urwid.canvas.term`'s ``TermCanvas`` --
 SGR colour/attribute interpretation, horizontal cursor movement, BEL, OSC
 title, OSC 8 hyperlink, DEC Special Graphics and keyboard-LED recognition -- into a form that can be used to
 interpret a single string (or a stream of chunks) of ANSI-coloured text
@@ -35,22 +35,23 @@ trace.
 from __future__ import annotations
 
 import dataclasses
+import enum
 import logging
 import types
 import typing
 
 from urwid.display import NO_HYPERLINK, AttrSpec, Hyperlink
-from urwid.display.common import _BASIC_COLORS as BASIC_COLORS
-from urwid.display.common import _SETTING_OFF_PREFIX
-from urwid.display.common import _UNDERLINE_STYLE_NAMES as UNDERLINE_STYLE_NAMES
-from urwid.display.common import _UNDERLINE_STYLES as UNDERLINE_STYLE_SETTINGS
-from urwid.display.common import _color_desc_256 as color_desc_256
-from urwid.display.common import _color_desc_true as color_desc_true
-from urwid.display.escape import ALT_DEC_SPECIAL_CHARS, DEC_SPECIAL_CHARS, DEC_TAG, SI, SO
+from urwid.display._sgr import parse_sgr_parameters, sgi_params_to_attrspec, split_sgr_parameters
+
+# Importable from this module in 5.1.3, where the SGR decoder that used them lived.
+from urwid.display.common import _BASIC_COLORS as BASIC_COLORS  # noqa: F401  # pylint: disable=unused-import
+from urwid.display.common import _color_desc_256 as color_desc_256  # noqa: F401  # pylint: disable=unused-import
+from urwid.display.common import _color_desc_true as color_desc_true  # noqa: F401  # pylint: disable=unused-import
+from urwid.display.escape import _C0_CONTROLS, ALT_DEC_SPECIAL_CHARS, BEL, DEC_SPECIAL_CHARS, DEC_TAG, ESC, SI, SO
 from urwid.util import rle_append_modify
 
 if typing.TYPE_CHECKING:
-    from collections.abc import Hashable, Sequence
+    from collections.abc import Hashable
 
 
 __all__ = (
@@ -59,6 +60,7 @@ __all__ = (
     "OSC_IGNORED_CONTROLS",
     "AnsiParser",
     "CharsetState",
+    "ParseState",
     "ParsedLine",
     "SkippedOp",
     "attrspec_with_hyperlink",
@@ -74,8 +76,6 @@ __all__ = (
 
 LOGGER = logging.getLogger(__name__)
 
-ESC = "\x1b"
-BEL = "\x07"
 
 #: Recognised, ready-to-render values of :attr:`ParsedLine.leds`.
 LedsLiteral = "Literal['clear', 'scroll_lock', 'num_lock', 'caps_lock']"
@@ -87,50 +87,6 @@ _LED_STATES: dict[int, str] = {
     3: "caps_lock",
 }
 
-_SGR_ATTR_NAMES: tuple[str, ...] = ("bold", "faint", "italics", "underline", "blink", "standout", "strikethrough")
-#: SGR parameter -> the setting it turns on
-_SGR_SETS: dict[int, str] = {
-    1: "bold",
-    2: "faint",
-    3: "italics",
-    4: "underline",
-    5: "blink",
-    7: "standout",
-    9: "strikethrough",
-}
-#: SGR parameter -> the settings it turns off
-_SGR_RESETS: dict[int, tuple[str, ...]] = {
-    22: ("bold", "faint"),
-    23: ("italics",),
-    24: ("underline",),
-    25: ("blink",),
-    27: ("standout",),
-    29: ("strikethrough",),
-}
-
-#: the SGR codes that take a color as arguments: the foreground, the background and the underline color
-_EXTENDED_COLOR_SGR: typing.Final = frozenset((38, 48, 58))
-#: the color models of an extended color: a palette index and RGB components
-_PALETTE_COLOR_MODEL: typing.Final = 5
-_RGB_COLOR_MODEL: typing.Final = 2
-#: the parameters an extended color code takes, its own included, by color model
-_PALETTE_LENGTH: typing.Final = 3
-_RGB_LENGTH: typing.Final = 5
-_EXTENDED_COLOR_LENGTHS: typing.Final = types.MappingProxyType(
-    {_PALETTE_COLOR_MODEL: _PALETTE_LENGTH, _RGB_COLOR_MODEL: _RGB_LENGTH}
-)
-#: the SGR code of a single underline, and the underline styles its sub-parameter selects: none, single, double,
-#: curly, dotted and dashed
-_UNDERLINE_SGR: typing.Final = 4
-#: the SGR codes of a double underline, of the underline color, and of the underline in the text color
-_DOUBLE_UNDERLINE_SGR: typing.Final = 21
-_UNDERLINE_COLOR_SGR: typing.Final = 58
-_DEFAULT_UNDERLINE_COLOR_SGR: typing.Final = 59
-#: the SGR codes that take sub-parameters, given in a group of their own
-_SGR_WITH_ARGUMENTS: typing.Final = _EXTENDED_COLOR_SGR | {_UNDERLINE_SGR}
-#: the values of a palette index and of an RGB component
-_BYTE_VALUES: typing.Final = range(256)
-_UNDERLINE_STYLES: typing.Final = range(6)
 
 #: CSI final bytes that move the cursor vertically -- meaningless outside a
 #: two-dimensional screen buffer, so the whole operation is stripped and
@@ -157,7 +113,7 @@ _CANCEL = frozenset("\x18\x1a")
 
 #: Control characters a terminal ignores inside an OSC string, unless they follow an ESC there: they are neither
 #: executed nor part of the string. DEL is not among them: a terminal keeps it in the string.
-OSC_IGNORED_CONTROLS = frozenset(map(chr, range(0x20))) - {BEL, ESC, *_CANCEL}
+OSC_IGNORED_CONTROLS = frozenset(map(chr, _C0_CONTROLS)) - {BEL, ESC, *_CANCEL}
 
 #: The control characters ignored inside a DCS, SOS, PM or APC string: those of an OSC string, and BEL, which ends only
 #: OSC.
@@ -168,7 +124,7 @@ _COMMAND_STRING_OPENERS: typing.Final = frozenset("PX^_")
 
 #: C0 control characters and DEL passed to ``AnsiParser._execute_control()`` wherever they appear outside an OSC
 #: string, also inside another escape sequence, which then continues; ESC, CAN, SUB and the line ends are handled apart.
-_INLINE_CONTROLS = frozenset(map(chr, (*range(0x20), 0x7F))) - {ESC, *_CANCEL, "\r", "\n"}
+_INLINE_CONTROLS = frozenset(map(chr, (*_C0_CONTROLS, 0x7F))) - {ESC, *_CANCEL, "\r", "\n"}
 
 #: Line-end byte pairs that collapse into a single structural split point.
 _LINE_END_PAIR: dict[str, str] = {"\r": "\n", "\n": "\r"}
@@ -188,6 +144,54 @@ MAX_CSI_LENGTH = 256
 #: starting a new sequence, is discarded unbuffered, so an unterminated OSC costs neither memory nor quadratic string
 #: growth.
 MAX_OSC_LENGTH = 4096
+
+
+class ParseState(enum.IntEnum):
+    """State of an escape-sequence parser, shared by :class:`AnsiParser` and :class:`~urwid.TermCanvas`.
+
+    The parser is in :attr:`ESCAPE` both right after an ESC and while it reads no sequence at all; its flag for being
+    within an escape sequence tells the two apart.
+    """
+
+    ESCAPE = 0
+    CSI = 1
+    OSC = 2
+    #: the intermediate bytes of an escape sequence (ECMA-35), such as the "(" of a G0 designation
+    ESC_INTERMEDIATE = 3
+    #: the discarded rest of an OSC string of :data:`MAX_OSC_LENGTH` or more, up to its terminator
+    OSC_OVERFLOW = 4
+    #: a DCS, SOS, PM or APC string, which only ST ends
+    COMMAND_STRING = 5
+
+
+#: the states of an OSC string, which BEL or ST ends
+_OSC_STATES: typing.Final = frozenset((ParseState.OSC, ParseState.OSC_OVERFLOW))
+#: the states of a command string, in which control characters are ignored rather than executed
+_STRING_STATES: typing.Final = _OSC_STATES | {ParseState.COMMAND_STRING}
+
+
+def _csi_parameters(body: str | bytes | bytearray) -> list[int | None] | None:
+    """Return the numeric parameters of the CSI parameter string *body*.
+
+    :returns: one number per ``;``-separated parameter, None for an empty one, so an empty *body* gives ``[None]``;
+        None when *body* holds anything but digits and ``;``: a sub-parameter, a private marker or an intermediate byte.
+
+    >>> _csi_parameters("1;;38")
+    [1, None, 38]
+    >>> _csi_parameters(b"?25") is None
+    True
+    """
+    parameters: list[str] | list[bytes] | list[bytearray]
+    if isinstance(body, str):
+        if body.strip("0123456789;"):
+            return None
+        parameters = body.split(";")
+    else:
+        if body.strip(b"0123456789;"):
+            return None
+        parameters = body.split(b";")
+    return [int(parameter) if parameter else None for parameter in parameters]
+
 
 #: The most entries a ``skipped`` list holds, covering one 64 KiB raw display read of 2-byte sequences.
 _MAX_SKIPPED = 65536
@@ -399,10 +403,9 @@ class AnsiParser:
         # completed-lines queue, used only in one_line mode
         self._completed: list[ParsedLine] = []
 
-        # escape-framing state: 0 none / 1 CSI / 2 OSC / 3 intermediate bytes /
-        # 4 the discarded remainder of an over-long OSC string / 5 a discarded DCS, SOS, PM or APC string
+        # escape-framing state; this parser discards DCS, SOS, PM and APC strings
         self._within_escape = False
-        self._parsestate = 0
+        self._parsestate: ParseState = ParseState.ESCAPE
         self._escbuf = ""
 
         # the final bytes designating G0 and G1, and the one SI/SO selected; G1 starts as DEC Special Graphics,
@@ -447,7 +450,7 @@ class AnsiParser:
         while i < n:
             ch = text[i]
             if ch in _LINE_END_PAIR:
-                if self._parsestate in {2, 4, 5} and self._escbuf[-1:] != ESC:
+                if self._parsestate in _STRING_STATES and self._escbuf[-1:] != ESC:
                     # a line end inside a command string is ignored, see _step()
                     i += 1
                     continue
@@ -490,7 +493,7 @@ class AnsiParser:
 
         :returns: a uniform ``tuple[ParsedLine, ...]``, shaped as described above.
         """
-        if self._parsestate == 2:
+        if self._parsestate == ParseState.OSC:
             self._skip("unknown", f"{ESC}]{self._escbuf.removesuffix(ESC)}", "unterminated OSC string")
         if self._one_line:
             self._complete_line()
@@ -576,10 +579,10 @@ class AnsiParser:
     # -- internal: char-by-char state machine ---------------------------
 
     def _step(self, ch: str) -> None:
-        if self._parsestate in {2, 4}:
+        if self._parsestate in _OSC_STATES:
             if ch in _CANCEL:
                 # CAN/SUB abort the string unapplied
-                if self._parsestate == 2:
+                if self._parsestate == ParseState.OSC:
                     self._skip("unknown", f"{ESC}]{self._escbuf.removesuffix(ESC)}", "unterminated OSC string")
                 self._leave_escape()
             elif ch not in OSC_IGNORED_CONTROLS:
@@ -589,7 +592,7 @@ class AnsiParser:
                 # pending, so a following backslash still ends the string; line ends are handled so in feed()
                 self._execute_control(ch)
             return
-        if self._parsestate == 5:
+        if self._parsestate == ParseState.COMMAND_STRING:
             if ch in _CANCEL:
                 self._leave_escape()
             elif ch not in _COMMAND_STRING_IGNORED:
@@ -612,7 +615,7 @@ class AnsiParser:
             return
         if ch in _CANCEL:  # CAN/SUB -- abort any escape in progress
             self._within_escape = False
-            self._parsestate = 0
+            self._parsestate = ParseState.ESCAPE
             self._escbuf = ""
             return
         if ch == ESC:
@@ -621,7 +624,7 @@ class AnsiParser:
                 reason = "escape sequence interrupted by ESC"
                 if len(self._escbuf) >= MAX_CSI_LENGTH:
                     reason += f", its CSI parameters of {MAX_CSI_LENGTH} characters or more truncated"
-                self._skip("unknown", f"{ESC}{'[' if self._parsestate == 1 else ''}{self._escbuf}", reason)
+                self._skip("unknown", f"{ESC}{'[' if self._parsestate == ParseState.CSI else ''}{self._escbuf}", reason)
                 self._leave_escape()
             self._within_escape = True
             return
@@ -682,7 +685,7 @@ class AnsiParser:
 
     def _leave_escape(self) -> None:
         self._within_escape = False
-        self._parsestate = 0
+        self._parsestate = ParseState.ESCAPE
         self._escbuf = ""
 
     def _skip(self, kind: str, raw: str, reason: str) -> None:
@@ -697,7 +700,7 @@ class AnsiParser:
         LOGGER.debug("%s: %r", reason, raw)
 
     def _parse_escape(self, ch: str) -> None:
-        if self._parsestate == 1:  # within CSI
+        if self._parsestate == ParseState.CSI:  # within CSI
             if " " <= ch <= "?":  # parameter and intermediate bytes, ECMA-48 5.4
                 # past the limit the parameters are dropped; _dispatch_csi skips the sequence by its length
                 if len(self._escbuf) < MAX_CSI_LENGTH:
@@ -707,33 +710,33 @@ class AnsiParser:
             self._leave_escape()
             return
 
-        if self._parsestate == 0 and ch == "]":
+        if self._parsestate == ParseState.ESCAPE and ch == "]":
             self._escbuf = ""
-            self._parsestate = 2
+            self._parsestate = ParseState.OSC
             return
 
-        if self._parsestate == 0 and ch == "[":
+        if self._parsestate == ParseState.ESCAPE and ch == "[":
             self._escbuf = ""
-            self._parsestate = 1
+            self._parsestate = ParseState.CSI  # pylint: disable=redefined-variable-type  # members of one enum
             return
 
-        if self._parsestate == 0 and ch in _COMMAND_STRING_OPENERS:
+        if self._parsestate == ParseState.ESCAPE and ch in _COMMAND_STRING_OPENERS:
             self._skip("unknown", f"{ESC}{ch}", "DCS, SOS, PM and APC strings are not supported, discarded")
             self._escbuf = ""
-            self._parsestate = 5
+            self._parsestate = ParseState.COMMAND_STRING
             return
 
-        if self._parsestate in {0, 3} and " " <= ch <= "/":
+        if self._parsestate in {ParseState.ESCAPE, ParseState.ESC_INTERMEDIATE} and " " <= ch <= "/":
             # an intermediate byte of an escape sequence (ECMA-35), such as the "(" of a G0 designation; past the limit
             # the intermediate bytes are dropped, and the sequence still ends at its final byte
-            if self._parsestate == 0:
+            if self._parsestate == ParseState.ESCAPE:
                 self._escbuf = ""
-                self._parsestate = 3
+                self._parsestate = ParseState.ESC_INTERMEDIATE
             if len(self._escbuf) < MAX_CSI_LENGTH:
                 self._escbuf += ch
             return
 
-        if self._parsestate == 3:
+        if self._parsestate == ParseState.ESC_INTERMEDIATE:
             self._dispatch_noncsi(ch, self._escbuf)
             self._leave_escape()
             return
@@ -762,10 +765,10 @@ class AnsiParser:
                 bright_is_bold=False,
             )
             return
-        if body.strip("0123456789;"):
+        if (parsed := _csi_parameters(body)) is None:
             self._skip("unknown", raw, "CSI sub-parameters, private markers and intermediate bytes are not supported")
             return
-        params: list[int | None] = [int(p) if p else None for p in body.split(";")] if body else []
+        params = parsed if body else []
 
         if (
             final == "}"
@@ -878,13 +881,13 @@ class AnsiParser:
         if self._escbuf[-1:] == ESC and ch != "\\":
             # ECMA-48 allows no ESC inside a command string other than in ST, so any other ESC ends the string
             # unapplied and starts a new escape sequence
-            if self._parsestate == 2:
+            if self._parsestate == ParseState.OSC:
                 self._skip("unknown", f"{ESC}]{self._escbuf[:-1]}", "unterminated OSC string")
             self._leave_escape()
             self._within_escape = True
             self._step(ch)
             return
-        if self._parsestate == 4:
+        if self._parsestate == ParseState.OSC_OVERFLOW:
             # only the last character is kept, which is enough to recognise either terminator
             if ch == BEL or (self._escbuf == ESC and ch == "\\"):
                 self._leave_escape()
@@ -904,7 +907,7 @@ class AnsiParser:
             self._skip(
                 "unknown", f"{ESC}]{self._escbuf}", f"OSC string of {MAX_OSC_LENGTH} characters or more, truncated"
             )
-            self._parsestate = 4
+            self._parsestate = ParseState.OSC_OVERFLOW
             self._escbuf = ch
             return
         if not self._escbuf and ch == "R":
@@ -995,7 +998,7 @@ def parse_ansi_text(text: str, previous_attr: AttrSpec | ParsedLine | None = Non
 def led_state(mode: int) -> str | None:
     """Map a keyboard-LED ``CSI n q`` mode number to its urwid-facing state name.
 
-    Shared by :class:`AnsiParser` and :mod:`urwid.term_canvas`'s ``TermCanvas.csi_set_keyboard_leds`` so the LED code
+    Shared by :class:`AnsiParser` and :mod:`urwid.canvas.term`'s ``TermCanvas.csi_set_keyboard_leds`` so the LED code
     mapping is maintained in exactly one place.
 
     :param mode: the ``CSI n q`` mode number to resolve.
@@ -1015,7 +1018,7 @@ def led_state(mode: int) -> str | None:
 def resolve_osc_title(buf: str) -> str | None:
     """Resolve the window-title text encoded in an OSC command body, if it matches a recognised title prefix.
 
-    Applies the same prefix rules xterm and :mod:`urwid.term_canvas` use to recognise an OSC window-title request -- a
+    Applies the same prefix rules xterm and :mod:`urwid.canvas.term` use to recognise an OSC window-title request -- a
     body starting (after stripping leading zeros) with ``;``, ``0;`` or ``2;`` -- and returns the text following
     the first ``;``. Returns ``None`` for any other OSC body (e.g. an unrecognised or palette-setting OSC), rather
     than raising.
@@ -1110,269 +1113,3 @@ def attrspec_with_hyperlink(
         hyperlink=link,
         underline_color=attrspec.underline_color,
     )
-
-
-def parse_sgr_parameters(body: str) -> list[tuple[int, ...]]:
-    """Return the SGR codes of the CSI parameter string *body*, as :func:`split_sgr_parameters` splits them.
-
-    A group of sub-parameters (ECMA-48 5.4.2), a code and its arguments separated by colons, is kept as one code:
-
-    - an extended color, ``38:5:n`` or an RGB color, ``38:2:r:g:b`` or ``38:2:id:r:g:b`` with the color space id
-      of ITU T.416, as the code its semicolon form splits into, without the color space id;
-    - an underline style, ``4:n`` with n from 0 (none) to 5, as ``(4, n)``;
-    - any other group is left out.
-
-    An empty parameter is 0.
-
-    >>> parse_sgr_parameters("1;4:3;38:2::255:0:0;48;5;11")
-    [(1,), (4, 3), (38, 2, 255, 0, 0), (48, 5, 11)]
-    >>> parse_sgr_parameters("")
-    [(0,)]
-
-    :param body: the parameters: digits, separated by ``;`` and ``:``.
-    :raises ValueError: a parameter is not a number.
-    """
-    params: list[int | tuple[int, ...]] = []
-    for group in body.split(";"):
-        code, *args = (int(param) if param else 0 for param in group.split(":"))
-        if not args:
-            params.append(code)
-        elif code in _EXTENDED_COLOR_SGR and args[0] in _EXTENDED_COLOR_LENGTHS:
-            model, *color = args
-            # the components after the code and the color model
-            length = _EXTENDED_COLOR_LENGTHS[model] - 2
-            if model == _RGB_COLOR_MODEL and len(color) == length + 1:
-                del color[0]  # the color space id
-            if len(color) == length:
-                params.append((code, model, *color))
-        elif code == _UNDERLINE_SGR and len(args) == 1 and args[0] in _UNDERLINE_STYLES:
-            params.append((code, args[0]))
-    return split_sgr_parameters(params)
-
-
-def split_sgr_parameters(params: Sequence[int | tuple[int, ...]]) -> list[tuple[int, ...]]:
-    """Split SGR parameters into one tuple per code, with the arguments of an extended color code.
-
-    A tuple among *params* is a code already split, such as a group of sub-parameters, and is kept as it is.
-    An extended color code whose color model is unknown, or whose arguments are cut short, is a code of its own,
-    and so is each parameter after it.
-
-    >>> split_sgr_parameters([1, 38, 5, 11, 48, 2, 1, 2, 3, (4, 3), 0])
-    [(1,), (38, 5, 11), (48, 2, 1, 2, 3), (4, 3), (0,)]
-    """
-    codes: list[tuple[int, ...]] = []
-    idx = 0
-    while idx < len(params):
-        if isinstance(param := params[idx], tuple):
-            codes.append(param)
-            idx += 1
-            continue
-        length = 1
-        if param in _EXTENDED_COLOR_SGR and idx + 1 < len(params):
-            length = _EXTENDED_COLOR_LENGTHS.get(typing.cast("int", params[idx + 1]), 1)
-            if idx + length > len(params) or any(isinstance(arg, tuple) for arg in params[idx : idx + length]):
-                length = 1
-        codes.append(tuple(typing.cast("Sequence[int]", params[idx : idx + length])))
-        idx += length
-    return codes
-
-
-def sgi_params_to_attrspec(
-    params: Sequence[int | tuple[int, ...]],
-    previous: AttrSpec | None,
-    *,
-    unset_color: typing.Literal["default", "inherit"] = "default",
-    bright_is_bold: bool = True,
-) -> AttrSpec | None:
-    """Resolve a sequence of SGR (Select Graphic Rendition) numeric parameters against a previous attribute spec.
-
-    Ignore unsupported parameters, and extended colors with an out-of-range value.
-    Charset parameters 10-12 are handled by the caller.
-    The underline styles are SGR 4:n, n from 0 (none) to 5, and 21 for a double underline, as ECMA-48 defines it.
-    The underline color is SGR 58, given as SGR 38 gives a color, and SGR 59 draws the underline in the text color.
-    The hyperlink of *previous* is kept, also through SGR 0, since OSC 8 sets it independently of SGR.
-
-    :param params: the SGR numeric parameters to apply, in encounter order;
-        a tuple is a code already split, as :func:`parse_sgr_parameters` and :func:`split_sgr_parameters` give it.
-    :param previous: the :class:`~urwid.AttrSpec` in effect before ``params`` is applied, or ``None`` if none is
-        in effect yet.
-    :param unset_color: the color given to a foreground or background no parameter has set, or SGR 39/49/0 reset:
-        'default' for the terminal default, 'inherit' for the color of the enclosing attribute.
-        With 'inherit', SGR 22/23/24/25/27/29 turn their settings off ('no-bold') rather than leaving them to the
-        enclosing attribute, and SGR 0 leaves every setting to it again.
-    :param bright_is_bold: whether bold also selects the bright variant of a basic foreground when the attribute
-        uses only the 16 basic colors, as on a terminal that draws bold text in bright colors; if false, bold stays
-        a setting of its own.
-    :returns: the resulting :class:`~urwid.AttrSpec`, or ``None`` for "no attributes".
-
-    >>> sgi_params_to_attrspec([31], None)
-    AttrSpec('dark red', 'default')
-    >>> sgi_params_to_attrspec([0], AttrSpec("dark red", "default"))
-    >>> sgi_params_to_attrspec([31], None, unset_color="inherit")
-    AttrSpec('dark red', 'inherit')
-    >>> sgi_params_to_attrspec([24], None, unset_color="inherit")
-    AttrSpec('inherit,no-underline', 'inherit')
-    >>> sgi_params_to_attrspec([31, 1], None)
-    AttrSpec('light red,bold', 'default')
-    >>> sgi_params_to_attrspec([31, 1], None, bright_is_bold=False)
-    AttrSpec('dark red,bold', 'default')
-    >>> sgi_params_to_attrspec([(4, 3), 58, 5, 9], None)
-    AttrSpec('default,curly underline', 'default', underline_color='light red')
-    """
-    hyperlink = None if previous is None else previous.hyperlink
-    # the style of the underline, as SGR 4:n numbers it minus one, and its color, None for the enclosing one
-    underline_style = 0
-    underline_color = None if previous is None else previous.underline_color
-
-    attributes: set[str] = set()
-    # settings an SGR reset turned off; with 'inherit' colors they stay off over the enclosing attribute
-    turned_off: set[str] = set()
-    # fg/bg hold a palette index (0-255), or a 0xRRGGBB value when fg_rgb/bg_rgb is set.
-    fg_rgb = bg_rgb = False
-    if previous is None:
-        fg: int | None = None
-        bg: int | None = None
-        colors: int = 1
-    else:
-        for name in _SGR_ATTR_NAMES:
-            if getattr(previous, name):
-                attributes.add(name)
-        if previous.underline:
-            underline_style = UNDERLINE_STYLE_NAMES.index(typing.cast("str", previous.underline_style))
-        turned_off.update(
-            part.removeprefix(_SETTING_OFF_PREFIX)
-            for part in previous.foreground.split(",")
-            if part.startswith(_SETTING_OFF_PREFIX)
-        )
-
-        has_fg = previous.foreground_basic or previous.foreground_high or previous.foreground_true
-        fg = previous.foreground_number if has_fg else None
-        fg_rgb = previous.foreground_true
-        # undo the bold brightening applied below, so it can be reapplied or dropped with the new bold state
-        if bright_is_bold and fg is not None and fg >= 8 and previous.colors == 16 and "bold" in attributes:
-            fg -= 8
-
-        has_bg = previous.background_basic or previous.background_high or previous.background_true
-        bg = previous.background_number if has_bg else None
-        bg_rgb = previous.background_true
-
-        colors = previous.colors
-
-    for code in split_sgr_parameters(params):
-        attr = code[0]
-        if len(code) > 1 and attr not in _SGR_WITH_ARGUMENTS:
-            # a group parse_sgr_parameters drops, given by the caller
-            continue
-        if 30 <= attr <= 37:
-            fg, fg_rgb = attr - 30, False
-            colors = max(16, colors)
-        elif 40 <= attr <= 47:
-            bg, bg_rgb = attr - 40, False
-            colors = max(16, colors)
-        elif 90 <= attr <= 97:
-            fg, fg_rgb = attr - 90 + 8, False
-            colors = max(16, colors)
-        elif 100 <= attr <= 107:
-            bg, bg_rgb = attr - 100 + 8, False
-            colors = max(16, colors)
-        elif attr == _DOUBLE_UNDERLINE_SGR or (
-            attr == _UNDERLINE_SGR and (len(code) == 1 or (len(code) == 2 and code[1] in _UNDERLINE_STYLES[1:]))
-        ):
-            # 4, 4:1 to 4:5, and 21: an underline in a style
-            attributes.add("underline")
-            turned_off.discard("underline")
-            underline_style = 1 if attr == _DOUBLE_UNDERLINE_SGR else (code[1] - 1 if len(code) > 1 else 0)
-        elif code == (_UNDERLINE_SGR, 0):
-            # 4:0, no underline, as SGR 24
-            attributes.discard("underline")
-            turned_off.add("underline")
-        elif attr == _UNDERLINE_COLOR_SGR and code[1:2] == (_PALETTE_COLOR_MODEL,) and len(code) == _PALETTE_LENGTH:
-            if (color := code[2]) in _BYTE_VALUES:
-                basic = color < len(BASIC_COLORS)
-                underline_color = BASIC_COLORS[color] if basic else color_desc_256(color)
-                colors = max(len(BASIC_COLORS) if basic else 256, colors)
-        elif attr == _UNDERLINE_COLOR_SGR and code[1:2] == (_RGB_COLOR_MODEL,) and len(code) == _RGB_LENGTH:
-            if all(component in _BYTE_VALUES for component in code[2:]):
-                underline_color = color_desc_true((code[2] << 16) + (code[3] << 8) + code[4])
-                colors = 16777216  # 2 ** 24
-        elif attr == _DEFAULT_UNDERLINE_COLOR_SGR:
-            # the underline in the text color: over an enclosing attribute that says so, else as the terminal starts
-            underline_color = "default" if unset_color == "inherit" else None
-        elif attr in {38, 48} and code[1:2] == (_PALETTE_COLOR_MODEL,) and len(code) == _PALETTE_LENGTH:
-            color = code[2]
-            if 0 <= color <= 255:
-                colors = max(256, colors)
-                if attr == 38:
-                    fg, fg_rgb = color, False
-                else:
-                    bg, bg_rgb = color, False
-        elif attr in {38, 48} and code[1:2] == (_RGB_COLOR_MODEL,) and len(code) == _RGB_LENGTH:
-            if all(0 <= component <= 255 for component in code[2:]):
-                color = (code[2] << 16) + (code[3] << 8) + code[4]
-                colors = 16777216  # 2 ** 24
-                if attr == 38:
-                    fg, fg_rgb = color, True
-                else:
-                    bg, bg_rgb = color, True
-        elif attr == 39:
-            fg = None
-        elif attr == 49:
-            bg = None
-        elif attr in (10, 11, 12):
-            # vterm-only charset/display-control side effects; left to the caller
-            pass
-        elif len(code) == 1 and attr in _SGR_SETS:
-            # an underline style out of range is dropped
-            attributes.add(_SGR_SETS[attr])
-            turned_off.discard(_SGR_SETS[attr])
-        elif attr in _SGR_RESETS:
-            attributes.difference_update(_SGR_RESETS[attr])
-            turned_off.update(_SGR_RESETS[attr])
-        elif attr == 0:
-            fg = bg = underline_color = None
-            fg_rgb = bg_rgb = False
-            colors = 1
-            attributes.clear()
-            turned_off.clear()
-
-    if bright_is_bold and "bold" in attributes and colors == 16 and fg is not None and fg < 8:
-        fg += 8
-
-    def _defaulter(req_color: int | None, rgb: bool) -> str:
-        if req_color is None:
-            return unset_color
-        if rgb:
-            return color_desc_true(req_color)
-        # Note: 88-colour mode cannot be distinguished from 256-colour mode here.
-        # A true-colour AttrSpec converts a palette name to its RGB value itself.
-        if req_color > 15 or colors == 256:
-            return color_desc_256(req_color)
-        return BASIC_COLORS[req_color]
-
-    decoded_fg = _defaulter(fg, fg_rgb)
-    decoded_bg = _defaulter(bg, bg_rgb)
-
-    if unset_color == "inherit":
-        attributes.update(f"{_SETTING_OFF_PREFIX}{name}" for name in turned_off)
-    if "underline" in attributes and underline_style:
-        attributes.discard("underline")
-        attributes.add(UNDERLINE_STYLE_SETTINGS[underline_style - 1])
-    if attributes:
-        decoded_fg = ",".join((decoded_fg, *sorted(attributes)))
-
-    if decoded_fg == decoded_bg == unset_color and hyperlink is None and underline_color is None:
-        return None
-
-    if colors:
-        # `colors` is only ever assigned one of AttrSpec's accepted literals above (1, 16, 88 -- via
-        # `previous.colors` --, 256 or 16777216), but the running total is tracked as a plain `int`
-        # through the `max()` calls, so the literal type is lost to mypy; the cast restores it.
-        return AttrSpec(
-            decoded_fg,
-            decoded_bg,
-            colors=typing.cast("typing.Literal[1, 16, 88, 256, 16777216]", colors),
-            hyperlink=hyperlink,
-            underline_color=underline_color,
-        )
-
-    return AttrSpec(decoded_fg, decoded_bg, hyperlink=hyperlink, underline_color=underline_color)
