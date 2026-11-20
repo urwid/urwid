@@ -123,6 +123,7 @@ class StreamingFeedTest(unittest.TestCase):
         """
         cases = {
             "text and sgr": "ab\x1b[1;31mcd\x1b[mef\x1b(0lqk\x1b(Bg",
+            "wide and combining text": "ab\u4e2de\u0301\x1b[2Gxy\u4e2d\u0301\x1b[1G\u4e2d",
             "csi interrupted": "a\x1b[31\x1b[32mb",
             "csi split by a line end": "a\x1b[3\n1mb",
             "csi at limit": f"\x1b[{'1' * (MAX_CSI_LENGTH - 1)}mX",
@@ -187,6 +188,42 @@ class StreamingFeedTest(unittest.TestCase):
 
 
 class HorizontalMovementTest(unittest.TestCase):
+    def test_columns_are_screen_cells(self) -> None:
+        """Count columns in screen cells: a wide character takes two, and a combining mark joins its base."""
+        red = AttrSpec("dark red", "inherit")
+        cases = (
+            ("a wide character takes two columns", "\u4e2d\x1b[3Gx", "\u4e2dx", [(None, 2)]),
+            ("a combining mark joins its base", "e\u0301\x1b[2Gx", "e\u0301x", [(None, 3)]),
+            ("writing over the second half blanks the first", "\u4e2d\x1b[2Gx", " x", [(None, 2)]),
+            ("writing over the first half blanks the second", "\u4e2d\x1b[1Gx", "x ", [(None, 2)]),
+            ("a run writing over the first half blanks the second", "ab\u4e2d\x1b[1Gxyz", "xyz ", [(None, 4)]),
+            ("no width and nothing to join takes no cell", "\u0301a", "a", [(None, 1)]),
+            ("a variation selector widens its emoji", "\u2764\ufe0f\x1b[3Gx", "\u2764\ufe0fx", [(None, 3)]),
+            ("attributes count characters", "\x1b[31me\u0301\x1b[0mx", "e\u0301x", [(red, 2), (None, 1)]),
+            ("a wide character over the last cell appends its second half", "ab\x1b[2G\u4e2d", "a\u4e2d", [(None, 2)]),
+            (
+                "a third regional indicator starts a cell",
+                "\U0001f1fa\U0001f1f8\U0001f1eb",
+                "\U0001f1fa\U0001f1f8\U0001f1eb",
+                [(None, 3)],
+            ),
+            ("a cluster takes at most 32 code points", "a" + "\u0301" * 40, "a" + "\u0301" * 31, [(None, 32)]),
+            (
+                "a cluster widened over a wide character blanks its other half",
+                "\u2764\u4e2d\x1b[2G\ufe0f",
+                "\u2764\ufe0f ",
+                [(None, 3)],
+            ),
+        )
+        for label, text, expected, attrib in cases:
+            for one_line in (True, False):
+                with self.subTest(label, one_line=one_line):
+                    parser = AnsiParser(one_line=one_line)
+                    parser.feed(text)
+                    (line,) = parser.finalize()
+                    self.assertEqual(expected, line.text)
+                    self.assertEqual(attrib, line.attrib)
+
     def test_right_then_overwrite(self) -> None:
         # move right past "abc", write "Z" at position 5 (padding gap with
         # None-attr spaces), leaving "abc" untouched

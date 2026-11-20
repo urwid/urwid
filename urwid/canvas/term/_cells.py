@@ -25,8 +25,6 @@ from __future__ import annotations
 import functools
 import typing
 
-import wcwidth
-
 from urwid import str_util
 from urwid.display import AttrSpec
 from urwid.display.common import _UNDERLINE_STYLES as UNDERLINE_STYLE_SETTINGS
@@ -37,11 +35,6 @@ if typing.TYPE_CHECKING:
 
 
 ESC_B = ESC.encode("ascii")
-
-
-#: the code points a cell holds at most, which bounds the cost of joining a long run of combining marks; more are
-#: dropped
-_MAX_CLUSTER_LENGTH: typing.Final = 32
 
 
 #: the DECCIR rendition bits of the AttrSpec flags, and the SGR parameters DECRSPS sets them with
@@ -97,32 +90,6 @@ def _drawn_width(char: bytes) -> int:
     It is 2 for the first half of a wide character.
     """
     return 1 if len(char) < 2 else _encoded_width(bytes(char), str_util.get_byte_encoding())
-
-
-#: a text of each kind a character can continue the grapheme cluster of: a plain character, which combining marks,
-#: spacing marks and a zero width joiner continue, a regional indicator, an emoji with a zero width joiner, the Hangul
-#: jamo and syllables, and a consonant with a virama, which a consonant of any script with such conjuncts continues
-_CLUSTER_STARTS: typing.Final = ("a", "\U0001f1fa", "\U0001f468\u200d", "\u1100", "\u1161", "\uac00", "\u0915\u094d")
-
-
-def _continues_cluster(text: str, char: str) -> bool:
-    """Return whether *char*, written after a cell holding *text*, belongs to the same grapheme cluster.
-
-    It is not cached, since a pair of cells rarely repeats in text where the second may join the first, such as Hangul.
-    """
-    joined = text + char
-    return wcwidth.grapheme_boundary_before(joined, len(joined)) < len(text)
-
-
-# sized for the characters of one text: the CJK ideographs and Hangul syllables of the Basic Multilingual Plane
-@functools.lru_cache(maxsize=32768)
-def _may_continue_cluster(char: str) -> bool:
-    """Return whether *char* continues the grapheme cluster of some text, so that it may join a cell.
-
-    The character after a prepended concatenation mark, such as U+0600, is not counted, which keeps this a property of
-    the character alone.
-    """
-    return any(_continues_cluster(start, char) for start in _CLUSTER_STARTS)
 
 
 def _mend_wide(line: list[tuple[AttrSpec | None, Literal["0", "U"] | None, bytes]], x: int) -> None:

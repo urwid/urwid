@@ -25,8 +25,9 @@ from __future__ import annotations
 import typing
 
 from urwid import str_util
-from urwid.canvas.term._cells import _MAX_CLUSTER_LENGTH, _continues_cluster, _drawn_width, _mend_wide, _Protected
+from urwid.canvas.term._cells import _drawn_width, _mend_wide, _Protected
 from urwid.canvas.term._screen import _ScreenCanvas
+from urwid.str_util import _MAX_CLUSTER_LENGTH, _continues_cluster
 
 #: the largest count REP takes, xterm's largest parameter value; a larger one counts as this
 _MAX_REPEAT: typing.Final = 65535
@@ -213,7 +214,7 @@ class _EditingCanvas(_ScreenCanvas):
 
         It does not join the cluster:
 
-        - when the cluster would hold more than :data:`_MAX_CLUSTER_LENGTH` code points;
+        - when the cluster would hold more than :data:`urwid.str_util._MAX_CLUSTER_LENGTH` code points;
         - when it would be drawn wider than two columns or narrower than before, as Hangul jamo that do not make a
           syllable can be;
         - when it would be drawn wider in the last column without autowrap, or on a screen one column wide;
