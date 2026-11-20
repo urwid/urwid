@@ -41,22 +41,7 @@ from contextlib import suppress
 
 from urwid import event_loop
 from urwid.ansi_parser import MAX_OSC_LENGTH
-from urwid.display import RealTerminal
-from urwid.display.escape import (
-    _CSI_LETTER_KEYS,
-    _CSI_TILDE_KEYS,
-    _CSI_U_KEYS,
-    _KEY_MODIFIER_PREFIXES,
-    _MOUSE_BYTE_OFFSET,
-    _MOUSE_COORD_OFFSET,
-    MOUSE_X10_PAST_END,
-    KeyModifier,
-    KittyKeyboardFlag,
-    MouseBit,
-    PrivateMode,
-    window_size_report,
-)
-from urwid.term_canvas import (
+from urwid.canvas.term import (
     CHARSET_DEFAULT,
     CHARSET_UTF8,
     CSI_COMMANDS,
@@ -67,6 +52,26 @@ from urwid.term_canvas import (
     TermCanvas,
     TermCharset,
     TermModes,
+)
+from urwid.display import RealTerminal
+from urwid.display.escape import (
+    _C1_CONTROLS,
+    _CSI_LETTER_KEYS,
+    _CSI_TILDE_KEYS,
+    _CSI_U_KEYS,
+    _KEY_MODIFIER_PREFIXES,
+    _MOUSE_BYTE_OFFSET,
+    _MOUSE_COORD_OFFSET,
+    _MOUSE_MODIFIER_PREFIXES,
+    _TILDE_KEY_NUMBERS,
+    CSI,
+    MOUSE_X10_PAST_END,
+    KeyModifier,
+    KittyKeyboardFlag,
+    MouseBit,
+    PrivateMode,
+    _mouse_button,
+    window_size_report,
 )
 from urwid.widget import MouseButton, Sizing, Widget
 
@@ -84,7 +89,7 @@ if typing.TYPE_CHECKING:
             """Stop the watch :meth:`watch_file` returned *handle* for."""
 
 
-# Re-exports of the urwid.term_canvas names, and of MAX_OSC_LENGTH, for callers that import them from urwid.vterm.
+# Re-exports of the urwid.canvas.term names, and of MAX_OSC_LENGTH, for callers that import them from urwid.vterm.
 __all__ = (
     "CHARSET_DEFAULT",
     "CHARSET_UTF8",
@@ -111,38 +116,15 @@ KEY_TRANSLATIONS = {
     "backspace": chr(127),
     "tab": "\t",
     "esc": ESC,
-    "up": f"{ESC}[A",
-    "down": f"{ESC}[B",
-    "right": f"{ESC}[C",
-    "left": f"{ESC}[D",
-    "home": f"{ESC}[1~",
-    "insert": f"{ESC}[2~",
-    "delete": f"{ESC}[3~",
-    "end": f"{ESC}[4~",
-    "page up": f"{ESC}[5~",
-    "page down": f"{ESC}[6~",
-    "begin paste": f"{ESC}[200~",
-    "end paste": f"{ESC}[201~",
-    "f1": f"{ESC}[[A",
-    "f2": f"{ESC}[[B",
-    "f3": f"{ESC}[[C",
-    "f4": f"{ESC}[[D",
-    "f5": f"{ESC}[[E",
-    "f6": f"{ESC}[17~",
-    "f7": f"{ESC}[18~",
-    "f8": f"{ESC}[19~",
-    "f9": f"{ESC}[20~",
-    "f10": f"{ESC}[21~",
-    "f11": f"{ESC}[23~",
-    "f12": f"{ESC}[24~",
-    "f13": f"{ESC}[25~",
-    "f14": f"{ESC}[26~",
-    "f15": f"{ESC}[28~",
-    "f16": f"{ESC}[29~",
-    "f17": f"{ESC}[31~",
-    "f18": f"{ESC}[32~",
-    "f19": f"{ESC}[33~",
-    "f20": f"{ESC}[34~",
+    **{key: f"{CSI}{final:c}" for final, key in _CSI_LETTER_KEYS.items() if key in {"up", "down", "right", "left"}},
+    **{
+        key: f"{CSI}{_TILDE_KEY_NUMBERS[key]:d}~" for key in ("home", "insert", "delete", "end", "page up", "page down")
+    },
+    "begin paste": f"{CSI}200~",
+    "end paste": f"{CSI}201~",
+    # F1 to F5 as the linux terminal type the child is given sends them
+    **{f"f{number:d}": f"{CSI}[{letter}" for number, letter in enumerate("ABCDE", start=1)},
+    **{f"f{number:d}": f"{CSI}{_TILDE_KEY_NUMBERS[f'f{number:d}']:d}~" for number in range(6, 21)},
     "shift tab": f"{ESC}\t",  # kcbt of the linux terminal type the child is given
 }
 
@@ -180,7 +162,7 @@ KEY_TRANSLATIONS_DECCKM = {
     "f2": f"{ESC}OQ",
     "f3": f"{ESC}OR",
     "f4": f"{ESC}OS",
-    "f5": f"{ESC}[15~",
+    "f5": f"{CSI}{_TILDE_KEY_NUMBERS['f5']:d}~",
 }
 
 #: the tracking modes a Terminal recognises and sends no reports for
@@ -194,20 +176,15 @@ _MOUSE_COORDINATE_LIMITS: typing.Final = {
 }
 #: the button bits of a mouse report for each urwid button number, the inverse of the decoding in urwid.display.escape
 _MOUSE_BUTTON_CODES: typing.Final = {
-    **{button: button - MouseButton.LEFT for button in range(MouseButton.LEFT, MouseButton.WHEEL_UP)},
-    **{
-        button: MouseBit.HIGH_BUTTON + button - MouseButton.WHEEL_UP
-        for button in range(MouseButton.WHEEL_UP, MouseButton.BACK)
-    },
-    **{
-        button: MouseBit.EXTRA_BUTTON + button - MouseButton.BACK
-        for button in range(MouseButton.BACK, MouseButton.BACK + 4)
-    },
+    _mouse_button(bits): bits
+    for bits in (
+        *range(3),
+        *(MouseBit.HIGH_BUTTON + n for n in range(4)),
+        *(MouseBit.EXTRA_BUTTON + n for n in range(4)),
+    )
 }
 #: the wheel buttons, whose release xterm does not report
 _MOUSE_WHEEL_BUTTONS: typing.Final = frozenset(range(MouseButton.WHEEL_UP, MouseButton.BACK))
-#: the modifier prefixes of an urwid mouse event, in the order urwid writes them, and their bits in a mouse report
-_MOUSE_MODIFIERS: typing.Final = (("shift ", MouseBit.SHIFT), ("meta ", MouseBit.META), ("ctrl ", MouseBit.CTRL))
 
 #: the flags whose key reports differ from the legacy keys; event types and alternate keys alone change no key press
 _KITTY_KEYBOARD_REPORTING_FLAGS: typing.Final = KittyKeyboardFlag.DISAMBIGUATE | KittyKeyboardFlag.ALL_KEYS
@@ -217,7 +194,7 @@ _KITTY_KEYPAD_CODES: typing.Final = range(57399, 57428)
 #: escape codes
 _KITTY_MODIFIER_KEY_CODES: typing.Final = frozenset((*range(57358, 57361), *range(57441, 57455)))
 #: the C1 control character of each key name the input decoder gives it, which the child receives
-_C1_KEYS: typing.Final = {f"<{code:d}>": chr(code) for code in range(0x80, 0xA0)}
+_C1_KEYS: typing.Final = {f"<{code:d}>": chr(code) for code in _C1_CONTROLS}
 #: the key of each CSI 1 ; modifiers letter report, by urwid name; "5" is left out, since it is also the digit key
 _KITTY_LETTER_KEYS: typing.Final = {name: chr(final) for final, name in _CSI_LETTER_KEYS.items() if name != "5"}
 #: the key of each CSI number ~ report, by urwid name: the editing keys, F3 and F5 to F12; F13 and above are CSI u keys
@@ -251,7 +228,7 @@ def _mouse_report(code: int, col: int, row: int, release: bool, encoding: Privat
     :param encoding: the mode of the encoding, or None for the X10 encoding.
     """
     if encoding == PrivateMode.MOUSE_SGR_MODE:
-        return f"{ESC}[<{code};{col + 1};{row + 1}{'m' if release else 'M'}".encode("ascii")
+        return f"{CSI}<{code};{col + 1};{row + 1}{'m' if release else 'M'}".encode("ascii")
 
     limit = _MOUSE_COORDINATE_LIMITS[encoding]
     # a coordinate past the limit is sent as the limit, and the limit as a NUL byte
@@ -262,8 +239,8 @@ def _mouse_report(code: int, col: int, row: int, release: bool, encoding: Privat
     ]
     if encoding == PrivateMode.MOUSE_UTF8_MODE:
         # UTF-8 encoding: each value is a character, so one above 127 takes two bytes
-        return f"{ESC}[M".encode("ascii") + "".join(map(chr, values)).encode("utf-8")
-    return f"{ESC}[M".encode("ascii") + bytes(values)
+        return f"{CSI}M".encode("ascii") + "".join(map(chr, values)).encode("utf-8")
+    return f"{CSI}M".encode("ascii") + bytes(values)
 
 
 class Terminal(Widget):
@@ -843,7 +820,7 @@ class Terminal(Widget):
 
         code = 0
         action = event
-        for prefix, flag in _MOUSE_MODIFIERS:
+        for prefix, flag in _MOUSE_MODIFIER_PREFIXES:
             if action.startswith(prefix):
                 code |= flag
                 action = action.removeprefix(prefix)
@@ -965,10 +942,10 @@ def _kitty_key_report(key: str, flags: int) -> str | None:
 
     if name in _KITTY_LETTER_KEYS:
         final = _KITTY_LETTER_KEYS[name]
-        return f"{ESC}[1;{modifiers + 1:d}{final}" if modifiers else f"{ESC}[{final}"
+        return f"{CSI}1;{modifiers + 1:d}{final}" if modifiers else f"{CSI}{final}"
     if name in _KITTY_TILDE_KEYS:
         number = _KITTY_TILDE_KEYS[name]
-        return f"{ESC}[{number:d};{modifiers + 1:d}~" if modifiers else f"{ESC}[{number:d}~"
+        return f"{CSI}{number:d};{modifiers + 1:d}~" if modifiers else f"{CSI}{number:d}~"
 
     text = ""
     if name in _KITTY_CSI_U_KEYS:
@@ -997,7 +974,7 @@ def _kitty_key_report(key: str, flags: int) -> str | None:
 
     modifiers_field = f"{modifiers + 1:d}" if modifiers else ""
     if text and flags & KittyKeyboardFlag.ASSOCIATED_TEXT:
-        return f"{ESC}[{key_field};{modifiers_field};{ord(text):d}u"
+        return f"{CSI}{key_field};{modifiers_field};{ord(text):d}u"
     if modifiers:
-        return f"{ESC}[{key_field};{modifiers_field}u"
-    return f"{ESC}[{key_field}u"
+        return f"{CSI}{key_field};{modifiers_field}u"
+    return f"{CSI}{key_field}u"

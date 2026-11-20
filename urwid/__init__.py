@@ -41,6 +41,7 @@ from urwid.canvas import (
     SolidCanvas,
     TextCanvas,
 )
+from urwid.canvas.term import TermCanvas, TermCharset, TermModes
 from urwid.command_map import (
     ACTIVATE,
     CURSOR_DOWN,
@@ -80,7 +81,6 @@ from urwid.signals import (
     register_signal,
 )
 from urwid.str_util import calc_text_pos, calc_width, is_wide_char, move_next_char, move_prev_char, within_double_byte
-from urwid.term_canvas import TermCanvas, TermCharset, TermModes
 from urwid.text_layout import LayoutSegment, StandardTextLayout, TextLayout, default_layout
 from urwid.util import (
     LayeredAttr,

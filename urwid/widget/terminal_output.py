@@ -7,7 +7,7 @@ import typing
 
 from urwid import util
 from urwid.canvas import CompositeCanvas, SolidCanvas
-from urwid.term_canvas import TermCanvas, TermModes
+from urwid.canvas.term import TermCanvas, TermModes
 
 from .constants import MouseButton, Sizing
 from .widget import Widget
