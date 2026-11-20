@@ -270,8 +270,8 @@ def main() -> None:
             " opens a list of actions with ENTER, SPACE or a click.  The key in brackets chooses an item, "
             "a disabled item cannot be focused, and Send to opens a submenu with RIGHT; LEFT or ESC closes it.  "
             "Near the right edge the submenu opens to the left of the list.  Centred opens the same list in the "
-            "middle of the screen.  On an item without a submenu, LEFT and RIGHT close the list and move between "
-            "the two launchers."
+            "middle of the screen.  The two launchers form a menu bar: on an item without a submenu, LEFT and "
+            "RIGHT close the list and move to the other launcher."
         ),
     ]
     text_context_menu = (
@@ -388,6 +388,7 @@ def main() -> None:
             urwid.MenuItem("(D)elete", "delete", key="d"),
         ],
         on_action=show_action,
+        pass_arrows_below=True,
         attr_map="buttn",
         focus_map="buttnf",
         disabled_map="tab",
@@ -397,6 +398,7 @@ def main() -> None:
         action_menu.items,
         on_action=show_action,
         placement="center",
+        pass_arrows_below=True,
         attr_map="buttn",
         focus_map="buttnf",
         disabled_map="tab",
