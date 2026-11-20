@@ -1785,7 +1785,7 @@ def _drawn_ranges(text: str | bytes, start: int, end: int, sc: int) -> list[tupl
     return None
 
 
-@dataclasses.dataclass
+@dataclasses.dataclass(slots=True, weakref_slot=True)
 class _AttrWalk:
     counter: int = 0  # counter for moving through elements of a
     offset: int = 0  # current offset into text of attr[ak]

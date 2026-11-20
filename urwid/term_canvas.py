@@ -487,7 +487,7 @@ def _fit_line(
     return fitted
 
 
-@dataclass(eq=True, order=False)
+@dataclass(eq=True, order=False, slots=True, weakref_slot=True)
 class TermModes:
     """Terminal mode flags (ECMA-48 and DEC private modes) tracked for a :class:`TermCanvas`."""
 

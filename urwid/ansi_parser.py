@@ -202,7 +202,7 @@ _PADDING_PER_CHARACTER = 8
 _PADDING_PER_ROW = 8
 
 
-@dataclasses.dataclass(frozen=True)
+@dataclasses.dataclass(frozen=True, slots=True, weakref_slot=True)
 class SkippedOp:
     """A single escape-sequence (or control character) that was recognised but stripped.
 
@@ -240,7 +240,7 @@ class CharsetState:
             raise ValueError(f"selected must be 0 (G0) or 1 (G1), not {self.selected!r}")
 
 
-@dataclasses.dataclass(frozen=True)
+@dataclasses.dataclass(frozen=True, slots=True, weakref_slot=True)
 class ParsedLine:
     r"""The result of parsing one physical line of ANSI-coloured text.
 

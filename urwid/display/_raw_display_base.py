@@ -231,7 +231,7 @@ class _TerminalProperty(typing.Generic[_T]):
         raise AttributeError(message)
 
 
-@dataclasses.dataclass
+@dataclasses.dataclass(slots=True, weakref_slot=True)
 class TermModes:
     """Terminal modes negotiated with the real host terminal (counterpart to `term_canvas.TermModes`).
 
