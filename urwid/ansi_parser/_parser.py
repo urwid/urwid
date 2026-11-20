@@ -21,11 +21,13 @@
 
 from __future__ import annotations
 
+import functools
 import logging
 import re
 import types
 import typing
 
+from urwid import str_util
 from urwid.ansi_parser._grammar import (
     _CANCEL,
     _STRING_STATES,
@@ -39,6 +41,7 @@ from urwid.ansi_parser._results import _ASCII_SET, CharsetState, ParsedLine, Ski
 from urwid.ansi_parser._vt_parser import _VTParser
 from urwid.display._sgr import parse_sgr_parameters, sgi_params_to_attrspec
 from urwid.display.escape import _C0_CONTROLS, ALT_DEC_SPECIAL_CHARS, BEL, DEC_SPECIAL_CHARS, DEC_TAG, ESC, SI, SO
+from urwid.str_util import _MAX_CLUSTER_LENGTH, _continues_cluster, _may_continue_cluster
 from urwid.util import rle_append_modify
 
 if typing.TYPE_CHECKING:
@@ -74,6 +77,18 @@ _INLINE_CONTROLS = frozenset(map(chr, (*_C0_CONTROLS, 0x7F))) - {ESC, *_CANCEL, 
 
 #: A run of characters that are no control characters, which feed() writes in one call outside any sequence.
 _TEXT_RUN: typing.Final = re.compile("[^\x00-\x1f\x7f-\x9f]+")
+
+
+# sized for the characters of one text, as str_util._may_continue_cluster is
+@functools.lru_cache(maxsize=32768)
+def _char_cells(char: str) -> tuple[int, bool]:
+    """Return the columns *char* alone takes, as urwid measures text, and whether it may join the cell before it.
+
+    A character with no width always tries to join, since a cell cannot hold it alone.
+    """
+    width = str_util.calc_width(char, 0, len(char))
+    return width, width == 0 or _may_continue_cluster(char)
+
 
 #: Line-end byte pairs that collapse into a single structural split point.
 _LINE_END_PAIR: dict[str, str] = {"\r": "\n", "\n": "\r"}
@@ -141,6 +156,12 @@ class AnsiParser(_VTParser[str]):
     are ignored, so none of them is part of the resolved text. An ESC outside an OSC string drops a sequence still
     being read, recorded as a :class:`SkippedOp`, and starts a new one. A C1 control character (U+0080 to U+009F)
     in the text is dropped and takes no column, as xterm does with C1 controls in UTF-8 text.
+
+    Columns are screen cells, measured as urwid measures text: a wide character takes two, and a combining mark or
+    another character that continues a grapheme cluster joins the character before the cursor, so cursor movement,
+    tabs and padding line up as on a terminal. A character that splits a wide character from its other half leaves
+    that half as a space. A character with no width and no character before the cursor to join is dropped, and so is
+    one that would make a cluster longer than 32 code points.
 
     SGR bold stays a setting of its own and does not brighten the foreground: ``CSI 1;31 m`` is
     ``'dark red,bold'``, and a display draws it in a bright color where the terminal does so for bold text.
@@ -348,9 +369,10 @@ class AnsiParser(_VTParser[str]):
             if index:
                 text_parts.append("\n")
                 rle_append_modify(attrib, (None, 1))
-            text_parts.append("".join(char for char, _attr in row))
-            for _char, attr in row:
-                rle_append_modify(attrib, (attr, 1))
+            text_parts.append("".join(cell for cell, _attr in row))
+            for cell, attr in row:
+                if cell:
+                    rle_append_modify(attrib, (attr, len(cell)))
 
         parsed = ParsedLine(
             text="".join(text_parts),
@@ -368,10 +390,11 @@ class AnsiParser(_VTParser[str]):
 
     def _complete_line(self) -> None:
         row = self._rows[0]
-        text = "".join(char for char, _attr in row)
+        text = "".join(cell for cell, _attr in row)
         attrib: list[tuple[Hashable, int]] = []
-        for _char, attr in row:
-            rle_append_modify(attrib, (attr, 1))
+        for cell, attr in row:
+            if cell:
+                rle_append_modify(attrib, (attr, len(cell)))
 
         self._completed.append(
             ParsedLine(
@@ -486,34 +509,107 @@ class AnsiParser(_VTParser[str]):
 
     def _write_run(self, run: str) -> None:
         """Write *run*, characters that are no control characters, as :meth:`_vt_print` writes each of them."""
+        narrow = run.isascii()
         if self._charsets[self._active_charset] == DEC_TAG:
+            # the DEC Special Graphics characters are one column wide each, as the ASCII ones they replace
             run = run.translate(_DEC_SPECIAL_GRAPHICS)
+        attr = self._attrspec
+        if not narrow:
+            for char in run:
+                self._padding_budget += _PADDING_PER_CHARACTER
+                self._write_char(char, attr)
+            return
         # only the first character can pad up to the cursor, so the rest get their padding credit after it
         self._padding_budget += _PADDING_PER_CHARACTER
-        attr = self._attrspec
         self._write_char(run[0], attr)
         if rest := len(run) - 1:
             self._padding_budget += _PADDING_PER_CHARACTER * rest
             col = self._col
-            self._rows[self._row][col : col + rest] = [(char, attr) for char in run[1:]]
-            self._col = col + rest
+            row = self._rows[self._row]
+            row[col : col + rest] = [(char, attr) for char in run[1:]]
+            self._col = end = col + rest
+            if end < len(row) and not row[end][0]:
+                # the second half of a wide character whose first half the run wrote over
+                row[end] = (" ", row[end][1])
 
     def _write_char(self, ch: str, attr: Hashable | None) -> None:
+        """Write *ch* at the cursor, in as many cells as it is wide, or join it to the cluster before the cursor.
+
+        A wide character takes its cell and an empty one after it.
+        A character it splits from its other half leaves that half as a space, as in a terminal.
+        """
         row = self._rows[self._row]
-        if self._col < len(row):
-            row[self._col] = (ch, attr)
-        elif self._col == len(row):
-            row.append((ch, attr))
+        if " " <= ch < "\x7f":
+            width = 1
         else:
-            gap = self._col - len(row)
-            if gap > self._padding_budget:
-                self._skip("unknown", self._last_move, "padding limit reached, written at the end of the row")
-                self._col = len(row)
-            else:
-                self._padding_budget -= gap
-                row.extend([(" ", None)] * gap)
+            width, may_join = _char_cells(ch)
+            # a character with no width always may join, and _join_cluster drops it when it cannot
+            if may_join and self._join_cluster(row, ch, width):
+                return
+        col = self._col
+        size = len(row)
+        if col >= size:
+            if col > size:
+                gap = col - size
+                if gap > self._padding_budget:
+                    self._skip("unknown", self._last_move, "padding limit reached, written at the end of the row")
+                    col = size
+                else:
+                    self._padding_budget -= gap
+                    row.extend([(" ", None)] * gap)
             row.append((ch, attr))
-        self._col += 1
+            if width == 2:
+                row.append(("", attr))
+            self._col = col + width
+            return
+        if col and not row[col][0]:
+            # the first half of a wide character whose second half this one writes over
+            row[col - 1] = (" ", row[col - 1][1])
+        row[col] = (ch, attr)
+        end = col + 1
+        if width == 2:
+            if end < size:
+                row[end] = ("", attr)
+            else:
+                row.append(("", attr))
+                size += 1
+            end += 1
+        if end < size and not row[end][0]:
+            # the second half of a wide character whose first half this one wrote over
+            row[end] = (" ", row[end][1])
+        self._col = end
+
+    def _join_cluster(self, row: list[tuple[str, Hashable | None]], ch: str, width: int) -> bool:
+        """Join *ch* to the character before the cursor when it continues its grapheme cluster.
+
+        A character with no width joins that character even when it continues no cluster, as a cell cannot hold it
+        alone.
+        A cluster that becomes wide takes the next cell as its second half, and the cursor moves past it.
+
+        :returns: whether *ch* was joined, or dropped as a character with no width that cannot join; either way it
+            takes no cell of its own.
+        """
+        x = self._col - 1
+        if not 0 <= x < len(row):
+            return width == 0
+        if not row[x][0] and x > 0:
+            # the second half of a wide character: the first half holds it
+            x -= 1
+        held, held_attr = row[x]
+        if width and not _continues_cluster(held, ch):
+            return False
+        joined = held + ch
+        old_width = 2 if x + 1 < len(row) and not row[x + 1][0] else 1
+        new_width = str_util.calc_width(joined, 0, len(joined))
+        if len(joined) > _MAX_CLUSTER_LENGTH or new_width not in {old_width, 2}:
+            return width == 0
+        row[x] = (joined, held_attr)
+        if new_width != old_width:
+            row[x + 1 : x + 2] = [("", held_attr)]
+            if x + 2 < len(row) and not row[x + 2][0]:
+                row[x + 2] = (" ", row[x + 2][1])
+            self._col = x + 2
+        return True
 
     # -- internal: escape/CSI/OSC framing --------------------------------
 
