@@ -195,6 +195,7 @@ level.
 SGR reads the colors and the underline style given with sub-parameters, such as
 ``38:2::r:g:b`` and ``4:3``; every underline style is drawn as a single
 underline, and the underline color is not drawn.
+As in xterm, HT leaves a pending wrap as it is.
 At the VT100 level no reply in a DCS string is sent.  SU and SD scroll
 the scrolling region without saving the lines scrolled off in the scrollback,
 as in xterm.  After the child sets a cursor style with DECSCUSR, the widget

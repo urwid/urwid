@@ -706,6 +706,16 @@ class TermTest(unittest.TestCase):
         self.write("\\e[?7h\\e[1;%dHt\b\b\t\ta" % self.term.width)
         self.expect(" " * (self.term.width - 1) + "a")
 
+    def test_tabs_keep_a_pending_wrap(self) -> None:
+        """Leave a pending wrap and the cursor as they are, as xterm does, so the next character wraps."""
+        for label, tab in (
+            ("HT", "\t"),
+        ):
+            with self.subTest(label):
+                self.restart()
+                self.write(r"\e[1;80Hx" + tab + "b")
+                self.expect(" " * 79 + "x\nb")
+
     def test_cursor_motion_cancels_pending_wrap(self) -> None:
         """A character written after moving the cursor off a pending wrap stays where the cursor was moved to."""
         for label, move in (

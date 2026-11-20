@@ -1966,7 +1966,12 @@ class TermCanvas(Canvas):
         self.is_rotten_cursor = with_attrs and wrap
 
     def tab(self, tabstop: int = 8) -> None:
-        """Move cursor to the next 'tabstop', leaving the cells it passes unchanged."""
+        """Move cursor to the next 'tabstop', leaving the cells it passes unchanged.
+
+        As in xterm, a pending wrap stays, and the cursor does not move.
+        """
+        if self.is_rotten_cursor:
+            return
         x, y = self.term_cursor
 
         while x < self.width - 1:
