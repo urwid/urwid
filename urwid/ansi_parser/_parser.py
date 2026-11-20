@@ -16,76 +16,41 @@
 #    Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #
 # Urwid web site: https://urwid.org/
-"""Standalone ANSI/VT100 escape-sequence parsing, decoupled from any canvas.
 
-This module extracts the platform-independent portion of the escape-sequence
-grammar historically embedded inside :mod:`urwid.canvas.term`'s ``TermCanvas`` --
-SGR colour/attribute interpretation, horizontal cursor movement, BEL, OSC
-title, OSC 8 hyperlink, DEC Special Graphics and keyboard-LED recognition -- into a form that can be used to
-interpret a single string (or a stream of chunks) of ANSI-coloured text
-without instantiating a pty-backed :class:`~urwid.Terminal` widget.
-
-Sequences that only make sense against a genuine two-dimensional screen
-buffer (vertical cursor movement, scroll regions, mode toggles, and so
-forth) are recognised, stripped from the resolved text and logged (see
-:class:`SkippedOp`) rather than raising or being silently discarded without
-trace.
-"""
+"""The incremental ANSI parser and the functions that run it over a whole text."""
 
 from __future__ import annotations
 
-import dataclasses
-import enum
 import logging
 import types
 import typing
 
-from urwid.display import NO_HYPERLINK, AttrSpec, Hyperlink
-from urwid.display._sgr import parse_sgr_parameters, sgi_params_to_attrspec, split_sgr_parameters
-
-# Importable from this module in 5.1.3, where the SGR decoder that used them lived.
-from urwid.display.common import _BASIC_COLORS as BASIC_COLORS  # noqa: F401  # pylint: disable=unused-import
-from urwid.display.common import _color_desc_256 as color_desc_256  # noqa: F401  # pylint: disable=unused-import
-from urwid.display.common import _color_desc_true as color_desc_true  # noqa: F401  # pylint: disable=unused-import
+from urwid.ansi_parser._grammar import (
+    _CANCEL,
+    _COMMAND_STRING_IGNORED,
+    _COMMAND_STRING_OPENERS,
+    _OSC_STATES,
+    _STRING_STATES,
+    MAX_CSI_LENGTH,
+    MAX_OSC_LENGTH,
+    OSC_IGNORED_CONTROLS,
+    ParseState,
+    _csi_parameters,
+)
+from urwid.ansi_parser._resolve import attrspec_with_hyperlink, led_state, resolve_osc_hyperlink, resolve_osc_title
+from urwid.ansi_parser._results import _ASCII_SET, CharsetState, ParsedLine, SkippedOp
+from urwid.display._sgr import parse_sgr_parameters, sgi_params_to_attrspec
 from urwid.display.escape import _C0_CONTROLS, ALT_DEC_SPECIAL_CHARS, BEL, DEC_SPECIAL_CHARS, DEC_TAG, ESC, SI, SO
 from urwid.util import rle_append_modify
 
 if typing.TYPE_CHECKING:
     from collections.abc import Hashable
 
-
-__all__ = (
-    "MAX_CSI_LENGTH",
-    "MAX_OSC_LENGTH",
-    "OSC_IGNORED_CONTROLS",
-    "AnsiParser",
-    "CharsetState",
-    "ParseState",
-    "ParsedLine",
-    "SkippedOp",
-    "attrspec_with_hyperlink",
-    "led_state",
-    "parse_ansi_line",
-    "parse_ansi_text",
-    "parse_sgr_parameters",
-    "resolve_osc_hyperlink",
-    "resolve_osc_title",
-    "sgi_params_to_attrspec",
-    "split_sgr_parameters",
-)
-
-LOGGER = logging.getLogger(__name__)
+    from urwid.display import AttrSpec
 
 
-#: Recognised, ready-to-render values of :attr:`ParsedLine.leds`.
-LedsLiteral = "Literal['clear', 'scroll_lock', 'num_lock', 'caps_lock']"
-
-_LED_STATES: dict[int, str] = {
-    0: "clear",
-    1: "scroll_lock",
-    2: "num_lock",
-    3: "caps_lock",
-}
+# named after the package, which is where logging configurations and the tests find it
+LOGGER = logging.getLogger("urwid.ansi_parser")
 
 
 #: CSI final bytes that move the cursor vertically -- meaningless outside a
@@ -101,26 +66,9 @@ _TERMINAL_SETTING_CSI = frozenset("hlrJKsu@LMPXcng")
 #: Characters drawn in place of their ASCII counterparts while the DEC Special Graphics character set is shifted in.
 _DEC_SPECIAL_GRAPHICS: typing.Final = str.maketrans(ALT_DEC_SPECIAL_CHARS, DEC_SPECIAL_CHARS)
 
-#: The final byte of a G0/G1 designation that selects US ASCII.
-_ASCII_SET: typing.Final = "B"
-
 #: fbterm's ``CSI 1;n }`` and ``CSI 2;n }``: the SGR parameters selecting 256-color palette index n as the
 #: foreground or the background.
 _FBTERM_COLOR_SGR: typing.Final = types.MappingProxyType({1: 38, 2: 48})
-
-#: CAN and SUB, which abort an escape sequence in progress.
-_CANCEL = frozenset("\x18\x1a")
-
-#: Control characters a terminal ignores inside an OSC string, unless they follow an ESC there: they are neither
-#: executed nor part of the string. DEL is not among them: a terminal keeps it in the string.
-OSC_IGNORED_CONTROLS = frozenset(map(chr, _C0_CONTROLS)) - {BEL, ESC, *_CANCEL}
-
-#: The control characters ignored inside a DCS, SOS, PM or APC string: those of an OSC string, and BEL, which ends only
-#: OSC.
-_COMMAND_STRING_IGNORED: typing.Final = OSC_IGNORED_CONTROLS | {BEL}
-
-#: The final bytes after ESC that open a DCS, SOS, PM and APC string, which are discarded up to their ST.
-_COMMAND_STRING_OPENERS: typing.Final = frozenset("PX^_")
 
 #: C0 control characters and DEL passed to ``AnsiParser._execute_control()`` wherever they appear outside an OSC
 #: string, also inside another escape sequence, which then continues; ESC, CAN, SUB and the line ends are handled apart.
@@ -135,63 +83,6 @@ _LINE_END_PAIR: dict[str, str] = {"\r": "\n", "\n": "\r"}
 #: grid at 1024 cells.
 _MAX_CURSOR_POSITION = 1024
 
-#: CSI parameter strings of this length or longer are skipped unparsed. Real sequences are far shorter (a truecolour
-#: foreground and background SGR is under 50 characters). Staying below 640, the lowest limit
-#: :func:`sys.set_int_max_str_digits` accepts, guarantees ``int()`` never rejects a parameter.
-MAX_CSI_LENGTH = 256
-
-#: OSC strings of this length or longer are skipped, and the rest of the string up to its terminator, or up to an ESC
-#: starting a new sequence, is discarded unbuffered, so an unterminated OSC costs neither memory nor quadratic string
-#: growth.
-MAX_OSC_LENGTH = 4096
-
-
-class ParseState(enum.IntEnum):
-    """State of an escape-sequence parser, shared by :class:`AnsiParser` and :class:`~urwid.TermCanvas`.
-
-    The parser is in :attr:`ESCAPE` both right after an ESC and while it reads no sequence at all; its flag for being
-    within an escape sequence tells the two apart.
-    """
-
-    ESCAPE = 0
-    CSI = 1
-    OSC = 2
-    #: the intermediate bytes of an escape sequence (ECMA-35), such as the "(" of a G0 designation
-    ESC_INTERMEDIATE = 3
-    #: the discarded rest of an OSC string of :data:`MAX_OSC_LENGTH` or more, up to its terminator
-    OSC_OVERFLOW = 4
-    #: a DCS, SOS, PM or APC string, which only ST ends
-    COMMAND_STRING = 5
-
-
-#: the states of an OSC string, which BEL or ST ends
-_OSC_STATES: typing.Final = frozenset((ParseState.OSC, ParseState.OSC_OVERFLOW))
-#: the states of a command string, in which control characters are ignored rather than executed
-_STRING_STATES: typing.Final = _OSC_STATES | {ParseState.COMMAND_STRING}
-
-
-def _csi_parameters(body: str | bytes | bytearray) -> list[int | None] | None:
-    """Return the numeric parameters of the CSI parameter string *body*.
-
-    :returns: one number per ``;``-separated parameter, None for an empty one, so an empty *body* gives ``[None]``;
-        None when *body* holds anything but digits and ``;``: a sub-parameter, a private marker or an intermediate byte.
-
-    >>> _csi_parameters("1;;38")
-    [1, None, 38]
-    >>> _csi_parameters(b"?25") is None
-    True
-    """
-    parameters: list[str] | list[bytes] | list[bytearray]
-    if isinstance(body, str):
-        if body.strip("0123456789;"):
-            return None
-        parameters = body.split(";")
-    else:
-        if body.strip(b"0123456789;"):
-            return None
-        parameters = body.split(b";")
-    return [int(parameter) if parameter else None for parameter in parameters]
-
 
 #: The most entries a ``skipped`` list holds, covering one 64 KiB raw display read of 2-byte sequences.
 _MAX_SKIPPED = 65536
@@ -204,79 +95,6 @@ _PADDING_PER_CHARACTER = 8
 
 #: Padding cells an empty row inserted by a vertical move costs, about what the row allocates.
 _PADDING_PER_ROW = 8
-
-
-@dataclasses.dataclass(frozen=True, slots=True, weakref_slot=True)
-class SkippedOp:
-    """A single escape-sequence (or control character) that was recognised but stripped.
-
-    Such a sequence is stripped from the resolved text rather than interpreted, because it has no meaning outside a
-    full two-dimensional terminal canvas.
-
-    :ivar kind: one of ``"vertical-move"``, ``"terminal-setting"`` or ``"unknown"``.
-    :ivar raw: the raw sequence text as encountered (including its ``ESC``/``CSI`` framing), truncated for a sequence
-        skipped for its length.
-    :ivar reason: a human-readable explanation, used verbatim in the log message emitted alongside this entry.
-    """
-
-    kind: str
-    raw: str
-    reason: str
-
-
-@dataclasses.dataclass(frozen=True, slots=True, weakref_slot=True)
-class CharsetState:
-    """The character sets designated to G0 and G1, and the one selected, at the end of a parsed line.
-
-    :ivar g0: the final byte of the G0 designation: ``"B"`` for US ASCII, ``"0"`` for DEC Special Graphics.
-    :ivar g1: the final byte of the G1 designation, in the same form.
-    :ivar selected: ``0`` when G0 is selected (SI), ``1`` when G1 is (SO).
-    :raises ValueError: *selected* is neither ``0`` nor ``1``.
-    """
-
-    g0: str = _ASCII_SET
-    g1: str = DEC_TAG
-    selected: typing.Literal[0, 1] = 0
-
-    def __post_init__(self) -> None:
-        """Refuse a selected slot other than G0 or G1."""
-        if self.selected not in {0, 1}:
-            raise ValueError(f"selected must be 0 (G0) or 1 (G1), not {self.selected!r}")
-
-
-@dataclasses.dataclass(frozen=True, slots=True, weakref_slot=True)
-class ParsedLine:
-    r"""The result of parsing one physical line of ANSI-coloured text.
-
-    :ivar text: the resolved, escape-free text of this line. When produced by :class:`AnsiParser` constructed with
-        ``one_line=True`` (or :func:`parse_ansi_line`), this is guaranteed never to contain a ``\n`` -- line ends
-        are structural split points that produce *separate* :class:`ParsedLine` instances. That invariant is
-        deliberately **not** upheld when :class:`AnsiParser` is constructed with ``one_line=False`` (or by
-        :func:`parse_ansi_text`): since that mode resolves a whole multi-row block into a single :class:`ParsedLine`,
-        its ``text`` legitimately contains embedded ``\n`` characters, one per row boundary, by design.
-    :ivar attrib: run-length encoded display attributes for :attr:`text`, the same shape as
-        :attr:`urwid.Text.attrib`. ``None`` is a valid RLE tag (meaning "no attribute"), matching
-        :func:`urwid.util.decompose_tagmarkup`'s convention.
-    :ivar last_attr: the SGR/colour state in effect at the end of this line.
-    :ivar bel: the number of BEL (``\a``) characters seen on this line (``0`` if none were seen).
-    :ivar title: the last OSC window-title string seen on this line, or ``None`` if none was seen.
-    :ivar leds: the last keyboard-LED state requested on this line (``CSI n q``), or ``None`` if none was seen.
-    :ivar skipped: the :class:`SkippedOp` entries stripped while parsing this line, in encounter order, for
-        programmatic inspection independent of the log. It holds at most the first 65536 of them.
-    :ivar last_charsets: the character sets in effect at the end of this line.
-
-    Pass the line itself as ``previous_attr`` to continue both :attr:`last_attr` and :attr:`last_charsets` into a
-    subsequently parsed line; passing :attr:`last_attr` alone starts that line with the default character sets.
-    """
-
-    text: str
-    attrib: list[tuple[Hashable, int]]
-    last_attr: AttrSpec | None
-    bel: int = 0
-    title: str | None = None
-    leds: str | None = None
-    skipped: list[SkippedOp] = dataclasses.field(default_factory=list)
-    last_charsets: CharsetState = CharsetState()
 
 
 class AnsiParser:
@@ -993,123 +811,3 @@ def parse_ansi_text(text: str, previous_attr: AttrSpec | ParsedLine | None = Non
     parser = AnsiParser(previous_attr, one_line=False)
     parser.feed(text)
     return parser.finalize()[0]
-
-
-def led_state(mode: int) -> str | None:
-    """Map a keyboard-LED ``CSI n q`` mode number to its urwid-facing state name.
-
-    Shared by :class:`AnsiParser` and :mod:`urwid.canvas.term`'s ``TermCanvas.csi_set_keyboard_leds`` so the LED code
-    mapping is maintained in exactly one place.
-
-    :param mode: the ``CSI n q`` mode number to resolve.
-    :returns: one of ``"clear"``, ``"scroll_lock"``, ``"num_lock"`` or ``"caps_lock"``, or ``None`` if ``mode`` is
-        not recognised.
-
-    >>> led_state(0)
-    'clear'
-    >>> led_state(3)
-    'caps_lock'
-    >>> led_state(99) is None
-    True
-    """
-    return _LED_STATES.get(mode)
-
-
-def resolve_osc_title(buf: str) -> str | None:
-    """Resolve the window-title text encoded in an OSC command body, if it matches a recognised title prefix.
-
-    Applies the same prefix rules xterm and :mod:`urwid.canvas.term` use to recognise an OSC window-title request -- a
-    body starting (after stripping leading zeros) with ``;``, ``0;`` or ``2;`` -- and returns the text following
-    the first ``;``. Returns ``None`` for any other OSC body (e.g. an unrecognised or palette-setting OSC), rather
-    than raising.
-
-    :param buf: the OSC command body, excluding the ``ESC ]`` framing and terminator.
-    :returns: the resolved window-title text, or ``None`` if ``buf`` does not match a recognised title prefix.
-
-    >>> resolve_osc_title(";hello")
-    'hello'
-    >>> resolve_osc_title("2;hello")
-    'hello'
-    >>> resolve_osc_title("666not a title") is None
-    True
-    """
-    stripped = buf.lstrip("0")
-    if stripped.startswith((";", "0;", "2;")):
-        return stripped.partition(";")[2]
-    return None
-
-
-def resolve_osc_hyperlink(buf: str) -> Hyperlink | None:
-    """Resolve the hyperlink an OSC 8 command body starts or ends.
-
-    The body is ``8;params;URI`` after leading zeros are stripped, as :func:`resolve_osc_title` strips them.
-    *params* are ``key=value`` pairs separated by ``:``; ``id`` is used and other keys are ignored,
-    as the OSC 8 specification asks.
-
-    :param buf: the OSC command body, excluding the ``ESC ]`` framing and terminator.
-    :returns: the link the following text is drawn with, :data:`~urwid.NO_HYPERLINK` when the body ends the link
-        (an empty URI), or ``None`` when ``buf`` is not an OSC 8 command.
-    :raises ValueError: ``buf`` is an OSC 8 command without the URI field,
-        or with a URI or id :class:`~urwid.Hyperlink` refuses.
-
-    >>> resolve_osc_hyperlink("8;id=home;https://urwid.org")
-    Hyperlink(uri='https://urwid.org', id='home')
-    >>> resolve_osc_hyperlink("8;;") is NO_HYPERLINK
-    True
-    >>> resolve_osc_hyperlink("2;title") is None
-    True
-    """
-    stripped = buf.lstrip("0")
-    if not stripped.startswith("8;"):
-        return None
-    params, sep, uri = stripped[2:].partition(";")
-    if not sep:
-        raise ValueError(f"OSC 8 command without a URI field: {buf!r}")
-    if not uri:
-        return NO_HYPERLINK
-    link_id = ""
-    for param in params.split(":"):
-        key, _, value = param.partition("=")
-        if key == "id":
-            link_id = value
-    return Hyperlink(uri, id=link_id)
-
-
-def attrspec_with_hyperlink(
-    attrspec: AttrSpec | None,
-    link: Hyperlink | None,
-    *,
-    unset_color: typing.Literal["default", "inherit"],
-) -> AttrSpec | None:
-    """Return *attrspec* with its hyperlink replaced by *link*, in the form :func:`sgi_params_to_attrspec` returns.
-
-    :data:`~urwid.NO_HYPERLINK` and ``None`` both mean that the text has no link of its own.
-    The result is a plain :class:`~urwid.AttrSpec`, as from :func:`sgi_params_to_attrspec`, so a subclass of
-    *attrspec* whose constructor takes no *hyperlink* keyword cannot make parsing raise.
-
-    :param attrspec: the attribute in effect, or ``None`` for "no attributes".
-    :param link: the link to set, :data:`~urwid.NO_HYPERLINK` or ``None`` to remove the link.
-    :param unset_color: the color of a foreground or background no SGR parameter has set, as for
-        :func:`sgi_params_to_attrspec`.
-    :returns: the resulting attribute, or ``None`` when it sets neither colors, settings nor a link.
-
-    >>> attrspec_with_hyperlink(None, Hyperlink("https://urwid.org"), unset_color="inherit")
-    AttrSpec('inherit', 'inherit', hyperlink=Hyperlink(uri='https://urwid.org', id=''))
-    >>> attrspec_with_hyperlink(AttrSpec(hyperlink="https://urwid.org"), None, unset_color="inherit") is None
-    True
-    """
-    if link == NO_HYPERLINK:
-        link = None
-    if attrspec is None:
-        if link is None:
-            return None
-        return AttrSpec(unset_color, unset_color, hyperlink=link)
-    if link is None and attrspec.foreground == attrspec.background == unset_color and attrspec.underline_color is None:
-        return None
-    return AttrSpec(
-        attrspec.foreground,
-        attrspec.background,
-        attrspec.colors,
-        hyperlink=link,
-        underline_color=attrspec.underline_color,
-    )

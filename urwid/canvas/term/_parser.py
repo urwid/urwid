@@ -27,21 +27,19 @@ import typing
 from contextlib import suppress
 
 from urwid import util, version
-from urwid.ansi_parser import _CANCEL as CANCEL
-from urwid.ansi_parser import _COMMAND_STRING_IGNORED as COMMAND_STRING_IGNORED
-from urwid.ansi_parser import _COMMAND_STRING_OPENERS as COMMAND_STRING_OPENERS
 from urwid.ansi_parser import (
-    _OSC_STATES,
-    _STRING_STATES,
     MAX_CSI_LENGTH,
     MAX_OSC_LENGTH,
     OSC_IGNORED_CONTROLS,
     ParseState,
-    _csi_parameters,
     attrspec_with_hyperlink,
     resolve_osc_hyperlink,
     resolve_osc_title,
 )
+from urwid.ansi_parser._grammar import _CANCEL as CANCEL
+from urwid.ansi_parser._grammar import _COMMAND_STRING_IGNORED as COMMAND_STRING_IGNORED
+from urwid.ansi_parser._grammar import _COMMAND_STRING_OPENERS as COMMAND_STRING_OPENERS
+from urwid.ansi_parser._grammar import _OSC_STATES, _STRING_STATES, _csi_parameters
 from urwid.canvas.term._cells import CHARSET_DEFAULT, CHARSET_UTF8, ESC_B, _drawn_width, _may_continue_cluster
 from urwid.canvas.term._modes import _ModesCanvas
 from urwid.canvas.term._rectangles import _RectanglesCanvas
@@ -62,13 +60,13 @@ if typing.TYPE_CHECKING:
 
 #: :data:`urwid.ansi_parser.OSC_IGNORED_CONTROLS` as bytes
 _OSC_IGNORED = frozenset(char.encode("ascii") for char in OSC_IGNORED_CONTROLS)
-#: :data:`urwid.ansi_parser._CANCEL` as bytes
+#: :data:`urwid.ansi_parser._grammar._CANCEL` as bytes
 _CANCEL: typing.Final = frozenset(char.encode("ascii") for char in CANCEL)
-#: :data:`urwid.ansi_parser._COMMAND_STRING_IGNORED` as bytes
+#: :data:`urwid.ansi_parser._grammar._COMMAND_STRING_IGNORED` as bytes
 _COMMAND_STRING_IGNORED: typing.Final = frozenset(char.encode("ascii") for char in COMMAND_STRING_IGNORED)
 
 
-#: :data:`urwid.ansi_parser._COMMAND_STRING_OPENERS` as bytes
+#: :data:`urwid.ansi_parser._grammar._COMMAND_STRING_OPENERS` as bytes
 _COMMAND_STRING_OPENERS: typing.Final = frozenset(char.encode("ascii") for char in COMMAND_STRING_OPENERS)
 
 
