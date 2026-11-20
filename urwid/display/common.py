@@ -396,6 +396,8 @@ def _color_desc_88(num: int) -> str:
     16..79 -> '#000'..'#fff' color cube colors
     80..87 -> 'g18'..'g90' grays
 
+    >>> _color_desc_88(0)
+    'h0'
     >>> _color_desc_88(15)
     'h15'
     >>> _color_desc_88(16)
@@ -412,7 +414,7 @@ def _color_desc_88(num: int) -> str:
     :raises ValueError: *num* is outside the 88-colour range.
 
     """
-    if not 0 < num < 88:
+    if not 0 <= num < 88:
         raise ValueError(num)
     if num < _CUBE_START:
         return f"h{num:d}"
@@ -1203,8 +1205,9 @@ def attr_spec_to_css(aspec: AttrSpec) -> tuple[str, str, str]:
     Covers every :class:`AttrSpec` display setting a browser can render: color (falling back to
     the default black-on-light-gray for an unset foreground/background), ``standout`` (swaps
     foreground and background), ``underline``/``strikethrough`` (combined into one
-    ``text-decoration``), ``bold``, ``italics``, ``blink`` (a step-start CSS animation, since the
-    ``text-decoration:blink`` value browsers used to support has been dropped) and ``faint``.
+    ``text-decoration``), ``bold``, ``italics``, ``blink`` (a step-start CSS animation of the text and its lines,
+    which leaves the background drawn, since the ``text-decoration:blink`` value browsers used to support has been
+    dropped) and ``faint``.
     The hyperlink is not part of the style.
     """
     return _style_to_css(aspec.style_only())

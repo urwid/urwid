@@ -43,9 +43,11 @@ from urwid.ansi_parser import (
     OSC_IGNORED_CONTROLS,
     attrspec_with_hyperlink,
     led_state,
+    parse_sgr_parameters,
     resolve_osc_hyperlink,
     resolve_osc_title,
     sgi_params_to_attrspec,
+    split_sgr_parameters,
 )
 from urwid.canvas import Canvas
 from urwid.display import AttrSpec
@@ -148,10 +150,13 @@ _CHECKSUM_UNMAPPED: typing.Final = 0x1B
 #: 4 is permanently reset, as setting them has no effect: smooth scrolling (DECSCLM, 4) and autorepeat (DECARM, 8),
 #: which the display decides, printing (DECPFF 18, DECPEX 19), as no printer is attached, and the national replacement
 #: character sets (DECNRCM, 42), DECKBUM (68) and the margins (DECLRMM, 69), which are not implemented;
-#: 3 is permanently set, for ANSI mode (DECANM, 2), as VT52 mode is not implemented;
+#: and so are cursor blinking (12), which the cursor drawn is never shown with, and the urxvt mouse encoding (1015),
+#: which is never used;
+#: 3 is permanently set, for ANSI mode (DECANM, 2), as VT52 mode is not implemented, and for Meta and Alt sending ESC
+#: (1036, 1039), as the keys are always sent that way;
 #: 2 is reset, for 132 columns (DECCOLM, 3), as xterm reports it without its c132 resource
 _FIXED_PRIVATE_MODE_STATES: typing.Final = types.MappingProxyType(
-    {2: 3, 3: 2, **dict.fromkeys((4, 8, 18, 19, 42, 68, 69), 4)},
+    {2: 3, 3: 2, **dict.fromkeys((4, 8, 12, 18, 19, 42, 68, 69, 1015), 4), **dict.fromkeys((1036, 1039), 3)},
 )
 
 #: the DECRQCRA checksum bits of the AttrSpec flags, as xterm adds them to each character
@@ -329,7 +334,8 @@ CSI_COMMANDS: dict[bytes, CSIAlias | CSICommand] = {
     b"g": CSICommand(1, 0, lambda s, mode, q: s.csi_clear_tabstop(mode[0])),
     b"h": CSICommand(1, 0, lambda s, modes, q: s.csi_set_modes(modes, q)),
     b"l": CSICommand(1, 0, lambda s, modes, q: s.csi_set_modes(modes, q, reset=True)),
-    b"m": CSICommand(1, 0, lambda s, attrs, q: s.csi_set_attr(attrs)),
+    # SGR (CSI Pm m) is run in parse_csi, which also reads its sub-parameters
+    b"m": CSICommand(0, 0, lambda s, _none, _q: None),
     b"n": CSICommand(1, 0, lambda s, mode, q: s.csi_status_report(mode[0], private=q)),
     # DECRQM (CSI ? Ps $ p, CSI Ps $ p), DECSTR (CSI ! p) and DECSCL (CSI Ps ; Ps " p) are run in parse_csi, and the
     # other forms are not implemented
@@ -1218,6 +1224,10 @@ class TermCanvas(Canvas):
             self.widget.respond(_SECONDARY_DEVICE_ATTRIBUTES)
             return
 
+        if char == b"m" and not self._escbuf.strip(b"0123456789;:"):
+            self.csi_set_attr(parse_sgr_parameters(self._escbuf.decode("ascii")))
+            return
+
         qmark = self._escbuf.startswith(b"?")
         body = self._escbuf[1 if qmark else 0 :]
         if body.strip(b"0123456789;") or (qmark and char not in _CSI_PRIVATE_FINAL_BYTES):
@@ -1959,7 +1969,12 @@ class TermCanvas(Canvas):
         self.is_rotten_cursor = with_attrs and wrap
 
     def tab(self, tabstop: int = 8) -> None:
-        """Move cursor to the next 'tabstop', leaving the cells it passes unchanged."""
+        """Move cursor to the next 'tabstop', leaving the cells it passes unchanged.
+
+        As in xterm, a pending wrap stays, and the cursor does not move.
+        """
+        if self.is_rotten_cursor:
+            return
         x, y = self.term_cursor
 
         while x < self.width - 1:
@@ -2160,12 +2175,13 @@ class TermCanvas(Canvas):
         ``sgi_params_to_attrspec`` deliberately ignores it (see its docstring).
 
         :param attrs: the SGR numeric parameters to apply, in encounter order.
+            The arguments of an extended color are never read as SGR 10 to 12.
         """
-        for attr in attrs:
-            if attr == 10:
+        for code in split_sgr_parameters(attrs):
+            if code == (10,):
                 self.charset.reset_sgr_ibmpc()
                 self.modes.display_ctrl = False
-            elif attr in (11, 12):
+            elif code in {(11,), (12,)}:
                 self.charset.set_sgr_ibmpc()
                 self.modes.display_ctrl = True
 

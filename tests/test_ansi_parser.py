@@ -16,8 +16,10 @@ from urwid.ansi_parser import (
     attrspec_with_hyperlink,
     parse_ansi_line,
     parse_ansi_text,
+    parse_sgr_parameters,
     resolve_osc_hyperlink,
     sgi_params_to_attrspec,
+    split_sgr_parameters,
 )
 from urwid.display import NO_HYPERLINK, AttrSpec, Hyperlink, escape
 from urwid.util import rle_len
@@ -324,13 +326,15 @@ class StripAndLogTest(unittest.TestCase):
         self._assert_skip("\x1b|", "unknown", "DEBUG")
 
     def test_csi_with_sub_parameters_or_intermediate_bytes_is_skipped_whole(self) -> None:
-        """Strip a whole CSI sequence with sub-parameters, a private marker or intermediate bytes (ECMA-48 5.4)."""
+        """Strip a whole CSI sequence other than SGR with sub-parameters, a private marker or intermediate bytes.
+
+        ECMA-48 5.4 defines them; SGR is the one sequence that reads sub-parameters.
+        """
         for sequence in (
-            "\x1b[38:5:196m",
-            "\x1b[38:2::255:0:0m",
-            "\x1b[4:3m",
+            "\x1b[2:1C",
             "\x1b[2 q",
             "\x1b[>4;1m",
+            "\x1b[?4m",
             "\x1b[=5u",
             "\x1b[!p",
         ):
@@ -340,6 +344,20 @@ class StripAndLogTest(unittest.TestCase):
                 line = parse_ansi_text(f"{sequence}text")
                 self.assertEqual("text", line.text)
                 self.assertIsNone(line.last_attr)
+
+    def test_sgr_sub_parameters(self) -> None:
+        """Apply the colors and the underline style SGR gives with sub-parameters, and nothing for another group."""
+        for sequence, attr in (
+            ("\x1b[38:5:196m", AttrSpec("h196", "inherit", colors=256)),
+            ("\x1b[38:2::255:0:0m", AttrSpec("#ff0000", "inherit", colors=2**24)),
+            ("\x1b[1;4:3m", AttrSpec("inherit,bold,underline", "inherit")),
+            ("\x1b[1;58:2::255:0:0m", AttrSpec("inherit,bold", "inherit")),
+        ):
+            with self.subTest(sequence=sequence):
+                line = parse_ansi_text(f"{sequence}text")
+                self.assertEqual("text", line.text)
+                self.assertEqual([(attr, 4)], line.attrib)
+                self.assertEqual([], line.skipped)
 
     def test_never_raises(self) -> None:
         # a grab-bag of recognised and unrecognised sequences must never
@@ -506,6 +524,40 @@ class SgiParamsToAttrspecTest(unittest.TestCase):
         result = sgi_params_to_attrspec([38, 2, 10, 20, 30], None)
         expected = AttrSpec("#0a141e", "default", colors=2**24)
         self.assertEqual(expected, result)
+
+    def test_underline_color_arguments_are_no_sgr_codes(self) -> None:
+        """Ignore the underline color (SGR 58) with its arguments, which are no SGR codes of their own."""
+        for params in ([58, 5, 196], [58, 2, 9, 4, 7], [1, 58, 5, 5, 3]):
+            with self.subTest(params=params):
+                expected = AttrSpec("default,bold,italics", "default") if params[0] == 1 else None
+                self.assertEqual(expected, sgi_params_to_attrspec(params, None))
+
+    def test_parse_sgr_parameters(self) -> None:
+        """Turn sub-parameter groups into their plain SGR form, an empty parameter into 0, and drop other groups."""
+        for body, expected in (
+            ("", [0]),
+            (";1;", [0, 1, 0]),
+            ("38:5:196", [38, 5, 196]),
+            ("48:2:1:2:3", [48, 2, 1, 2, 3]),
+            ("58:2:7:1:2:3", [58, 2, 1, 2, 3]),
+            ("38:2::1:2:3", [38, 2, 1, 2, 3]),
+            ("4:0;4:1;4:5", [24, 4, 4]),
+            ("4:6;38:5;38:2:1:2;7:1;1", [1]),
+        ):
+            with self.subTest(body=body):
+                self.assertEqual(expected, parse_sgr_parameters(body))
+
+    def test_split_sgr_parameters(self) -> None:
+        """Keep an extended color with its arguments, and a color cut short or of an unknown model as codes alone."""
+        for params, expected in (
+            ([1, 38, 5, 11, 0], [(1,), (38, 5, 11), (0,)]),
+            ([58, 2, 1, 2, 3, 4], [(58, 2, 1, 2, 3), (4,)]),
+            ([38, 5], [(38,), (5,)]),
+            ([48, 2, 1, 2], [(48,), (2,), (1,), (2,)]),
+            ([38, 7, 1], [(38,), (7,), (1,)]),
+        ):
+            with self.subTest(params=params):
+                self.assertEqual(expected, split_sgr_parameters(params))
 
     def test_bold_set_and_unset(self) -> None:
         bold = sgi_params_to_attrspec([1], None)

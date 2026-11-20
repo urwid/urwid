@@ -344,6 +344,9 @@ def make_websocket_app(token: str) -> tornado.web.Application:
             """Close the WebSocket."""
             self.handler.close()
 
+    # the sessions open now, ended by serve_websocket() when the server stops
+    sessions: set[tornado.websocket.WebSocketHandler] = set()
+
     class SessionHandler(tornado.websocket.WebSocketHandler):  # pylint: disable=abstract-method  # no streamed body
         """One browser page: a screen and a main loop for as long as the WebSocket is open."""
 
@@ -376,6 +379,7 @@ def make_websocket_app(token: str) -> tornado.web.Application:
             event_loop = urwid.GuardedEventLoop(urwid.TornadoEventLoop(), self._on_application_error)
             self.main_loop = build_loop(self.screen, event_loop)
             self.main_loop.start()
+            sessions.add(self)
 
         def on_message(self, message: str | bytes) -> None:
             """Pass a message to the screen, and close the session when it is invalid."""
@@ -388,7 +392,8 @@ def make_websocket_app(token: str) -> tornado.web.Application:
                 self.close(1008, "invalid message")
 
         def on_close(self) -> None:
-            """Stop the session's main loop."""
+            """Stop the session's main loop, also when called again."""
+            sessions.discard(self)
             if self.main_loop is not None:
                 self.main_loop.stop()
                 self.main_loop = None
@@ -404,6 +409,7 @@ def make_websocket_app(token: str) -> tornado.web.Application:
     return tornado.web.Application(
         [(f"/({file_pattern})", PageHandler), (f"/{re.escape(WEBSOCKET_PATH)}", SessionHandler)],
         websocket_max_message_size=websocket_display.MAX_MESSAGE_LENGTH * 4,  # UTF-8 takes at most 4 bytes
+        sessions=sessions,
     )
 
 
@@ -417,7 +423,8 @@ async def serve_websocket(token: str, token_file: pathlib.Path) -> None:
     :param token_file: the file that also holds it, named in the printed login.
     :raises OSError: the port is in use.
     """
-    server = make_websocket_app(token).listen(WEBSOCKET_PORT, WEBSOCKET_ADDRESS)
+    app = make_websocket_app(token)
+    server = app.listen(WEBSOCKET_PORT, WEBSOCKET_ADDRESS)
     try:
         stop = asyncio.Event()
         # they would end the process without removing the token; Windows has no SIGHUP and no asyncio signal handlers
@@ -436,7 +443,11 @@ async def serve_websocket(token: str, token_file: pathlib.Path) -> None:
         await stop.wait()
     finally:
         server.stop()
-        # closing the connections closes their sessions, whose handlers stop the sessions' main loops
+        # close_all_connections() leaves a WebSocket open, and Tornado runs on_close() only once the page answers the
+        # close, after the server has stopped: each session is closed and ended here
+        for session in tuple(app.settings["sessions"]):
+            session.close(1001, "server stopping")
+            session.on_close()
         await server.close_all_connections()
 
 
