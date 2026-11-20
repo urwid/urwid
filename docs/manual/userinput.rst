@@ -303,6 +303,16 @@ and buttons 8 to 11 by adding 128, as described in the "Mouse Tracking"
 section of `XTerm Control Sequences
 <https://invisible-island.net/xterm/ctlseqs/ctlseqs.html>`_.
 
+Without mouse tracking, as with ``handle_mouse=False``, a terminal in
+alternate scroll mode (DEC private mode 1007) sends the wheel on the
+alternate screen as ``'up'`` and ``'down'`` keys, so a list box still scrolls
+with it. Many terminals turn the mode on themselves, and the raw screen leaves
+it as it is. To choose it, pass ``alternate_scroll``; the screen sets the mode
+when it starts and sets back the state the terminal reported when it stops, or
+leaves it as set when the terminal reported none::
+
+    screen = urwid.display.raw.Screen(alternate_scroll=True)
+
 .. [#wheel] A terminal sends no release event for the wheel. The curses screen
    may send a release of 4 or 5, and the FreeBSD console sends releases of
    button 0.

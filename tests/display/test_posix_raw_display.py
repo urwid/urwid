@@ -92,6 +92,63 @@ class TestStartStop(unittest.TestCase):
         self.assertIn(escape.PrivateMode.BRACKETED_PASTE.disable_seq, output)
         self.assertIn(escape.PrivateMode.FOCUS_REPORTING.disable_seq, output)
 
+    def test_alternate_scroll_is_set_while_running_and_set_back(self) -> None:
+        """Set alternate scroll mode on start, and set back the state the terminal reported on stop.
+
+        Left to the terminal by default, the mode is neither queried nor written.
+        Without a report, or with one that does not recognise the mode, it stays as the screen set it.
+        """
+        mode = escape.PrivateMode.ALTERNATE_SCROLL
+        for alternate_scroll, report, on_start, on_stop in (
+            (None, None, None, None),
+            (True, 2, mode.enable_seq, mode.disable_seq),
+            (True, 1, mode.enable_seq, mode.enable_seq),
+            (False, 3, mode.disable_seq, mode.enable_seq),
+            (False, 4, mode.disable_seq, mode.disable_seq),
+            (True, 0, mode.enable_seq, None),
+            (True, None, mode.enable_seq, None),
+            (False, None, mode.disable_seq, None),
+        ):
+            with self.subTest(alternate_scroll=alternate_scroll, report=report):
+                read_fd, write_fd = os.pipe()
+                self.addCleanup(os.close, write_fd)
+                s = Screen(
+                    input=os.fdopen(read_fd, "rb", buffering=0),
+                    output=open(os.devnull, "w"),  # noqa: SIM115
+                    alternate_scroll=alternate_scroll,
+                )
+                written: list[str] = []
+                s.write = written.append
+                s.flush = lambda: None
+                _send_mode_queries(s)
+                self.assertEqual(alternate_scroll is not None, mode.query in "".join(written))
+
+                s.start()
+                self.addCleanup(s.stop)
+                if report is not None:
+                    s._apply_terminal_reports([("private mode report", mode, report)])
+                started = "".join(written)
+                written.clear()
+                s.stop()
+                stopped = "".join(written)
+
+                for output, expected in ((started, on_start), (stopped, on_stop)):
+                    sent = [seq for seq in (mode.enable_seq, mode.disable_seq) if seq in output]
+                    self.assertEqual([] if expected is None else [expected], sent)
+
+        with self.subTest("a stop after a start that did not set it"):
+            read_fd, write_fd = os.pipe()
+            self.addCleanup(os.close, write_fd)
+            s = Screen(
+                input=os.fdopen(read_fd, "rb", buffering=0),
+                output=open(os.devnull, "w"),  # noqa: SIM115
+                alternate_scroll=True,
+            )
+            written = []
+            s.write = written.append
+            s._write_alternate_scroll(restore=True)
+            self.assertEqual([], written)
+
     @mock.patch("termios.tcsetattr")
     @mock.patch("termios.tcgetattr")
     @mock.patch("tty.setcbreak")

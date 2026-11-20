@@ -70,6 +70,7 @@ class Screen(_raw_display_base.Screen):
         extended_keys: bool = False,
         *,
         in_band_resize: bool | None = None,
+        alternate_scroll: bool | None = None,
     ) -> None:
         """Initialize a screen that directly prints escape codes to an output terminal.
 
@@ -87,6 +88,12 @@ class Screen(_raw_display_base.Screen):
             Ctrl+C and Ctrl+Z then arrive as keys instead of signals; see :ref:`extended-keys`.
         :param in_band_resize: accepted for the same arguments as on POSIX, with no effect:
             the console reports every resize in order with the keys itself; see :ref:`in-band-resize`.
+        :param alternate_scroll: whether the terminal sends the mouse wheel as cursor up and down keys
+            while the screen runs (DEC private mode 1007), which it does only on the alternate screen
+            and while the screen does not track the mouse.
+            None (default) leaves the terminal's own setting.
+            True/False set the mode when the screen starts,
+            and the state the terminal reported is set back when it stops; without a report the mode stays as set.
         """
         del in_band_resize  # the console implements no mode 2048 to turn on
         if input is None:
@@ -98,6 +105,7 @@ class Screen(_raw_display_base.Screen):
             bracketed_paste_mode=bracketed_paste_mode,
             focus_reporting=focus_reporting,
             extended_keys=extended_keys,
+            alternate_scroll=alternate_scroll,
         )
         # the console title before set_title() changed it, read through the console API
         self._saved_title: str | None = None
@@ -229,6 +237,7 @@ class Screen(_raw_display_base.Screen):
         if self.modes.focus_reporting:
             self.write(escape.PrivateMode.FOCUS_REPORTING.enable_seq)
 
+        self._write_alternate_scroll(restore=False)
         self._enable_keyboard_protocol()
         self._show_title()
 
@@ -261,6 +270,8 @@ class Screen(_raw_display_base.Screen):
 
                 if self.modes.focus_reporting:
                     self.write(escape.PrivateMode.FOCUS_REPORTING.disable_seq)
+
+                self._write_alternate_scroll(restore=True)
 
                 # before the alternate screen is left: the kitty keyboard flags are kept per screen
                 self._disable_keyboard_protocol()

@@ -163,6 +163,9 @@ _SGR_BRIGHT_OFFSET = 8
 # current color count.
 _ATTRSPEC_INDEX_BY_COLORS: Mapping[_ColorCount, int] = {16: 0, 1: 1, 88: 2, 256: 3, 16777216: 4}
 
+# the DECRPM states of a mode that is set: set (1) and permanently set (3)
+_DECRQM_SET_VALUES: typing.Final = frozenset({1, 3})
+
 
 @dataclasses.dataclass(frozen=True)
 class TerminalProperties:
@@ -190,6 +193,8 @@ class TermModes:
     synchronized_output: bool | None = None
     grapheme_clustering: bool | None = None
     in_band_resize: bool | None = None
+    # Set by Screen(alternate_scroll=...) only: None leaves the mode to the terminal, and no reply changes it.
+    alternate_scroll: bool | None = None
     # Resolved by the replies to the keyboard protocol queries, which are sent only for Screen(extended_keys=True).
     kitty_keyboard: bool | None = None
     modify_other_keys: bool | None = None
@@ -589,6 +594,7 @@ class Screen(BaseScreen, RealTerminal):
         extended_keys: bool = False,
         *,
         in_band_resize: bool | None = None,
+        alternate_scroll: bool | None = None,
     ) -> None:
         """Initialize a screen that directly prints escape codes to an output terminal.
 
@@ -607,6 +613,12 @@ class Screen(BaseScreen, RealTerminal):
             (DEC private mode 2048), as well as from ``SIGWINCH``; see :ref:`in-band-resize`.
             None (default) auto-detects via DECRQM and enables it once confirmed supported;
             pass True/False to force it without probing.
+        :param alternate_scroll: whether the terminal sends the mouse wheel as cursor up and down keys
+            while the screen runs (DEC private mode 1007), which it does only on the alternate screen
+            and while the screen does not track the mouse.
+            None (default) leaves the terminal's own setting.
+            True/False set the mode when the screen starts,
+            and the state the terminal reported is set back when it stops; without a report the mode stays as set.
         """
         super().__init__()
 
@@ -617,8 +629,13 @@ class Screen(BaseScreen, RealTerminal):
             bracketed_paste=bracketed_paste_mode,
             focus_reporting=focus_reporting,
             in_band_resize=in_band_resize,
+            alternate_scroll=alternate_scroll,
         )
         self.extended_keys = extended_keys
+        # the alternate scroll mode the terminal reported before the screen set it, None while it reported none
+        self._alternate_scroll_reported: bool | None = None
+        # the screen set the alternate scroll mode and has not set it back yet
+        self._alternate_scroll_written = False
         # the keyboard protocol queries were sent and the Primary DA reply that ends their answers has not arrived
         self._keyboard_query_pending = False
         # the private modes queried by the last start and not answered yet
@@ -811,6 +828,8 @@ class Screen(BaseScreen, RealTerminal):
             modes.append(escape.PrivateMode.FOCUS_REPORTING)
         if self.modes.in_band_resize is None:
             modes.append(escape.PrivateMode.IN_BAND_RESIZE)
+        if self.modes.alternate_scroll is not None and self._alternate_scroll_reported is None:
+            modes.append(escape.PrivateMode.ALTERNATE_SCROLL)
 
         # a late reply to a query of an earlier start describes the same terminal, so it may answer the new query
         self._mode_queries_pending = set(modes)
@@ -822,6 +841,24 @@ class Screen(BaseScreen, RealTerminal):
             self._keyboard_query_pending = True
         self.write(queries)
         self.flush()
+
+    def _write_alternate_scroll(self, *, restore: bool) -> None:
+        """Set the alternate scroll mode the screen asked for, or with *restore* the state the terminal reported.
+
+        Nothing is written when the screen leaves the mode to the terminal,
+        and nothing is set back when the screen did not set the mode, such as after a start that failed before it,
+        or when the terminal reported no state, also when its reply was not read yet: the mode then stays as the screen
+        set it, rather than a guess replacing the user's own setting.
+        The caller flushes the output.
+        """
+        if self.modes.alternate_scroll is None or (restore and not self._alternate_scroll_written):
+            return
+        self._alternate_scroll_written = not restore
+        if restore and self._alternate_scroll_reported is None:
+            return
+        enable = self._alternate_scroll_reported if restore else self.modes.alternate_scroll
+        mode = escape.PrivateMode.ALTERNATE_SCROLL
+        self.write(mode.enable_seq if enable else mode.disable_seq)
 
     def _set_in_band_resize(self, enable: bool) -> None:
         """Switch the terminal's in-band resize notifications (DEC private mode 2048) on or off.
@@ -900,6 +937,13 @@ class Screen(BaseScreen, RealTerminal):
         reports: list[tuple[str, int]] = []
         for item in decoded_codes:
             match item:
+                case ("private mode report", escape.PrivateMode.ALTERNATE_SCROLL, int() as value) if (
+                    escape.PrivateMode.ALTERNATE_SCROLL in self._mode_queries_pending
+                ):
+                    self._mode_queries_pending.discard(escape.PrivateMode.ALTERNATE_SCROLL)
+                    # 0, not recognised, leaves nothing to set back
+                    if value in escape.DECRQM_RECOGNIZED_VALUES:
+                        self._alternate_scroll_reported = value in _DECRQM_SET_VALUES
                 case ("private mode report", str() as mode, int() as value) if mode in self._mode_queries_pending:
                     self._mode_queries_pending.discard(mode)
                     reports.append((mode, value))
