@@ -218,9 +218,23 @@ draws the cursor cell itself, in reverse video for a block or a bar and
 underlined for an underline, instead of the display's cursor.  A grapheme
 cluster, such as a character with combining accents, an emoji sequence or a
 flag, takes one cell, or two with an empty second half for a wide one, as
-urwid's own width calculation, the one the display uses, measures it.  A C1
-control written in UTF-8 is ignored, as in xterm and kitty.  VT52 mode is not
-implemented.  Replies use 7-bit controls only.  The child is given
+urwid's own width calculation, the one the display uses, measures it.  A
+combining character joins the cell before the cursor also after the cursor was
+moved there, as a text editor joins a character to the text before it.  The
+widget does not report grapheme cluster mode (2027), because of two rules of
+its `specification
+<https://github.com/contour-terminal/terminal-unicode-core>`_ that it does not
+follow:
+
+* the mode joins only characters written one after another, not a character
+  written after a cursor move;
+* the mode keeps a text variation selector (VS15) after a wide emoji in the
+  emoji's cell without changing its width, while urwid's width calculation
+  draws the pair one column wide, so the widget drops the selector to keep the
+  cell's width.
+
+A C1 control written in UTF-8 is ignored, as in xterm and kitty.  VT52 mode is
+not implemented.  Replies use 7-bit controls only.  The child is given
 ``TERM=linux``.
 :class:`TerminalOutput` shows output the application writes to it, such as
 captured output, with no process behind it, and also works on Windows.

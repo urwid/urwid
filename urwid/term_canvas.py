@@ -1909,6 +1909,7 @@ class TermCanvas(Canvas):
         indicator of a flag join the character before them.
         A character with no width that starts a cluster of its own joins it too, as a cell cannot hold it alone.
         After a character was written in the last column, the character before the cursor is the one under it.
+        It is joined also when the cursor was moved there, as a text editor joins a character to the text before it.
         A cluster the display draws one column wider than its character, such as a heart with an emoji variation
         selector, takes the next cell as its second half, and the cursor moves past it; in the last column it moves to
         the next line with autowrap, as in kitty.
