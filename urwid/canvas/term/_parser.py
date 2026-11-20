@@ -37,7 +37,7 @@ from urwid.ansi_parser import (
 )
 from urwid.ansi_parser._grammar import _STRING_STATES, _csi_parameters
 from urwid.ansi_parser._vt_parser import _VTParser
-from urwid.canvas.term._cells import CHARSET_DEFAULT, CHARSET_UTF8, ESC_B, _drawn_width, _may_continue_cluster
+from urwid.canvas.term._cells import CHARSET_DEFAULT, CHARSET_UTF8, ESC_B, _drawn_width
 from urwid.canvas.term._modes import _ModesCanvas
 from urwid.canvas.term._rectangles import _RectanglesCanvas
 from urwid.canvas.term._reports import (
@@ -50,6 +50,7 @@ from urwid.canvas.term._reports import (
 from urwid.canvas.term._screen import _CONFORMANCE_LEVELS
 from urwid.display._sgr import parse_sgr_parameters
 from urwid.display.escape import DCS, ST
+from urwid.str_util import _may_continue_cluster
 
 if typing.TYPE_CHECKING:
     from collections.abc import Callable, Iterable, Mapping
