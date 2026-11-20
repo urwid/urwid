@@ -200,7 +200,7 @@ class AnsiParser(_VTParser[str]):
     _VT_ESC = ESC
     _VT_PALETTE_SET = "P"
     _VT_CSI_RUN = re.compile("[ -?]+")
-    _VT_STRING_RUN = re.compile("[^\x00-\x1f\x1b]+")
+    _VT_STRING_RUN = re.compile("[^\x00-\x1f\x1b\x7f]+")
 
     def __init__(self, previous_attr: AttrSpec | ParsedLine | None = None, *, one_line: bool = False) -> None:
         """Create a parser, as described in the class docstring."""
@@ -430,7 +430,7 @@ class AnsiParser(_VTParser[str]):
             token = token.translate(_DEC_SPECIAL_GRAPHICS)
         self._write_char(token, self._attrspec)
 
-    def _vt_execute(self, token: str, code: int) -> None:  # the hook's signature
+    def _vt_execute(self, token: str, code: int) -> None:
         """Execute a control character, see :meth:`_execute_control`."""
         self._execute_control(token)
 
