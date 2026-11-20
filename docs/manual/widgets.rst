@@ -207,6 +207,9 @@ permanently reset, and Meta and Alt sending ESC (1036, 1039) as permanently
 set.
 The display's focus changes are sent to a child that turns on focus reporting
 (mode 1004) while the terminal has the focus.
+In alternate scroll mode (1007) the mouse wheel is sent to a child on the
+alternate screen that does not track the mouse as five cursor keys per step, as
+in xterm.
 At the VT100 level no reply in a DCS string is sent, except to XTVERSION,
 which xterm answers there too.  SU and SD scroll
 the scrolling region without saving the lines scrolled off in the scrollback,

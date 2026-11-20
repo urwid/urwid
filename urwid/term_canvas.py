@@ -531,6 +531,8 @@ class TermModes:
     # The fields below follow every field above, which a caller may pass to the constructor by position.
     # the child is sent CSI I and CSI O when the display reports that the terminal gained and lost the focus
     focus_reporting: bool = False
+    # without mouse tracking, the child is sent the mouse wheel on the alternate screen as cursor up and down keys
+    alternate_scroll: bool = False
 
     def reset(self) -> None:
         """Reset every mode flag to its terminal-startup default."""
@@ -546,6 +548,7 @@ class TermModes:
         self.autowrap = True
         self.visible_cursor = True
         self.focus_reporting = False
+        self.alternate_scroll = False
         self.in_band_resize = False
         self.mouse_tracking = None
         self.mouse_encoding = None
@@ -2385,6 +2388,8 @@ class TermCanvas(Canvas):
                 self.modes.bracketed_paste = flag
             elif private_mode == PrivateMode.FOCUS_REPORTING:
                 self.modes.focus_reporting = flag
+            elif private_mode == PrivateMode.ALTERNATE_SCROLL:
+                self.modes.alternate_scroll = flag
             elif private_mode == PrivateMode.IN_BAND_RESIZE:
                 self.modes.in_band_resize = flag
                 # the mode asks for a report of the current size on each set, also when it was already set
@@ -2431,6 +2436,8 @@ class TermCanvas(Canvas):
                 return modes.bracketed_paste
             case PrivateMode.FOCUS_REPORTING:
                 return modes.focus_reporting
+            case PrivateMode.ALTERNATE_SCROLL:
+                return modes.alternate_scroll
             case PrivateMode.SYNCHRONIZED_OUTPUT:
                 return modes.synchronized_output
             case PrivateMode.IN_BAND_RESIZE:

@@ -233,6 +233,13 @@ _KITTY_LEGACY_KEYS: typing.Final = frozenset(("enter", "tab", "backspace"))
 #: the keys that frame pasted text, which is sent as typed in a legacy terminal whatever the keyboard flags
 _PASTE_KEYS: typing.Final = frozenset(("begin paste", "end paste"))
 
+#: the cursor keys xterm sends for the mouse wheel in alternate scroll mode (1007), by wheel button, and how many it
+#: sends for one step of the wheel, as its default translations scroll-back(5,line) and scroll-forw(5,line) give
+_ALTERNATE_SCROLL_KEYS: typing.Final[types.MappingProxyType[int, str]] = types.MappingProxyType(
+    {MouseButton.WHEEL_UP: "up", MouseButton.WHEEL_DOWN: "down"}
+)
+_ALTERNATE_SCROLL_LINES: typing.Final = 5
+
 #: the focus event reports xterm sends in focus reporting mode (1004), by the urwid key the display reports them as
 _FOCUS_REPORTS: typing.Final = types.MappingProxyType({"focus in": b"\x1b[I", "focus out": b"\x1b[O"})
 
@@ -794,7 +801,11 @@ class Terminal(Widget):
 
         The report bytes are the ones xterm sends for the same event.
 
-        :returns: ``True`` when the child tracks the mouse, also for an event its tracking mode does not report.
+        In alternate scroll mode (1007), while the child is on the alternate screen and does not track the mouse,
+        a wheel press without modifiers is sent as cursor up or down keys instead, as xterm sends them.
+
+        :returns: ``True`` when the child tracks the mouse, also for an event its tracking mode does not report,
+            and for a wheel press sent as cursor keys.
             Such events are a drag under mode 1000, the release of a wheel button, and under X10 compatibility mode (9)
             anything but a press of buttons 1 to 3.
             ``False`` when the event is left to the parent, in these cases:
@@ -804,13 +815,23 @@ class Terminal(Widget):
             - the view is scrolled back from the screen the child sees;
             - the event is not a press, a release or a drag.
         """
+        if self.terminated or self.term is None or self.term.scrolling_up:
+            return False
+
         modes = self.term_modes
         if (
-            self.terminated
-            or modes.mouse_tracking in _MOUSE_UNREPORTED_TRACKING_MODES
-            or self.term is None
-            or self.term.scrolling_up
+            modes.mouse_tracking is None
+            and modes.alternate_scroll
+            and modes.alternate_screen
+            and event == "mouse press"
+            and button in _ALTERNATE_SCROLL_KEYS
         ):
+            sent = self._key_sequence(_ALTERNATE_SCROLL_KEYS[button])
+            if sent is not None:
+                self._write_report((sent * _ALTERNATE_SCROLL_LINES).encode(self.encoding))
+            return True
+
+        if modes.mouse_tracking in _MOUSE_UNREPORTED_TRACKING_MODES:
             return False
 
         code = 0

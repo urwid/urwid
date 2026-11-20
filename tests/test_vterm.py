@@ -1842,6 +1842,11 @@ class TermTest(unittest.TestCase):
             ),
             ("XTGETTCAP is not answered at the VT100 level", rf'\e[61"p\eP+q436f{_ST}', b""),
             (
+                "mode 1007 is reported, and reset by RIS",
+                r"\e[?1007h\e[?1007$p\ec\e[?1007$p",
+                b"\x1b[?1007;1$y\x1b[?1007;2$y",
+            ),
+            (
                 "mode 1004 is reported, and reset by RIS",
                 r"\e[?1004h\e[?1004$p\ec\e[?1004$p",
                 b"\x1b[?1004;1$y\x1b[?1004;2$y",
@@ -3078,6 +3083,30 @@ class TermTest(unittest.TestCase):
                 self.write(f"\\e[?{modes}h")
                 self.drain()
                 self.assertEqual(self.mouse(*events), ([True] * len(events), sent))
+
+    def test_alternate_scroll_sends_the_wheel_as_cursor_keys(self) -> None:
+        """Send a wheel press as five cursor keys on the alternate screen in mode 1007, as xterm does.
+
+        Only a wheel press without modifiers is sent, only while the child does not track the mouse.
+        The keys the pty cannot take, as the child reads no input, are dropped rather than waited for.
+        """
+        up, down = ("mouse press", 4, 0, 0), ("mouse press", 5, 0, 0)
+        for label, modes, events, results, sent in (
+            ("wheel up and down", "1049;1007", [up, down], [True, True], b"\x1b[A" * 5 + b"\x1b[B" * 5),
+            ("the child reads no input", "1049;1007", [up], [True], None),
+            ("application cursor keys", "1049;1007;1", [up], [True], b"\x1bOA" * 5),
+            ("on the main screen", "1007", [up], [False], b""),
+            ("without the mode", "1049", [up], [False], b""),
+            ("with a modifier", "1049;1007", [("shift mouse press", 4, 0, 0)], [False], b""),
+            ("not a wheel button", "1049;1007", [("mouse press", 1, 0, 0)], [False], b""),
+            ("while the child tracks the mouse", "1049;1007;1000;1006", [up], [True], b"\x1b[<64;1;1M"),
+        ):
+            with self.subTest(label):
+                self.restart()
+                self.write(f"\\e[?{modes}h")
+                self.drain()
+                self.pty.child_reads = sent is not None
+                self.assertEqual(self.mouse(*events), (results, sent or b""))
 
     def test_mouse_reports_read_back_as_the_same_event(self) -> None:
         """Encode a mouse event so that urwid's own input parser reads the event back."""
