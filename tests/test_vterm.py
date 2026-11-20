@@ -706,15 +706,91 @@ class TermTest(unittest.TestCase):
         self.write("\\e[?7h\\e[1;%dHt\b\b\t\ta" % self.term.width)
         self.expect(" " * (self.term.width - 1) + "a")
 
+    def test_tabulation_by_count(self) -> None:
+        """Move the cursor forward (CHT) and back (CBT) by tab stops, stopping at the edges of the line."""
+        for label, data, screen in (
+            ("CHT moves to the second tab stop", r"a\e[2Ib", "a" + " " * 15 + "b"),
+            ("CHT stops at the last column", r"\e[99Ib", " " * 79 + "b"),
+            ("CBT moves to the tab stop before", r"\e[20G\e[Zb", " " * 16 + "b"),
+            ("CBT moves to the second tab stop before", r"\e[20G\e[2Zb", " " * 8 + "b"),
+            ("CBT stops at the first column", r"\e[20G\e[99Zb", "b"),
+            ("CBT on a tab stop moves to the one before", r"\e[17G\e[Zb", " " * 8 + "b"),
+            ("CBT from the last column", r"\e[1;80H\e[Zb", " " * 72 + "b"),
+        ):
+            with self.subTest(label):
+                self.restart()
+                self.write(data)
+                self.expect(screen)
+
     def test_tabs_keep_a_pending_wrap(self) -> None:
         """Leave a pending wrap and the cursor as they are, as xterm does, so the next character wraps."""
         for label, tab in (
             ("HT", "\t"),
+            ("CHT", r"\e[I"),
+            ("CBT", r"\e[2Z"),
         ):
             with self.subTest(label):
                 self.restart()
                 self.write(r"\e[1;80Hx" + tab + "b")
                 self.expect(" " * 79 + "x\nb")
+
+    def test_repeat_character(self) -> None:
+        """Repeat the character written just before REP, and nothing after anything else, as xterm does."""
+        for label, data, screen in (
+            ("the last character", r"ab\e[3bc", "abbbbc"),
+            ("a count of 0 repeats once", r"a\e[0bc", "aac"),
+            ("the base character of a cluster", "e\u0301\\e[2b", "e\u0301ee"),
+            (
+                "the base character of a cluster moved to the next line",
+                "\\e[1;80H\u2764\ufe0f\\e[2b",
+                "\n\u2764\ufe0f\u2764\u2764",
+            ),
+            ("nothing before the first character", r"\e[3ba", "a"),
+            ("nothing after RIS", r"a\ec\e[3bb", "b"),
+            ("nothing after a cursor move", r"a\e[3G\e[2b", "a"),
+            ("nothing after CR", "ab\r\\e[2b", "ab"),
+            ("nothing after LF", "ab\n\\e[2b", "ab"),
+            ("nothing after NUL", "a\x00\\e[2b", "a"),
+            ("nothing after DEL", "a\x7f\\e[2b", "a"),
+            ("nothing after BEL", "a\x07\\e[2b", "a"),
+            ("nothing after SGR", r"a\e[1m\e[2b", "a"),
+            ("nothing after an unknown CSI", r"a\e[99z\e[2b", "a"),
+            ("nothing after an OSC", "a\\e]2;t\x07\\e[2b", "a"),
+            ("nothing after DECSC", r"a\e7\e[2b", "a"),
+            ("nothing after a CSI cancelled by CAN", "a\\e[1\x18\\e[2b", "a"),
+            ("nothing after a control character inside the REP", "a\\e[\x072b", "a"),
+            ("nothing after another REP", r"a\e[2b\e[2b", "aaa"),
+            ("nothing after a charset designation", r"a\e(B\e[2b", "a"),
+            ("a wide character", "一\\e[2b", "一" * 3),
+            ("wrapping to the next line", r"\e[1;79Ha\e[3b", " " * 78 + "aa\naa"),
+        ):
+            with self.subTest(label):
+                self.restart()
+                self.write(data.encode("utf-8").decode("iso8859-1"))
+                self.expect(screen.encode("utf-8").decode("iso8859-1"))
+
+        with self.subTest("a DEC special graphics character"), set_temporary_encoding("ascii"):
+            self.restart()
+            self.write(r"\e(0q\e[2b")
+            self.expect([[(None, "0", b"q")] * 3], raw=True)
+
+    def test_repeat_count_far_larger_than_the_screen(self) -> None:
+        """Leave the screen and the cursor as the same characters written one by one would.
+
+        The count is at most 65535, as in xterm, and it is not run down, so a huge count returns at once.
+        """
+        for char, count in itertools.product(("a", "一"), (65532, 65533, 65534, 65535, 65536, 999999999)):
+            with self.subTest(char=char, count=count):
+                self.restart(5, 2)
+                self.write(f"{char}\\e[{count}b".encode().decode("iso8859-1"))
+                screen = self.read()
+                state = (self.term.term.term_cursor, self.term.term.is_rotten_cursor)
+                # the same number of characters modulo the line, past the first full screen
+                written = 20 + (1 + min(count, 65535)) % (5 if char == "a" else 2)
+                self.restart(5, 2)
+                self.write((char * written).encode().decode("iso8859-1"))
+                self.assertEqual(screen, self.read())
+                self.assertEqual(state, (self.term.term.term_cursor, self.term.term.is_rotten_cursor))
 
     def test_cursor_motion_cancels_pending_wrap(self) -> None:
         """A character written after moving the cursor off a pending wrap stays where the cursor was moved to."""

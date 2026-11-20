@@ -196,6 +196,8 @@ SGR reads the colors and the underline style given with sub-parameters, such as
 ``38:2::r:g:b`` and ``4:3``; every underline style is drawn as a single
 underline, and the underline color is not drawn.
 As in xterm, HT leaves a pending wrap as it is.
+REP repeats only a character written just before it, at most 65535 times, and
+CHT and CBT leave a pending wrap as it is, as in xterm.
 DECRQM reports cursor blinking (12) and the urxvt mouse encoding (1015) as
 permanently reset, and Meta and Alt sending ESC (1036, 1039) as permanently
 set.

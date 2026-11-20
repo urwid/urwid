@@ -168,6 +168,9 @@ _MAX_CLUSTER_LENGTH: typing.Final = 32
 #: the DECRQCRA checksum bit of a protected character
 _CHECKSUM_PROTECTED: typing.Final = 0x04
 
+#: the largest count REP takes, xterm's largest parameter value; a larger one counts as this
+_MAX_REPEAT: typing.Final = 65535
+
 #: the conformance levels DECSCL selects: VT100 (61), VT200 (62) and VT300 (63), the highest and the startup one
 _CONFORMANCE_LEVELS: typing.Final = range(61, 64)
 
@@ -307,6 +310,7 @@ CSI_COMMANDS: dict[bytes, CSIAlias | CSICommand] = {
     b"F": CSICommand(1, 1, lambda s, rows, q: s.move_cursor(0, -rows[0], relative_y=True)),
     b"G": CSICommand(1, 1, lambda s, col, q: s.move_cursor(col[0] - 1, 0, relative_y=True)),
     b"H": CSICommand(2, 1, lambda s, x_y, q: s.move_cursor(x_y[1] - 1, x_y[0] - 1)),
+    b"I": CSICommand(1, 1, lambda s, count, _q: s.csi_forward_tab(count[0])),
     b"J": CSICommand(1, 0, lambda s, mode, q: s.csi_erase_display(mode[0], selective=q or s.modes.iso_protection)),
     b"K": CSICommand(1, 0, lambda s, mode, q: s.csi_erase_line(mode[0], selective=q or s.modes.iso_protection)),
     b"L": CSICommand(1, 1, lambda s, number, q: s.insert_lines(lines=number[0])),
@@ -326,7 +330,9 @@ CSI_COMMANDS: dict[bytes, CSIAlias | CSICommand] = {
             selective=s.modes.iso_protection,
         ),
     ),
+    b"Z": CSICommand(1, 1, lambda s, count, _q: s.csi_backward_tab(count[0])),
     b"a": CSIAlias("alias", b"C"),
+    b"b": CSICommand(1, 1, lambda s, count, _q: s.csi_repeat(count[0])),
     b"c": CSICommand(0, 0, lambda s, none, q: s.csi_get_device_attributes(q)),
     b"d": CSICommand(1, 1, lambda s, row, q: s.move_cursor(0, row[0] - 1, relative_x=True)),
     b"e": CSIAlias("alias", b"B"),
@@ -815,6 +821,11 @@ class TermCanvas(Canvas):
         self.saved_flags: tuple[bool, bool, bool] | None = None
 
         self.is_rotten_cursor = False
+        # the character the last input wrote in a cell of its own, whether it is a DEC special graphics character,
+        # and whether it is wide; None when the last input was anything else, such as a control function
+        self._last_graphic: tuple[bytes, bool, bool] | None = None
+        # the character REP repeats: the one written just before the escape sequence being read
+        self._repeat_graphic: tuple[bytes, bool, bool] | None = None
 
         self.scrollregion_start = 0
         self.scrollregion_end = self.height - 1
@@ -926,6 +937,7 @@ class TermCanvas(Canvas):
         self.saved_flags = None
 
         self.is_rotten_cursor = False
+        self._last_graphic = self._repeat_graphic = None
 
         self.reset_scroll()
 
@@ -1594,11 +1606,17 @@ class TermCanvas(Canvas):
             char = char.to_bytes(1, "little")
 
         dc = self.modes.display_ctrl
+        # as in xterm, REP repeats only a character written just before it: a control character, or a control function
+        # such as SGR, between them cancels the repeat
+        graphic, self._last_graphic = self._last_graphic, None
+        if not self.within_escape or char < b" " or char == b"\x7f":
+            self._repeat_graphic = None
 
         if char == ESC_B and self.parsestate not in _STRING_STATES:  # escape
             # as in a terminal, an ESC drops a sequence still being read and starts a new one
             self.leave_escape()
             self.within_escape = True
+            self._repeat_graphic = graphic
         elif self.parsestate in _STRING_STATES and char in b"\x18\x1a":
             # CAN/SUB abort a command string, also with display_ctrl
             self.leave_escape()
@@ -1639,6 +1657,7 @@ class TermCanvas(Canvas):
             self.leave_escape()
             self.within_escape = True
             self.parsestate = 1
+            self._repeat_graphic = graphic
         elif self.within_escape:
             self.parse_escape(char)
         else:
@@ -1790,6 +1809,8 @@ class TermCanvas(Canvas):
         :param dec_special: *char* is already in the DEC special character set: store it there, unmapped.
         """
         x, y = self.term_cursor
+        if char is not None:
+            self._last_graphic = (char, dec_special, False)
 
         if self.modes.autowrap:
             if x + 1 >= self.width and not self.is_rotten_cursor:
@@ -1832,6 +1853,7 @@ class TermCanvas(Canvas):
 
         :param char: the character, in urwid's encoding.
         """
+        self._last_graphic = (char, False, True)
         x, y = self.term_cursor
         if self.width < 2 or (not self.modes.autowrap and x + 1 >= self.width):
             return
@@ -1913,7 +1935,10 @@ class TermCanvas(Canvas):
                 return width == 0
             # as in kitty, the cluster moves to the next line, as a wide character that does not fit does
             line[x] = self.empty_char()
+            # the cluster is no character of its own for REP, which repeats its base character
+            base = self._last_graphic
             self.push_wide_char(joined)
+            self._last_graphic = base
             row = self.term[self.term_cursor[1]]
             row[0] = (attrspec, charset, _Protected(joined) if protected else joined)
             row[1] = (attrspec, charset, _Protected(b"") if protected else b"")
@@ -1985,6 +2010,61 @@ class TermCanvas(Canvas):
 
         self.is_rotten_cursor = False
         self.set_term_cursor(x, y)
+
+    def csi_forward_tab(self, count: int) -> None:
+        """Move the cursor to the *count*-th next tab stop (CHT), or to the last column when there are fewer.
+
+        As in xterm, a pending wrap stays, and the cursor does not move.
+        """
+        for _ in range(min(count, self.width)):
+            self.tab()
+
+    def csi_backward_tab(self, count: int) -> None:
+        """Move the cursor to the *count*-th tab stop before it (CBT), or to the first column when there are fewer.
+
+        As in xterm, a pending wrap stays, and the cursor does not move.
+        """
+        if self.is_rotten_cursor:
+            return
+        x, y = self.term_cursor
+        for _ in range(min(count, self.width)):
+            while x > 0:
+                x -= 1
+                if self.is_tabstop(x):
+                    break
+        self.is_rotten_cursor = False
+        self.set_term_cursor(x, y)
+
+    def csi_repeat(self, count: int) -> None:
+        """Write the character written just before this sequence *count* more times (REP), as xterm does.
+
+        As in xterm:
+
+        - the character is the one that took a cell of its own, also when combining characters joined it;
+        - nothing is written when anything else came just before the sequence, such as a control character,
+          another control function or another REP;
+        - the count is at most 65535.
+
+        Once a screen and one more line are written, every full line of copies more leaves the screen as it was, so the
+        count is reduced past that by whole lines.
+        The screen and the cursor end as with the whole count, and the lines left out are not added to the scrollback.
+        """
+        if self._repeat_graphic is None:
+            return
+        char, dec_special, wide = self._repeat_graphic
+        self._repeat_graphic = None
+        count = min(count, _MAX_REPEAT)
+        per_line = max(self.width // 2, 1) if wide else self.width
+        limit = per_line * (self.height + 1)
+        if count > limit:
+            count = limit + (count - limit) % per_line
+        for _ in range(count):
+            if wide:
+                self.push_wide_char(char)
+            else:
+                self.push_cursor(char, dec_special=dec_special)
+        # the copies are no character written just before a REP that follows
+        self._last_graphic = None
 
     def scroll(self, reverse: bool = False, *, scrollback: bool = True) -> None:
         """Append a new line at the bottom of the scrolling region and remove its topmost line.
