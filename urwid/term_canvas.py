@@ -1387,19 +1387,21 @@ class TermCanvas(Canvas):
     def parse_dcs(self, body: bytes) -> None:
         """Apply the DCS string *body*, given without its ``ESC P`` and ST framing.
 
-        DECRQSS and XTGETTCAP are answered and DECRSPS is applied, except at the VT100 level (61).
+        DECRQSS and XTGETTCAP are answered and DECRSPS is applied.
+        As in xterm, at the VT100 level (61) DECRSPS is not applied, and DECRQSS does not answer the conformance level.
         Any other DCS string is ignored.
         """
-        if self.conformance_level == 61:
-            return
         if body.startswith(b"$q"):
-            self.dcs_request_setting(body[2:])
+            if not (self.conformance_level == _CONFORMANCE_LEVELS[0] and body[2:] == b'"p'):
+                self.dcs_request_setting(body[2:])
+        elif body.startswith(b"+q"):
+            self.dcs_request_termcap(body[2:])
+        elif self.conformance_level == _CONFORMANCE_LEVELS[0]:
+            return
         elif body.startswith(b"1$t"):
             self.dcs_restore_cursor_information(body[3:])
         elif body.startswith(b"2$t"):
             self.dcs_restore_tab_stops(body[3:])
-        elif body.startswith(b"+q"):
-            self.dcs_request_termcap(body[2:])
 
     def parse_escape(self, char: bytes) -> None:
         """Feed *char* through the escape-sequence state machine, dispatching to CSI/OSC/non-CSI parsing as needed."""

@@ -210,8 +210,10 @@ The display's focus changes are sent to a child that turns on focus reporting
 In alternate scroll mode (1007) the mouse wheel is sent to a child on the
 alternate screen that does not track the mouse as five cursor keys per step, as
 in xterm.
-At the VT100 level no reply in a DCS string is sent, except to XTVERSION,
-which xterm answers there too.  SU and SD scroll
+At the VT100 level, as in xterm, DECRQPSR and DECRQUPSS are not answered,
+DECRQSS does not answer the conformance level, and DECRSPS is not applied; the
+tertiary device attributes and DECRQCRA are not answered there either.
+SU and SD scroll
 the scrolling region without saving the lines scrolled off in the scrollback,
 as in xterm.  After the child sets a cursor style with DECSCUSR, the widget
 draws the cursor cell itself, in reverse video for a block or a bar and

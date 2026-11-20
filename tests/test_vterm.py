@@ -1737,9 +1737,19 @@ class TermTest(unittest.TestCase):
                 b'\x1bP1$r62;1"p\x1b\\\x1bP1$r62;1"p\x1b\\\x1bP1$r63;1"p\x1b\\',
             ),
             (
-                "at the VT100 level DECRQSS and DECRQPSR are not answered, DECRQM still is",
+                "at the VT100 level DECRQPSR is not answered, DECRQM and DECRQSS still are, as in xterm",
                 rf'\e[61"p\eP$qm{_ST}\e[1$w\e[2$w\e[?66$p',
-                b"\x1b[?66;2$y",
+                b"\x1bP1$r0m\x1b\\\x1b[?66;2$y",
+            ),
+            (
+                "at the VT100 level DECRQSS does not answer the conformance level, as in xterm",
+                rf'\e[61"p\eP$q"p{_ST}\eP$qr{_ST}',
+                b"\x1bP1$r1;24r\x1b\\",
+            ),
+            (
+                "at the VT100 level DECRSPS is not applied, as in xterm",
+                rf'\e[61"p\e[2;2H\eP1$t5;5;1;@;@;@;0;2;@;BBBB{_ST}\e[6n',
+                b"\x1b[2;2R",
             ),
             ("DECSCL performs a soft reset", r'\e[?25l\e[63;1"p\e[?25$p', b"\x1b[?25;1$y"),
             (
@@ -1853,7 +1863,7 @@ class TermTest(unittest.TestCase):
                 r"\e[?1036l\e[?1036$p\e[?1039l\e[?1039$p",
                 b"\x1b[?1036;3$y\x1b[?1039;3$y",
             ),
-            ("XTGETTCAP is not answered at the VT100 level", rf'\e[61"p\eP+q436f{_ST}', b""),
+            ("XTGETTCAP is answered at the VT100 level too, as in xterm", rf'\e[61"p\eP+qzz{_ST}', b"\x1bP0+r\x1b\\"),
             (
                 "mode 1007 is reported, and reset by RIS",
                 r"\e[?1007h\e[?1007$p\ec\e[?1007$p",
