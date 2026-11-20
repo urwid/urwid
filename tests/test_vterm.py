@@ -270,11 +270,24 @@ class TermTest(unittest.TestCase):
         self.term = urwid.Terminal(["/bin/false"], main_loop=self.event_loop)
         self.resize(80, 24)
 
-    def restart(self, width: int = 80, height: int = 24, soft: bool = False, *, scroll_on_output: bool = True) -> None:
+    def restart(
+        self,
+        width: int = 80,
+        height: int = 24,
+        soft: bool = False,
+        *,
+        scroll_on_output: bool = True,
+        pass_signal_keys: bool = True,
+    ) -> None:
         """Replace the terminal under test with a fresh one on a fresh fake PTY, for one case of a table test."""
         self.term.terminate()
         self.pty.reset()
-        self.term = urwid.Terminal(["/bin/false"], main_loop=self.event_loop, scroll_on_output=scroll_on_output)
+        self.term = urwid.Terminal(
+            ["/bin/false"],
+            main_loop=self.event_loop,
+            scroll_on_output=scroll_on_output,
+            pass_signal_keys=pass_signal_keys,
+        )
         self.resize(width, height, soft)
 
     def tearDown(self) -> None:
@@ -3191,6 +3204,16 @@ class TermTest(unittest.TestCase):
         self.read(focus=False)
         self.assertEqual(self.tty.signal_keys, original)
         self.read(focus=True)
+        self.term.terminate()
+        self.assertEqual(self.tty.signal_keys, original)
+
+    def test_focus_leaves_tty_signal_keys_on_request(self) -> None:
+        """Leave the tty signal keys alone with pass_signal_keys=False, focused or not."""
+        self.restart(pass_signal_keys=False)
+        original = self.tty.signal_keys
+        self.read(focus=True)
+        self.assertEqual(self.tty.signal_keys, original)
+        self.read(focus=False)
         self.term.terminate()
         self.assertEqual(self.tty.signal_keys, original)
 

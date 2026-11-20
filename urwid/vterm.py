@@ -291,6 +291,7 @@ class Terminal(Widget):
         encoding: str = "utf-8",
         *,
         scroll_on_output: bool = True,
+        pass_signal_keys: bool = True,
     ) -> None:
         """Initialize a terminal emulator widget.
 
@@ -321,6 +322,11 @@ class Terminal(Widget):
         as xterm does by default. Set it to ``False`` to keep the view on the lines it shows while new output scrolls
         into the scrollback below them.
 
+        ``pass_signal_keys`` turns off the signal keys of the terminal the application runs in, such as :kbd:`Ctrl+C`,
+        while the widget has the focus, so they reach the child as keys.
+        Set it to ``False`` when that terminal is not the one the user types into, as for a widget shown in a browser,
+        to keep the application's own terminal as it is.
+
         .. note::
 
             If your Terminal instance does not show Unicode glyphs correctly, urwid's encoding is not UTF-8.
@@ -331,6 +337,7 @@ class Terminal(Widget):
 
         self.escape_sequence: str = escape_sequence or "ctrl a"
         self._scroll_on_output = scroll_on_output
+        self._pass_signal_keys = pass_signal_keys
 
         self.env = dict(env or os.environ)
 
@@ -549,7 +556,7 @@ class Terminal(Widget):
         self._emit("title", title)
 
     def change_focus(self, has_focus: bool) -> None:
-        """Ignore SIGINT if this widget has focus."""
+        """Ignore SIGINT if this widget has focus, unless the widget was made to leave the signal keys alone."""
         if self.terminated:
             return
 
@@ -560,7 +567,7 @@ class Terminal(Widget):
             self.term.has_focus = has_focus
             self.term.set_term_cursor()
 
-        if not focus_changed:
+        if not focus_changed or not self._pass_signal_keys:
             return
 
         if has_focus:
