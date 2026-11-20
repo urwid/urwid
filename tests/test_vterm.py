@@ -1788,6 +1788,25 @@ class TermTest(unittest.TestCase):
             ("mode 2048 reports the size on each set", r"\e[?2048h\e[?2048h", b"\x1b[48;24;80;0;0t" * 2),
             ("mode 2048 is reset by RIS", r"\e[?2048h\ec\e[?2048$p", b"\x1b[48;24;80;0;0t\x1b[?2048;2$y"),
             (
+                "XTVERSION names urwid and its version",
+                r"\e[>q\e[>0q",
+                f"\x1bP>|urwid({urwid.__version__})\x1b\\".encode("ascii") * 2,
+            ),
+            ("XTVERSION with a parameter other than 0 is not answered", r"\e[>1q", b""),
+            (
+                "XTVERSION is answered at the VT100 level too, as in xterm",
+                r'\e[61"p\e[>q',
+                f"\x1bP>|urwid({urwid.__version__})\x1b\\".encode("ascii"),
+            ),
+            ("XTWINOPS 18 reports the text area in characters", r"\e[18t", b"\x1b[8;24;80t"),
+            ("XTWINOPS 14 reports the text area in pixels as unknown", r"\e[14t\e[14;2t", b"\x1b[4;0;0t" * 2),
+            ("the other XTWINOPS operations are not answered", r"\e[19t\e[22;0t\e[8;10;10t", b""),
+            (
+                "XTGETTCAP answers an unknown first name as invalid, as while the display colors are unknown",
+                rf"\eP+q436f;524742{_ST}\eP+qzz;436f{_ST}",
+                b"\x1bP0+r\x1b\\" * 2,
+            ),
+            (
                 "DECRQM reports the cursor blink and the urxvt mouse permanently reset, as they are never used",
                 r"\e[?12h\e[?12$p\e[?1015h\e[?1015$p",
                 b"\x1b[?12;4$y\x1b[?1015;4$y",
@@ -1797,12 +1816,42 @@ class TermTest(unittest.TestCase):
                 r"\e[?1036l\e[?1036$p\e[?1039l\e[?1039$p",
                 b"\x1b[?1036;3$y\x1b[?1039;3$y",
             ),
+            ("XTGETTCAP is not answered at the VT100 level", rf'\e[61"p\eP+q436f{_ST}', b""),
         ):
             with self.subTest(label):
                 self.restart()
                 self.write(query)
                 self.read()
                 self.assertEqual(bytes(self.pty.from_widget), answer)
+
+    def test_xtgettcap_describes_the_display_colors(self) -> None:
+        """Answer the color count and RGB as the display draws them, the color count at most the 256 of the palette.
+
+        As in xterm, the names known are answered in one reply, up to the first one that is not.
+        """
+        query = rf"\eP+q436f;636F6C6F7273;524742;544E;436f{_ST}"
+        for colors, answer in (
+            (2**24, b"\x1bP1+r436f=323536;636F6C6F7273=323536;524742=38;\x1b\\"),
+            (256, b"\x1bP1+r436f=323536;636F6C6F7273=323536;\x1b\\"),
+            (88, b"\x1bP1+r436f=3838;636F6C6F7273=3838;\x1b\\"),
+            (16, b"\x1bP1+r436f=3136;636F6C6F7273=3136;\x1b\\"),
+            (1, b"\x1bP0+r\x1b\\"),
+        ):
+            with self.subTest(colors=colors):
+                self.restart()
+                self.term.term.display_colors = colors
+                self.write(query)
+                self.term.wait_and_feed()
+                self.assertEqual(bytes(self.pty.from_widget), answer)
+
+    def test_render_takes_the_display_colors_from_the_main_loop(self) -> None:
+        """Take the display colors from the screen of the running main loop, unknown for a screen without them."""
+        for screen, colors in ((mock.Mock(colors=88), 88), (mock.Mock(spec=[]), None)):
+            with self.subTest(colors=colors):
+                loop = mock.Mock(screen=screen)
+                with mock.patch("urwid.vterm.event_loop.get_running_loop_or_none", return_value=loop):
+                    self.term.render(self.termsize, focus=False)
+                self.assertEqual(self.term.term.display_colors, colors)
 
     def test_in_band_resize_reports_each_new_size(self) -> None:
         """Send the child a report after its new size is set, while mode 2048 is set and the pty takes input."""

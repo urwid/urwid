@@ -36,7 +36,7 @@ from dataclasses import dataclass, field
 
 import wcwidth
 
-from urwid import _deprecation, str_util, util
+from urwid import _deprecation, str_util, util, version
 from urwid.ansi_parser import (
     MAX_CSI_LENGTH,
     MAX_OSC_LENGTH,
@@ -167,6 +167,10 @@ _MAX_CLUSTER_LENGTH: typing.Final = 32
 
 #: the DECRQCRA checksum bit of a protected character
 _CHECKSUM_PROTECTED: typing.Final = 0x04
+
+#: the colors of the palette SGR 38;5 and 48;5 select from, and the colors of a display that draws any RGB color
+_PALETTE_COLORS: typing.Final = 256
+_TRUE_COLORS: typing.Final = 2**24
 
 #: the largest count REP takes, xterm's largest parameter value; a larger one counts as this
 _MAX_REPEAT: typing.Final = 65535
@@ -357,7 +361,7 @@ CSI_COMMANDS: dict[bytes, CSIAlias | CSICommand] = {
     # DECFRA (CSI ... $ x), DECERA (CSI ... $ z), DECSERA (CSI ... $ {), DECCRA (CSI ... $ v), DECCARA (CSI ... $ r),
     # DECRARA (CSI ... $ t), DECSACE (CSI Ps * x), DECRQCRA (CSI ... * y), DECIC (CSI Ps ' }) and DECDC (CSI Ps ' ~);
     # DECSCA (CSI Ps " q) and DECRQUPSS (CSI & u) are run there too
-    b"t": CSICommand(0, 0, lambda s, none, q: None),
+    b"t": CSICommand(1, 0, lambda s, operation, q: s.csi_report_window(operation[0])),
     b"v": CSICommand(0, 0, lambda s, none, q: None),
     b"x": CSICommand(0, 0, lambda s, none, q: None),
     b"y": CSICommand(0, 0, lambda s, none, q: None),
@@ -826,6 +830,9 @@ class TermCanvas(Canvas):
         self._last_graphic: tuple[bytes, bool, bool] | None = None
         # the character REP repeats: the one written just before the escape sequence being read
         self._repeat_graphic: tuple[bytes, bool, bool] | None = None
+        #: the colors the display draws, as its screen reports them, which the XTGETTCAP replies describe;
+        #: None while unknown. The widget the canvas belongs to sets it.
+        self.display_colors: Literal[1, 16, 88, 256, 16777216] | None = None
 
         self.scrollregion_start = 0
         self.scrollregion_end = self.height - 1
@@ -1236,6 +1243,11 @@ class TermCanvas(Canvas):
             self.widget.respond(_SECONDARY_DEVICE_ATTRIBUTES)
             return
 
+        if char == b"q" and bytes(self._escbuf) in {b">", b">0"}:
+            # XTVERSION, the query of the terminal's name and version
+            self.widget.respond(f"{ESC}P>|urwid({version.version}){ESC}\\")
+            return
+
         if char == b"m" and not self._escbuf.strip(b"0123456789;:"):
             self.csi_set_attr(parse_sgr_parameters(self._escbuf.decode("ascii")))
             return
@@ -1368,7 +1380,7 @@ class TermCanvas(Canvas):
     def parse_dcs(self, body: bytes) -> None:
         """Apply the DCS string *body*, given without its ``ESC P`` and ST framing.
 
-        DECRQSS is answered and DECRSPS is applied, except at the VT100 level (61).
+        DECRQSS and XTGETTCAP are answered and DECRSPS is applied, except at the VT100 level (61).
         Any other DCS string is ignored.
         """
         if self.conformance_level == 61:
@@ -1379,6 +1391,8 @@ class TermCanvas(Canvas):
             self.dcs_restore_cursor_information(body[3:])
         elif body.startswith(b"2$t"):
             self.dcs_restore_tab_stops(body[3:])
+        elif body.startswith(b"+q"):
+            self.dcs_request_termcap(body[2:])
 
     def parse_escape(self, char: bytes) -> None:
         """Feed *char* through the escape-sequence state machine, dispatching to CSI/OSC/non-CSI parsing as needed."""
@@ -2066,6 +2080,19 @@ class TermCanvas(Canvas):
         # the copies are no character written just before a REP that follows
         self._last_graphic = None
 
+    def csi_report_window(self, operation: int) -> None:
+        """Answer the XTWINOPS size reports: the text area in pixels (14) and in characters (18).
+
+        The size in pixels is reported as 0 by 0, which stands for unknown, as the pty the child reads its size from
+        gives no pixels.
+        The other window operations are ignored, since the size of the canvas is set by the widget it belongs to.
+        """
+        match operation:
+            case 14:
+                self.widget.respond(f"{ESC}[4;0;0t")
+            case 18:
+                self.widget.respond(f"{ESC}[8;{self.height:d};{self.width:d}t")
+
     def scroll(self, reverse: bool = False, *, scrollback: bool = True) -> None:
         """Append a new line at the bottom of the scrolling region and remove its topmost line.
 
@@ -2601,6 +2628,40 @@ class TermCanvas(Canvas):
         self.charset.end_single_shift()
         if flag_bits & (_FLAG_SS2 | _FLAG_SS3):
             self.charset.single_shift(2 if flag_bits & _FLAG_SS2 else 3)
+
+    def dcs_request_termcap(self, names: bytes) -> None:
+        """Answer an XTGETTCAP query (DCS + q Pt ST) for the capability names in *names*.
+
+        Each name is hex-encoded, and the names are separated by ``;``.
+        The capabilities answered describe the colors of the display, :attr:`display_colors`:
+
+        - ``Co`` and ``colors``, the termcap and terminfo names of the color count, for a display with colors,
+          at most the 256 of the palette;
+        - ``RGB``, 8 bits per channel, for a display that draws any RGB color.
+
+        The reply follows xterm:
+
+        - the names are answered in order up to the first one that is not answered;
+        - those answered are listed in one DCS 1 + r Pt ST, Pt holding ``name=value;`` for each, the value hex-encoded
+          as the name is;
+        - when the first name is not answered, the reply is DCS 0 + r ST.
+        """
+        values: dict[str, str] = {}
+        if self.display_colors is not None and self.display_colors > 1:
+            values["Co"] = values["colors"] = str(min(self.display_colors, _PALETTE_COLORS))
+            if self.display_colors == _TRUE_COLORS:
+                values["RGB"] = "8"
+        answered = ""
+        for name in names.split(b";"):
+            try:
+                hex_name = name.decode("ascii")
+                key = bytes.fromhex(hex_name).decode("ascii")
+            except ValueError:
+                break
+            if key not in values:
+                break
+            answered += f"{hex_name}={values[key].encode('ascii').hex().upper()};"
+        self.widget.respond(f"{ESC}P1+r{answered}{ESC}\\" if answered else f"{ESC}P0+r{ESC}\\")
 
     def dcs_restore_tab_stops(self, body: bytes) -> None:
         """Set the tab stops to the 1-based columns of a DECTABSR report *body* (DECRSPS 2), separated by ``/``.

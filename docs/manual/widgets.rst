@@ -192,6 +192,10 @@ choosing a rectangle or a stream for the last two, and the DECRQCRA checksum,
 the column operations DECIC, DECDC, DECBI and DECFI, and the tertiary device
 attributes query, at every level, although xterm takes them only at the VT420
 level.
+Of the xterm queries it answers XTVERSION with urwid and its version, the size
+reports of XTWINOPS, in characters (18) and in pixels (14) as unknown, and
+XTGETTCAP, in xterm's form, for the color count and RGB colors the display
+draws.
 SGR reads the colors and the underline style given with sub-parameters, such as
 ``38:2::r:g:b`` and ``4:3``; every underline style is drawn as a single
 underline, and the underline color is not drawn.
@@ -201,7 +205,8 @@ CHT and CBT leave a pending wrap as it is, as in xterm.
 DECRQM reports cursor blinking (12) and the urxvt mouse encoding (1015) as
 permanently reset, and Meta and Alt sending ESC (1036, 1039) as permanently
 set.
-At the VT100 level no reply in a DCS string is sent.  SU and SD scroll
+At the VT100 level no reply in a DCS string is sent, except to XTVERSION,
+which xterm answers there too.  SU and SD scroll
 the scrolling region without saving the lines scrolled off in the scrollback,
 as in xterm.  After the child sets a cursor style with DECSCUSR, the widget
 draws the cursor cell itself, in reverse video for a block or a bar and

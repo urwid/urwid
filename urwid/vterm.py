@@ -559,6 +559,15 @@ class Terminal(Widget):
 
             width, height = size
             self.touch_term(width, height)
+            # the colors the replies to the child's queries describe; a screen without the attribute, such as curses,
+            # leaves them unknown
+            screen_loop = (
+                self.main_loop
+                if isinstance(self.main_loop, event_loop.MainLoop)
+                else event_loop.get_running_loop_or_none()
+            )
+            if screen_loop is not None:
+                self.term.display_colors = getattr(screen_loop.screen, "colors", None)  # type: ignore[union-attr]
 
             if self.main_loop is None:
                 running = event_loop.get_running_loop_or_none()
