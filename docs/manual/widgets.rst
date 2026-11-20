@@ -191,7 +191,11 @@ operations DECFRA, DECERA, DECSERA, DECCRA, DECCARA and DECRARA, with DECSACE
 choosing a rectangle or a stream for the last two, and the DECRQCRA checksum,
 the column operations DECIC, DECDC, DECBI and DECFI, and the tertiary device
 attributes query, at every level, although xterm takes them only at the VT420
-level.  At the VT100 level no reply in a DCS string is sent.  SU and SD scroll
+level.
+SGR reads the colors and the underline style given with sub-parameters, such as
+``38:2::r:g:b`` and ``4:3``; every underline style is drawn as a single
+underline, and the underline color is not drawn.
+At the VT100 level no reply in a DCS string is sent.  SU and SD scroll
 the scrolling region without saving the lines scrolled off in the scrollback,
 as in xterm.  After the child sets a cursor style with DECSCUSR, the widget
 draws the cursor cell itself, in reverse video for a block or a bar and

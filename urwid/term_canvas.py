@@ -43,9 +43,11 @@ from urwid.ansi_parser import (
     OSC_IGNORED_CONTROLS,
     attrspec_with_hyperlink,
     led_state,
+    parse_sgr_parameters,
     resolve_osc_hyperlink,
     resolve_osc_title,
     sgi_params_to_attrspec,
+    split_sgr_parameters,
 )
 from urwid.canvas import Canvas
 from urwid.display import AttrSpec
@@ -329,7 +331,8 @@ CSI_COMMANDS: dict[bytes, CSIAlias | CSICommand] = {
     b"g": CSICommand(1, 0, lambda s, mode, q: s.csi_clear_tabstop(mode[0])),
     b"h": CSICommand(1, 0, lambda s, modes, q: s.csi_set_modes(modes, q)),
     b"l": CSICommand(1, 0, lambda s, modes, q: s.csi_set_modes(modes, q, reset=True)),
-    b"m": CSICommand(1, 0, lambda s, attrs, q: s.csi_set_attr(attrs)),
+    # SGR (CSI Pm m) is run in parse_csi, which also reads its sub-parameters
+    b"m": CSICommand(0, 0, lambda s, _none, _q: None),
     b"n": CSICommand(1, 0, lambda s, mode, q: s.csi_status_report(mode[0], private=q)),
     # DECRQM (CSI ? Ps $ p, CSI Ps $ p), DECSTR (CSI ! p) and DECSCL (CSI Ps ; Ps " p) are run in parse_csi, and the
     # other forms are not implemented
@@ -1216,6 +1219,10 @@ class TermCanvas(Canvas):
         if char == b"c" and bytes(self._escbuf) in {b">", b">0"}:
             # Secondary DA: CSI > c
             self.widget.respond(_SECONDARY_DEVICE_ATTRIBUTES)
+            return
+
+        if char == b"m" and not self._escbuf.strip(b"0123456789;:"):
+            self.csi_set_attr(parse_sgr_parameters(self._escbuf.decode("ascii")))
             return
 
         qmark = self._escbuf.startswith(b"?")
@@ -2160,12 +2167,13 @@ class TermCanvas(Canvas):
         ``sgi_params_to_attrspec`` deliberately ignores it (see its docstring).
 
         :param attrs: the SGR numeric parameters to apply, in encounter order.
+            The arguments of an extended color are never read as SGR 10 to 12.
         """
-        for attr in attrs:
-            if attr == 10:
+        for code in split_sgr_parameters(attrs):
+            if code == (10,):
                 self.charset.reset_sgr_ibmpc()
                 self.modes.display_ctrl = False
-            elif attr in (11, 12):
+            elif code in {(11,), (12,)}:
                 self.charset.set_sgr_ibmpc()
                 self.modes.display_ctrl = True
 

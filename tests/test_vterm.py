@@ -2208,11 +2208,55 @@ class TermTest(unittest.TestCase):
         )
 
     def test_csi_with_sub_parameters_or_intermediate_bytes_is_ignored_whole(self) -> None:
-        """Ignore a whole CSI sequence with sub-parameters, a private marker or intermediate bytes (ECMA-48 5.4)."""
-        self.write(r"\e[38:5:196ma\e[38:2::1:2:3mb\e[4:3mc\e[2 @d\e[>4;1me\e[=5cf\e[1$tg\e[>1ch")
-        self.expect("abcdefgh")
+        """Ignore a whole CSI sequence other than SGR with sub-parameters, a private marker or intermediate bytes.
+
+        ECMA-48 5.4 defines them; SGR is the one sequence that reads sub-parameters.
+        """
+        self.write(r"\e[2:1Ha\e[2 @b\e[>4;1mc\e[=5cd\e[1$te\e[>1cf\e[?1mg")
+        self.expect("abcdefg")
         self.assertIsNone(self.term.term.attrspec)
         self.assertEqual(bytes(self.pty.from_widget), b"")
+
+    def test_sgr_sub_parameters(self) -> None:
+        """Read the colors and the underline style SGR gives with sub-parameters, and ignore any other group.
+
+        An ignored group leaves the other parameters of the sequence applied.
+        """
+        for label, sgr, attrspec in (
+            ("palette color", r"\e[38:5:196m", urwid.AttrSpec("h196", "default", 256)),
+            ("RGB color with a color space id", r"\e[48:2::1:2:3m", urwid.AttrSpec("default", "#010203", 2**24)),
+            ("RGB color without one", r"\e[38:2:1:2:3m", urwid.AttrSpec("#010203", "default", 2**24)),
+            ("curly underline", r"\e[1;4:3m", urwid.AttrSpec("default,bold,underline", "default")),
+            ("no underline", r"\e[4;1m\e[4:0m", urwid.AttrSpec("default,bold", "default")),
+            ("underline color", r"\e[1;58:2::255:0:0;3m", urwid.AttrSpec("default,bold,italics", "default")),
+            ("unknown group", r"\e[1;7:1;3m", urwid.AttrSpec("default,bold,italics", "default")),
+        ):
+            with self.subTest(label):
+                self.restart()
+                self.write(sgr + "x")
+                self.expect([[(attrspec, None, b"x")]], raw=True)
+
+    def test_sgr_color_arguments_are_no_sgr_codes(self) -> None:
+        """Read the arguments of an extended color, also of the underline color, as the color and not as SGR codes.
+
+        SGR 58 sets the underline color, which is not drawn.
+        """
+        for label, sgr, attrspec in (
+            ("index 11 is no IBM PC character set", r"\e[38;5;11m", urwid.AttrSpec("h11", "default", 256)),
+            (
+                "RGB component 12 is no IBM PC character set",
+                r"\e[48;2;10;11;12m",
+                urwid.AttrSpec("default", "#0a0b0c", 2**24),
+            ),
+            ("underline color index", r"\e[58;5;196m", None),
+            ("underline color RGB", r"\e[58;2;9;4;7m", None),
+        ):
+            with self.subTest(label):
+                self.restart()
+                self.write(sgr + "x")
+                self.expect([[(attrspec, None, b"x")]], raw=True)
+                self.assertFalse(self.term.term.modes.display_ctrl)
+                self.assertFalse(self.term.term.charset.ibmpc_mapped)
 
     def test_private_form_of_a_command_without_one_is_ignored(self) -> None:
         """Ignore CSI ? 4 m (XTQMODKEYS), CSI ? s and CSI ? r (XTSAVE, XTRESTORE)."""

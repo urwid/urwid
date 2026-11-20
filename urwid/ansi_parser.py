@@ -63,9 +63,11 @@ __all__ = (
     "led_state",
     "parse_ansi_line",
     "parse_ansi_text",
+    "parse_sgr_parameters",
     "resolve_osc_hyperlink",
     "resolve_osc_title",
     "sgi_params_to_attrspec",
+    "split_sgr_parameters",
 )
 
 LOGGER = logging.getLogger(__name__)
@@ -103,6 +105,19 @@ _SGR_RESETS: dict[int, tuple[str, ...]] = {
     27: ("standout",),
     29: ("strikethrough",),
 }
+
+#: the SGR codes that take a color as arguments: the foreground, the background and the underline color
+_EXTENDED_COLOR_SGR: typing.Final = frozenset((38, 48, 58))
+#: the color models of an extended color: a palette index and RGB components
+_PALETTE_COLOR_MODEL: typing.Final = 5
+_RGB_COLOR_MODEL: typing.Final = 2
+#: the parameters an extended color code takes, its own included, by color model
+_EXTENDED_COLOR_LENGTHS: typing.Final = types.MappingProxyType({_PALETTE_COLOR_MODEL: 3, _RGB_COLOR_MODEL: 5})
+#: the SGR codes of a single underline and of no underline, and the underline styles the sub-parameter of the first
+#: selects: none, single, double, curly, dotted and dashed
+_UNDERLINE_SGR: typing.Final = 4
+_NO_UNDERLINE_SGR: typing.Final = 24
+_UNDERLINE_STYLES: typing.Final = range(6)
 
 #: CSI final bytes that move the cursor vertically -- meaningless outside a
 #: two-dimensional screen buffer, so the whole operation is stripped and
@@ -724,17 +739,22 @@ class AnsiParser:
 
         qmark = escbuf.startswith("?")
         body = escbuf[1:] if qmark else escbuf
+        if final == "m" and not qmark and not body.strip("0123456789;:"):
+            # a color the text leaves unset shows the background or foreground of the widget around it, and bold
+            # stays bold: the display brightens it again where the terminal draws bold text in bright colors
+            self._attrspec = sgi_params_to_attrspec(
+                parse_sgr_parameters(body),
+                self._attrspec,
+                unset_color="inherit",
+                bright_is_bold=False,
+            )
+            return
         if body.strip("0123456789;"):
             self._skip("unknown", raw, "CSI sub-parameters, private markers and intermediate bytes are not supported")
             return
         params: list[int | None] = [int(p) if p else None for p in body.split(";")] if body else []
 
-        if final == "m":
-            ints = [p if p is not None else 0 for p in params] or [0]
-            # a color the text leaves unset shows the background or foreground of the widget around it, and bold
-            # stays bold: the display brightens it again where the terminal draws bold text in bright colors
-            self._attrspec = sgi_params_to_attrspec(ints, self._attrspec, unset_color="inherit", bright_is_bold=False)
-        elif (
+        if (
             final == "}"
             and not qmark
             and len(params) == 2
@@ -1073,6 +1093,66 @@ def attrspec_with_hyperlink(
     return AttrSpec(attrspec.foreground, attrspec.background, attrspec.colors, hyperlink=link)
 
 
+def parse_sgr_parameters(body: str) -> list[int]:
+    """Return the SGR parameters of the CSI parameter string *body*, with sub-parameters in their plain form.
+
+    A group of sub-parameters (ECMA-48 5.4.2), a code and its arguments separated by colons, becomes:
+
+    - for an extended color, ``38:5:n`` or an RGB color, ``38:2:r:g:b`` or ``38:2:id:r:g:b`` with the color space id
+      of ITU T.416, the same color with semicolons, without the color space id;
+    - for an underline style, ``4:n``, SGR 24 for no underline (0) and SGR 4 for any other style (1 to 5);
+    - for any other group, nothing.
+
+    An empty parameter is 0.
+
+    >>> parse_sgr_parameters("1;4:3;38:2::255:0:0")
+    [1, 4, 38, 2, 255, 0, 0]
+    >>> parse_sgr_parameters("")
+    [0]
+
+    :param body: the parameters: digits, separated by ``;`` and ``:``.
+    :raises ValueError: a parameter is not a number.
+    """
+    params: list[int] = []
+    for group in body.split(";"):
+        code, *args = (int(param) if param else 0 for param in group.split(":"))
+        if not args:
+            params.append(code)
+        elif code in _EXTENDED_COLOR_SGR and args[0] in _EXTENDED_COLOR_LENGTHS:
+            model, *color = args
+            # the components after the code and the color model
+            length = _EXTENDED_COLOR_LENGTHS[model] - 2
+            if model == _RGB_COLOR_MODEL and len(color) == length + 1:
+                del color[0]  # the color space id
+            if len(color) == length:
+                params.extend((code, model, *color))
+        elif code == _UNDERLINE_SGR and len(args) == 1 and args[0] in _UNDERLINE_STYLES:
+            params.append(_UNDERLINE_SGR if args[0] else _NO_UNDERLINE_SGR)
+    return params
+
+
+def split_sgr_parameters(params: Sequence[int]) -> list[tuple[int, ...]]:
+    """Split SGR parameters into one tuple per code, with the arguments of an extended color code.
+
+    An extended color code whose color model is unknown, or whose arguments are cut short, is a code of its own,
+    and so is each parameter after it.
+
+    >>> split_sgr_parameters([1, 38, 5, 11, 48, 2, 1, 2, 3, 0])
+    [(1,), (38, 5, 11), (48, 2, 1, 2, 3), (0,)]
+    """
+    codes: list[tuple[int, ...]] = []
+    idx = 0
+    while idx < len(params):
+        length = 1
+        if params[idx] in _EXTENDED_COLOR_SGR and idx + 1 < len(params):
+            length = _EXTENDED_COLOR_LENGTHS.get(params[idx + 1], 1)
+            if idx + length > len(params):
+                length = 1
+        codes.append(tuple(params[idx : idx + length]))
+        idx += length
+    return codes
+
+
 def sgi_params_to_attrspec(
     params: Sequence[int],
     previous: AttrSpec | None,
@@ -1082,7 +1162,8 @@ def sgi_params_to_attrspec(
 ) -> AttrSpec | None:
     """Resolve a sequence of SGR (Select Graphic Rendition) numeric parameters against a previous attribute spec.
 
-    Ignore unsupported parameters and extended colors with an out-of-range value.
+    Ignore unsupported parameters, the underline color (SGR 58) with its arguments, and extended colors with an
+    out-of-range value.
     Charset parameters 10-12 are handled by the caller.
     The hyperlink of *previous* is kept, also through SGR 0, since OSC 8 sets it independently of SGR.
 
@@ -1144,10 +1225,8 @@ def sgi_params_to_attrspec(
 
         colors = previous.colors
 
-    params = list(params)
-    idx = 0
-    while idx < len(params):
-        attr = params[idx]
+    for code in split_sgr_parameters(params):
+        attr = code[0]
         if 30 <= attr <= 37:
             fg, fg_rgb = attr - 30, False
             colors = max(16, colors)
@@ -1160,25 +1239,22 @@ def sgi_params_to_attrspec(
         elif 100 <= attr <= 107:
             bg, bg_rgb = attr - 100 + 8, False
             colors = max(16, colors)
-        elif attr in (38, 48):
-            if idx + 2 < len(params) and params[idx + 1] == 5:
-                color = params[idx + 2]
-                if 0 <= color <= 255:
-                    colors = max(256, colors)
-                    if attr == 38:
-                        fg, fg_rgb = color, False
-                    else:
-                        bg, bg_rgb = color, False
-                idx += 2
-            elif idx + 4 < len(params) and params[idx + 1] == 2:
-                if all(0 <= component <= 255 for component in params[idx + 2 : idx + 5]):
-                    color = (params[idx + 2] << 16) + (params[idx + 3] << 8) + params[idx + 4]
-                    colors = 16777216  # 2 ** 24
-                    if attr == 38:
-                        fg, fg_rgb = color, True
-                    else:
-                        bg, bg_rgb = color, True
-                idx += 4
+        elif attr in {38, 48} and code[1:] and code[1] == _PALETTE_COLOR_MODEL:
+            color = code[2]
+            if 0 <= color <= 255:
+                colors = max(256, colors)
+                if attr == 38:
+                    fg, fg_rgb = color, False
+                else:
+                    bg, bg_rgb = color, False
+        elif attr in {38, 48} and code[1:] and code[1] == _RGB_COLOR_MODEL:
+            if all(0 <= component <= 255 for component in code[2:]):
+                color = (code[2] << 16) + (code[3] << 8) + code[4]
+                colors = 16777216  # 2 ** 24
+                if attr == 38:
+                    fg, fg_rgb = color, True
+                else:
+                    bg, bg_rgb = color, True
         elif attr == 39:
             fg = None
         elif attr == 49:
@@ -1198,7 +1274,6 @@ def sgi_params_to_attrspec(
             colors = 1
             attributes.clear()
             turned_off.clear()
-        idx += 1
 
     if bright_is_bold and "bold" in attributes and colors == 16 and fg is not None and fg < 8:
         fg += 8
