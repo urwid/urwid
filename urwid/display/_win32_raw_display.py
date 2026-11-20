@@ -71,6 +71,7 @@ class Screen(_raw_display_base.Screen):
         *,
         in_band_resize: bool | None = None,
         alternate_scroll: bool | None = None,
+        underline_styles: bool | None = None,
     ) -> None:
         """Initialize a screen that directly prints escape codes to an output terminal.
 
@@ -94,6 +95,10 @@ class Screen(_raw_display_base.Screen):
             None (default) leaves the terminal's own setting.
             True/False set the mode when the screen starts,
             and the state the terminal reported is set back when it stops; without a report the mode stays as set.
+        :param underline_styles: draw the underline styles and the underline colors of the display attributes;
+            without them an underline is drawn single and in the text color.
+            None (default) detects them by the terminfo entry of ``TERM`` and by the terminal's environment variables;
+            pass True/False to force it.
         """
         del in_band_resize  # the console implements no mode 2048 to turn on
         if input is None:
@@ -106,6 +111,7 @@ class Screen(_raw_display_base.Screen):
             focus_reporting=focus_reporting,
             extended_keys=extended_keys,
             alternate_scroll=alternate_scroll,
+            underline_styles=underline_styles,
         )
         # the console title before set_title() changed it, read through the console API
         self._saved_title: str | None = None

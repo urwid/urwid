@@ -51,6 +51,8 @@ from .common import (
     _COLOR_VALUES_88,
     _COLOR_VALUES_256,
     _RESOLVED_ATTRS_LIMIT,
+    _UNDERLINE_STYLE_NAMES,
+    DEFAULT,
     UNPRINTABLE_C1_TRANS_TABLE,
     UNPRINTABLE_TRANS_TABLE,
     UPDATE_PALETTE_ENTRY,
@@ -131,6 +133,11 @@ _TRUECOLOR_FAMILIES = frozenset(
     }
 )
 _NO_UNDERLINE_FAMILIES = frozenset({"dumb", "unknown", "vt52"})
+# the terminals that draw underline styles and colors without a terminfo entry saying so, by the environment variable
+# holding their version, and the first version taken to draw them: VTE 0.52 and Konsole 22.04; these first versions
+# are not confirmed against the projects' release notes, the ones checked are VTE 0.84 and Konsole 25.12
+_UNDERLINE_STYLE_VERSIONS: Sequence[tuple[str, int]] = (("VTE_VERSION", 5200), ("KONSOLE_VERSION", 220400))
+
 # Windows 10 TH2 (1511) gained 256-color VT; 1703-era build 14931 gained 24-bit color.
 _WINDOWS_256COLOR_BUILD = 10586
 _WINDOWS_TRUECOLOR_BUILD = 14931
@@ -143,6 +150,8 @@ _TERMINFO_SYSTEM_DIRS = ("/etc/terminfo", "/lib/terminfo", "/usr/share/terminfo"
 # the ncurses 6.1 extended number format has 32-bit numbers.
 _TERMINFO_NUMBER_FORMATS: Mapping[int, str] = {0o432: "<h", 0o1036: "<i"}
 _TERMINFO_HEADER = struct.Struct("<6h")
+# the extended section's counts: booleans, numbers, strings, string table items, and string table bytes
+_TERMINFO_EXTENDED_HEADER = struct.Struct("<5h")
 _TERMINFO_COLORS_INDEX = 13  # position of "colors" among the predefined numeric capabilities
 _TERMINFO_MAX_SIZE = 32768  # bytes read from an entry: the largest entry ncurses accepts
 # Minimum terminfo "colors" value -> the colour count it allows; 8-colour terminals use bold for the bright half.
@@ -176,6 +185,7 @@ class TerminalProperties:
     fg_bright_is_bold: bool
     bg_bright_is_blink: bool
     back_color_erase: bool
+    underline_styles: bool = False
 
 
 @dataclasses.dataclass
@@ -369,6 +379,50 @@ def _parse_terminfo_colors(data: bytes) -> int | None:
     return colors if colors > 0 else None
 
 
+def _parse_terminfo_extended_names(data: bytes) -> frozenset[str]:
+    """Return the names of the extended capabilities of a compiled terminfo entry, such as ``Smulx``.
+
+    The extended section follows the string table, on an even byte: a header of five 16-bit counts, the boolean values,
+    the numbers, the offsets of the strings and of the names, and then a table of NUL-terminated strings, which holds
+    the strings that are set before the names.
+    The entry is untrusted data, so the sizes are checked before they are used as offsets.
+
+    :returns: the names, empty when the entry has no extended section.
+    :raises ValueError: the entry is not in a compiled terminfo format, or its sizes do not fit it.
+    """
+    if len(data) < _TERMINFO_HEADER.size:
+        raise ValueError
+    magic, names_size, booleans_count, numbers_count, strings_count, strings_size = _TERMINFO_HEADER.unpack_from(data)
+    number_format = _TERMINFO_NUMBER_FORMATS.get(magic)
+    if number_format is None or min(names_size, booleans_count, numbers_count, strings_count, strings_size) < 0:
+        raise ValueError
+    number_size = struct.calcsize(number_format)
+    offset = _TERMINFO_HEADER.size + names_size + booleans_count
+    offset += offset % 2
+    offset += numbers_count * number_size + 2 * strings_count + strings_size
+    offset += offset % 2
+    if offset + _TERMINFO_EXTENDED_HEADER.size > len(data):
+        return frozenset()
+    ext_booleans, ext_numbers, ext_strings, _items, table_size = _TERMINFO_EXTENDED_HEADER.unpack_from(data, offset)
+    if min(ext_booleans, ext_numbers, ext_strings, table_size) < 0:
+        raise ValueError
+    offset += _TERMINFO_EXTENDED_HEADER.size + ext_booleans
+    offset += offset % 2
+    offset += ext_numbers * number_size
+    names_count = ext_booleans + ext_numbers + ext_strings
+    if offset + 2 * (ext_strings + names_count) + table_size > len(data):
+        raise ValueError
+    string_offsets = struct.unpack_from(f"<{ext_strings}h", data, offset)
+    offset += 2 * (ext_strings + names_count)
+    table = data[offset : offset + table_size].split(b"\0")
+    # the strings that are set come first, an absent or cancelled one has a negative offset and no entry
+    values = sum(1 for string_offset in string_offsets if string_offset >= 0)
+    names = table[values : values + names_count]
+    if len(names) != names_count:
+        raise ValueError
+    return frozenset(name.decode("ascii", "replace") for name in names)
+
+
 def _read_terminfo_entry(path: pathlib.Path) -> bytes | None:
     """Return the start of the regular file at *path*.
 
@@ -412,8 +466,8 @@ def _read_terminfo_entry(path: pathlib.Path) -> bytes | None:
         os.close(entry)
 
 
-def _terminfo_colors(term: str, environ: Mapping[str, str]) -> _ColorCount | None:
-    """Return the colour count the terminfo entry of *term* allows.
+def _terminfo_entry(term: str, environ: Mapping[str, str]) -> bytes | None:
+    """Return the compiled terminfo entry of *term*.
 
     The stdlib ``curses.setupterm()`` loads one entry per process and ignores later terminal names,
     so the compiled entry is read directly.
@@ -425,7 +479,7 @@ def _terminfo_colors(term: str, environ: Mapping[str, str]) -> _ColorCount | Non
     Native Windows has no terminfo database, and a Win32 path can name a device such as ``COM1`` by its file name,
     so nothing is looked up there.
 
-    :returns: the colour count, or None when no valid entry is found or it allows fewer than 8 colours.
+    :returns: the entry, or None when no valid entry is found.
     """
     if IS_WINDOWS:
         return None
@@ -445,13 +499,21 @@ def _terminfo_colors(term: str, environ: Mapping[str, str]) -> _ColorCount | Non
             if (data := _read_terminfo_entry(directory / subdirectory / term)) is None:
                 continue
             try:
-                colors = _parse_terminfo_colors(data)
+                _parse_terminfo_colors(data)
             except ValueError:  # malformed: ncurses passes over it too
                 continue
-            if colors is None:
-                return None
-            return next((count for minimum, count in _TERMINFO_COLOR_COUNTS if colors >= minimum), None)
+            return data
     return None
+
+
+def _terminfo_colors(term: str, environ: Mapping[str, str]) -> _ColorCount | None:
+    """Return the colour count the terminfo entry of *term* allows, as :func:`_terminfo_entry` finds the entry.
+
+    :returns: the colour count, or None when no valid entry is found or it allows fewer than 8 colours.
+    """
+    if (data := _terminfo_entry(term, environ)) is None or (colors := _parse_terminfo_colors(data)) is None:
+        return None
+    return next((count for minimum, count in _TERMINFO_COLOR_COUNTS if colors >= minimum), None)
 
 
 def detect_term_colors(
@@ -547,7 +609,30 @@ def detect_terminal_properties(
         fg_bright_is_bold=fg_bright_is_bold,
         bg_bright_is_blink=bg_bright_is_blink,
         back_color_erase=back_color_erase,
+        underline_styles=_has_underline_styles(term_value, env, families),
     )
+
+
+def _has_underline_styles(term: str, environ: Mapping[str, str], families: frozenset[str]) -> bool:
+    """Return whether the terminal draws underline styles (SGR 4:2 to 4:5) and underline colors (SGR 58).
+
+    It does when the terminfo entry of *term* has ``Smulx`` or ``Setulc``, or when the environment names a terminal
+    version known to draw them.
+    Under screen or tmux, *families* of *term*, the outer terminal's variables are not taken, since the multiplexer
+    decides what reaches the terminal.
+    """
+    if not families & {"screen", "tmux"}:
+        for name, first in _UNDERLINE_STYLE_VERSIONS:
+            # isdigit() alone accepts digits that int() rejects, such as "²"
+            value = environ.get(name, "")
+            if value.isascii() and value.isdigit() and len(value) <= 9 and int(value) >= first:
+                return True
+    if (data := _terminfo_entry(term, environ)) is None:
+        return False
+    try:
+        return bool(_parse_terminfo_extended_names(data) & {"Smulx", "Setulc"})
+    except ValueError:  # an entry the colour count was read from, with a malformed extended section
+        return False
 
 
 # the start of a raw sequence in a charset "U" run: ESC or a C1 control as UTF-8, and only ESC in the
@@ -595,6 +680,7 @@ class Screen(BaseScreen, RealTerminal):
         *,
         in_band_resize: bool | None = None,
         alternate_scroll: bool | None = None,
+        underline_styles: bool | None = None,
     ) -> None:
         """Initialize a screen that directly prints escape codes to an output terminal.
 
@@ -619,6 +705,10 @@ class Screen(BaseScreen, RealTerminal):
             None (default) leaves the terminal's own setting.
             True/False set the mode when the screen starts,
             and the state the terminal reported is set back when it stops; without a report the mode stays as set.
+        :param underline_styles: draw the underline styles and the underline colors of the display attributes;
+            without them an underline is drawn single and in the text color.
+            None (default) detects them by the terminfo entry of ``TERM`` and by the terminal's environment variables;
+            pass True/False to force it.
         """
         super().__init__()
 
@@ -650,9 +740,9 @@ class Screen(BaseScreen, RealTerminal):
         # keeping its sockets open until the cyclic garbage collector happened to run.
         signals.connect_signal(self, UPDATE_PALETTE_ENTRY, type(self)._on_update_palette_entry, weak_args=(self,))
         self.term = os.environ.get("TERM", "")
-        self.colors = detect_term_colors(self.term, os.environ)
-        properties = detect_terminal_properties(self.term, os.environ)
+        self.colors = (properties := detect_terminal_properties(self.term, os.environ)).colors
         self.has_underline = properties.has_underline
+        self.underline_styles = properties.underline_styles if underline_styles is None else underline_styles
         self.fg_bright_is_bold = properties.fg_bright_is_bold
         self.bg_bright_is_blink = properties.bg_bright_is_blink
         self.back_color_erase = properties.back_color_erase
@@ -1902,12 +1992,15 @@ class Screen(BaseScreen, RealTerminal):
         '\x1b[0;33;42m'
         >>> a2e(s.AttrSpec("#fea,underline", "#d0d"))
         '\x1b[0;38;5;229;4;48;5;164m'
+        >>> s.set_terminal_properties(underline_styles=True)
+        >>> a2e(s.AttrSpec("default,curly underline", "default", underline_color="#f00"))
+        '\x1b[0;39;4:3;58:5:196;49m'
         """
         st = (
             "1;" * a.bold
             + "2;" * a.faint
             + "3;" * a.italics
-            + "4;" * a.underline
+            + self._underline_parameters(a)
             + "5;" * a.blink
             + "7;" * a.standout
             + "9;" * a.strikethrough
@@ -1953,12 +2046,34 @@ class Screen(BaseScreen, RealTerminal):
             bg = "49"
         return f"{escape.CSI}0;{fg};{st}{bg}m"
 
+    def _underline_parameters(self, a: AttrSpec) -> str:
+        """Return the SGR parameters of the underline of *a*, each followed by ``;``, empty without an underline.
+
+        Its style and its color are written only to a terminal that draws them, with the colon sub-parameters of
+        ECMA-48: the style as 4:2 to 4:5, the color as 58:5:n for a palette entry and 58:2::r:g:b for a 24-bit one.
+        """
+        if not a.underline:
+            return ""
+        if not self.underline_styles:
+            return "4;"
+        style = _UNDERLINE_STYLE_NAMES.index(typing.cast("str", a.underline_style))
+        parameters = f"4:{style + 1:d};" if style else "4;"
+        if (color := a.underline_color) is None or color == DEFAULT:
+            return parameters
+        # the color as a foreground in the same color mode, which tells a palette entry from a 24-bit color
+        line = a.copy_modified(fg=color, hyperlink=None, underline_color=None)
+        if line.foreground_true:
+            return f"{parameters}58:2::{':'.join(str(component) for component in line.get_rgb_values()[:3])};"
+        return f"{parameters}58:5:{line.foreground_number:d};"
+
     def set_terminal_properties(
         self,
         colors: Literal[1, 16, 88, 256, 16777216] | None = None,
         bright_is_bold: bool | None = None,
         has_underline: bool | None = None,
         hyperlinks: bool | None = None,
+        *,
+        underline_styles: bool | None = None,
     ) -> None:
         """Set the terminal's color and attribute-rendering properties.
 
@@ -1970,6 +2085,8 @@ class Screen(BaseScreen, RealTerminal):
         :param hyperlinks: set to True to draw the hyperlinks of display attributes as OSC 8 links,
             False to draw them as plain text, or None to leave unchanged.
             Off by default: no query for OSC 8 support exists, so applications that know their terminal set it.
+        :param underline_styles: set to True to draw the underline styles and colors of display attributes,
+            False to draw every underline single and in the text color, or None to leave unchanged.
         """
         if colors is None:
             colors = self.colors
@@ -1979,12 +2096,15 @@ class Screen(BaseScreen, RealTerminal):
             has_underline = self.has_underline
         if hyperlinks is None:
             hyperlinks = self.hyperlinks
+        if underline_styles is None:
+            underline_styles = self.underline_styles
 
         if (
             colors == self.colors
             and bright_is_bold == self.fg_bright_is_bold
             and has_underline == self.has_underline
             and hyperlinks == self.hyperlinks
+            and underline_styles == self.underline_styles
         ):
             return
 
@@ -1992,6 +2112,7 @@ class Screen(BaseScreen, RealTerminal):
         self.fg_bright_is_bold = bright_is_bold
         self.has_underline = has_underline
         self.hyperlinks = hyperlinks
+        self.underline_styles = underline_styles
 
         self.clear()
         self._pal_escape.clear()
@@ -2061,13 +2182,21 @@ class Screen(BaseScreen, RealTerminal):
 
     # shortcut for creating an AttrSpec with this screen object's
     # number of colors
-    def AttrSpec(self, fg: str, bg: str, *, hyperlink: Hyperlink | str | None = None) -> AttrSpec:
+    def AttrSpec(
+        self,
+        fg: str,
+        bg: str,
+        *,
+        hyperlink: Hyperlink | str | None = None,
+        underline_color: str | None = None,
+    ) -> AttrSpec:
         """Create an :class:`AttrSpec` using this screen's number of colors.
 
         :param fg: the foreground color and settings, as for :class:`AttrSpec`
         :param bg: the background color, as for :class:`AttrSpec`
         :param hyperlink: the terminal hyperlink of the text, as for :class:`AttrSpec`
-        :raises AttrSpecError: *fg* or *bg* is invalid or needs more colors than this screen has.
+        :param underline_color: the color of the underline, as for :class:`AttrSpec`
+        :raises AttrSpecError: *fg*, *bg* or *underline_color* is invalid or needs more colors than this screen has.
         :raises ValueError: *hyperlink* is a string that is not a valid :class:`Hyperlink` URI.
         """
-        return AttrSpec(fg, bg, self.colors, hyperlink=hyperlink)
+        return AttrSpec(fg, bg, self.colors, hyperlink=hyperlink, underline_color=underline_color)

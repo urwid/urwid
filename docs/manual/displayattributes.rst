@@ -193,6 +193,11 @@ Foreground and Background Settings
      - NO
      - NO
      - some support
+   * - :ref:`underline styles and color <underline-styles>`
+     - gnome-term only
+     - NO
+     - NO
+     - kitty, Konsole, VTE
    * - :ref:`"bright" background colors <bright-background>`
      - YES
      - urxvt
@@ -355,6 +360,32 @@ specify bold. To inhibit this you can try setting ``bright_is_bold=False`` with
 supported.
 
 ``'standout'`` is usually displayed as the foreground and background colors reversed.
+
+.. _underline-styles:
+
+Underline Styles and Color
+--------------------------
+
+* ``'double underline'``
+* ``'curly underline'``
+* ``'dotted underline'``
+* ``'dashed underline'``
+
+Each of these settings is an underline in that style, used in place of ``'underline'``:
+``'yellow,curly underline'``. ``'no-underline'`` turns any of them off.
+
+The underline has a color of its own, given to :class:`AttrSpec` as ``underline_color`` in any
+form a background color takes; ``'default'`` draws it in the text color, and without one the
+color of the enclosing attribute is taken::
+
+    AttrSpec("default,curly underline", "default", underline_color="light red")
+
+The raw display draws the styles and the color where the terminal does, and an underline in the
+text color and single elsewhere. It finds them in the terminal's terminfo entry (``Smulx`` or
+``Setulc``) or from the terminal's version in the environment (VTE and Konsole), and
+``underline_styles`` given to :class:`display.raw.Screen` or
+:meth:`display.raw.Screen.set_terminal_properties` turns them on or off. The web displays draw
+them as the text decoration's style and color; the curses display draws a single underline.
 
 .. _hyperlinks:
 

@@ -605,6 +605,8 @@ class TermTest(unittest.TestCase):
             ("DECCARA 22 keeping faint", r"\e[1;2mA\e[0m\e[1;1;1;1;22$r", r"\e[2m"),
             ("DECRARA 1", r"\e[31;1mA\e[0m\e[1;1;1;1;1$t", r"\e[31m"),
             ("DECCARA 0 keeping the colours", r"\e[1;4;31;44mA\e[0m\e[1;1;1;1;0$r", r"\e[31;44m"),
+            ("DECRARA 4 ending an underline in a style", r"\e[31;4:3mA\e[0m\e[1;1;1;1;4$t", r"\e[31m"),
+            ("DECCARA 24 ending an underline in a style", r"\e[31;4:3mA\e[0m\e[1;1;1;1;24$r", r"\e[31m"),
         ):
             with self.subTest(label):
                 self.restart(4, 2)
@@ -1824,6 +1826,11 @@ class TermTest(unittest.TestCase):
                 b"\x1b[2;2R",
             ),
             (
+                "DECRQSS reports the underline style and color with sub-parameters",
+                rf"\e[0;4:3;58:5:196m\eP$qm{_ST}\e[0;21;58:2:1:2:3m\eP$qm{_ST}",
+                b"\x1bP1$r0;4:3;58:5:196m\x1b\\\x1bP1$r0;4:2;58:2::1:2:3m\x1b\\",
+            ),
+            (
                 "DECRQSS answers a setting not reported as invalid",
                 rf"\eP$q$}}{_ST}\eP$qmm{_ST}\eP$q{_ST}",
                 b"\x1bP0$r\x1b\\" * 3,
@@ -2428,9 +2435,14 @@ class TermTest(unittest.TestCase):
             ("palette color", r"\e[38:5:196m", urwid.AttrSpec("h196", "default", 256)),
             ("RGB color with a color space id", r"\e[48:2::1:2:3m", urwid.AttrSpec("default", "#010203", 2**24)),
             ("RGB color without one", r"\e[38:2:1:2:3m", urwid.AttrSpec("#010203", "default", 2**24)),
-            ("curly underline", r"\e[1;4:3m", urwid.AttrSpec("default,bold,underline", "default")),
+            ("curly underline", r"\e[1;4:3m", urwid.AttrSpec("default,bold,curly underline", "default")),
+            ("double underline", r"\e[4:2m", urwid.AttrSpec("default,double underline", "default")),
             ("no underline", r"\e[4;1m\e[4:0m", urwid.AttrSpec("default,bold", "default")),
-            ("underline color", r"\e[1;58:2::255:0:0;3m", urwid.AttrSpec("default,bold,italics", "default")),
+            (
+                "underline color",
+                r"\e[1;58:2::255:0:0;3m",
+                urwid.AttrSpec("default,bold,italics", "default", 2**24, underline_color="#ff0000"),
+            ),
             ("unknown group", r"\e[1;7:1;3m", urwid.AttrSpec("default,bold,italics", "default")),
         ):
             with self.subTest(label):
@@ -2439,10 +2451,7 @@ class TermTest(unittest.TestCase):
                 self.expect([[(attrspec, None, b"x")]], raw=True)
 
     def test_sgr_color_arguments_are_no_sgr_codes(self) -> None:
-        """Read the arguments of an extended color, also of the underline color, as the color and not as SGR codes.
-
-        SGR 58 sets the underline color, which is not drawn.
-        """
+        """Read the arguments of an extended color, also of the underline color, as the color and not as SGR codes."""
         for label, sgr, attrspec in (
             ("index 11 is no IBM PC character set", r"\e[38;5;11m", urwid.AttrSpec("h11", "default", 256)),
             (
@@ -2450,8 +2459,12 @@ class TermTest(unittest.TestCase):
                 r"\e[48;2;10;11;12m",
                 urwid.AttrSpec("default", "#0a0b0c", 2**24),
             ),
-            ("underline color index", r"\e[58;5;196m", None),
-            ("underline color RGB", r"\e[58;2;9;4;7m", None),
+            ("underline color index", r"\e[58;5;196m", urwid.AttrSpec("default", "default", underline_color="h196")),
+            (
+                "underline color RGB",
+                r"\e[58;2;9;4;7m",
+                urwid.AttrSpec("default", "default", 2**24, underline_color="#090407"),
+            ),
         ):
             with self.subTest(label):
                 self.restart()

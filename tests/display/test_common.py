@@ -111,6 +111,21 @@ class AttrSpecToCssTest(unittest.TestCase):
 
         self.assertEqual(";text-decoration:underline", extra)
 
+    def test_underline_style_and_color(self) -> None:
+        """Draw the underline style and color as the text-decoration style and color."""
+        for aspec, expected in (
+            (AttrSpec("white,curly underline", "black"), ";text-decoration:underline;text-decoration-style:wavy"),
+            (AttrSpec("white,double underline", "black"), ";text-decoration:underline;text-decoration-style:double"),
+            (
+                AttrSpec("white,underline", "black", underline_color="light red"),
+                ";text-decoration:underline;text-decoration-color:#ff0000",
+            ),
+            (AttrSpec("white,underline", "black", underline_color="default"), ";text-decoration:underline"),
+            (AttrSpec("white", "black", underline_color="light red"), ""),
+        ):
+            with self.subTest(aspec=aspec):
+                self.assertEqual(expected, attr_spec_to_css(aspec)[2])
+
     def test_no_attributes_gives_empty_extra(self) -> None:
         _fg, _bg, extra = attr_spec_to_css(AttrSpec("white", "black"))
 
@@ -327,12 +342,129 @@ class AttrSpecHighColorTest(unittest.TestCase):
     """The names of the high colors of the 88- and 256-color modes."""
 
     def test_88_color_zero_is_named(self) -> None:
-        """Name high color 0 in 88-color mode as in 256-color mode, for the foreground and the background."""
+        """Name high color 0 in 88-color mode as in 256-color mode, for the foreground, background and underline."""
         for colors in (88, 256):
             with self.subTest(colors=colors):
-                aspec = AttrSpec("h0", "h0", colors)
+                aspec = AttrSpec("h0", "h0", colors, underline_color="h0")
                 self.assertEqual(("h0", "h0"), (aspec.foreground, aspec.background))
                 self.assertEqual(0, aspec.foreground_number)
+                self.assertIsNotNone(aspec.underline_color)
+
+
+class AttrSpecUnderlineTest(unittest.TestCase):
+    """The underline style settings and the underline color of an AttrSpec."""
+
+    def test_underline_styles(self) -> None:
+        """Parse an underline style as the underline setting in that style, and refuse a second underline."""
+        for setting, style in (
+            ("underline", "single"),
+            ("double underline", "double"),
+            ("curly underline", "curly"),
+            ("dotted underline", "dotted"),
+            ("dashed underline", "dashed"),
+        ):
+            with self.subTest(setting):
+                aspec = AttrSpec(f"dark red,bold,{setting}", "default")
+                self.assertTrue(aspec.underline)
+                self.assertEqual(style, aspec.underline_style)
+                self.assertEqual(f"dark red,bold,{setting}", aspec.foreground)
+        self.assertIsNone(AttrSpec("dark red", "default").underline_style)
+        self.assertNotEqual(AttrSpec("default,underline", "default"), AttrSpec("default,curly underline", "default"))
+        for foreground in (
+            "underline,curly underline",
+            "dotted underline,dashed underline",
+            "no-underline,curly underline",
+        ):
+            with self.subTest(foreground), self.assertRaises(AttrSpecError):
+                AttrSpec(foreground, "default")
+
+    def test_underline_color(self) -> None:
+        """Parse the underline color as a background color, and count it among the colors the attribute needs."""
+        for color, colors, expected, needed in (
+            ("light red", 256, "light red", 16),
+            ("h196", 256, "#f00", 256),
+            ("#102030", 2**24, "#102030", 2**24),
+            ("#ccf", 88, "#ccf", 88),
+            ("default", 256, "default", 1),
+            ("inherit", 256, None, 1),
+        ):
+            with self.subTest(color):
+                aspec = AttrSpec("default", "default", colors, underline_color=color)
+                self.assertEqual(expected, aspec.underline_color)
+                self.assertEqual(needed, aspec.colors)
+        self.assertNotEqual(AttrSpec("default", "default"), AttrSpec("default", "default", underline_color="default"))
+        self.assertEqual(
+            "AttrSpec('default,underline', 'default', underline_color='light red')",
+            repr(AttrSpec("default,underline", "default", underline_color="light red")),
+        )
+        for color, colors in (("unknown", 256), ("#102030", 16)):
+            with self.subTest(color), self.assertRaises(AttrSpecError):
+                AttrSpec("default", "default", colors, underline_color=color)
+
+    def test_underline_rgb_values(self) -> None:
+        """Return the underline color's components, and None for the text color or the enclosing color."""
+        for aspec, expected in (
+            (AttrSpec(underline_color="light red"), (255, 0, 0)),
+            (AttrSpec(underline_color="#102030", colors=2**24), (16, 32, 48)),
+            (AttrSpec(underline_color="#ccf", colors=88), (205, 205, 255)),
+            (AttrSpec(underline_color="default"), None),
+            (AttrSpec(), None),
+        ):
+            with self.subTest(aspec=aspec):
+                self.assertEqual(expected, aspec.underline_rgb_values())
+
+    def test_copy_modified_underline_color(self) -> None:
+        """Keep the underline color unless it is given, and pass it to a subclass only when there is one."""
+        aspec = AttrSpec("default,curly underline", "default", underline_color="light red")
+        self.assertEqual("light red", aspec.copy_modified(bg="dark blue").underline_color)
+        self.assertEqual("#f00", aspec.copy_modified(underline_color="h196").underline_color)
+        self.assertIsNone(aspec.copy_modified(underline_color=None).underline_color)
+
+        class Spec(AttrSpec):
+            def __init__(self, fg: str, bg: str, colors: typing.Literal[1, 16, 88, 256, 16777216] = 256) -> None:
+                super().__init__(fg, bg, colors)
+
+        self.assertEqual(Spec("dark red", "default").copy_modified(bg="dark blue"), AttrSpec("dark red", "dark blue"))
+
+    def test_layered_over_underline(self) -> None:
+        """Take the underline color from the outer attribute when the inner one has none, and keep a style."""
+        outer = AttrSpec("yellow,curly underline", "dark blue", underline_color="light red")
+        for name, inner, enclosing, expected in (
+            (
+                "inherit takes the style and the color",
+                AttrSpec("inherit,bold", "inherit"),
+                outer,
+                AttrSpec("yellow,bold,curly underline", "dark blue", underline_color="light red"),
+            ),
+            (
+                "own style and color win",
+                AttrSpec("inherit,dotted underline", "inherit", underline_color="h196"),
+                outer,
+                AttrSpec("yellow,dotted underline", "dark blue", underline_color="h196"),
+            ),
+            (
+                "opaque takes the color only",
+                AttrSpec("dark red", "default"),
+                outer,
+                AttrSpec("dark red", "default", underline_color="light red"),
+            ),
+            (
+                "opaque keeps its color mode and converts the color",
+                AttrSpec("h100,underline", "default", 256),
+                AttrSpec("default", "default", 2**24, underline_color="#123456"),
+                AttrSpec("h100,underline", "default", 256, underline_color="#066"),
+            ),
+            (
+                "opaque converts the color to 88 colors",
+                AttrSpec("h80,underline", "default", 88),
+                AttrSpec("default", "default", 256, underline_color="h196"),
+                AttrSpec("h80,underline", "default", 88, underline_color="#f00"),
+            ),
+        ):
+            with self.subTest(name):
+                result = inner.layered_over(enclosing)
+                self.assertEqual(expected, result)
+                self.assertEqual(expected.foreground, result.foreground)
 
 
 class ResolveAttrTest(unittest.TestCase):

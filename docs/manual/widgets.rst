@@ -197,8 +197,9 @@ reports of XTWINOPS, in characters (18) and in pixels (14) as unknown, and
 XTGETTCAP, in xterm's form, for the color count and RGB colors the display
 draws.
 SGR reads the colors and the underline style given with sub-parameters, such as
-``38:2::r:g:b`` and ``4:3``; every underline style is drawn as a single
-underline, and the underline color is not drawn.
+``38:2::r:g:b`` and ``4:3``, SGR 21 as a double underline, and the underline
+color of SGR 58 and 59, which the display draws as :ref:`underline-styles`
+describes.
 As in xterm, HT leaves a pending wrap as it is.
 REP repeats only a character written just before it, at most 65535 times, and
 CHT and CBT leave a pending wrap as it is, as in xterm.

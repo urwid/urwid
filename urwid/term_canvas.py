@@ -51,6 +51,8 @@ from urwid.ansi_parser import (
 )
 from urwid.canvas import Canvas
 from urwid.display import AttrSpec
+from urwid.display.common import _UNDERLINE_STYLE_NAMES as UNDERLINE_STYLE_NAMES
+from urwid.display.common import _UNDERLINE_STYLES as UNDERLINE_STYLE_SETTINGS
 from urwid.display.escape import (
     ALT_DEC_SPECIAL_CHARS,
     DEC_SPECIAL_CHARS,
@@ -723,10 +725,12 @@ def _with_flag(attrspec: AttrSpec | None, flag: str, *, remove: bool = False) ->
     if attrspec is None:
         attrspec = AttrSpec("default", "default")
     attrs = [fg.strip() for fg in attrspec.foreground.split(",")]
-    if flag in attrs and remove:
-        attrs.remove(flag)
+    # an underline in a style is the underline setting too
+    found = [attr for attr in attrs if attr == flag or (flag == "underline" and attr in UNDERLINE_STYLE_SETTINGS)]
+    if found and remove:
+        attrs.remove(found[0])
         attrspec = attrspec.copy_modified(fg=",".join(attrs))
-    elif flag not in attrs and not remove:
+    elif not found and not remove:
         attrs.append(flag)
         attrspec = attrspec.copy_modified(fg=",".join(attrs))
     return attrspec
@@ -747,16 +751,28 @@ def _sgr_parameters(attrspec: AttrSpec | None) -> str:
     The parameters start with ``0``.
     Colours are written as SGR 30-37, 90-97, 38;5;n or 38;2;r;g;b, and the background alike, in the semicolon form a
     :class:`TermCanvas` reads back.
+    An underline style is written as 4:n, and the underline color as 58:5:n or 58:2::r:g:b, which have no other form.
     The hyperlink is not part of SGR and is left out.
 
     >>> _sgr_parameters(None)
     '0'
     >>> _sgr_parameters(AttrSpec("light red,bold", "h100", 256))
     '0;1;91;48;5;100'
+    >>> _sgr_parameters(AttrSpec("default,curly underline", "default", underline_color="h196"))
+    '0;4:3;58:5:196'
     """
     if attrspec is None:
         return "0"
     parameters = ["0", *(str(code) for name, code in _SGR_FLAGS if getattr(attrspec, name))]
+    if (style := attrspec.underline_style) not in {None, "single"}:
+        parameters[parameters.index("4")] = f"4:{UNDERLINE_STYLE_NAMES.index(typing.cast('str', style)) + 1:d}"
+    if (color := attrspec.underline_color) not in {None, "default"}:
+        # the color as a foreground in the same color mode, which tells a palette entry from a 24-bit color
+        line = attrspec.copy_modified(fg=color, hyperlink=None, underline_color=None)
+        if line.foreground_true:
+            parameters.append(f"58:2::{':'.join(str(component) for component in line.get_rgb_values()[:3])}")
+        else:
+            parameters.append(f"58:5:{line.foreground_number:d}")
     rgb = attrspec.get_rgb_values()
     for base, true, high, basic, number, values in (
         (30, attrspec.foreground_true, attrspec.foreground_high, attrspec.foreground_basic,
@@ -2283,7 +2299,7 @@ class TermCanvas(Canvas):
                     _mend_wide(line, run_first)
                     _mend_wide(line, run_last + 1)
 
-    def csi_set_attr(self, attrs: Sequence[int]) -> None:
+    def csi_set_attr(self, attrs: Sequence[int | tuple[int, ...]]) -> None:
         """Set graphics rendition.
 
         The colour/attribute-flag computation itself is delegated to the shared, platform-independent
@@ -2291,7 +2307,8 @@ class TermCanvas(Canvas):
         state rather than colour/attributes, so that side effect is applied separately, here, since
         ``sgi_params_to_attrspec`` deliberately ignores it (see its docstring).
 
-        :param attrs: the SGR numeric parameters to apply, in encounter order.
+        :param attrs: the SGR numeric parameters to apply, in encounter order;
+            a tuple is a code already split, as :func:`urwid.ansi_parser.split_sgr_parameters` gives it.
             The arguments of an extended color are never read as SGR 10 to 12.
         """
         for code in split_sgr_parameters(attrs):

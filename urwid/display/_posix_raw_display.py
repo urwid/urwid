@@ -113,6 +113,7 @@ class Screen(_raw_display_base.Screen):
         *,
         in_band_resize: bool | None = None,
         alternate_scroll: bool | None = None,
+        underline_styles: bool | None = None,
     ) -> None:
         """Initialize a screen that directly prints escape codes to an output terminal.
 
@@ -138,6 +139,10 @@ class Screen(_raw_display_base.Screen):
             None (default) leaves the terminal's own setting.
             True/False set the mode when the screen starts,
             and the state the terminal reported is set back when it stops; without a report the mode stays as set.
+        :param underline_styles: draw the underline styles and the underline colors of the display attributes;
+            without them an underline is drawn single and in the text color.
+            None (default) detects them by the terminfo entry of ``TERM`` and by the terminal's environment variables;
+            pass True/False to force it.
 
         .. note::
             on terminal-generated signals: putting the terminal into cbreak mode (see `start()`)
@@ -173,6 +178,7 @@ class Screen(_raw_display_base.Screen):
             extended_keys=extended_keys,
             in_band_resize=in_band_resize,
             alternate_scroll=alternate_scroll,
+            underline_styles=underline_styles,
         )
         self.gpm_mev: Popen[str] | None = None
         self.gpm_event_pending: bool = False
