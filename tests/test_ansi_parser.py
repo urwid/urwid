@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import os
+import re
 import typing
 import unittest
 from unittest import mock
@@ -8,11 +9,14 @@ from unittest import mock
 import urwid.display.raw
 from urwid.ansi_parser import (
     LOGGER,
+    MAX_CSI_LENGTH,
     MAX_OSC_LENGTH,
     AnsiParser,
     CharsetState,
     ParsedLine,
     SkippedOp,
+    _parser,
+    _vt_parser,
     attrspec_with_hyperlink,
     parse_ansi_line,
     parse_ansi_text,
@@ -111,6 +115,45 @@ class StreamingFeedTest(unittest.TestCase):
         single = parse_ansi_line("abc\nd")
         self.assertEqual([line.text for line in single], [line.text for line in streamed])
         self.assertEqual([line.attrib for line in single], [line.attrib for line in streamed])
+
+    def test_sequences_at_their_length_limits_feed_alike(self) -> None:
+        """Give the same result fed whole, one character per call, or one character per step of the state machine.
+
+        The last way switches off the steps that take a run of text, CSI parameters or a string body at once.
+        """
+        cases = {
+            "text and sgr": "ab\x1b[1;31mcd\x1b[mef\x1b(0lqk\x1b(Bg",
+            "csi interrupted": "a\x1b[31\x1b[32mb",
+            "csi split by a line end": "a\x1b[3\n1mb",
+            "csi at limit": f"\x1b[{'1' * (MAX_CSI_LENGTH - 1)}mX",
+            "csi past limit": f"\x1b[{'1' * (MAX_CSI_LENGTH + 4)}mX",
+            "osc esc at limit": f"\x1b]2;{'t' * (MAX_OSC_LENGTH - 3)}\x1b\\X",
+            "osc esc past limit": f"\x1b]2;{'t' * (MAX_OSC_LENGTH - 2)}\x1b\\X",
+            "osc 8 past limit": f"\x1b]8;;{'u' * MAX_OSC_LENGTH}\x07X",
+            "osc palette": "\x1b]P0abcdef12X\x1b]RX",
+            "osc del after esc": "\x1b]2;t\x7fu\x1b\x7f\\X",
+            "dcs del after esc": "\x1bPq\x7fr\x1b\x7f\\X",
+            "dcs esc at limit": f"\x1bP{'q' * (MAX_OSC_LENGTH - 2)}\x1b\\X",
+            "dcs past limit": f"\x1bP{'q' * MAX_OSC_LENGTH}\x1b\\X",
+            "dcs ended by another sequence": f"\x1bP{'q' * MAX_OSC_LENGTH}\x1b[31mX",
+        }
+        for name, text in cases.items():
+            for one_line in (True, False):
+                with self.subTest(name, one_line=one_line):
+                    whole = AnsiParser(one_line=one_line)
+                    whole.feed(text)
+                    expected = whole.finalize()
+                    parser = AnsiParser(one_line=one_line)
+                    for char in text:
+                        parser.feed(char)
+                    self.assertEqual(expected, parser.finalize())
+                    with (
+                        mock.patch.object(_vt_parser._VTParser, "_vt_append_run", lambda _self, _text, start: start),
+                        mock.patch.object(_parser, "_TEXT_RUN", re.compile("(?!)")),
+                    ):
+                        stepped = AnsiParser(one_line=one_line)
+                        stepped.feed(text)
+                        self.assertEqual(expected, stepped.finalize())
 
     def test_sgr_settings_reset_and_reenabled_across_feed_calls(self) -> None:
         parser = AnsiParser(one_line=True)
