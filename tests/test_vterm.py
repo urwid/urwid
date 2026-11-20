@@ -1008,7 +1008,10 @@ class TermTest(unittest.TestCase):
         self.disconnect_signal("title")
 
     def test_osc_controls_after_escape_and_in_display_ctrl_mode(self):
-        """Execute a control after an ESC in an OSC string, keep DEL in it, and abort it at CAN with display_ctrl."""
+        """Execute a control after an ESC in an OSC string, keep DEL in it, and abort it at CAN with display_ctrl.
+
+        DEL right after the ESC is ignored, as in xterm, so the ESC still starts the ST.
+        """
         self.connect_signal("title")
         self.write("a\\e]0;t\\e\n\\b")
         self.expect("a\nb")
@@ -1022,11 +1025,19 @@ class TermTest(unittest.TestCase):
         self.write("\\e]0;ti\x7ftle\007")
         self.expect("a\nb       c")
         self.expect_signal("ti\x7ftle")
+        # the DEL in a write of its own, after the one that ends with the ESC
+        self.write("\\e]0;w\\e")
+        self.write("\x7f\\d")
+        self.expect("a\nb       cd")
+        self.expect_signal("w")
         self._sig_response = None
         self.term.term.modes.display_ctrl = True
         self.write("\\e]0;x\x18y\007")
         self.read()
         self.assertIsNone(self._sig_response)
+        self.write("\\e]0;z\\e\x7f\\")
+        self.read()
+        self.expect_signal("z")
         self.disconnect_signal("title")
 
     def test_other_controls_are_ignored(self):

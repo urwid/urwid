@@ -154,7 +154,8 @@ class AnsiParser:
     Inside an OSC string, in both modes, a control character in :data:`OSC_IGNORED_CONTROLS`, line ends included,
     is ignored as in a terminal: it is neither executed nor part of the string, and a line end there splits no line.
     Right after an ESC inside the string, a control character is executed instead, and the ESC stays pending, so a
-    following backslash still ends the string. An OSC string left unterminated hides the rest of the input.
+    following backslash still ends the string; DEL there is ignored, as in xterm, and the ESC stays pending too.
+    An OSC string left unterminated hides the rest of the input.
     A DCS, SOS, PM or APC string is discarded up to its ST in the same way, and BEL inside it is ignored as well.
     An escape sequence with intermediate bytes, such as ``ESC SP G``, is read up to its final byte.
 
@@ -404,6 +405,9 @@ class AnsiParser:
     # -- internal: char-by-char state machine ---------------------------
 
     def _step(self, ch: str) -> None:
+        if self._parsestate in _STRING_STATES and ch == "\x7f" and self._escbuf[-1:] == ESC:
+            # DEL after an ESC inside a string is ignored, as in xterm, so a following backslash still ends the string
+            return
         if self._parsestate in _OSC_STATES:
             if ch in _CANCEL:
                 # CAN/SUB abort the string unapplied
