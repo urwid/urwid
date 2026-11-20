@@ -524,10 +524,13 @@ class ContextMenuTest(unittest.TestCase):
 
 
 class ArrowToOwnerTest(unittest.TestCase):
-    """An arrow the top list has no use for goes to the widgets under the list, such as a row of launchers."""
+    """With pass_arrows_below, an arrow the top list has no use for goes to the widgets under the list."""
 
     def bar(self, **kwargs: typing.Any) -> tuple[urwid.PopUpTarget, urwid.Columns, list[urwid.ActionMenu]]:
-        menus = [urwid.ActionMenu("File", WITH_SUBMENU, **kwargs), urwid.ActionMenu("Edit", ["Copy", "Paste"])]
+        menus = [
+            urwid.ActionMenu("File", WITH_SUBMENU, pass_arrows_below=True, **kwargs),
+            urwid.ActionMenu("Edit", ["Copy", "Paste"], pass_arrows_below=True),
+        ]
         columns = urwid.Columns([("pack", menu) for menu in menus], dividechars=1)
         return urwid.PopUpTarget(urwid.Filler(columns, "top")), columns, menus
 
@@ -545,9 +548,19 @@ class ArrowToOwnerTest(unittest.TestCase):
                 self.assertEqual(0, columns.focus_position)
                 self.assertIsNone(menus[1].pop_up_widget)
 
+    def test_lone_menu_keeps_the_arrow_by_default(self) -> None:
+        """Without pass_arrows_below the list keeps an unused arrow, even in a row of launchers."""
+        menus = [urwid.ActionMenu("File", WITH_SUBMENU), urwid.ActionMenu("Edit", ["Copy", "Paste"])]
+        columns = urwid.Columns([("pack", menu) for menu in menus], dividechars=1)
+        target = urwid.PopUpTarget(urwid.Filler(columns, "top"))
+        keys(target, (40, 10), "enter")
+        self.assertEqual("right", target.keypress((40, 10), "right"))
+        self.assertEqual(0, columns.focus_position)
+        self.assertIsNotNone(menus[0].pop_up_widget)
+
     def test_unused_arrow_nobody_takes_keeps_the_list(self) -> None:
         """In a list of rows nothing takes the arrow, so the list stays open and the arrow is returned."""
-        target, menus = file_list()
+        target, menus = file_list(pass_arrows_below=True)
         keys(target, (34, 9), "m")
         self.assertEqual("right", target.keypress((34, 9), "right"))
         self.assertIsNotNone(menus[1].pop_up_widget)
@@ -555,7 +568,7 @@ class ArrowToOwnerTest(unittest.TestCase):
     def test_unfocused_launcher_keeps_the_arrow(self) -> None:
         """A list opened by open_at() on an unfocused launcher does not hand the arrow to the focused widget."""
         edit = urwid.Edit("", "hello")
-        menu = urwid.ActionMenu(None, ["Copy"], launcher=urwid.SelectableIcon("row", 0))
+        menu = urwid.ActionMenu(None, ["Copy"], launcher=urwid.SelectableIcon("row", 0), pass_arrows_below=True)
         target = urwid.PopUpTarget(urwid.ListBox(urwid.SimpleFocusListWalker([edit, menu])))
         target.render((20, 6), focus=True)
         menu.open_at(0, 0)
@@ -572,7 +585,7 @@ class ArrowToOwnerTest(unittest.TestCase):
                 self.close_pop_up()
                 return key
 
-        menus = [ClosingMenu("File", ["Open"]), urwid.ActionMenu("Edit", ["Copy"])]
+        menus = [ClosingMenu("File", ["Open"], pass_arrows_below=True), urwid.ActionMenu("Edit", ["Copy"])]
         columns = urwid.Columns([("pack", menu) for menu in menus], dividechars=1)
         target = urwid.PopUpTarget(urwid.Filler(columns, "top"))
         keys(target, (40, 10), "enter")

@@ -450,8 +450,8 @@ class ActionMenu(_MenuOwner):
     the arrow back towards the parent closes only the child, as :kbd:`esc` does,
     and the other arrow on a submenu row opens a further child.
     In the top list either arrow opens a child.
-    While the launcher has the focus, an arrow on a row of the top list with no submenu goes to the widgets
-    under the list.
+    With ``pass_arrows_below=True``, as for a menu bar, an arrow on a row of the top list with no submenu goes to
+    the widgets under the list while the launcher has the focus.
     When one of them takes it, as a :class:`Columns <urwid.Columns>` of launchers does by moving the focus,
     the list closes; otherwise it stays open and the arrow is returned unhandled.
     :kbd:`esc`, or a click outside the list, closes it without a choice.
@@ -497,6 +497,7 @@ class ActionMenu(_MenuOwner):
         open_buttons: Collection[int] = ...,
         align: Literal["left", "right"] = ...,
         placement: Literal["launcher", "center"] = ...,
+        pass_arrows_below: bool = ...,
         border: bool = ...,
         show_keys: bool = ...,
         max_visible_items: int = ...,
@@ -519,6 +520,7 @@ class ActionMenu(_MenuOwner):
         open_buttons: Collection[int] = ...,
         align: Literal["left", "right"] = ...,
         placement: Literal["launcher", "center"] = ...,
+        pass_arrows_below: bool = ...,
         border: bool = ...,
         show_keys: bool = ...,
         max_visible_items: int = ...,
@@ -540,6 +542,7 @@ class ActionMenu(_MenuOwner):
         open_buttons: Collection[int] = (MouseButton.LEFT,),
         align: Literal["left", "right"] = "left",
         placement: Literal["launcher", "center"] = "launcher",
+        pass_arrows_below: bool = False,
         border: bool = True,
         show_keys: bool = False,
         max_visible_items: int = 10,
@@ -566,6 +569,9 @@ class ActionMenu(_MenuOwner):
         :param placement: where an opening key or button opens the list: ``"launcher"`` at the launcher's edge,
             ``"center"`` in the middle of the :class:`PopUpTarget <urwid.PopUpTarget>`.
             :meth:`open_at` opens it at the given cell either way.
+        :param pass_arrows_below: offer :kbd:`left` and :kbd:`right` on a row of the top list with no submenu
+            to the widgets under the list, and close the list when they take it.
+            A row of menu launchers then moves between menus; a lone menu keeps the arrow in its list.
         :param border: draw a box around each list, with separators joined to it.
         :param show_keys: draw each item's key in a column before its label.
         :param max_visible_items: most entries a list shows at once; it scrolls through the rest.
@@ -591,6 +597,7 @@ class ActionMenu(_MenuOwner):
         if placement not in ("launcher", "center"):
             raise ValueError(f"placement must be 'launcher' or 'center', got {placement!r}")
         self._placement: Literal["launcher", "center"] = placement
+        self._pass_arrows_below = pass_arrows_below
         self._items = _menu_entries(items)
         self._style = _MenuStyle(
             align=align,
@@ -667,7 +674,8 @@ class ActionMenu(_MenuOwner):
 
         Below an edge or a cell, the rows above the list are the vertical anchor,
         so it moves above them when it does not fit below.
-        While the launcher has the focus, unused arrows are offered to the widgets under the list.
+        With `pass_arrows_below`, while the launcher has the focus, unused arrows are offered to the widgets
+        under the list.
         """
         layout = _list_layout(self._items, self._style)
         parameters: PopUpParametersModel
@@ -704,7 +712,7 @@ class ActionMenu(_MenuOwner):
                     typing.assert_never(self._placement)
         # Only a launcher on the focus path receives what the widgets under the list do with the arrow,
         # so an unfocused one keeps it from the focused widget, which has nothing to do with the menu.
-        if self._render_focus:
+        if self._pass_arrows_below and self._render_focus:
             parameters["pass_key_below"] = self._pass_arrow_below
         return parameters
 

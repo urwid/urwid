@@ -346,11 +346,13 @@ click outside closes the list without a choice.
   drawn: the arrow back towards the parent closes only the child, as
   :kbd:`esc` does, and the other arrow on a submenu row opens a further
   child.  In the top list either arrow opens a child.
-- While the launcher has the focus, :kbd:`left` and :kbd:`right` on a row
-  of the top list with no submenu go to the widgets under the list.  When
-  one of them takes the arrow, as a
-  :class:`Columns` of menu launchers does by moving the focus, the list
-  closes; otherwise it stays open and the arrow is returned unhandled.
+- ``pass_arrows_below=True`` is for a menu bar.  While the launcher has the
+  focus, :kbd:`left` and :kbd:`right` on a row of the top list with no
+  submenu then go to the widgets under the list.  When one of them takes
+  the arrow, as a :class:`Columns` of menu launchers does by moving the
+  focus, the list closes; otherwise it stays open and the arrow is returned
+  unhandled.  A lone menu leaves it ``False`` and keeps the arrow in its
+  list.
 - ``align="right"`` lines up the right edges of the list and the launcher,
   for a menu at the right edge or a right-to-left interface.
 - ``placement="center"`` opens the list in the middle of the

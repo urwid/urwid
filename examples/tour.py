@@ -269,9 +269,9 @@ def main() -> None:
         (
             " opens a list of actions with ENTER, SPACE or a click.  The key in brackets chooses an item, "
             "a disabled item cannot be focused, and Send to opens a submenu with RIGHT; LEFT or ESC closes it.  "
-            "Near the right edge the submenu opens to the left of the list.  Centred opens the same list in the "
-            "middle of the screen.  On an item without a submenu, LEFT and RIGHT close the list and move between "
-            "the two launchers."
+            "Near the right edge the submenu opens to the left of the list.  View opens its list in the middle "
+            "of the screen.  Each menu sets its own field.  The two launchers form a menu bar: on an item without "
+            "a submenu, LEFT and RIGHT close the list and move to the other launcher."
         ),
     ]
     text_context_menu = (
@@ -367,9 +367,12 @@ def main() -> None:
     urwid.connect_signal(show_sizes_box, "change", show_sizes)
 
     action_chosen = urwid.Text(["Action: ", ("important", "none yet")])
+    view_chosen = urwid.Text(["View: ", ("important", "list")])
+    edit_chosen = urwid.Text(["Edit: ", ("important", "none yet")])
 
-    def show_action(_menu: urwid.ActionMenu, item: urwid.MenuItem) -> None:
-        action_chosen.set_text(["Action: ", ("important", str(item.value))])
+    def show_choice(_menu: urwid.ActionMenu, item: urwid.MenuItem, field: tuple[urwid.Text, str]) -> None:
+        text, caption = field
+        text.set_text([caption, ("important", str(item.value))])
 
     action_menu = urwid.ActionMenu(
         "Actions",
@@ -387,16 +390,24 @@ def main() -> None:
             ),
             urwid.MenuItem("(D)elete", "delete", key="d"),
         ],
-        on_action=show_action,
+        on_action=show_choice,
+        user_data=(action_chosen, "Action: "),
+        pass_arrows_below=True,
         attr_map="buttn",
         focus_map="buttnf",
         disabled_map="tab",
     )
-    centred_menu = urwid.ActionMenu(
-        "Centred",
-        action_menu.items,
-        on_action=show_action,
+    view_menu = urwid.ActionMenu(
+        "View",
+        [
+            urwid.MenuItem("(L)ist", "list", key="l"),
+            urwid.MenuItem("(I)cons", "icons", key="i"),
+            urwid.MenuItem("(D)etails", "details", key="d"),
+        ],
+        on_action=show_choice,
+        user_data=(view_chosen, "View: "),
         placement="center",
+        pass_arrows_below=True,
         attr_map="buttn",
         focus_map="buttnf",
         disabled_map="tab",
@@ -410,7 +421,8 @@ def main() -> None:
         launcher=urwid.Text(text_context_menu),
         # The paragraph opens the menu itself, so the menu takes no button of its own.
         open_buttons=(),
-        on_action=show_action,
+        on_action=show_choice,
+        user_data=(edit_chosen, "Edit: "),
         attr_map="buttn",
         focus_map="buttnf",
     )
@@ -661,8 +673,7 @@ def main() -> None:
             urwid.Columns(
                 [
                     (action_menu.pack()[0], urwid.AttrMap(action_menu, "buttn", "buttnf")),
-                    (centred_menu.pack()[0], urwid.AttrMap(centred_menu, "buttn", "buttnf")),
-                    action_chosen,
+                    (view_menu.pack()[0], urwid.AttrMap(view_menu, "buttn", "buttnf")),
                 ],
                 dividechars=2,
             ),
@@ -670,8 +681,10 @@ def main() -> None:
             right=3,
             min_width=20,
         ),
+        urwid.Padding(urwid.Columns([action_chosen, view_chosen], dividechars=2), left=4, right=3, min_width=20),
         blank,
         urwid.Padding(ContextMenuArea(context_menu), left=4, right=3, min_width=20),
+        urwid.Padding(edit_chosen, left=4, right=3, min_width=20),
         blank,
         blank,
         urwid.Padding(urwid.Text(text_tabs), left=2, right=2, min_width=20),
