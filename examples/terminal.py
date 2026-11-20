@@ -276,6 +276,11 @@ def make_websocket_app(token: str) -> tornado.web.Application:
     # the sessions open now, ended by serve_websocket() when the server stops
     sessions: set[tornado.websocket.WebSocketHandler] = set()
 
+    def report_failure(ended: asyncio.Future[None]) -> None:
+        """Log a failure to end a session's shell."""
+        if not ended.cancelled() and (exc := ended.exception()) is not None:
+            LOG.error("Ending a session's shell failed", exc_info=exc)
+
     class SessionHandler(tornado.websocket.WebSocketHandler):  # pylint: disable=abstract-method  # no streamed body
         """One browser page: a screen, a main loop and a shell, for as long as the WebSocket is open."""
 
@@ -322,14 +327,20 @@ def make_websocket_app(token: str) -> tornado.web.Application:
                 self.close(1008, "invalid message")
 
         def on_close(self) -> None:
-            """Stop the session's main loop and end its shell, also when called again."""
+            """Stop the session's main loop and end its shell, also when called again.
+
+            The shell is ended on a worker thread, since waiting for it to exit would stall every other page,
+            and asyncio.run() waits for that thread before the process exits.
+            """
             sessions.discard(self)
             if self.main_loop is not None:
                 self.main_loop.stop()
                 self.main_loop = None
             if self.term is not None:
-                self.term.terminate()
-                self.term = None
+                term, self.term = self.term, None
+                # the pty is watched on the shared loop, so only its own thread stops watching it
+                term.remove_watch()
+                asyncio.get_running_loop().run_in_executor(None, term.terminate).add_done_callback(report_failure)
 
         def _on_application_error(self, exc: Exception) -> None:
             """End this session after the application ends, or after an error in it."""
