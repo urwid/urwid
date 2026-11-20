@@ -323,6 +323,18 @@ class AttrSpecInheritTest(unittest.TestCase):
                 self.assertEqual(AttrSpec(*expected), AttrSpec(*inner).layered_over(AttrSpec(*outer), **options))
 
 
+class AttrSpecHighColorTest(unittest.TestCase):
+    """The names of the high colors of the 88- and 256-color modes."""
+
+    def test_88_color_zero_is_named(self) -> None:
+        """Name high color 0 in 88-color mode as in 256-color mode, for the foreground and the background."""
+        for colors in (88, 256):
+            with self.subTest(colors=colors):
+                aspec = AttrSpec("h0", "h0", colors)
+                self.assertEqual(("h0", "h0"), (aspec.foreground, aspec.background))
+                self.assertEqual(0, aspec.foreground_number)
+
+
 class ResolveAttrTest(unittest.TestCase):
     """Tests for BaseScreen.resolve_attr, which turns a canvas run attribute into the AttrSpec to draw."""
 

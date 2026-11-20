@@ -396,6 +396,8 @@ def _color_desc_88(num: int) -> str:
     16..79 -> '#000'..'#fff' color cube colors
     80..87 -> 'g18'..'g90' grays
 
+    >>> _color_desc_88(0)
+    'h0'
     >>> _color_desc_88(15)
     'h15'
     >>> _color_desc_88(16)
@@ -412,7 +414,7 @@ def _color_desc_88(num: int) -> str:
     :raises ValueError: *num* is outside the 88-colour range.
 
     """
-    if not 0 < num < 88:
+    if not 0 <= num < 88:
         raise ValueError(num)
     if num < _CUBE_START:
         return f"h{num:d}"
