@@ -30,6 +30,8 @@
 
 Each input is one row: the key names and mouse events the main loop receives,
 and the raw codes the display read them from.
+A mouse button is shown by its number and its ``MouseButton`` name,
+and a key bound in the command map is shown with the command it runs.
 :kbd:`Q` asks whether to end the test: :kbd:`Y` ends it, and any other input goes on with it.
 
 The display is chosen with ``--display``:
@@ -78,6 +80,9 @@ import typing
 import urwid
 import urwid.display.websocket as websocket_display
 
+# by name: the package's command_map attribute is the shared command map, not this module
+from urwid.command_map import Command
+
 if typing.TYPE_CHECKING:
     from collections.abc import Sequence
 
@@ -98,6 +103,7 @@ PALETTE: typing.Final = (
     ("listbox", "light gray", "black", None, "#f8f8f2", "#272822"),
     ("key", "yellow,bold", "inherit", "bold", "#e6db74,bold", "inherit"),
     ("mouse", "light cyan,bold", "inherit", "bold,underline", "#66d9ef,bold", "inherit"),
+    ("command", "light magenta", "inherit", None, "#ae81ff", "inherit"),
 )
 
 # the event loops offered besides "select" and "asyncio", when this installation has them
@@ -173,6 +179,34 @@ def parse_args(argv: Sequence[str] | None = None) -> argparse.Namespace:
     return args
 
 
+def input_markup(keys: list[str | tuple[str, int, int, int]]) -> list[str | tuple[str, str]]:
+    """Return the text markup that shows *keys*.
+
+    A mouse button is shown by its number and its :class:`urwid.MouseButton` name,
+    and a key bound in :data:`urwid.command_map` with the command it runs.
+    """
+    markup: list[str | tuple[str, str]] = []
+    for key in keys:
+        if isinstance(key, str):
+            markup += ["'", ("key", key), "' "]
+            command = urwid.command_map[key]
+            if isinstance(command, Command):
+                markup += [("command", f"Command.{command.name}"), " "]
+            elif command is not None:
+                # a command an application registered under a name of its own
+                markup += [("command", repr(command)), " "]
+            continue
+        event, button, col, row = key
+        markup += ["(", ("mouse", repr(event)), ", ", ("mouse", repr(button))]
+        # after the number a screen passes, which an application that does not use MouseButton compares against,
+        # its MouseButton name, styled as a key's command; 0 when a release does not name its button
+        if button >= 0:
+            markup += [" ", ("command", f"MouseButton.{urwid.MouseButton(button).name}")]
+        markup.append(", ")
+        markup += [("mouse", repr(col)), ", ", ("mouse", repr(row)), ") "]
+    return markup
+
+
 def build_loop(screen: urwid.display.BaseScreen, event_loop: urwid.EventLoop | None) -> urwid.MainLoop:
     """Return the main loop of the test, drawing on *screen* and running on *event_loop*."""
     rows: urwid.SimpleListWalker[urwid.Columns] = urwid.SimpleListWalker([])
@@ -204,19 +238,8 @@ def build_loop(screen: urwid.display.BaseScreen, event_loop: urwid.EventLoop | N
             asking = False
             header_text.set_text(HEADER)
 
-        markup: list[str | tuple[str, str]] = []
-        for key in keys:
-            if isinstance(key, str):
-                markup += ["'", ("key", key), "' "]
-                continue
-            markup.append("(")
-            for index, value in enumerate(key):
-                if index:
-                    markup.append(", ")
-                markup.append(("mouse", repr(value)))
-            markup.append(")")
         raw_text = urwid.Text(", ".join(f"{code:d}" for code in raw))
-        rows.append(urwid.Columns([(urwid.WEIGHT, 2, urwid.Text(markup)), raw_text]))
+        rows.append(urwid.Columns([(urwid.WEIGHT, 2, urwid.Text(input_markup(keys))), raw_text]))
         # keep the newest row at the bottom of the list box
         listbox.set_focus(len(rows) - 1, "above")
         if "q" in keys or "Q" in keys:
