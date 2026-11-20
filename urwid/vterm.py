@@ -35,6 +35,7 @@ import sys
 import termios
 import time
 import traceback
+import types
 import typing
 from contextlib import suppress
 
@@ -231,6 +232,9 @@ _KITTY_CSI_U_KEYS: typing.Final = {
 _KITTY_LEGACY_KEYS: typing.Final = frozenset(("enter", "tab", "backspace"))
 #: the keys that frame pasted text, which is sent as typed in a legacy terminal whatever the keyboard flags
 _PASTE_KEYS: typing.Final = frozenset(("begin paste", "end paste"))
+
+#: the focus event reports xterm sends in focus reporting mode (1004), by the urwid key the display reports them as
+_FOCUS_REPORTS: typing.Final = types.MappingProxyType({"focus in": b"\x1b[I", "focus out": b"\x1b[O"})
 
 
 def _mouse_report(code: int, col: int, row: int, release: bool, encoding: PrivateMode | None) -> bytes:
@@ -486,6 +490,18 @@ class Terminal(Widget):
             os.write(typing.cast("int", self.master), string.encode("ascii"))
         self.response_buffer = []
 
+    def _write_report(self, data: bytes) -> None:
+        """Write *data* to the child's input when the pty can take it now, and drop it otherwise.
+
+        It is for what the terminal sends without a key typed, such as a size or focus report:
+        the event loop must not block on a child that stopped reading its input.
+        """
+        master = typing.cast("int", self.master)
+        with selectors.DefaultSelector() as selector:
+            selector.register(master, selectors.EVENT_WRITE)
+            if selector.select(0):
+                os.write(master, data)
+
     def set_termsize(self, width: int, height: int) -> None:
         """Tell the pty the terminal window is now *width* by *height* characters."""
         winsize = struct.pack("HHHH", height, width, 0, 0)
@@ -509,15 +525,9 @@ class Terminal(Widget):
         else:
             self.term.resize(width, height)
             if self.term.modes.in_band_resize:
-                # Sent after the size the child reads on SIGWINCH is set, as a terminal sends it, and only when the pty
-                # can take it now: this runs in render(), which a child that stopped reading must not block.
+                # Sent after the size the child reads on SIGWINCH is set, as a terminal sends it.
                 # A dropped report loses nothing the child cannot read with TIOCGWINSZ.
-                master = typing.cast("int", self.master)
-                with selectors.DefaultSelector() as selector:
-                    selector.register(master, selectors.EVENT_WRITE)
-                    writable = bool(selector.select(0))
-                if writable:
-                    os.write(master, window_size_report(width, height).encode("ascii"))
+                self._write_report(window_size_report(width, height).encode("ascii"))
 
         self.width = width
         self.height = height
@@ -686,6 +696,11 @@ class Terminal(Widget):
             return key
 
         grabbed = self.keygrab
+
+        if key in _FOCUS_REPORTS and self.term_modes.focus_reporting:
+            # a focus change is no key: it starts no key grab and does not scroll a view scrolled back
+            self._write_report(_FOCUS_REPORTS[key])
+            return None
 
         if key in _PASTE_KEYS:
             self._pasting = key == "begin paste"

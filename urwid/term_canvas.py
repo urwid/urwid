@@ -528,6 +528,9 @@ class TermModes:
     # SPA selected ISO protection, until DECSCA, DECSTR or RIS: ED, EL and ECH keep the protected characters too, and
     # DECSERA erases them
     iso_protection: bool = False
+    # The fields below follow every field above, which a caller may pass to the constructor by position.
+    # the child is sent CSI I and CSI O when the display reports that the terminal gained and lost the focus
+    focus_reporting: bool = False
 
     def reset(self) -> None:
         """Reset every mode flag to its terminal-startup default."""
@@ -542,6 +545,7 @@ class TermModes:
         self.constrain_scrolling = False
         self.autowrap = True
         self.visible_cursor = True
+        self.focus_reporting = False
         self.in_band_resize = False
         self.mouse_tracking = None
         self.mouse_encoding = None
@@ -2379,6 +2383,8 @@ class TermCanvas(Canvas):
                 self.modes.backarrow_sends_backspace = flag
             elif private_mode == PrivateMode.BRACKETED_PASTE:
                 self.modes.bracketed_paste = flag
+            elif private_mode == PrivateMode.FOCUS_REPORTING:
+                self.modes.focus_reporting = flag
             elif private_mode == PrivateMode.IN_BAND_RESIZE:
                 self.modes.in_band_resize = flag
                 # the mode asks for a report of the current size on each set, also when it was already set
@@ -2423,6 +2429,8 @@ class TermCanvas(Canvas):
                 return modes.backarrow_sends_backspace
             case PrivateMode.BRACKETED_PASTE:
                 return modes.bracketed_paste
+            case PrivateMode.FOCUS_REPORTING:
+                return modes.focus_reporting
             case PrivateMode.SYNCHRONIZED_OUTPUT:
                 return modes.synchronized_output
             case PrivateMode.IN_BAND_RESIZE:

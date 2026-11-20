@@ -205,6 +205,8 @@ CHT and CBT leave a pending wrap as it is, as in xterm.
 DECRQM reports cursor blinking (12) and the urxvt mouse encoding (1015) as
 permanently reset, and Meta and Alt sending ESC (1036, 1039) as permanently
 set.
+The display's focus changes are sent to a child that turns on focus reporting
+(mode 1004) while the terminal has the focus.
 At the VT100 level no reply in a DCS string is sent, except to XTVERSION,
 which xterm answers there too.  SU and SD scroll
 the scrolling region without saving the lines scrolled off in the scrollback,

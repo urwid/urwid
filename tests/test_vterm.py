@@ -1177,6 +1177,30 @@ class TermTest(unittest.TestCase):
         self.term.keypress(None, "end paste")
         self.expect(r"testB")
 
+    def test_focus_reporting(self) -> None:
+        """Send the focus changes the display reports as CSI I and CSI O while mode 1004 is set.
+
+        Without the mode the focus keys are not handled, and a focus change never starts a key grab.
+        A report the pty cannot take, as the child reads no input, is dropped rather than waited for.
+        """
+        for label, mode, child_reads, sent, result in (
+            ("mode set", r"\e[?1004h", True, b"\x1b[I\x1b[O", None),
+            ("mode set, the child reads no input", r"\e[?1004h", False, b"", None),
+            ("mode reset", r"\e[?1004h\e[?1004l", True, b"", "focus in"),
+            ("mode never set", "", True, b"", "focus in"),
+        ):
+            with self.subTest(label):
+                self.restart()
+                self.write(mode)
+                self.read()
+                self.pty.from_widget.clear()
+                self.pty.child_reads = child_reads
+                self.term.keygrab = False
+                self.assertEqual(self.term.keypress(self.termsize, "focus in"), result)
+                self.assertEqual(self.term.keypress(self.termsize, "focus out"), result and "focus out")
+                self.assertEqual(bytes(self.pty.from_widget), sent)
+                self.assertFalse(self.term.keygrab)
+
     def test_synchronized_output_mode_on(self):
         self.write(r"\e[?2026htest")
         self.expect("test")
@@ -1817,6 +1841,11 @@ class TermTest(unittest.TestCase):
                 b"\x1b[?1036;3$y\x1b[?1039;3$y",
             ),
             ("XTGETTCAP is not answered at the VT100 level", rf'\e[61"p\eP+q436f{_ST}', b""),
+            (
+                "mode 1004 is reported, and reset by RIS",
+                r"\e[?1004h\e[?1004$p\ec\e[?1004$p",
+                b"\x1b[?1004;1$y\x1b[?1004;2$y",
+            ),
         ):
             with self.subTest(label):
                 self.restart()
