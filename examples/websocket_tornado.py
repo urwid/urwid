@@ -578,7 +578,7 @@ class SessionHandler(tornado.websocket.WebSocketHandler):  # pylint: disable=abs
         self._reset_idle_timer()
 
     def on_close(self) -> None:
-        """Stop the session's main loop."""
+        """Stop the session's main loop, also when called again."""
         io_loop = tornado.ioloop.IOLoop.current()
         if self.idle_timer is not None:
             io_loop.remove_timeout(self.idle_timer)
@@ -683,8 +683,11 @@ async def serve(config: Config) -> int:
     finally:
         LOG.info("Stopping: closing %d sessions", len(sessions))
         server.stop()
+        # close_all_connections() leaves a WebSocket open, and Tornado runs on_close() only once the page answers the
+        # close, after the server has stopped: each session is closed and ended here
         for session in list(sessions):
             session.close(1001, "server stopping")
+            session.on_close()
         await server.close_all_connections()
     return 0
 
