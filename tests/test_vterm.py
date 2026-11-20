@@ -1711,6 +1711,16 @@ class TermTest(unittest.TestCase):
             ("DECRQSS aborted by CAN is not answered", f"\\eP$qm\x18{_ST}", b""),
             ("mode 2048 reports the size on each set", r"\e[?2048h\e[?2048h", b"\x1b[48;24;80;0;0t" * 2),
             ("mode 2048 is reset by RIS", r"\e[?2048h\ec\e[?2048$p", b"\x1b[48;24;80;0;0t\x1b[?2048;2$y"),
+            (
+                "DECRQM reports the cursor blink and the urxvt mouse permanently reset, as they are never used",
+                r"\e[?12h\e[?12$p\e[?1015h\e[?1015$p",
+                b"\x1b[?12;4$y\x1b[?1015;4$y",
+            ),
+            (
+                "DECRQM reports Meta and Alt sending ESC permanently set, as the keys are always sent that way",
+                r"\e[?1036l\e[?1036$p\e[?1039l\e[?1039$p",
+                b"\x1b[?1036;3$y\x1b[?1039;3$y",
+            ),
         ):
             with self.subTest(label):
                 self.restart()

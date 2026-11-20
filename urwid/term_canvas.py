@@ -150,10 +150,13 @@ _CHECKSUM_UNMAPPED: typing.Final = 0x1B
 #: 4 is permanently reset, as setting them has no effect: smooth scrolling (DECSCLM, 4) and autorepeat (DECARM, 8),
 #: which the display decides, printing (DECPFF 18, DECPEX 19), as no printer is attached, and the national replacement
 #: character sets (DECNRCM, 42), DECKBUM (68) and the margins (DECLRMM, 69), which are not implemented;
-#: 3 is permanently set, for ANSI mode (DECANM, 2), as VT52 mode is not implemented;
+#: and so are cursor blinking (12), which the cursor drawn is never shown with, and the urxvt mouse encoding (1015),
+#: which is never used;
+#: 3 is permanently set, for ANSI mode (DECANM, 2), as VT52 mode is not implemented, and for Meta and Alt sending ESC
+#: (1036, 1039), as the keys are always sent that way;
 #: 2 is reset, for 132 columns (DECCOLM, 3), as xterm reports it without its c132 resource
 _FIXED_PRIVATE_MODE_STATES: typing.Final = types.MappingProxyType(
-    {2: 3, 3: 2, **dict.fromkeys((4, 8, 18, 19, 42, 68, 69), 4)},
+    {2: 3, 3: 2, **dict.fromkeys((4, 8, 12, 18, 19, 42, 68, 69, 1015), 4), **dict.fromkeys((1036, 1039), 3)},
 )
 
 #: the DECRQCRA checksum bits of the AttrSpec flags, as xterm adds them to each character
