@@ -192,23 +192,52 @@ choosing a rectangle or a stream for the last two, and the DECRQCRA checksum,
 the column operations DECIC, DECDC, DECBI and DECFI, and the tertiary device
 attributes query, at every level, although xterm takes them only at the VT420
 level.
+Of the xterm queries it answers XTVERSION with urwid and its version, the size
+reports of XTWINOPS, in characters (18) and in pixels (14) as unknown, and
+XTGETTCAP, in xterm's form, for the color count and RGB colors the display
+draws.
 SGR reads the colors and the underline style given with sub-parameters, such as
-``38:2::r:g:b`` and ``4:3``; every underline style is drawn as a single
-underline, and the underline color is not drawn.
+``38:2::r:g:b`` and ``4:3``, SGR 21 as a double underline, and the underline
+color of SGR 58 and 59, which the display draws as :ref:`underline-styles`
+describes.
 As in xterm, HT leaves a pending wrap as it is.
+REP repeats only a character written just before it, at most 65535 times, and
+CHT and CBT leave a pending wrap as it is, as in xterm.
 DECRQM reports cursor blinking (12) and the urxvt mouse encoding (1015) as
 permanently reset, and Meta and Alt sending ESC (1036, 1039) as permanently
 set.
-At the VT100 level no reply in a DCS string is sent.  SU and SD scroll
+The display's focus changes are sent to a child that turns on focus reporting
+(mode 1004) while the terminal has the focus.
+In alternate scroll mode (1007) the mouse wheel is sent to a child on the
+alternate screen that does not track the mouse as five cursor keys per step, as
+in xterm.
+At the VT100 level, as in xterm, DECRQPSR and DECRQUPSS are not answered,
+DECRQSS does not answer the conformance level, and DECRSPS is not applied; the
+tertiary device attributes and DECRQCRA are not answered there either.
+SU and SD scroll
 the scrolling region without saving the lines scrolled off in the scrollback,
 as in xterm.  After the child sets a cursor style with DECSCUSR, the widget
 draws the cursor cell itself, in reverse video for a block or a bar and
 underlined for an underline, instead of the display's cursor.  A grapheme
 cluster, such as a character with combining accents, an emoji sequence or a
 flag, takes one cell, or two with an empty second half for a wide one, as
-urwid's own width calculation, the one the display uses, measures it.  A C1
-control written in UTF-8 is ignored, as in xterm and kitty.  VT52 mode is not
-implemented.  Replies use 7-bit controls only.  The child is given
+urwid's own width calculation, the one the display uses, measures it.  A
+combining character joins the cell before the cursor also after the cursor was
+moved there, as a text editor joins a character to the text before it.  The
+widget does not report grapheme cluster mode (2027), because of two rules of
+its `specification
+<https://github.com/contour-terminal/terminal-unicode-core>`_ that it does not
+follow:
+
+* the mode joins only characters written one after another, not a character
+  written after a cursor move;
+* the mode keeps a text variation selector (VS15) after a wide emoji in the
+  emoji's cell without changing its width, while urwid's width calculation
+  draws the pair one column wide, so the widget drops the selector to keep the
+  cell's width.
+
+A C1 control written in UTF-8 is ignored, as in xterm and kitty.  VT52 mode is
+not implemented.  Replies use 7-bit controls only.  The child is given
 ``TERM=linux``.
 :class:`TerminalOutput` shows output the application writes to it, such as
 captured output, with no process behind it, and also works on Windows.

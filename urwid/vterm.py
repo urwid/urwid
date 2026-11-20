@@ -35,6 +35,7 @@ import sys
 import termios
 import time
 import traceback
+import types
 import typing
 from contextlib import suppress
 
@@ -232,6 +233,16 @@ _KITTY_LEGACY_KEYS: typing.Final = frozenset(("enter", "tab", "backspace"))
 #: the keys that frame pasted text, which is sent as typed in a legacy terminal whatever the keyboard flags
 _PASTE_KEYS: typing.Final = frozenset(("begin paste", "end paste"))
 
+#: the cursor keys xterm sends for the mouse wheel in alternate scroll mode (1007), by wheel button, and how many it
+#: sends for one step of the wheel, as its default translations scroll-back(5,line) and scroll-forw(5,line) give
+_ALTERNATE_SCROLL_KEYS: typing.Final[types.MappingProxyType[int, str]] = types.MappingProxyType(
+    {MouseButton.WHEEL_UP: "up", MouseButton.WHEEL_DOWN: "down"}
+)
+_ALTERNATE_SCROLL_LINES: typing.Final = 5
+
+#: the focus event reports xterm sends in focus reporting mode (1004), by the urwid key the display reports them as
+_FOCUS_REPORTS: typing.Final = types.MappingProxyType({"focus in": b"\x1b[I", "focus out": b"\x1b[O"})
+
 
 def _mouse_report(code: int, col: int, row: int, release: bool, encoding: PrivateMode | None) -> bytes:
     """Return the bytes xterm sends for a mouse event with button byte *code* at 0-based *col* and *row*.
@@ -280,6 +291,7 @@ class Terminal(Widget):
         encoding: str = "utf-8",
         *,
         scroll_on_output: bool = True,
+        pass_signal_keys: bool = True,
     ) -> None:
         """Initialize a terminal emulator widget.
 
@@ -310,6 +322,11 @@ class Terminal(Widget):
         as xterm does by default. Set it to ``False`` to keep the view on the lines it shows while new output scrolls
         into the scrollback below them.
 
+        ``pass_signal_keys`` turns off the signal keys of the terminal the application runs in, such as :kbd:`Ctrl+C`,
+        while the widget has the focus, so they reach the child as keys.
+        Set it to ``False`` when that terminal is not the one the user types into, as for a widget shown in a browser,
+        to keep the application's own terminal as it is.
+
         .. note::
 
             If your Terminal instance does not show Unicode glyphs correctly, urwid's encoding is not UTF-8.
@@ -320,6 +337,7 @@ class Terminal(Widget):
 
         self.escape_sequence: str = escape_sequence or "ctrl a"
         self._scroll_on_output = scroll_on_output
+        self._pass_signal_keys = pass_signal_keys
 
         self.env = dict(env or os.environ)
 
@@ -486,6 +504,18 @@ class Terminal(Widget):
             os.write(typing.cast("int", self.master), string.encode("ascii"))
         self.response_buffer = []
 
+    def _write_report(self, data: bytes) -> None:
+        """Write *data* to the child's input when the pty can take it now, and drop it otherwise.
+
+        It is for what the terminal sends without a key typed, such as a size or focus report:
+        the event loop must not block on a child that stopped reading its input.
+        """
+        master = typing.cast("int", self.master)
+        with selectors.DefaultSelector() as selector:
+            selector.register(master, selectors.EVENT_WRITE)
+            if selector.select(0):
+                os.write(master, data)
+
     def set_termsize(self, width: int, height: int) -> None:
         """Tell the pty the terminal window is now *width* by *height* characters."""
         winsize = struct.pack("HHHH", height, width, 0, 0)
@@ -509,15 +539,9 @@ class Terminal(Widget):
         else:
             self.term.resize(width, height)
             if self.term.modes.in_band_resize:
-                # Sent after the size the child reads on SIGWINCH is set, as a terminal sends it, and only when the pty
-                # can take it now: this runs in render(), which a child that stopped reading must not block.
+                # Sent after the size the child reads on SIGWINCH is set, as a terminal sends it.
                 # A dropped report loses nothing the child cannot read with TIOCGWINSZ.
-                master = typing.cast("int", self.master)
-                with selectors.DefaultSelector() as selector:
-                    selector.register(master, selectors.EVENT_WRITE)
-                    writable = bool(selector.select(0))
-                if writable:
-                    os.write(master, window_size_report(width, height).encode("ascii"))
+                self._write_report(window_size_report(width, height).encode("ascii"))
 
         self.width = width
         self.height = height
@@ -532,7 +556,7 @@ class Terminal(Widget):
         self._emit("title", title)
 
     def change_focus(self, has_focus: bool) -> None:
-        """Ignore SIGINT if this widget has focus."""
+        """Ignore SIGINT if this widget has focus, unless the widget was made to leave the signal keys alone."""
         if self.terminated:
             return
 
@@ -543,7 +567,7 @@ class Terminal(Widget):
             self.term.has_focus = has_focus
             self.term.set_term_cursor()
 
-        if not focus_changed:
+        if not focus_changed or not self._pass_signal_keys:
             return
 
         if has_focus:
@@ -559,6 +583,15 @@ class Terminal(Widget):
 
             width, height = size
             self.touch_term(width, height)
+            # the colors the replies to the child's queries describe; a screen without the attribute, such as curses,
+            # leaves them unknown
+            screen_loop = (
+                self.main_loop
+                if isinstance(self.main_loop, event_loop.MainLoop)
+                else event_loop.get_running_loop_or_none()
+            )
+            if screen_loop is not None:
+                self.term.display_colors = getattr(screen_loop.screen, "colors", None)  # type: ignore[union-attr]
 
             if self.main_loop is None:
                 running = event_loop.get_running_loop_or_none()
@@ -678,6 +711,11 @@ class Terminal(Widget):
 
         grabbed = self.keygrab
 
+        if key in _FOCUS_REPORTS and self.term_modes.focus_reporting:
+            # a focus change is no key: it starts no key grab and does not scroll a view scrolled back
+            self._write_report(_FOCUS_REPORTS[key])
+            return None
+
         if key in _PASTE_KEYS:
             self._pasting = key == "begin paste"
             if self.term_modes.bracketed_paste:
@@ -770,7 +808,11 @@ class Terminal(Widget):
 
         The report bytes are the ones xterm sends for the same event.
 
-        :returns: ``True`` when the child tracks the mouse, also for an event its tracking mode does not report.
+        In alternate scroll mode (1007), while the child is on the alternate screen and does not track the mouse,
+        a wheel press without modifiers is sent as cursor up or down keys instead, as xterm sends them.
+
+        :returns: ``True`` when the child tracks the mouse, also for an event its tracking mode does not report,
+            and for a wheel press sent as cursor keys.
             Such events are a drag under mode 1000, the release of a wheel button, and under X10 compatibility mode (9)
             anything but a press of buttons 1 to 3.
             ``False`` when the event is left to the parent, in these cases:
@@ -780,13 +822,23 @@ class Terminal(Widget):
             - the view is scrolled back from the screen the child sees;
             - the event is not a press, a release or a drag.
         """
+        if self.terminated or self.term is None or self.term.scrolling_up:
+            return False
+
         modes = self.term_modes
         if (
-            self.terminated
-            or modes.mouse_tracking in _MOUSE_UNREPORTED_TRACKING_MODES
-            or self.term is None
-            or self.term.scrolling_up
+            modes.mouse_tracking is None
+            and modes.alternate_scroll
+            and modes.alternate_screen
+            and event == "mouse press"
+            and button in _ALTERNATE_SCROLL_KEYS
         ):
+            sent = self._key_sequence(_ALTERNATE_SCROLL_KEYS[button])
+            if sent is not None:
+                self._write_report((sent * _ALTERNATE_SCROLL_LINES).encode(self.encoding))
+            return True
+
+        if modes.mouse_tracking in _MOUSE_UNREPORTED_TRACKING_MODES:
             return False
 
         code = 0

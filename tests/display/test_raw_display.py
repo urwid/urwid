@@ -272,6 +272,64 @@ class TestRawDisplay(unittest.TestCase):
             a2e(s.AttrSpec("#76b900", "#000000")),
         )
 
+    def test_underline_style_and_color_to_escape(self) -> None:
+        """Write the underline style and color as colon sub-parameters to a terminal that draws them, else a plain 4."""
+        aspec = AttrSpec("default,curly underline", "default", underline_color="h196")
+        for underline_styles, colors, spec, expected in (
+            (True, 256, aspec, "\x1b[0;39;4:3;58:5:196;49m"),
+            (False, 256, aspec, "\x1b[0;39;4;49m"),
+            (
+                True,
+                2**24,
+                AttrSpec("default,dashed underline", "default", 2**24, underline_color="#102030"),
+                "\x1b[0;39;4:5;58:2::16:32:48;49m",
+            ),
+            (
+                True,
+                256,
+                AttrSpec("default,underline", "default", underline_color="light red"),
+                "\x1b[0;39;4;58:5:9;49m",
+            ),
+            (True, 256, AttrSpec("default,underline", "default", underline_color="default"), "\x1b[0;39;4;49m"),
+            (True, 256, AttrSpec("default", "default", underline_color="light red"), "\x1b[0;39;49m"),
+        ):
+            with self.subTest(underline_styles=underline_styles, spec=spec):
+                screen = urwid.display.raw.Screen(underline_styles=underline_styles)
+                screen.set_terminal_properties(colors=colors)
+                self.assertEqual(expected, screen._attrspec_to_escape(spec))
+
+    def test_underline_styles_property_drops_cached_escapes(self) -> None:
+        """Draw the attributes again in the new form when set_terminal_properties() changes underline_styles."""
+        screen = urwid.display.raw.Screen(underline_styles=False)
+        aspec = AttrSpec("default,curly underline", "default")
+        self.assertEqual("\x1b[0;39;4;49m", screen._attr_to_escape(aspec))
+        screen.set_terminal_properties(underline_styles=True)
+        self.assertEqual("\x1b[0;39;4:3;49m", screen._attr_to_escape(aspec))
+
+    def test_terminal_property_attributes(self) -> None:
+        """Read and replace the fields of one set of terminal properties, by attribute or set_terminal_properties().
+
+        A setting cannot be deleted.
+        """
+        screen = urwid.display.raw.Screen(underline_styles=True)
+        screen.set_terminal_properties(colors=256, hyperlinks=True)
+        screen.back_color_erase = True
+        self.assertEqual(
+            (256, True, True, True),
+            (screen.colors, screen.hyperlinks, screen.back_color_erase, screen.underline_styles),
+        )
+        properties = screen._terminal_properties
+        self.assertEqual(
+            (256, True, True, True),
+            (properties.colors, properties.hyperlinks, properties.back_color_erase, properties.underline_styles),
+        )
+        screen.clear = mock.Mock()
+        screen.set_terminal_properties(colors=256, hyperlinks=True)
+        screen.clear.assert_not_called()
+        with self.assertRaisesRegex(AttributeError, "colors is a setting of every screen"):
+            del screen.colors
+        self.assertEqual(256, screen.colors)
+
     def test_named_palette_attr_to_escape(self):
         # Bright foreground colors render either as bold or as a 90-series color depending on the
         # terminal, so bright_is_bold is pinned instead of inherited from the ambient TERM.
@@ -1744,3 +1802,54 @@ class TestParseInput(unittest.TestCase):
 
         self.assertEqual([["a"]] * _raw_display_base._RESIZE_HOLD_PASSES + [["a", "window resize"]], passes)
         self.assertEqual(0, s._resize_held_passes)
+
+
+def _terminfo_entry(strings: dict[str, bytes]) -> bytes:
+    """Return a compiled terminfo entry with no predefined capabilities and the extended string capabilities given."""
+    names = b"test|urwid test\x00"
+    data = struct.pack("<6h", 0o432, len(names), 0, 0, 0, 0) + names
+    data += b"\x00" * (len(data) % 2)
+    values = b"".join(value + b"\x00" for value in strings.values())
+    keys = b"".join(name.encode("ascii") + b"\x00" for name in strings)
+    value_offsets = list(itertools.accumulate((len(value) + 1 for value in strings.values()), initial=0))[:-1]
+    name_offsets = list(itertools.accumulate((len(name) + 1 for name in strings), initial=0))[:-1]
+    data += struct.pack("<5h", 0, 0, len(strings), 2 * len(strings), len(values) + len(keys))
+    data += struct.pack(f"<{len(strings)}h", *value_offsets) + struct.pack(f"<{len(strings)}h", *name_offsets)
+    return data + values + keys
+
+
+class UnderlineStylesDetectionTest(unittest.TestCase):
+    """Detecting underline styles and colors from the terminfo entry and the terminal's environment."""
+
+    def test_extended_names(self) -> None:
+        """Read the names of the extended capabilities, and refuse an extended section that does not fit the entry."""
+        entry = _terminfo_entry({"Smulx": b"\x1b[4:%p1%dm", "Setulc": b"\x1b[58:2::%p1%dm"})
+        self.assertEqual(frozenset({"Smulx", "Setulc"}), _raw_display_base._parse_terminfo_extended_names(entry))
+        self.assertEqual(frozenset(), _raw_display_base._parse_terminfo_extended_names(_terminfo_entry({})[:-10]))
+        # cut after the extended header, before the string offsets it counts
+        for data in (entry[:-3], entry[: len(_terminfo_entry({}))]):
+            with self.subTest(len(data)), self.assertRaises(ValueError):
+                _raw_display_base._parse_terminfo_extended_names(data)
+
+    def test_detection(self) -> None:
+        """Take the terminfo entry's Smulx or Setulc, or a known terminal version, outside screen and tmux."""
+        smulx = _terminfo_entry({"Smulx": b"\x1b[4:%p1%dm"})
+        plain = _terminfo_entry({"AX": b""})
+        for label, term, environ, entry, expected in (
+            ("Smulx in terminfo", "xterm-256color", {}, smulx, True),
+            ("no capability", "xterm-256color", {}, plain, False),
+            ("no terminfo entry", "xterm-256color", {}, None, False),
+            ("malformed extended section", "xterm-256color", {}, smulx[:-3], False),
+            ("VTE 0.52", "xterm-256color", {"VTE_VERSION": "5200"}, plain, True),
+            ("VTE before 0.52", "xterm-256color", {"VTE_VERSION": "5199"}, plain, False),
+            ("Konsole 22.04", "xterm-256color", {"KONSOLE_VERSION": "220400"}, plain, True),
+            ("not a number", "xterm-256color", {"KONSOLE_VERSION": "22.04"}, plain, False),
+            ("non-ASCII digit", "xterm-256color", {"VTE_VERSION": "\u00b2"}, plain, False),
+            ("too many digits", "xterm-256color", {"VTE_VERSION": "9" * 5000}, plain, False),
+            ("VTE outside tmux", "tmux-256color", {"VTE_VERSION": "8400"}, plain, False),
+            ("tmux with Smulx", "tmux-256color", {"VTE_VERSION": "8400"}, smulx, True),
+        ):
+            with self.subTest(label), mock.patch.object(_raw_display_base, "_terminfo_entry", return_value=entry):
+                self.assertIs(
+                    expected, detect_terminal_properties(term, environ, windows_version=(0, 0, 0)).underline_styles
+                )

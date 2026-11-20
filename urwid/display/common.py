@@ -182,6 +182,10 @@ _SETTING_OFF_SHIFT = 9
 _SETTINGS_OFF_MASK = (
     _STANDOUT | _UNDERLINE | _BOLD | _BLINK | _ITALICS | _STRIKETHROUGH | _FAINT
 ) << _SETTING_OFF_SHIFT
+# the style of an underline, above the off bits: 0 for a single one, else its setting's place in _UNDERLINE_STYLES
+# plus one
+_UNDERLINE_STYLE_SHIFT = 72
+_UNDERLINE_STYLE_MASK = 0b111 << _UNDERLINE_STYLE_SHIFT
 
 _FG_MASK = (
     _FG_COLOR_MASK
@@ -196,6 +200,7 @@ _FG_MASK = (
     | _FAINT
     | _FG_INHERIT
     | _SETTINGS_OFF_MASK
+    | _UNDERLINE_STYLE_MASK
 )
 _BG_MASK = _BG_COLOR_MASK | _BG_BASIC_COLOR | _BG_HIGH_COLOR | _BG_INHERIT
 _INHERIT_MASK = _FG_INHERIT | _BG_INHERIT
@@ -253,6 +258,25 @@ _ATTRIBUTES = {
 }
 _SETTING_OFF_PREFIX = "no-"
 _ATTRIBUTES_OFF = {f"{_SETTING_OFF_PREFIX}{name}": flag << _SETTING_OFF_SHIFT for name, flag in _ATTRIBUTES.items()}
+#: the foreground settings of the underline styles, each also turning the underline on; 'underline' is a single one
+_UNDERLINE_STYLES = ("double underline", "curly underline", "dotted underline", "dashed underline")
+# setting -> its style bits
+_UNDERLINE_STYLE_BITS = {name: (number + 1) << _UNDERLINE_STYLE_SHIFT for number, name in enumerate(_UNDERLINE_STYLES)}
+# the names AttrSpec.underline_style returns, by the style number SGR 4:n takes minus one
+_UNDERLINE_STYLE_NAMES: tuple[Literal["single", "double", "curly", "dotted", "dashed"], ...] = (
+    "single",
+    "double",
+    "curly",
+    "dotted",
+    "dashed",
+)
+# the kinds of a color, as an underline color keeps them above its 24-bit number: the terminal's default, one of the
+# 16 basic colors, an 88- or 256-color palette entry, and a 24-bit color
+_COLOR_DEFAULT = 0
+_COLOR_BASIC = 1
+_COLOR_HIGH = 2
+_COLOR_TRUE = 3
+_COLOR_KIND_SHIFT = 24
 
 # AttrSpec.__init__() and __set_foreground()/__set_background() are called
 # once per colored run of text an application constructs, so these are
@@ -264,6 +288,10 @@ _RESOLVED_ATTRS_LIMIT = 4096
 # urwid's own caps on Hyperlink fields: VTE and iTerm2 refuse longer URIs, and VTE refuses longer ids
 _HYPERLINK_URI_MAX_LEN = 2083
 _HYPERLINK_ID_MAX_LEN = 250
+# the CSS text-decoration-style of each underline style other than a single one
+_CSS_UNDERLINE_STYLES: Mapping[str | None, str] = types.MappingProxyType(
+    {"double": "double", "curly": "wavy", "dotted": "dotted", "dashed": "dashed"},
+)
 # URI schemes an HTML-producing screen turns into a link, none of which can run script in the page
 _BROWSER_SCHEMES = frozenset({"file", "http", "https", "mailto", "sftp"})
 
@@ -680,7 +708,7 @@ class _Keep(enum.Enum):
 class AttrSpec:
     """Text attribute specification, encoding foreground and background colors and display settings."""
 
-    __slots__ = ("__hash_value", "__hyperlink", "__value")
+    __slots__ = ("__hash_value", "__hyperlink", "__underline_color", "__value")
 
     def __init__(
         self,
@@ -689,6 +717,7 @@ class AttrSpec:
         colors: Literal[1, 16, 88, 256, 16777216] = 256,
         *,
         hyperlink: Hyperlink | str | None = None,
+        underline_color: str | None = None,
     ) -> None:
         """
         :param fg: a string containing a comma-separated foreground color and settings
@@ -713,7 +742,9 @@ class AttrSpec:
               Setting:
               'bold', 'italics', 'underline', 'blink', 'standout', 'strikethrough', 'faint';
               with 'no-' in front ('no-bold') a setting is turned off rather than taken from the
-              enclosing attribute; it is part of the attribute, so 'red,no-bold' and 'red' are unequal
+              enclosing attribute; it is part of the attribute, so 'red,no-bold' and 'red' are unequal.
+              'double underline', 'curly underline', 'dotted underline' and 'dashed underline' are an
+              underline in that style, which a terminal without underline styles draws as 'underline'
 
               Some terminals use 'bold' for bright colors.
               Most terminals ignore the 'blink' setting.
@@ -740,8 +771,11 @@ class AttrSpec:
 
         :param hyperlink: the terminal hyperlink of the text, a string being its URI;
             ``None`` takes the link of the enclosing attribute, and :data:`NO_HYPERLINK` hides it.
+        :param underline_color: the color of the underline, given as a background color is;
+            ``None`` and 'inherit' take it from the enclosing attribute, and 'default' draws it in the text color.
+            A terminal without underline colors draws it in the text color.
         :raises AttrSpecError: *colors* is not a supported palette size.
-            *fg* or *bg* is invalid, or needs more colours than *colors*.
+            *fg*, *bg* or *underline_color* is invalid, or needs more colours than *colors*.
         :raises ValueError: *hyperlink* is a string that is not a valid :class:`Hyperlink` URI.
 
         >>> AttrSpec("dark red", "light gray", 16)
@@ -756,17 +790,28 @@ class AttrSpec:
         AttrSpec('inherit,bold', 'dark blue')
         >>> AttrSpec(hyperlink="https://urwid.org")
         AttrSpec('inherit', 'inherit', hyperlink=Hyperlink(uri='https://urwid.org', id=''))
+        >>> AttrSpec("default,curly underline", "default", underline_color="light red")
+        AttrSpec('default,curly underline', 'default', underline_color='light red')
         """
         if colors not in _VALID_COLOR_COUNTS:
             raise AttrSpecError(f"invalid number of colors ({colors:d}).")
         self.__value = 0 | _HIGH_88_COLOR * (colors == 88) | _HIGH_TRUE_COLOR * (colors == 2**24)
         self.__set_foreground(fg)
         self.__set_background(bg)
+        self.__underline_color: int | None = None
+        if underline_color is not None and underline_color != INHERIT:
+            number, kind = self.__parse_color(underline_color)
+            if number is None:
+                message = f"Unrecognised color specification in underline color ({underline_color!r})"
+                raise AttrSpecError(message)
+            self.__underline_color = kind << _COLOR_KIND_SHIFT | number
         if self.colors > colors:
             raise AttrSpecError(
-                f"foreground/background ({fg!r}/{bg!r}) require more colors than have been specified ({colors:d})."
+                f"foreground/background/underline ({fg!r}/{bg!r}/{underline_color!r}) require more colors than have "
+                f"been specified ({colors:d})."
             )
         self.__hyperlink = Hyperlink(hyperlink) if isinstance(hyperlink, str) else hyperlink
+        # attributes that differ only in their underline colors share a hash, and __eq__ tells them apart
         self.__hash_value = hash((self.__class__, self.__value, self.__hyperlink))
 
     def copy_modified(
@@ -776,21 +821,23 @@ class AttrSpec:
         colors: Literal[1, 16, 88, 256, 16777216] | None = None,
         *,
         hyperlink: Hyperlink | str | Literal[_Keep.KEEP] | None = _Keep.KEEP,
+        underline_color: str | Literal[_Keep.KEEP] | None = _Keep.KEEP,
     ) -> Self:
-        """Return a new :class:`AttrSpec`, replacing *fg*, *bg*, *colors* and/or *hyperlink* with the given values.
+        """Return a new :class:`AttrSpec`, replacing *fg*, *bg*, *colors*, *hyperlink* and/or *underline_color*.
 
         Without *colors*, the result uses 88 colors or true color when this specification was made for them,
         else 256 colors, so a color can be added to a specification that has none.
-        The hyperlink is kept unless *hyperlink* is given; ``None`` makes the result take the enclosing one.
+        The hyperlink and the underline color are kept unless given; ``None`` makes the result take the enclosing one.
 
         The result is built with this object's class.
-        The *hyperlink* keyword is passed to its constructor only when the result has a link,
+        The *hyperlink* and *underline_color* keywords are passed to its constructor only when the result has them,
         so a subclass whose constructor takes only *fg*, *bg* and *colors* works for every other change.
 
-        :raises AttrSpecError: *colors* is not a supported palette size, or *fg* or *bg* is invalid or needs
-            more colors than the result has.
+        :raises AttrSpecError: *colors* is not a supported palette size, or *fg*, *bg* or *underline_color* is invalid
+            or needs more colors than the result has.
         :raises ValueError: *hyperlink* is a string that is not a valid :class:`Hyperlink` URI.
-        :raises TypeError: the result has a link and the constructor of this object's class does not accept it.
+        :raises TypeError: the result has a link or an underline color, and the constructor of this object's class does
+            not accept it.
 
         >>> AttrSpec("inherit,bold", "inherit").copy_modified(bg="dark blue")
         AttrSpec('inherit,bold', 'dark blue')
@@ -808,9 +855,12 @@ class AttrSpec:
             background = bg
 
         new_colors = self.__color_mode() if colors is None else colors
-        if (link := self.__hyperlink if hyperlink is _Keep.KEEP else hyperlink) is None:
-            return self.__class__(foreground, background, new_colors)
-        return self.__class__(foreground, background, new_colors, hyperlink=link)
+        extra: dict[str, typing.Any] = {}
+        if (link := self.__hyperlink if hyperlink is _Keep.KEEP else hyperlink) is not None:
+            extra["hyperlink"] = link
+        if (line := self.underline_color if underline_color is _Keep.KEEP else underline_color) is not None:
+            extra["underline_color"] = line
+        return self.__class__(foreground, background, new_colors, **extra)
 
     def __color_mode(self) -> Literal[88, 256, 16777216]:
         """Return the color mode this specification was made for: 88 colors, true color, or else 256 colors."""
@@ -910,6 +960,55 @@ class AttrSpec:
         return self.__value & _UNDERLINE != 0
 
     @property
+    def underline_style(self) -> Literal["single", "double", "curly", "dotted", "dashed"] | None:
+        """Return the style of the underline, or ``None`` without an underline.
+
+        >>> AttrSpec("default,curly underline", "default").underline_style
+        'curly'
+        """
+        if not self.underline:
+            return None
+        return _UNDERLINE_STYLE_NAMES[(self.__value & _UNDERLINE_STYLE_MASK) >> _UNDERLINE_STYLE_SHIFT]
+
+    @property
+    def underline_color(self) -> str | None:
+        """Return the underline color, 'default' for the text color, or ``None`` when the enclosing one is taken."""
+        if self.__underline_color is None:
+            return None
+        kind, number = self.__underline_color >> _COLOR_KIND_SHIFT, self.__underline_color & _FG_COLOR_MASK
+        match kind:
+            case 0:
+                return DEFAULT
+            case 1:
+                return _BASIC_COLORS[number]
+            case 2:
+                return _color_desc_88(number) if self.__value & _HIGH_88_COLOR else _color_desc_256(number)
+            case 3:
+                return _color_desc_true(number)
+            case _:
+                message = f"underline color kind {kind} is none that is stored"
+                raise AssertionError(message)
+
+    def underline_rgb_values(self) -> tuple[int, int, int] | None:
+        """Return the ``(red, green, blue)`` components of the underline color, each 0-255.
+
+        Values are taken from the XTerm defaults, as :meth:`get_rgb_values` takes them.
+
+        :returns: the components, or ``None`` when the underline takes the text color or the enclosing color.
+
+        >>> AttrSpec(underline_color="#ccf", colors=88).underline_rgb_values()
+        (205, 205, 255)
+        """
+        if not self.__underline_color or not self.__underline_color >> _COLOR_KIND_SHIFT:
+            return None
+        kind, number = self.__underline_color >> _COLOR_KIND_SHIFT, self.__underline_color & _FG_COLOR_MASK
+        if kind == _COLOR_TRUE:
+            return (number >> 16, number >> 8 & 0xFF, number & 0xFF)
+        if kind == _COLOR_HIGH and self.__value & _HIGH_88_COLOR:
+            return _COLOR_VALUES_88[number]
+        return _COLOR_VALUES_256[number]
+
+    @property
     def blink(self) -> bool:
         """Return whether the blink setting is enabled."""
         return self.__value & _BLINK != 0
@@ -936,13 +1035,14 @@ class AttrSpec:
 
         Returns 16777216, 256, 88, 16 or 1.
         """
+        line_kind = (self.__underline_color or 0) >> _COLOR_KIND_SHIFT
         if self.__value & _HIGH_88_COLOR:
             return 88
-        if self.__value & (_BG_HIGH_COLOR | _FG_HIGH_COLOR):
+        if self.__value & (_BG_HIGH_COLOR | _FG_HIGH_COLOR) or line_kind == _COLOR_HIGH:
             return 256
-        if self.__value & (_BG_TRUE_COLOR | _FG_TRUE_COLOR):
+        if self.__value & (_BG_TRUE_COLOR | _FG_TRUE_COLOR) or line_kind == _COLOR_TRUE:
             return 16777216  # we have to return explicit 2**24 instead of inline calculation
-        if self.__value & (_BG_BASIC_COLOR | _FG_BASIC_COLOR):
+        if self.__value & (_BG_BASIC_COLOR | _FG_BASIC_COLOR) or line_kind == _COLOR_BASIC:
             return 16
         return 1
 
@@ -954,6 +1054,8 @@ class AttrSpec:
             args = f"{args}, colors=88"
         if self.__hyperlink is not None:
             args = f"{args}, hyperlink={self.__hyperlink!r}"
+        if self.__underline_color is not None:
+            args = f"{args}, underline_color={self.underline_color!r}"
         return f"{self.__class__.__name__}({args})"
 
     def _foreground_color(self) -> str:
@@ -979,11 +1081,16 @@ class AttrSpec:
             + ",italics" * self.italics
             + ",standout" * self.standout
             + ",blink" * self.blink
-            + ",underline" * self.underline
+            + f",{self.__underline_setting()}" * self.underline
             + ",strikethrough" * self.strikethrough
             + ",faint" * self.faint
             + "".join(f",{name}" for name, flag in _ATTRIBUTES_OFF.items() if self.__value & flag)
         )
+
+    def __underline_setting(self) -> str:
+        """Return the foreground setting of the underline: 'underline', or the setting of its style."""
+        style = (self.__value & _UNDERLINE_STYLE_MASK) >> _UNDERLINE_STYLE_SHIFT
+        return _UNDERLINE_STYLES[style - 1] if style else "underline"
 
     def __set_foreground(self, foreground: str) -> None:
         """
@@ -998,6 +1105,13 @@ class AttrSpec:
         # handle comma-separated foreground
         for part in foreground.split(","):
             part = part.strip()  # noqa: PLW2901
+            if (style_bits := _UNDERLINE_STYLE_BITS.get(part)) is not None:
+                # an underline in a style: the underline setting, with its style
+                if flags & (_UNDERLINE | _UNDERLINE << _SETTING_OFF_SHIFT):
+                    message = f"Setting {part!r} repeats or contradicts another in foreground ({foreground!r})"
+                    raise AttrSpecError(message)
+                flags |= _UNDERLINE | style_bits
+                continue
             if (on_flag := _ATTRIBUTES.get(part.removeprefix(_SETTING_OFF_PREFIX))) is not None:
                 # parse and store "settings"/attributes in flags, a setting and its "no-" form being one setting
                 off_flag = on_flag << _SETTING_OFF_SHIFT
@@ -1009,23 +1123,12 @@ class AttrSpec:
                 flags |= attribute_flag
                 continue
             # past this point we must be specifying a color
-            if part in _DEFAULT_COLOR_NAMES:
-                scolor = 0
-            elif part == INHERIT:
+            if part == INHERIT:
                 scolor = 0
                 flags |= _FG_INHERIT
-            elif (basic_color := _BASIC_COLOR_INDEX.get(part)) is not None:
-                scolor = basic_color
-                flags |= _FG_BASIC_COLOR
-            elif self.__value & _HIGH_88_COLOR:
-                scolor = _parse_color_88(part)
-                flags |= _FG_HIGH_COLOR
-            elif self.__value & _HIGH_TRUE_COLOR:
-                scolor = _parse_color_true(part)
-                flags |= _FG_TRUE_COLOR
             else:
-                scolor = _parse_color_256(_true_to_256(part) or part)
-                flags |= _FG_HIGH_COLOR
+                scolor, kind = self.__parse_color(part)
+                flags |= (0, _FG_BASIC_COLOR, _FG_HIGH_COLOR, _FG_TRUE_COLOR)[kind]
             # _parse_color_*() return None for unrecognized colors
             if scolor is None:
                 raise AttrSpecError(f"Unrecognised color specification {part!r} in foreground ({foreground!r})")
@@ -1057,28 +1160,30 @@ class AttrSpec:
 
         :raises AttrSpecError: *background* names an unrecognised colour.
         """
-        flags = 0
         color: int | None
-        if background in _DEFAULT_COLOR_NAMES:
-            color = 0
-        elif background == INHERIT:
-            color = 0
-            flags |= _BG_INHERIT
-        elif (basic_color := _BASIC_COLOR_INDEX.get(background)) is not None:
-            color = basic_color
-            flags |= _BG_BASIC_COLOR
-        elif self.__value & _HIGH_88_COLOR:
-            color = _parse_color_88(background)
-            flags |= _BG_HIGH_COLOR
-        elif self.__value & _HIGH_TRUE_COLOR:
-            color = _parse_color_true(background)
-            flags |= _BG_TRUE_COLOR
+        if background == INHERIT:
+            color, flags = 0, _BG_INHERIT
         else:
-            color = _parse_color_256(_true_to_256(background) or background)
-            flags |= _BG_HIGH_COLOR
+            color, kind = self.__parse_color(background)
+            flags = (0, _BG_BASIC_COLOR, _BG_HIGH_COLOR, _BG_TRUE_COLOR)[kind]
         if color is None:
             raise AttrSpecError(f"Unrecognised color specification in background ({background!r})")
         self.__value = (self.__value & ~_BG_MASK) | (color << _BG_SHIFT) | flags
+
+    def __parse_color(self, color: str) -> tuple[int | None, int]:
+        """Return the number and the kind of *color*, a color other than 'inherit', in this specification's mode.
+
+        :returns: the number, ``None`` when *color* is not recognised, and one of the ``_COLOR_*`` kinds.
+        """
+        if color in _DEFAULT_COLOR_NAMES:
+            return 0, _COLOR_DEFAULT
+        if (basic_color := _BASIC_COLOR_INDEX.get(color)) is not None:
+            return basic_color, _COLOR_BASIC
+        if self.__value & _HIGH_88_COLOR:
+            return _parse_color_88(color), _COLOR_HIGH
+        if self.__value & _HIGH_TRUE_COLOR:
+            return _parse_color_true(color), _COLOR_TRUE
+        return _parse_color_256(_true_to_256(color) or color), _COLOR_HIGH
 
     def get_rgb_values(self) -> tuple[int | None, int | None, int | None, int | None, int | None, int | None]:
         """Return ``(fg_red, fg_green, fg_blue, bg_red, bg_green, bg_blue)`` color components.
@@ -1139,7 +1244,8 @@ class AttrSpec:
     ) -> AttrSpec:
         """Return this attribute with its 'inherit' colors and its missing hyperlink taken from *outer*.
 
-        An attribute with no 'inherit' color is opaque: its colors and settings are kept unchanged.
+        An attribute with no 'inherit' color is opaque: its colors, settings and color mode are kept unchanged,
+        and an underline color taken from *outer* is converted to that mode.
         Otherwise, each setting this attribute turns on ('bold') or off ('no-bold') is kept,
         and a setting it does not mention is taken from *outer*.
         The result may still inherit a color, when *outer* inherits it too.
@@ -1161,31 +1267,46 @@ class AttrSpec:
         AttrSpec('dark red', 'default', hyperlink=Hyperlink(uri='https://a.b', id=''))
         """
         link = self.__hyperlink if self.__hyperlink is not None else outer.hyperlink
+        line = self.underline_color if self.__underline_color is not None else outer.underline_color
         if not self.__value & _INHERIT_MASK:
-            if link is self.__hyperlink:
+            if link is self.__hyperlink and line == self.underline_color:
                 return self
-            return AttrSpec(self.foreground, self.background, self.__color_mode(), hyperlink=link)
+            # underline_color has a form in each color mode an AttrSpec is made in
+            return AttrSpec(
+                self.foreground,
+                self.background,
+                self.__color_mode(),
+                hyperlink=link,
+                underline_color=line,
+            )
         fg = (outer if self.foreground_inherit else self).foreground.partition(",")[0]
         bg = outer.background if self.background_inherit else self.background
         own_settings = self.foreground.split(",")[1:]
         outer_settings = outer.foreground.split(",")[1:]
         settings = ""
         for name, off_name in zip(_ATTRIBUTES, _ATTRIBUTES_OFF, strict=True):
-            # the inner attribute's own state, else the outer one's, else not mentioned
+            # the inner attribute's own state, else the outer one's, else not mentioned; an underline keeps its style
+            forms = (name, off_name, *(_UNDERLINE_STYLES if name == "underline" else ()))
             for state in (own_settings, outer_settings):
-                if name in state or off_name in state:
-                    settings += f",{name}" if name in state else f",{off_name}"
+                if (form := next((form for form in forms if form in state), None)) is not None:
+                    settings += f",{form}"
                     break
         return AttrSpec(
             fg + settings,
             bg,
             max(self.colors, outer.colors) if colors is None else colors,
             hyperlink=link,
+            underline_color=line,
         )
 
     def __eq__(self, other: object) -> bool:
-        """Return whether `other` is an :class:`AttrSpec` with the same underlying value and hyperlink."""
-        return isinstance(other, AttrSpec) and self.__value == other._value and self.__hyperlink == other.hyperlink
+        """Return whether `other` is an :class:`AttrSpec` with the same value, hyperlink and underline color."""
+        return (
+            isinstance(other, AttrSpec)
+            and self.__value == other._value
+            and self.__hyperlink == other.hyperlink
+            and self.underline_color == other.underline_color
+        )
 
     def __ne__(self, other: object) -> bool:
         """Return whether `other` is not equal to this :class:`AttrSpec`."""
@@ -1208,6 +1329,8 @@ def attr_spec_to_css(aspec: AttrSpec) -> tuple[str, str, str]:
     ``text-decoration``), ``bold``, ``italics``, ``blink`` (a step-start CSS animation of the text and its lines,
     which leaves the background drawn, since the ``text-decoration:blink`` value browsers used to support has been
     dropped) and ``faint``.
+    The style and the color of an underline become the ``text-decoration`` style and color,
+    which a browser also gives the line of ``strikethrough`` drawn with it.
     The hyperlink is not part of the style.
     """
     return _style_to_css(aspec.style_only())
@@ -1231,6 +1354,8 @@ def _style_to_css(aspec: AttrSpec) -> tuple[str, str, str]:
     extra = ""
     if decoration:
         extra += f";text-decoration:{' '.join(decoration)}"
+    if aspec.underline:
+        extra += _underline_css(aspec)
     if aspec.bold:
         extra += ";font-weight:bold"
     if aspec.italics:
@@ -1240,6 +1365,16 @@ def _style_to_css(aspec: AttrSpec) -> tuple[str, str, str]:
     if aspec.faint:
         extra += ";opacity:0.5"
     return fg, bg, extra
+
+
+def _underline_css(aspec: AttrSpec) -> str:
+    """Return the CSS declarations of the style and the color of the underline of *aspec*, each after a ``;``."""
+    extra = ""
+    if (style := _CSS_UNDERLINE_STYLES.get(aspec.underline_style)) is not None:
+        extra += f";text-decoration-style:{style}"
+    if (line := aspec.underline_rgb_values()) is not None:
+        extra += f";text-decoration-color:#{line[0]:02x}{line[1]:02x}{line[2]:02x}"
+    return extra
 
 
 class RealTerminal:

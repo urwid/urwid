@@ -1512,6 +1512,8 @@ class PrivateMode(enum.StrEnum):
     # xterm's documentation advises against it, because a report looks like CSI Pn M, which is the delete-lines command.
     MOUSE_URXVT_MODE = "1015"
     FOCUS_REPORTING = "1004"
+    # On the alternate screen and without mouse tracking, the terminal sends the wheel as cursor up and down keys.
+    ALTERNATE_SCROLL = "1007"
     # A Terminal always sends Meta and Alt as ESC and the key, so it recognises these and does not track them.
     META_SENDS_ESCAPE = "1036"
     ALT_SENDS_ESCAPE = "1039"

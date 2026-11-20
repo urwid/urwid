@@ -576,7 +576,7 @@ def handle_short_request() -> bool:
     return True
 
 
-@dataclasses.dataclass
+@dataclasses.dataclass(slots=True, weakref_slot=True)
 class _Preferences:
     app_name: str = "Unnamed Application"
     pipe_dir: str = TEMP_DIR

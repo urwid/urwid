@@ -112,6 +112,8 @@ class Screen(_raw_display_base.Screen):
         extended_keys: bool = False,
         *,
         in_band_resize: bool | None = None,
+        alternate_scroll: bool | None = None,
+        underline_styles: bool | None = None,
     ) -> None:
         """Initialize a screen that directly prints escape codes to an output terminal.
 
@@ -131,6 +133,16 @@ class Screen(_raw_display_base.Screen):
             None (default) auto-detects via DECRQM and enables it once confirmed supported,
             except on the iTerm2 releases that send the notifications without their final byte;
             pass True/False to force it without probing.
+        :param alternate_scroll: whether the terminal sends the mouse wheel as cursor up and down keys
+            while the screen runs (DEC private mode 1007), which it does only on the alternate screen
+            and while the screen does not track the mouse.
+            None (default) leaves the terminal's own setting.
+            True/False set the mode when the screen starts,
+            and the state the terminal reported is set back when it stops; without a report the mode stays as set.
+        :param underline_styles: draw the underline styles and the underline colors of the display attributes;
+            without them an underline is drawn single and in the text color.
+            None (default) detects them by the terminfo entry of ``TERM`` and by the terminal's environment variables;
+            pass True/False to force it.
 
         .. note::
             on terminal-generated signals: putting the terminal into cbreak mode (see `start()`)
@@ -165,6 +177,8 @@ class Screen(_raw_display_base.Screen):
             focus_reporting=focus_reporting,
             extended_keys=extended_keys,
             in_band_resize=in_band_resize,
+            alternate_scroll=alternate_scroll,
+            underline_styles=underline_styles,
         )
         self.gpm_mev: Popen[str] | None = None
         self.gpm_event_pending: bool = False
@@ -185,7 +199,8 @@ class Screen(_raw_display_base.Screen):
             f"output={self._term_output_file}, "
             f"bracketed_paste_mode={self.modes.bracketed_paste}, "
             f"focus_reporting={self.modes.focus_reporting}, "
-            f"in_band_resize={self.modes.in_band_resize})>"
+            f"in_band_resize={self.modes.in_band_resize}, "
+            f"alternate_scroll={self.modes.alternate_scroll})>"
         )
 
     def _sigwinch_handler(self, signum: int = signal.SIGWINCH, frame: FrameType | None = None) -> None:
@@ -354,6 +369,8 @@ class Screen(_raw_display_base.Screen):
         if self.modes.in_band_resize:
             self._set_in_band_resize(True)
 
+        self._write_alternate_scroll(restore=False)
+
         self._enable_keyboard_protocol()
         self._show_title()
 
@@ -388,6 +405,8 @@ class Screen(_raw_display_base.Screen):
 
                 if self._in_band_resize:
                     self._set_in_band_resize(False)
+
+                self._write_alternate_scroll(restore=True)
 
                 # before the alternate screen is left: the kitty keyboard flags are kept per screen
                 self._disable_keyboard_protocol()

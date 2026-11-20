@@ -51,6 +51,8 @@ from .common import (
     _COLOR_VALUES_88,
     _COLOR_VALUES_256,
     _RESOLVED_ATTRS_LIMIT,
+    _UNDERLINE_STYLE_NAMES,
+    DEFAULT,
     UNPRINTABLE_C1_TRANS_TABLE,
     UNPRINTABLE_TRANS_TABLE,
     UPDATE_PALETTE_ENTRY,
@@ -62,7 +64,7 @@ from .common import (
 if typing.TYPE_CHECKING:
     from collections.abc import Callable, Hashable, Iterable, Mapping, Sequence
     from types import FrameType
-    from typing import Literal
+    from typing import Literal, Self
 
     from urwid import Canvas, EventLoop
 
@@ -131,6 +133,12 @@ _TRUECOLOR_FAMILIES = frozenset(
     }
 )
 _NO_UNDERLINE_FAMILIES = frozenset({"dumb", "unknown", "vt52"})
+# the terminals that draw underline styles and colors without a terminfo entry saying so, by the environment variable
+# holding their version, and the first version taken to draw them: VTE 0.52 and Konsole 22.04; these first versions
+# are not confirmed against the projects' release notes, the ones checked are VTE 0.84 and Konsole 25.12
+_UNDERLINE_STYLE_VERSIONS: Sequence[tuple[str, int]] = (("VTE_VERSION", 5200), ("KONSOLE_VERSION", 220400))
+_T = typing.TypeVar("_T")
+
 # Windows 10 TH2 (1511) gained 256-color VT; 1703-era build 14931 gained 24-bit color.
 _WINDOWS_256COLOR_BUILD = 10586
 _WINDOWS_TRUECOLOR_BUILD = 14931
@@ -143,6 +151,8 @@ _TERMINFO_SYSTEM_DIRS = ("/etc/terminfo", "/lib/terminfo", "/usr/share/terminfo"
 # the ncurses 6.1 extended number format has 32-bit numbers.
 _TERMINFO_NUMBER_FORMATS: Mapping[int, str] = {0o432: "<h", 0o1036: "<i"}
 _TERMINFO_HEADER = struct.Struct("<6h")
+# the extended section's counts: booleans, numbers, strings, string table items, and string table bytes
+_TERMINFO_EXTENDED_HEADER = struct.Struct("<5h")
 _TERMINFO_COLORS_INDEX = 13  # position of "colors" among the predefined numeric capabilities
 _TERMINFO_MAX_SIZE = 32768  # bytes read from an entry: the largest entry ncurses accepts
 # Minimum terminfo "colors" value -> the colour count it allows; 8-colour terminals use bold for the bright half.
@@ -163,19 +173,65 @@ _SGR_BRIGHT_OFFSET = 8
 # current color count.
 _ATTRSPEC_INDEX_BY_COLORS: Mapping[_ColorCount, int] = {16: 0, 1: 1, 88: 2, 256: 3, 16777216: 4}
 
+# the DECRPM states of a mode that is set: set (1) and permanently set (3)
+_DECRQM_SET_VALUES: typing.Final = frozenset({1, 3})
 
-@dataclasses.dataclass(frozen=True)
+
+@dataclasses.dataclass(frozen=True, slots=True, weakref_slot=True)
 class TerminalProperties:
-    """Capabilities inferred from TERM, its terminfo entry and standard colour environment variables."""
+    """The properties of a terminal that a raw screen draws with.
+
+    :func:`detect_terminal_properties` takes them from TERM, its terminfo entry and the environment; it never turns
+    on :attr:`hyperlinks`, since no query for OSC 8 support exists.
+    """
 
     colors: _ColorCount
     has_underline: bool
     fg_bright_is_bold: bool
     bg_bright_is_blink: bool
     back_color_erase: bool
+    underline_styles: bool = False
+    hyperlinks: bool = False
 
 
-@dataclasses.dataclass
+class _TerminalProperty(typing.Generic[_T]):
+    """A screen attribute that reads and replaces one field of the screen's :class:`TerminalProperties`."""
+
+    __slots__ = ("name",)
+
+    def __init__(self) -> None:
+        self.name = ""
+
+    def __set_name__(self, owner: type, name: str) -> None:
+        self.name = name
+
+    @typing.overload
+    def __get__(self, instance: None, owner: type | None = None) -> Self: ...
+
+    @typing.overload
+    def __get__(self, instance: Screen, owner: type | None = None) -> _T: ...
+
+    def __get__(self, instance: Screen | None, owner: type | None = None) -> _T | Self:
+        if instance is None:
+            return self
+        return typing.cast("_T", getattr(instance._terminal_properties, self.name))
+
+    def __set__(self, instance: Screen, value: _T) -> None:
+        # the field is named at run time, so its type cannot be checked against the keyword
+        change: dict[str, typing.Any] = {self.name: value}
+        instance._terminal_properties = dataclasses.replace(instance._terminal_properties, **change)
+
+    def __delete__(self, instance: Screen) -> None:
+        """Refuse to delete the setting, which every screen has.
+
+        :raises AttributeError: always. ``mock.patch.object`` restores a patched attribute by deleting it, so a test
+            assigns the setting, and its previous value back, instead.
+        """
+        message = f"{self.name} is a setting of every screen and cannot be deleted; assign it instead"
+        raise AttributeError(message)
+
+
+@dataclasses.dataclass(slots=True, weakref_slot=True)
 class TermModes:
     """Terminal modes negotiated with the real host terminal (counterpart to `term_canvas.TermModes`).
 
@@ -190,6 +246,8 @@ class TermModes:
     synchronized_output: bool | None = None
     grapheme_clustering: bool | None = None
     in_band_resize: bool | None = None
+    # Set by Screen(alternate_scroll=...) only: None leaves the mode to the terminal, and no reply changes it.
+    alternate_scroll: bool | None = None
     # Resolved by the replies to the keyboard protocol queries, which are sent only for Screen(extended_keys=True).
     kitty_keyboard: bool | None = None
     modify_other_keys: bool | None = None
@@ -364,6 +422,50 @@ def _parse_terminfo_colors(data: bytes) -> int | None:
     return colors if colors > 0 else None
 
 
+def _parse_terminfo_extended_names(data: bytes) -> frozenset[str]:
+    """Return the names of the extended capabilities of a compiled terminfo entry, such as ``Smulx``.
+
+    The extended section follows the string table, on an even byte: a header of five 16-bit counts, the boolean values,
+    the numbers, the offsets of the strings and of the names, and then a table of NUL-terminated strings, which holds
+    the strings that are set before the names.
+    The entry is untrusted data, so the sizes are checked before they are used as offsets.
+
+    :returns: the names, empty when the entry has no extended section.
+    :raises ValueError: the entry is not in a compiled terminfo format, or its sizes do not fit it.
+    """
+    if len(data) < _TERMINFO_HEADER.size:
+        raise ValueError
+    magic, names_size, booleans_count, numbers_count, strings_count, strings_size = _TERMINFO_HEADER.unpack_from(data)
+    number_format = _TERMINFO_NUMBER_FORMATS.get(magic)
+    if number_format is None or min(names_size, booleans_count, numbers_count, strings_count, strings_size) < 0:
+        raise ValueError
+    number_size = struct.calcsize(number_format)
+    offset = _TERMINFO_HEADER.size + names_size + booleans_count
+    offset += offset % 2
+    offset += numbers_count * number_size + 2 * strings_count + strings_size
+    offset += offset % 2
+    if offset + _TERMINFO_EXTENDED_HEADER.size > len(data):
+        return frozenset()
+    ext_booleans, ext_numbers, ext_strings, _items, table_size = _TERMINFO_EXTENDED_HEADER.unpack_from(data, offset)
+    if min(ext_booleans, ext_numbers, ext_strings, table_size) < 0:
+        raise ValueError
+    offset += _TERMINFO_EXTENDED_HEADER.size + ext_booleans
+    offset += offset % 2
+    offset += ext_numbers * number_size
+    names_count = ext_booleans + ext_numbers + ext_strings
+    if offset + 2 * (ext_strings + names_count) + table_size > len(data):
+        raise ValueError
+    string_offsets = struct.unpack_from(f"<{ext_strings}h", data, offset)
+    offset += 2 * (ext_strings + names_count)
+    table = data[offset : offset + table_size].split(b"\0")
+    # the strings that are set come first, an absent or cancelled one has a negative offset and no entry
+    values = sum(1 for string_offset in string_offsets if string_offset >= 0)
+    names = table[values : values + names_count]
+    if len(names) != names_count:
+        raise ValueError
+    return frozenset(name.decode("ascii", "replace") for name in names)
+
+
 def _read_terminfo_entry(path: pathlib.Path) -> bytes | None:
     """Return the start of the regular file at *path*.
 
@@ -407,8 +509,8 @@ def _read_terminfo_entry(path: pathlib.Path) -> bytes | None:
         os.close(entry)
 
 
-def _terminfo_colors(term: str, environ: Mapping[str, str]) -> _ColorCount | None:
-    """Return the colour count the terminfo entry of *term* allows.
+def _terminfo_entry(term: str, environ: Mapping[str, str]) -> bytes | None:
+    """Return the compiled terminfo entry of *term*.
 
     The stdlib ``curses.setupterm()`` loads one entry per process and ignores later terminal names,
     so the compiled entry is read directly.
@@ -420,7 +522,7 @@ def _terminfo_colors(term: str, environ: Mapping[str, str]) -> _ColorCount | Non
     Native Windows has no terminfo database, and a Win32 path can name a device such as ``COM1`` by its file name,
     so nothing is looked up there.
 
-    :returns: the colour count, or None when no valid entry is found or it allows fewer than 8 colours.
+    :returns: the entry, or None when no valid entry is found.
     """
     if IS_WINDOWS:
         return None
@@ -440,13 +542,21 @@ def _terminfo_colors(term: str, environ: Mapping[str, str]) -> _ColorCount | Non
             if (data := _read_terminfo_entry(directory / subdirectory / term)) is None:
                 continue
             try:
-                colors = _parse_terminfo_colors(data)
+                _parse_terminfo_colors(data)
             except ValueError:  # malformed: ncurses passes over it too
                 continue
-            if colors is None:
-                return None
-            return next((count for minimum, count in _TERMINFO_COLOR_COUNTS if colors >= minimum), None)
+            return data
     return None
+
+
+def _terminfo_colors(term: str, environ: Mapping[str, str]) -> _ColorCount | None:
+    """Return the colour count the terminfo entry of *term* allows, as :func:`_terminfo_entry` finds the entry.
+
+    :returns: the colour count, or None when no valid entry is found or it allows fewer than 8 colours.
+    """
+    if (data := _terminfo_entry(term, environ)) is None or (colors := _parse_terminfo_colors(data)) is None:
+        return None
+    return next((count for minimum, count in _TERMINFO_COLOR_COUNTS if colors >= minimum), None)
 
 
 def detect_term_colors(
@@ -542,7 +652,30 @@ def detect_terminal_properties(
         fg_bright_is_bold=fg_bright_is_bold,
         bg_bright_is_blink=bg_bright_is_blink,
         back_color_erase=back_color_erase,
+        underline_styles=_has_underline_styles(term_value, env, families),
     )
+
+
+def _has_underline_styles(term: str, environ: Mapping[str, str], families: frozenset[str]) -> bool:
+    """Return whether the terminal draws underline styles (SGR 4:2 to 4:5) and underline colors (SGR 58).
+
+    It does when the terminfo entry of *term* has ``Smulx`` or ``Setulc``, or when the environment names a terminal
+    version known to draw them.
+    Under screen or tmux, *families* of *term*, the outer terminal's variables are not taken, since the multiplexer
+    decides what reaches the terminal.
+    """
+    if not families & {"screen", "tmux"}:
+        for name, first in _UNDERLINE_STYLE_VERSIONS:
+            # isdigit() alone accepts digits that int() rejects, such as "²"
+            value = environ.get(name, "")
+            if value.isascii() and value.isdigit() and len(value) <= 9 and int(value) >= first:
+                return True
+    if (data := _terminfo_entry(term, environ)) is None:
+        return False
+    try:
+        return bool(_parse_terminfo_extended_names(data) & {"Smulx", "Setulc"})
+    except ValueError:  # an entry the colour count was read from, with a malformed extended section
+        return False
 
 
 # the start of a raw sequence in a charset "U" run: ESC or a C1 control as UTF-8, and only ESC in the
@@ -579,6 +712,16 @@ class Screen(BaseScreen, RealTerminal):
 
     _term_input_file: SupportsFileno
     _term_output_file: TextWriter
+    _terminal_properties: TerminalProperties
+
+    # the fields of the terminal properties the screen draws with, set directly or by set_terminal_properties()
+    colors = _TerminalProperty[_ColorCount]()
+    has_underline = _TerminalProperty[bool]()
+    fg_bright_is_bold = _TerminalProperty[bool]()
+    bg_bright_is_blink = _TerminalProperty[bool]()
+    back_color_erase = _TerminalProperty[bool]()
+    underline_styles = _TerminalProperty[bool]()
+    hyperlinks = _TerminalProperty[bool]()
 
     def __init__(
         self,
@@ -589,6 +732,8 @@ class Screen(BaseScreen, RealTerminal):
         extended_keys: bool = False,
         *,
         in_band_resize: bool | None = None,
+        alternate_scroll: bool | None = None,
+        underline_styles: bool | None = None,
     ) -> None:
         """Initialize a screen that directly prints escape codes to an output terminal.
 
@@ -607,6 +752,16 @@ class Screen(BaseScreen, RealTerminal):
             (DEC private mode 2048), as well as from ``SIGWINCH``; see :ref:`in-band-resize`.
             None (default) auto-detects via DECRQM and enables it once confirmed supported;
             pass True/False to force it without probing.
+        :param alternate_scroll: whether the terminal sends the mouse wheel as cursor up and down keys
+            while the screen runs (DEC private mode 1007), which it does only on the alternate screen
+            and while the screen does not track the mouse.
+            None (default) leaves the terminal's own setting.
+            True/False set the mode when the screen starts,
+            and the state the terminal reported is set back when it stops; without a report the mode stays as set.
+        :param underline_styles: draw the underline styles and the underline colors of the display attributes;
+            without them an underline is drawn single and in the text color.
+            None (default) detects them by the terminfo entry of ``TERM`` and by the terminal's environment variables;
+            pass True/False to force it.
         """
         super().__init__()
 
@@ -617,8 +772,13 @@ class Screen(BaseScreen, RealTerminal):
             bracketed_paste=bracketed_paste_mode,
             focus_reporting=focus_reporting,
             in_band_resize=in_band_resize,
+            alternate_scroll=alternate_scroll,
         )
         self.extended_keys = extended_keys
+        # the alternate scroll mode the terminal reported before the screen set it, None while it reported none
+        self._alternate_scroll_reported: bool | None = None
+        # the screen set the alternate scroll mode and has not set it back yet
+        self._alternate_scroll_written = False
         # the keyboard protocol queries were sent and the Primary DA reply that ends their answers has not arrived
         self._keyboard_query_pending = False
         # the private modes queried by the last start and not answered yet
@@ -633,14 +793,11 @@ class Screen(BaseScreen, RealTerminal):
         # keeping its sockets open until the cyclic garbage collector happened to run.
         signals.connect_signal(self, UPDATE_PALETTE_ENTRY, type(self)._on_update_palette_entry, weak_args=(self,))
         self.term = os.environ.get("TERM", "")
-        self.colors = detect_term_colors(self.term, os.environ)
-        properties = detect_terminal_properties(self.term, os.environ)
-        self.has_underline = properties.has_underline
-        self.fg_bright_is_bold = properties.fg_bright_is_bold
-        self.bg_bright_is_blink = properties.bg_bright_is_blink
-        self.back_color_erase = properties.back_color_erase
-        # OSC 8 hyperlinks are drawn only when the application turns them on: no query exists
-        self.hyperlinks = False
+        self._terminal_properties = detect_terminal_properties(self.term, os.environ)
+        if underline_styles is not None:
+            self._terminal_properties = dataclasses.replace(
+                self._terminal_properties, underline_styles=underline_styles
+            )
         # the window title set_title() asked for, shown while the screen runs
         self._title: str | None = None
         # the title the terminal had before is saved, and is given back when the screen stops
@@ -811,6 +968,8 @@ class Screen(BaseScreen, RealTerminal):
             modes.append(escape.PrivateMode.FOCUS_REPORTING)
         if self.modes.in_band_resize is None:
             modes.append(escape.PrivateMode.IN_BAND_RESIZE)
+        if self.modes.alternate_scroll is not None and self._alternate_scroll_reported is None:
+            modes.append(escape.PrivateMode.ALTERNATE_SCROLL)
 
         # a late reply to a query of an earlier start describes the same terminal, so it may answer the new query
         self._mode_queries_pending = set(modes)
@@ -822,6 +981,24 @@ class Screen(BaseScreen, RealTerminal):
             self._keyboard_query_pending = True
         self.write(queries)
         self.flush()
+
+    def _write_alternate_scroll(self, *, restore: bool) -> None:
+        """Set the alternate scroll mode the screen asked for, or with *restore* the state the terminal reported.
+
+        Nothing is written when the screen leaves the mode to the terminal,
+        and nothing is set back when the screen did not set the mode, such as after a start that failed before it,
+        or when the terminal reported no state, also when its reply was not read yet: the mode then stays as the screen
+        set it, rather than a guess replacing the user's own setting.
+        The caller flushes the output.
+        """
+        if self.modes.alternate_scroll is None or (restore and not self._alternate_scroll_written):
+            return
+        self._alternate_scroll_written = not restore
+        if restore and self._alternate_scroll_reported is None:
+            return
+        enable = self._alternate_scroll_reported if restore else self.modes.alternate_scroll
+        mode = escape.PrivateMode.ALTERNATE_SCROLL
+        self.write(mode.enable_seq if enable else mode.disable_seq)
 
     def _set_in_band_resize(self, enable: bool) -> None:
         """Switch the terminal's in-band resize notifications (DEC private mode 2048) on or off.
@@ -900,6 +1077,13 @@ class Screen(BaseScreen, RealTerminal):
         reports: list[tuple[str, int]] = []
         for item in decoded_codes:
             match item:
+                case ("private mode report", escape.PrivateMode.ALTERNATE_SCROLL, int() as value) if (
+                    escape.PrivateMode.ALTERNATE_SCROLL in self._mode_queries_pending
+                ):
+                    self._mode_queries_pending.discard(escape.PrivateMode.ALTERNATE_SCROLL)
+                    # 0, not recognised, leaves nothing to set back
+                    if value in escape.DECRQM_RECOGNIZED_VALUES:
+                        self._alternate_scroll_reported = value in _DECRQM_SET_VALUES
                 case ("private mode report", str() as mode, int() as value) if mode in self._mode_queries_pending:
                     self._mode_queries_pending.discard(mode)
                     reports.append((mode, value))
@@ -1024,7 +1208,7 @@ class Screen(BaseScreen, RealTerminal):
                 move_cursor += "\n"
             move_cursor += escape.PrivateMode.ALTERNATE_SCREEN_BUFFER.disable_seq
         # an application's own "U" run, or a partly written frame, can leave a hyperlink open
-        close = escape.HYPERLINK_CLOSE if self.hyperlinks else ""
+        close = escape.HYPERLINK_CLOSE if self._terminal_properties.hyperlinks else ""
         self.write(close + self._attrspec_to_escape(AttrSpec("", "")) + escape.SI + move_cursor + escape.SHOW_CURSOR)
         self.flush()
         # a later start that fails before switching screens has no alternate screen to leave
@@ -1528,6 +1712,8 @@ class Screen(BaseScreen, RealTerminal):
         :raises ValueError: *canvas* does not have the number of rows given by *size*.
         :raises OSError: the terminal could not be written to, for a reason other than an interrupted system call.
         """
+        # the settings cannot change during a draw
+        properties = self._terminal_properties
 
         def set_cursor_position(x: int, y: int) -> str:
             if self._rows_used is None:
@@ -1560,7 +1746,7 @@ class Screen(BaseScreen, RealTerminal):
 
             if last_attributes != attr:
                 attr_escape = self._attr_to_escape(attr)
-                if self.hyperlinks:
+                if properties.hyperlinks:
                     # only an escape that opens a hyperlink ends with ST, and an open replaces any open link
                     opens = attr_escape.endswith(escape.ST)
                     if link_open and not opens:
@@ -1604,7 +1790,7 @@ class Screen(BaseScreen, RealTerminal):
                 if encoding != "utf-8" and charset == "U":
                     output.append(escape.IBMPC_OFF)
 
-            if self.hyperlinks and charset == "U":
+            if properties.hyperlinks and charset == "U":
                 # the run may have closed or replaced urwid's hyperlink, so the next run reopens its own
                 last_attributes = link_closed
 
@@ -1695,11 +1881,11 @@ class Screen(BaseScreen, RealTerminal):
                 a, cs, run = row[-1]
                 if (
                     run[-1:] == b" "
-                    and self.back_color_erase
+                    and properties.back_color_erase
                     and not (
-                        (pal_a := self.resolve_attr(a, _ATTRSPEC_INDEX_BY_COLORS[self.colors])).standout
+                        (pal_a := self.resolve_attr(a, _ATTRSPEC_INDEX_BY_COLORS[properties.colors])).standout
                         or pal_a.underline
-                        or (self.hyperlinks and pal_a.hyperlink is not None and pal_a.hyperlink.uri)
+                        or (properties.hyperlinks and pal_a.hyperlink is not None and pal_a.hyperlink.uri)
                     )
                 ):
                     whitespace_at_end = True
@@ -1838,9 +2024,9 @@ class Screen(BaseScreen, RealTerminal):
         """
         if found := self._pal_escape.get(a):
             return found
-        spec = self.resolve_attr(a, _ATTRSPEC_INDEX_BY_COLORS[self.colors])
+        spec = self.resolve_attr(a, _ATTRSPEC_INDEX_BY_COLORS[self._terminal_properties.colors])
         found = self._attrspec_to_escape(spec)
-        if self.hyperlinks and spec.hyperlink is not None and spec.hyperlink.uri:
+        if self._terminal_properties.hyperlinks and spec.hyperlink is not None and spec.hyperlink.uri:
             found += escape.hyperlink_open(spec.hyperlink)
         if len(self._pal_escape) >= _RESOLVED_ATTRS_LIMIT:
             self._pal_escape.clear()
@@ -1858,12 +2044,15 @@ class Screen(BaseScreen, RealTerminal):
         '\x1b[0;33;42m'
         >>> a2e(s.AttrSpec("#fea,underline", "#d0d"))
         '\x1b[0;38;5;229;4;48;5;164m'
+        >>> s.set_terminal_properties(underline_styles=True)
+        >>> a2e(s.AttrSpec("default,curly underline", "default", underline_color="#f00"))
+        '\x1b[0;39;4:3;58:5:196;49m'
         """
         st = (
             "1;" * a.bold
             + "2;" * a.faint
             + "3;" * a.italics
-            + "4;" * a.underline
+            + self._underline_parameters(a)
             + "5;" * a.blink
             + "7;" * a.standout
             + "9;" * a.strikethrough
@@ -1884,7 +2073,7 @@ class Screen(BaseScreen, RealTerminal):
             fg = f"38;5;{a.foreground_number:d}"
         elif a.foreground_basic:
             if a.foreground_number > 7:
-                if self.fg_bright_is_bold:
+                if self._terminal_properties.fg_bright_is_bold:
                     fg = f"1;{a.foreground_number - _SGR_BRIGHT_OFFSET + _SGR_FG_BASE:d}"
                 else:
                     fg = f"{a.foreground_number - _SGR_BRIGHT_OFFSET + _SGR_FG_BRIGHT_BASE:d}"
@@ -1898,7 +2087,7 @@ class Screen(BaseScreen, RealTerminal):
             bg = f"48;5;{a.background_number:d}"
         elif a.background_basic:
             if a.background_number > 7:
-                if self.bg_bright_is_blink:
+                if self._terminal_properties.bg_bright_is_blink:
                     bg = f"5;{a.background_number - _SGR_BRIGHT_OFFSET + _SGR_BG_BASE:d}"
                 else:
                     # this doesn't work on most terminals
@@ -1909,12 +2098,34 @@ class Screen(BaseScreen, RealTerminal):
             bg = "49"
         return f"{escape.CSI}0;{fg};{st}{bg}m"
 
+    def _underline_parameters(self, a: AttrSpec) -> str:
+        """Return the SGR parameters of the underline of *a*, each followed by ``;``, empty without an underline.
+
+        Its style and its color are written only to a terminal that draws them, with the colon sub-parameters of
+        ECMA-48: the style as 4:2 to 4:5, the color as 58:5:n for a palette entry and 58:2::r:g:b for a 24-bit one.
+        """
+        if not a.underline:
+            return ""
+        if not self._terminal_properties.underline_styles:
+            return "4;"
+        style = _UNDERLINE_STYLE_NAMES.index(typing.cast("str", a.underline_style))
+        parameters = f"4:{style + 1:d};" if style else "4;"
+        if (color := a.underline_color) is None or color == DEFAULT:
+            return parameters
+        # the color as a foreground in the same color mode, which tells a palette entry from a 24-bit color
+        line = a.copy_modified(fg=color, hyperlink=None, underline_color=None)
+        if line.foreground_true:
+            return f"{parameters}58:2::{':'.join(str(component) for component in line.get_rgb_values()[:3])};"
+        return f"{parameters}58:5:{line.foreground_number:d};"
+
     def set_terminal_properties(
         self,
         colors: Literal[1, 16, 88, 256, 16777216] | None = None,
         bright_is_bold: bool | None = None,
         has_underline: bool | None = None,
         hyperlinks: bool | None = None,
+        *,
+        underline_styles: bool | None = None,
     ) -> None:
         """Set the terminal's color and attribute-rendering properties.
 
@@ -1926,28 +2137,21 @@ class Screen(BaseScreen, RealTerminal):
         :param hyperlinks: set to True to draw the hyperlinks of display attributes as OSC 8 links,
             False to draw them as plain text, or None to leave unchanged.
             Off by default: no query for OSC 8 support exists, so applications that know their terminal set it.
+        :param underline_styles: set to True to draw the underline styles and colors of display attributes,
+            False to draw every underline single and in the text color, or None to leave unchanged.
         """
-        if colors is None:
-            colors = self.colors
-        if bright_is_bold is None:
-            bright_is_bold = self.fg_bright_is_bold
-        if has_underline is None:
-            has_underline = self.has_underline
-        if hyperlinks is None:
-            hyperlinks = self.hyperlinks
-
-        if (
-            colors == self.colors
-            and bright_is_bold == self.fg_bright_is_bold
-            and has_underline == self.has_underline
-            and hyperlinks == self.hyperlinks
-        ):
+        current = self._terminal_properties
+        properties = dataclasses.replace(
+            current,
+            colors=current.colors if colors is None else colors,
+            fg_bright_is_bold=current.fg_bright_is_bold if bright_is_bold is None else bright_is_bold,
+            has_underline=current.has_underline if has_underline is None else has_underline,
+            hyperlinks=current.hyperlinks if hyperlinks is None else hyperlinks,
+            underline_styles=current.underline_styles if underline_styles is None else underline_styles,
+        )
+        if properties == current:
             return
-
-        self.colors = colors
-        self.fg_bright_is_bold = bright_is_bold
-        self.has_underline = has_underline
-        self.hyperlinks = hyperlinks
+        self._terminal_properties = properties
 
         self.clear()
         self._pal_escape.clear()
@@ -1957,12 +2161,12 @@ class Screen(BaseScreen, RealTerminal):
 
         Uses a number of colors from the current set_terminal_properties() screen setting.
         """
-        if self.colors == 1:
+        if self._terminal_properties.colors == 1:
             return
-        if self.colors == 2**24:
+        if self._terminal_properties.colors == 2**24:
             colors = 256
         else:
-            colors = self.colors
+            colors = self._terminal_properties.colors
 
         values = _COLOR_VALUES_88 if colors == 88 else _COLOR_VALUES_256
         entries = [(n, *values[n]) for n in range(min(colors, 256))]
@@ -2017,13 +2221,21 @@ class Screen(BaseScreen, RealTerminal):
 
     # shortcut for creating an AttrSpec with this screen object's
     # number of colors
-    def AttrSpec(self, fg: str, bg: str, *, hyperlink: Hyperlink | str | None = None) -> AttrSpec:
+    def AttrSpec(
+        self,
+        fg: str,
+        bg: str,
+        *,
+        hyperlink: Hyperlink | str | None = None,
+        underline_color: str | None = None,
+    ) -> AttrSpec:
         """Create an :class:`AttrSpec` using this screen's number of colors.
 
         :param fg: the foreground color and settings, as for :class:`AttrSpec`
         :param bg: the background color, as for :class:`AttrSpec`
         :param hyperlink: the terminal hyperlink of the text, as for :class:`AttrSpec`
-        :raises AttrSpecError: *fg* or *bg* is invalid or needs more colors than this screen has.
+        :param underline_color: the color of the underline, as for :class:`AttrSpec`
+        :raises AttrSpecError: *fg*, *bg* or *underline_color* is invalid or needs more colors than this screen has.
         :raises ValueError: *hyperlink* is a string that is not a valid :class:`Hyperlink` URI.
         """
-        return AttrSpec(fg, bg, self.colors, hyperlink=hyperlink)
+        return AttrSpec(fg, bg, self._terminal_properties.colors, hyperlink=hyperlink, underline_color=underline_color)

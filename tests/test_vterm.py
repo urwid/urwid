@@ -270,11 +270,24 @@ class TermTest(unittest.TestCase):
         self.term = urwid.Terminal(["/bin/false"], main_loop=self.event_loop)
         self.resize(80, 24)
 
-    def restart(self, width: int = 80, height: int = 24, soft: bool = False, *, scroll_on_output: bool = True) -> None:
+    def restart(
+        self,
+        width: int = 80,
+        height: int = 24,
+        soft: bool = False,
+        *,
+        scroll_on_output: bool = True,
+        pass_signal_keys: bool = True,
+    ) -> None:
         """Replace the terminal under test with a fresh one on a fresh fake PTY, for one case of a table test."""
         self.term.terminate()
         self.pty.reset()
-        self.term = urwid.Terminal(["/bin/false"], main_loop=self.event_loop, scroll_on_output=scroll_on_output)
+        self.term = urwid.Terminal(
+            ["/bin/false"],
+            main_loop=self.event_loop,
+            scroll_on_output=scroll_on_output,
+            pass_signal_keys=pass_signal_keys,
+        )
         self.resize(width, height, soft)
 
     def tearDown(self) -> None:
@@ -592,6 +605,8 @@ class TermTest(unittest.TestCase):
             ("DECCARA 22 keeping faint", r"\e[1;2mA\e[0m\e[1;1;1;1;22$r", r"\e[2m"),
             ("DECRARA 1", r"\e[31;1mA\e[0m\e[1;1;1;1;1$t", r"\e[31m"),
             ("DECCARA 0 keeping the colours", r"\e[1;4;31;44mA\e[0m\e[1;1;1;1;0$r", r"\e[31;44m"),
+            ("DECRARA 4 ending an underline in a style", r"\e[31;4:3mA\e[0m\e[1;1;1;1;4$t", r"\e[31m"),
+            ("DECCARA 24 ending an underline in a style", r"\e[31;4:3mA\e[0m\e[1;1;1;1;24$r", r"\e[31m"),
         ):
             with self.subTest(label):
                 self.restart(4, 2)
@@ -706,15 +721,91 @@ class TermTest(unittest.TestCase):
         self.write("\\e[?7h\\e[1;%dHt\b\b\t\ta" % self.term.width)
         self.expect(" " * (self.term.width - 1) + "a")
 
+    def test_tabulation_by_count(self) -> None:
+        """Move the cursor forward (CHT) and back (CBT) by tab stops, stopping at the edges of the line."""
+        for label, data, screen in (
+            ("CHT moves to the second tab stop", r"a\e[2Ib", "a" + " " * 15 + "b"),
+            ("CHT stops at the last column", r"\e[99Ib", " " * 79 + "b"),
+            ("CBT moves to the tab stop before", r"\e[20G\e[Zb", " " * 16 + "b"),
+            ("CBT moves to the second tab stop before", r"\e[20G\e[2Zb", " " * 8 + "b"),
+            ("CBT stops at the first column", r"\e[20G\e[99Zb", "b"),
+            ("CBT on a tab stop moves to the one before", r"\e[17G\e[Zb", " " * 8 + "b"),
+            ("CBT from the last column", r"\e[1;80H\e[Zb", " " * 72 + "b"),
+        ):
+            with self.subTest(label):
+                self.restart()
+                self.write(data)
+                self.expect(screen)
+
     def test_tabs_keep_a_pending_wrap(self) -> None:
         """Leave a pending wrap and the cursor as they are, as xterm does, so the next character wraps."""
         for label, tab in (
             ("HT", "\t"),
+            ("CHT", r"\e[I"),
+            ("CBT", r"\e[2Z"),
         ):
             with self.subTest(label):
                 self.restart()
                 self.write(r"\e[1;80Hx" + tab + "b")
                 self.expect(" " * 79 + "x\nb")
+
+    def test_repeat_character(self) -> None:
+        """Repeat the character written just before REP, and nothing after anything else, as xterm does."""
+        for label, data, screen in (
+            ("the last character", r"ab\e[3bc", "abbbbc"),
+            ("a count of 0 repeats once", r"a\e[0bc", "aac"),
+            ("the base character of a cluster", "e\u0301\\e[2b", "e\u0301ee"),
+            (
+                "the base character of a cluster moved to the next line",
+                "\\e[1;80H\u2764\ufe0f\\e[2b",
+                "\n\u2764\ufe0f\u2764\u2764",
+            ),
+            ("nothing before the first character", r"\e[3ba", "a"),
+            ("nothing after RIS", r"a\ec\e[3bb", "b"),
+            ("nothing after a cursor move", r"a\e[3G\e[2b", "a"),
+            ("nothing after CR", "ab\r\\e[2b", "ab"),
+            ("nothing after LF", "ab\n\\e[2b", "ab"),
+            ("nothing after NUL", "a\x00\\e[2b", "a"),
+            ("nothing after DEL", "a\x7f\\e[2b", "a"),
+            ("nothing after BEL", "a\x07\\e[2b", "a"),
+            ("nothing after SGR", r"a\e[1m\e[2b", "a"),
+            ("nothing after an unknown CSI", r"a\e[99z\e[2b", "a"),
+            ("nothing after an OSC", "a\\e]2;t\x07\\e[2b", "a"),
+            ("nothing after DECSC", r"a\e7\e[2b", "a"),
+            ("nothing after a CSI cancelled by CAN", "a\\e[1\x18\\e[2b", "a"),
+            ("nothing after a control character inside the REP", "a\\e[\x072b", "a"),
+            ("nothing after another REP", r"a\e[2b\e[2b", "aaa"),
+            ("nothing after a charset designation", r"a\e(B\e[2b", "a"),
+            ("a wide character", "一\\e[2b", "一" * 3),
+            ("wrapping to the next line", r"\e[1;79Ha\e[3b", " " * 78 + "aa\naa"),
+        ):
+            with self.subTest(label):
+                self.restart()
+                self.write(data.encode("utf-8").decode("iso8859-1"))
+                self.expect(screen.encode("utf-8").decode("iso8859-1"))
+
+        with self.subTest("a DEC special graphics character"), set_temporary_encoding("ascii"):
+            self.restart()
+            self.write(r"\e(0q\e[2b")
+            self.expect([[(None, "0", b"q")] * 3], raw=True)
+
+    def test_repeat_count_far_larger_than_the_screen(self) -> None:
+        """Leave the screen and the cursor as the same characters written one by one would.
+
+        The count is at most 65535, as in xterm, and it is not run down, so a huge count returns at once.
+        """
+        for char, count in itertools.product(("a", "一"), (65532, 65533, 65534, 65535, 65536, 999999999)):
+            with self.subTest(char=char, count=count):
+                self.restart(5, 2)
+                self.write(f"{char}\\e[{count}b".encode().decode("iso8859-1"))
+                screen = self.read()
+                state = (self.term.term.term_cursor, self.term.term.is_rotten_cursor)
+                # the same number of characters modulo the line, past the first full screen
+                written = 20 + (1 + min(count, 65535)) % (5 if char == "a" else 2)
+                self.restart(5, 2)
+                self.write((char * written).encode().decode("iso8859-1"))
+                self.assertEqual(screen, self.read())
+                self.assertEqual(state, (self.term.term.term_cursor, self.term.term.is_rotten_cursor))
 
     def test_cursor_motion_cancels_pending_wrap(self) -> None:
         """A character written after moving the cursor off a pending wrap stays where the cursor was moved to."""
@@ -1100,6 +1191,30 @@ class TermTest(unittest.TestCase):
         self.term.keypress(None, "B")
         self.term.keypress(None, "end paste")
         self.expect(r"testB")
+
+    def test_focus_reporting(self) -> None:
+        """Send the focus changes the display reports as CSI I and CSI O while mode 1004 is set.
+
+        Without the mode the focus keys are not handled, and a focus change never starts a key grab.
+        A report the pty cannot take, as the child reads no input, is dropped rather than waited for.
+        """
+        for label, mode, child_reads, sent, result in (
+            ("mode set", r"\e[?1004h", True, b"\x1b[I\x1b[O", None),
+            ("mode set, the child reads no input", r"\e[?1004h", False, b"", None),
+            ("mode reset", r"\e[?1004h\e[?1004l", True, b"", "focus in"),
+            ("mode never set", "", True, b"", "focus in"),
+        ):
+            with self.subTest(label):
+                self.restart()
+                self.write(mode)
+                self.read()
+                self.pty.from_widget.clear()
+                self.pty.child_reads = child_reads
+                self.term.keygrab = False
+                self.assertEqual(self.term.keypress(self.termsize, "focus in"), result)
+                self.assertEqual(self.term.keypress(self.termsize, "focus out"), result and "focus out")
+                self.assertEqual(bytes(self.pty.from_widget), sent)
+                self.assertFalse(self.term.keygrab)
 
     def test_synchronized_output_mode_on(self):
         self.write(r"\e[?2026htest")
@@ -1624,9 +1739,19 @@ class TermTest(unittest.TestCase):
                 b'\x1bP1$r62;1"p\x1b\\\x1bP1$r62;1"p\x1b\\\x1bP1$r63;1"p\x1b\\',
             ),
             (
-                "at the VT100 level DECRQSS and DECRQPSR are not answered, DECRQM still is",
+                "at the VT100 level DECRQPSR is not answered, DECRQM and DECRQSS still are, as in xterm",
                 rf'\e[61"p\eP$qm{_ST}\e[1$w\e[2$w\e[?66$p',
-                b"\x1b[?66;2$y",
+                b"\x1bP1$r0m\x1b\\\x1b[?66;2$y",
+            ),
+            (
+                "at the VT100 level DECRQSS does not answer the conformance level, as in xterm",
+                rf'\e[61"p\eP$q"p{_ST}\eP$qr{_ST}',
+                b"\x1bP1$r1;24r\x1b\\",
+            ),
+            (
+                "at the VT100 level DECRSPS is not applied, as in xterm",
+                rf'\e[61"p\e[2;2H\eP1$t5;5;1;@;@;@;0;2;@;BBBB{_ST}\e[6n',
+                b"\x1b[2;2R",
             ),
             ("DECSCL performs a soft reset", r'\e[?25l\e[63;1"p\e[?25$p', b"\x1b[?25;1$y"),
             (
@@ -1701,6 +1826,11 @@ class TermTest(unittest.TestCase):
                 b"\x1b[2;2R",
             ),
             (
+                "DECRQSS reports the underline style and color with sub-parameters",
+                rf"\e[0;4:3;58:5:196m\eP$qm{_ST}\e[0;21;58:2:1:2:3m\eP$qm{_ST}",
+                b"\x1bP1$r0;4:3;58:5:196m\x1b\\\x1bP1$r0;4:2;58:2::1:2:3m\x1b\\",
+            ),
+            (
                 "DECRQSS answers a setting not reported as invalid",
                 rf"\eP$q$}}{_ST}\eP$qmm{_ST}\eP$q{_ST}",
                 b"\x1bP0$r\x1b\\" * 3,
@@ -1712,6 +1842,25 @@ class TermTest(unittest.TestCase):
             ("mode 2048 reports the size on each set", r"\e[?2048h\e[?2048h", b"\x1b[48;24;80;0;0t" * 2),
             ("mode 2048 is reset by RIS", r"\e[?2048h\ec\e[?2048$p", b"\x1b[48;24;80;0;0t\x1b[?2048;2$y"),
             (
+                "XTVERSION names urwid and its version",
+                r"\e[>q\e[>0q",
+                f"\x1bP>|urwid({urwid.__version__})\x1b\\".encode("ascii") * 2,
+            ),
+            ("XTVERSION with a parameter other than 0 is not answered", r"\e[>1q", b""),
+            (
+                "XTVERSION is answered at the VT100 level too, as in xterm",
+                r'\e[61"p\e[>q',
+                f"\x1bP>|urwid({urwid.__version__})\x1b\\".encode("ascii"),
+            ),
+            ("XTWINOPS 18 reports the text area in characters", r"\e[18t", b"\x1b[8;24;80t"),
+            ("XTWINOPS 14 reports the text area in pixels as unknown", r"\e[14t\e[14;2t", b"\x1b[4;0;0t" * 2),
+            ("the other XTWINOPS operations are not answered", r"\e[19t\e[22;0t\e[8;10;10t", b""),
+            (
+                "XTGETTCAP answers an unknown first name as invalid, as while the display colors are unknown",
+                rf"\eP+q436f;524742{_ST}\eP+qzz;436f{_ST}",
+                b"\x1bP0+r\x1b\\" * 2,
+            ),
+            (
                 "DECRQM reports the cursor blink and the urxvt mouse permanently reset, as they are never used",
                 r"\e[?12h\e[?12$p\e[?1015h\e[?1015$p",
                 b"\x1b[?12;4$y\x1b[?1015;4$y",
@@ -1721,12 +1870,52 @@ class TermTest(unittest.TestCase):
                 r"\e[?1036l\e[?1036$p\e[?1039l\e[?1039$p",
                 b"\x1b[?1036;3$y\x1b[?1039;3$y",
             ),
+            ("XTGETTCAP is answered at the VT100 level too, as in xterm", rf'\e[61"p\eP+qzz{_ST}', b"\x1bP0+r\x1b\\"),
+            (
+                "mode 1007 is reported, and reset by RIS",
+                r"\e[?1007h\e[?1007$p\ec\e[?1007$p",
+                b"\x1b[?1007;1$y\x1b[?1007;2$y",
+            ),
+            (
+                "mode 1004 is reported, and reset by RIS",
+                r"\e[?1004h\e[?1004$p\ec\e[?1004$p",
+                b"\x1b[?1004;1$y\x1b[?1004;2$y",
+            ),
         ):
             with self.subTest(label):
                 self.restart()
                 self.write(query)
                 self.read()
                 self.assertEqual(bytes(self.pty.from_widget), answer)
+
+    def test_xtgettcap_describes_the_display_colors(self) -> None:
+        """Answer the color count and RGB as the display draws them, the color count at most the 256 of the palette.
+
+        As in xterm, the names known are answered in one reply, up to the first one that is not.
+        """
+        query = rf"\eP+q436f;636F6C6F7273;524742;544E;436f{_ST}"
+        for colors, answer in (
+            (2**24, b"\x1bP1+r436f=323536;636F6C6F7273=323536;524742=38;\x1b\\"),
+            (256, b"\x1bP1+r436f=323536;636F6C6F7273=323536;\x1b\\"),
+            (88, b"\x1bP1+r436f=3838;636F6C6F7273=3838;\x1b\\"),
+            (16, b"\x1bP1+r436f=3136;636F6C6F7273=3136;\x1b\\"),
+            (1, b"\x1bP0+r\x1b\\"),
+        ):
+            with self.subTest(colors=colors):
+                self.restart()
+                self.term.term.display_colors = colors
+                self.write(query)
+                self.term.wait_and_feed()
+                self.assertEqual(bytes(self.pty.from_widget), answer)
+
+    def test_render_takes_the_display_colors_from_the_main_loop(self) -> None:
+        """Take the display colors from the screen of the running main loop, unknown for a screen without them."""
+        for screen, colors in ((mock.Mock(colors=88), 88), (mock.Mock(spec=[]), None)):
+            with self.subTest(colors=colors):
+                loop = mock.Mock(screen=screen)
+                with mock.patch("urwid.vterm.event_loop.get_running_loop_or_none", return_value=loop):
+                    self.term.render(self.termsize, focus=False)
+                self.assertEqual(self.term.term.display_colors, colors)
 
     def test_in_band_resize_reports_each_new_size(self) -> None:
         """Send the child a report after its new size is set, while mode 2048 is set and the pty takes input."""
@@ -2246,9 +2435,14 @@ class TermTest(unittest.TestCase):
             ("palette color", r"\e[38:5:196m", urwid.AttrSpec("h196", "default", 256)),
             ("RGB color with a color space id", r"\e[48:2::1:2:3m", urwid.AttrSpec("default", "#010203", 2**24)),
             ("RGB color without one", r"\e[38:2:1:2:3m", urwid.AttrSpec("#010203", "default", 2**24)),
-            ("curly underline", r"\e[1;4:3m", urwid.AttrSpec("default,bold,underline", "default")),
+            ("curly underline", r"\e[1;4:3m", urwid.AttrSpec("default,bold,curly underline", "default")),
+            ("double underline", r"\e[4:2m", urwid.AttrSpec("default,double underline", "default")),
             ("no underline", r"\e[4;1m\e[4:0m", urwid.AttrSpec("default,bold", "default")),
-            ("underline color", r"\e[1;58:2::255:0:0;3m", urwid.AttrSpec("default,bold,italics", "default")),
+            (
+                "underline color",
+                r"\e[1;58:2::255:0:0;3m",
+                urwid.AttrSpec("default,bold,italics", "default", 2**24, underline_color="#ff0000"),
+            ),
             ("unknown group", r"\e[1;7:1;3m", urwid.AttrSpec("default,bold,italics", "default")),
         ):
             with self.subTest(label):
@@ -2257,10 +2451,7 @@ class TermTest(unittest.TestCase):
                 self.expect([[(attrspec, None, b"x")]], raw=True)
 
     def test_sgr_color_arguments_are_no_sgr_codes(self) -> None:
-        """Read the arguments of an extended color, also of the underline color, as the color and not as SGR codes.
-
-        SGR 58 sets the underline color, which is not drawn.
-        """
+        """Read the arguments of an extended color, also of the underline color, as the color and not as SGR codes."""
         for label, sgr, attrspec in (
             ("index 11 is no IBM PC character set", r"\e[38;5;11m", urwid.AttrSpec("h11", "default", 256)),
             (
@@ -2268,8 +2459,12 @@ class TermTest(unittest.TestCase):
                 r"\e[48;2;10;11;12m",
                 urwid.AttrSpec("default", "#0a0b0c", 2**24),
             ),
-            ("underline color index", r"\e[58;5;196m", None),
-            ("underline color RGB", r"\e[58;2;9;4;7m", None),
+            ("underline color index", r"\e[58;5;196m", urwid.AttrSpec("default", "default", underline_color="h196")),
+            (
+                "underline color RGB",
+                r"\e[58;2;9;4;7m",
+                urwid.AttrSpec("default", "default", 2**24, underline_color="#090407"),
+            ),
         ):
             with self.subTest(label):
                 self.restart()
@@ -2925,6 +3120,30 @@ class TermTest(unittest.TestCase):
                 self.drain()
                 self.assertEqual(self.mouse(*events), ([True] * len(events), sent))
 
+    def test_alternate_scroll_sends_the_wheel_as_cursor_keys(self) -> None:
+        """Send a wheel press as five cursor keys on the alternate screen in mode 1007, as xterm does.
+
+        Only a wheel press without modifiers is sent, only while the child does not track the mouse.
+        The keys the pty cannot take, as the child reads no input, are dropped rather than waited for.
+        """
+        up, down = ("mouse press", 4, 0, 0), ("mouse press", 5, 0, 0)
+        for label, modes, events, results, sent in (
+            ("wheel up and down", "1049;1007", [up, down], [True, True], b"\x1b[A" * 5 + b"\x1b[B" * 5),
+            ("the child reads no input", "1049;1007", [up], [True], None),
+            ("application cursor keys", "1049;1007;1", [up], [True], b"\x1bOA" * 5),
+            ("on the main screen", "1007", [up], [False], b""),
+            ("without the mode", "1049", [up], [False], b""),
+            ("with a modifier", "1049;1007", [("shift mouse press", 4, 0, 0)], [False], b""),
+            ("not a wheel button", "1049;1007", [("mouse press", 1, 0, 0)], [False], b""),
+            ("while the child tracks the mouse", "1049;1007;1000;1006", [up], [True], b"\x1b[<64;1;1M"),
+        ):
+            with self.subTest(label):
+                self.restart()
+                self.write(f"\\e[?{modes}h")
+                self.drain()
+                self.pty.child_reads = sent is not None
+                self.assertEqual(self.mouse(*events), (results, sent or b""))
+
     def test_mouse_reports_read_back_as_the_same_event(self) -> None:
         """Encode a mouse event so that urwid's own input parser reads the event back."""
         for modes in ("1002", "1002;1006"):
@@ -3008,6 +3227,16 @@ class TermTest(unittest.TestCase):
         self.read(focus=False)
         self.assertEqual(self.tty.signal_keys, original)
         self.read(focus=True)
+        self.term.terminate()
+        self.assertEqual(self.tty.signal_keys, original)
+
+    def test_focus_leaves_tty_signal_keys_on_request(self) -> None:
+        """Leave the tty signal keys alone with pass_signal_keys=False, focused or not."""
+        self.restart(pass_signal_keys=False)
+        original = self.tty.signal_keys
+        self.read(focus=True)
+        self.assertEqual(self.tty.signal_keys, original)
+        self.read(focus=False)
         self.term.terminate()
         self.assertEqual(self.tty.signal_keys, original)
 

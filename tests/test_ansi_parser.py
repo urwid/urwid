@@ -350,8 +350,8 @@ class StripAndLogTest(unittest.TestCase):
         for sequence, attr in (
             ("\x1b[38:5:196m", AttrSpec("h196", "inherit", colors=256)),
             ("\x1b[38:2::255:0:0m", AttrSpec("#ff0000", "inherit", colors=2**24)),
-            ("\x1b[1;4:3m", AttrSpec("inherit,bold,underline", "inherit")),
-            ("\x1b[1;58:2::255:0:0m", AttrSpec("inherit,bold", "inherit")),
+            ("\x1b[1;4:3m", AttrSpec("inherit,bold,curly underline", "inherit")),
+            ("\x1b[1;58:2::255:0:0m", AttrSpec("inherit,bold", "inherit", 2**24, underline_color="#ff0000")),
         ):
             with self.subTest(sequence=sequence):
                 line = parse_ansi_text(f"{sequence}text")
@@ -504,6 +504,19 @@ class HyperlinkTest(unittest.TestCase):
             attrspec_with_hyperlink(linked.copy_modified(fg="default,bold"), None, unset_color="default"),
         )
 
+    def test_attrspec_with_hyperlink_keeps_the_underline_color(self) -> None:
+        """Keep the underline color when the link is set or removed."""
+        styled = AttrSpec("default,curly underline", "default", underline_color="light red")
+        self.assertEqual(
+            styled.copy_modified(hyperlink=self.LINK),
+            attrspec_with_hyperlink(styled, self.LINK, unset_color="default"),
+        )
+        colored = AttrSpec("default", "default", underline_color="light red", hyperlink=self.LINK)
+        self.assertEqual(
+            AttrSpec("default", "default", underline_color="light red"),
+            attrspec_with_hyperlink(colored, None, unset_color="default"),
+        )
+
 
 class SgiParamsToAttrspecTest(unittest.TestCase):
     def test_basic_foreground(self) -> None:
@@ -525,24 +538,56 @@ class SgiParamsToAttrspecTest(unittest.TestCase):
         expected = AttrSpec("#0a141e", "default", colors=2**24)
         self.assertEqual(expected, result)
 
-    def test_underline_color_arguments_are_no_sgr_codes(self) -> None:
-        """Ignore the underline color (SGR 58) with its arguments, which are no SGR codes of their own."""
-        for params in ([58, 5, 196], [58, 2, 9, 4, 7], [1, 58, 5, 5, 3]):
-            with self.subTest(params=params):
-                expected = AttrSpec("default,bold,italics", "default") if params[0] == 1 else None
-                self.assertEqual(expected, sgi_params_to_attrspec(params, None))
+    def test_underline_color_and_style(self) -> None:
+        """Set the underline color (SGR 58, whose arguments are no SGR codes of their own) and the underline style.
+
+        SGR 21 is a double underline, as ECMA-48 defines it, and SGR 59 draws the underline in the text color.
+        """
+        for params, unset_color, expected in (
+            ([58, 5, 196], "default", AttrSpec("default", "default", 256, underline_color="h196")),
+            ([58, 2, 9, 4, 7], "default", AttrSpec("default", "default", 2**24, underline_color="#090407")),
+            (
+                [1, 58, 5, 5, 3],
+                "default",
+                AttrSpec("default,bold,italics", "default", 16, underline_color="dark magenta"),
+            ),
+            ([(4, 3)], "default", AttrSpec("default,curly underline", "default")),
+            ([21], "default", AttrSpec("default,double underline", "default")),
+            ([(4, 5), (4, 0)], "default", None),
+            ([58, 5, 1, 59], "default", None),
+            ([58, 5, 1, 59], "inherit", AttrSpec("inherit", "inherit", 16, underline_color="default")),
+            ([(4, 2), 58, 5, 1, 0], "default", None),
+            # groups parse_sgr_parameters would have dropped, given by the caller, are ignored
+            ([(4, 7)], "default", None),
+            ([(4, 3, 1)], "default", None),
+            ([(1, 9)], "default", None),
+            ([(58, 5)], "default", None),
+            ([(38, 5)], "default", None),
+            ([(48, 2, 1)], "default", None),
+        ):
+            with self.subTest(params=params, unset_color=unset_color):
+                self.assertEqual(expected, sgi_params_to_attrspec(params, None, unset_color=unset_color))
+
+    def test_underline_style_and_color_carry_over(self) -> None:
+        """Keep the style and the color of the previous underline through other SGR codes."""
+        previous = AttrSpec("default,dotted underline", "default", underline_color="h196")
+        self.assertEqual(
+            AttrSpec("default,bold,dotted underline", "default", underline_color="h196"),
+            sgi_params_to_attrspec([1], previous),
+        )
 
     def test_parse_sgr_parameters(self) -> None:
-        """Turn sub-parameter groups into their plain SGR form, an empty parameter into 0, and drop other groups."""
+        """Keep sub-parameter groups as one code each, an empty parameter as 0, and drop other groups."""
         for body, expected in (
-            ("", [0]),
-            (";1;", [0, 1, 0]),
-            ("38:5:196", [38, 5, 196]),
-            ("48:2:1:2:3", [48, 2, 1, 2, 3]),
-            ("58:2:7:1:2:3", [58, 2, 1, 2, 3]),
-            ("38:2::1:2:3", [38, 2, 1, 2, 3]),
-            ("4:0;4:1;4:5", [24, 4, 4]),
-            ("4:6;38:5;38:2:1:2;7:1;1", [1]),
+            ("", [(0,)]),
+            (";1;", [(0,), (1,), (0,)]),
+            ("38:5:196", [(38, 5, 196)]),
+            ("48:2:1:2:3", [(48, 2, 1, 2, 3)]),
+            ("58:2:7:1:2:3", [(58, 2, 1, 2, 3)]),
+            ("38:2::1:2:3", [(38, 2, 1, 2, 3)]),
+            ("4:0;4:1;4:5", [(4, 0), (4, 1), (4, 5)]),
+            ("4:6;38:5;38:2:1:2;7:1;1", [(1,)]),
+            ("38;5;11;4:3", [(38, 5, 11), (4, 3)]),
         ):
             with self.subTest(body=body):
                 self.assertEqual(expected, parse_sgr_parameters(body))

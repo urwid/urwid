@@ -36,7 +36,7 @@ from dataclasses import dataclass, field
 
 import wcwidth
 
-from urwid import _deprecation, str_util, util
+from urwid import _deprecation, str_util, util, version
 from urwid.ansi_parser import (
     MAX_CSI_LENGTH,
     MAX_OSC_LENGTH,
@@ -51,6 +51,8 @@ from urwid.ansi_parser import (
 )
 from urwid.canvas import Canvas
 from urwid.display import AttrSpec
+from urwid.display.common import _UNDERLINE_STYLE_NAMES as UNDERLINE_STYLE_NAMES
+from urwid.display.common import _UNDERLINE_STYLES as UNDERLINE_STYLE_SETTINGS
 from urwid.display.escape import (
     ALT_DEC_SPECIAL_CHARS,
     DEC_SPECIAL_CHARS,
@@ -167,6 +169,13 @@ _MAX_CLUSTER_LENGTH: typing.Final = 32
 
 #: the DECRQCRA checksum bit of a protected character
 _CHECKSUM_PROTECTED: typing.Final = 0x04
+
+#: the colors of the palette SGR 38;5 and 48;5 select from, and the colors of a display that draws any RGB color
+_PALETTE_COLORS: typing.Final = 256
+_TRUE_COLORS: typing.Final = 2**24
+
+#: the largest count REP takes, xterm's largest parameter value; a larger one counts as this
+_MAX_REPEAT: typing.Final = 65535
 
 #: the conformance levels DECSCL selects: VT100 (61), VT200 (62) and VT300 (63), the highest and the startup one
 _CONFORMANCE_LEVELS: typing.Final = range(61, 64)
@@ -307,6 +316,7 @@ CSI_COMMANDS: dict[bytes, CSIAlias | CSICommand] = {
     b"F": CSICommand(1, 1, lambda s, rows, q: s.move_cursor(0, -rows[0], relative_y=True)),
     b"G": CSICommand(1, 1, lambda s, col, q: s.move_cursor(col[0] - 1, 0, relative_y=True)),
     b"H": CSICommand(2, 1, lambda s, x_y, q: s.move_cursor(x_y[1] - 1, x_y[0] - 1)),
+    b"I": CSICommand(1, 1, lambda s, count, _q: s.csi_forward_tab(count[0])),
     b"J": CSICommand(1, 0, lambda s, mode, q: s.csi_erase_display(mode[0], selective=q or s.modes.iso_protection)),
     b"K": CSICommand(1, 0, lambda s, mode, q: s.csi_erase_line(mode[0], selective=q or s.modes.iso_protection)),
     b"L": CSICommand(1, 1, lambda s, number, q: s.insert_lines(lines=number[0])),
@@ -326,7 +336,9 @@ CSI_COMMANDS: dict[bytes, CSIAlias | CSICommand] = {
             selective=s.modes.iso_protection,
         ),
     ),
+    b"Z": CSICommand(1, 1, lambda s, count, _q: s.csi_backward_tab(count[0])),
     b"a": CSIAlias("alias", b"C"),
+    b"b": CSICommand(1, 1, lambda s, count, _q: s.csi_repeat(count[0])),
     b"c": CSICommand(0, 0, lambda s, none, q: s.csi_get_device_attributes(q)),
     b"d": CSICommand(1, 1, lambda s, row, q: s.move_cursor(0, row[0] - 1, relative_x=True)),
     b"e": CSIAlias("alias", b"B"),
@@ -351,7 +363,7 @@ CSI_COMMANDS: dict[bytes, CSIAlias | CSICommand] = {
     # DECFRA (CSI ... $ x), DECERA (CSI ... $ z), DECSERA (CSI ... $ {), DECCRA (CSI ... $ v), DECCARA (CSI ... $ r),
     # DECRARA (CSI ... $ t), DECSACE (CSI Ps * x), DECRQCRA (CSI ... * y), DECIC (CSI Ps ' }) and DECDC (CSI Ps ' ~);
     # DECSCA (CSI Ps " q) and DECRQUPSS (CSI & u) are run there too
-    b"t": CSICommand(0, 0, lambda s, none, q: None),
+    b"t": CSICommand(1, 0, lambda s, operation, q: s.csi_report_window(operation[0])),
     b"v": CSICommand(0, 0, lambda s, none, q: None),
     b"x": CSICommand(0, 0, lambda s, none, q: None),
     b"y": CSICommand(0, 0, lambda s, none, q: None),
@@ -475,7 +487,7 @@ def _fit_line(
     return fitted
 
 
-@dataclass(eq=True, order=False)
+@dataclass(eq=True, order=False, slots=True, weakref_slot=True)
 class TermModes:
     """Terminal mode flags (ECMA-48 and DEC private modes) tracked for a :class:`TermCanvas`."""
 
@@ -518,6 +530,11 @@ class TermModes:
     # SPA selected ISO protection, until DECSCA, DECSTR or RIS: ED, EL and ECH keep the protected characters too, and
     # DECSERA erases them
     iso_protection: bool = False
+    # The fields below follow every field above, which a caller may pass to the constructor by position.
+    # the child is sent CSI I and CSI O when the display reports that the terminal gained and lost the focus
+    focus_reporting: bool = False
+    # without mouse tracking, the child is sent the mouse wheel on the alternate screen as cursor up and down keys
+    alternate_scroll: bool = False
 
     def reset(self) -> None:
         """Reset every mode flag to its terminal-startup default."""
@@ -532,6 +549,8 @@ class TermModes:
         self.constrain_scrolling = False
         self.autowrap = True
         self.visible_cursor = True
+        self.focus_reporting = False
+        self.alternate_scroll = False
         self.in_band_resize = False
         self.mouse_tracking = None
         self.mouse_encoding = None
@@ -706,10 +725,12 @@ def _with_flag(attrspec: AttrSpec | None, flag: str, *, remove: bool = False) ->
     if attrspec is None:
         attrspec = AttrSpec("default", "default")
     attrs = [fg.strip() for fg in attrspec.foreground.split(",")]
-    if flag in attrs and remove:
-        attrs.remove(flag)
+    # an underline in a style is the underline setting too
+    found = [attr for attr in attrs if attr == flag or (flag == "underline" and attr in UNDERLINE_STYLE_SETTINGS)]
+    if found and remove:
+        attrs.remove(found[0])
         attrspec = attrspec.copy_modified(fg=",".join(attrs))
-    elif flag not in attrs and not remove:
+    elif not found and not remove:
         attrs.append(flag)
         attrspec = attrspec.copy_modified(fg=",".join(attrs))
     return attrspec
@@ -730,16 +751,28 @@ def _sgr_parameters(attrspec: AttrSpec | None) -> str:
     The parameters start with ``0``.
     Colours are written as SGR 30-37, 90-97, 38;5;n or 38;2;r;g;b, and the background alike, in the semicolon form a
     :class:`TermCanvas` reads back.
+    An underline style is written as 4:n, and the underline color as 58:5:n or 58:2::r:g:b, which have no other form.
     The hyperlink is not part of SGR and is left out.
 
     >>> _sgr_parameters(None)
     '0'
     >>> _sgr_parameters(AttrSpec("light red,bold", "h100", 256))
     '0;1;91;48;5;100'
+    >>> _sgr_parameters(AttrSpec("default,curly underline", "default", underline_color="h196"))
+    '0;4:3;58:5:196'
     """
     if attrspec is None:
         return "0"
     parameters = ["0", *(str(code) for name, code in _SGR_FLAGS if getattr(attrspec, name))]
+    if (style := attrspec.underline_style) not in {None, "single"}:
+        parameters[parameters.index("4")] = f"4:{UNDERLINE_STYLE_NAMES.index(typing.cast('str', style)) + 1:d}"
+    if (color := attrspec.underline_color) not in {None, "default"}:
+        # the color as a foreground in the same color mode, which tells a palette entry from a 24-bit color
+        line = attrspec.copy_modified(fg=color, hyperlink=None, underline_color=None)
+        if line.foreground_true:
+            parameters.append(f"58:2::{':'.join(str(component) for component in line.get_rgb_values()[:3])}")
+        else:
+            parameters.append(f"58:5:{line.foreground_number:d}")
     rgb = attrspec.get_rgb_values()
     for base, true, high, basic, number, values in (
         (30, attrspec.foreground_true, attrspec.foreground_high, attrspec.foreground_basic,
@@ -815,6 +848,14 @@ class TermCanvas(Canvas):
         self.saved_flags: tuple[bool, bool, bool] | None = None
 
         self.is_rotten_cursor = False
+        # the character the last input wrote in a cell of its own, whether it is a DEC special graphics character,
+        # and whether it is wide; None when the last input was anything else, such as a control function
+        self._last_graphic: tuple[bytes, bool, bool] | None = None
+        # the character REP repeats: the one written just before the escape sequence being read
+        self._repeat_graphic: tuple[bytes, bool, bool] | None = None
+        #: the colors the display draws, as its screen reports them, which the XTGETTCAP replies describe;
+        #: None while unknown. The widget the canvas belongs to sets it.
+        self.display_colors: Literal[1, 16, 88, 256, 16777216] | None = None
 
         self.scrollregion_start = 0
         self.scrollregion_end = self.height - 1
@@ -926,6 +967,7 @@ class TermCanvas(Canvas):
         self.saved_flags = None
 
         self.is_rotten_cursor = False
+        self._last_graphic = self._repeat_graphic = None
 
         self.reset_scroll()
 
@@ -1224,6 +1266,11 @@ class TermCanvas(Canvas):
             self.widget.respond(_SECONDARY_DEVICE_ATTRIBUTES)
             return
 
+        if char == b"q" and bytes(self._escbuf) in {b">", b">0"}:
+            # XTVERSION, the query of the terminal's name and version
+            self.widget.respond(f"{ESC}P>|urwid({version.version}){ESC}\\")
+            return
+
         if char == b"m" and not self._escbuf.strip(b"0123456789;:"):
             self.csi_set_attr(parse_sgr_parameters(self._escbuf.decode("ascii")))
             return
@@ -1356,13 +1403,17 @@ class TermCanvas(Canvas):
     def parse_dcs(self, body: bytes) -> None:
         """Apply the DCS string *body*, given without its ``ESC P`` and ST framing.
 
-        DECRQSS is answered and DECRSPS is applied, except at the VT100 level (61).
+        DECRQSS and XTGETTCAP are answered and DECRSPS is applied.
+        As in xterm, at the VT100 level (61) DECRSPS is not applied, and DECRQSS does not answer the conformance level.
         Any other DCS string is ignored.
         """
-        if self.conformance_level == 61:
-            return
         if body.startswith(b"$q"):
-            self.dcs_request_setting(body[2:])
+            if not (self.conformance_level == _CONFORMANCE_LEVELS[0] and body[2:] == b'"p'):
+                self.dcs_request_setting(body[2:])
+        elif body.startswith(b"+q"):
+            self.dcs_request_termcap(body[2:])
+        elif self.conformance_level == _CONFORMANCE_LEVELS[0]:
+            return
         elif body.startswith(b"1$t"):
             self.dcs_restore_cursor_information(body[3:])
         elif body.startswith(b"2$t"):
@@ -1594,11 +1645,17 @@ class TermCanvas(Canvas):
             char = char.to_bytes(1, "little")
 
         dc = self.modes.display_ctrl
+        # as in xterm, REP repeats only a character written just before it: a control character, or a control function
+        # such as SGR, between them cancels the repeat
+        graphic, self._last_graphic = self._last_graphic, None
+        if not self.within_escape or char < b" " or char == b"\x7f":
+            self._repeat_graphic = None
 
         if char == ESC_B and self.parsestate not in _STRING_STATES:  # escape
             # as in a terminal, an ESC drops a sequence still being read and starts a new one
             self.leave_escape()
             self.within_escape = True
+            self._repeat_graphic = graphic
         elif self.parsestate in _STRING_STATES and char in b"\x18\x1a":
             # CAN/SUB abort a command string, also with display_ctrl
             self.leave_escape()
@@ -1639,6 +1696,7 @@ class TermCanvas(Canvas):
             self.leave_escape()
             self.within_escape = True
             self.parsestate = 1
+            self._repeat_graphic = graphic
         elif self.within_escape:
             self.parse_escape(char)
         else:
@@ -1790,6 +1848,8 @@ class TermCanvas(Canvas):
         :param dec_special: *char* is already in the DEC special character set: store it there, unmapped.
         """
         x, y = self.term_cursor
+        if char is not None:
+            self._last_graphic = (char, dec_special, False)
 
         if self.modes.autowrap:
             if x + 1 >= self.width and not self.is_rotten_cursor:
@@ -1832,6 +1892,7 @@ class TermCanvas(Canvas):
 
         :param char: the character, in urwid's encoding.
         """
+        self._last_graphic = (char, False, True)
         x, y = self.term_cursor
         if self.width < 2 or (not self.modes.autowrap and x + 1 >= self.width):
             return
@@ -1866,6 +1927,7 @@ class TermCanvas(Canvas):
         indicator of a flag join the character before them.
         A character with no width that starts a cluster of its own joins it too, as a cell cannot hold it alone.
         After a character was written in the last column, the character before the cursor is the one under it.
+        It is joined also when the cursor was moved there, as a text editor joins a character to the text before it.
         A cluster the display draws one column wider than its character, such as a heart with an emoji variation
         selector, takes the next cell as its second half, and the cursor moves past it; in the last column it moves to
         the next line with autowrap, as in kitty.
@@ -1913,7 +1975,10 @@ class TermCanvas(Canvas):
                 return width == 0
             # as in kitty, the cluster moves to the next line, as a wide character that does not fit does
             line[x] = self.empty_char()
+            # the cluster is no character of its own for REP, which repeats its base character
+            base = self._last_graphic
             self.push_wide_char(joined)
+            self._last_graphic = base
             row = self.term[self.term_cursor[1]]
             row[0] = (attrspec, charset, _Protected(joined) if protected else joined)
             row[1] = (attrspec, charset, _Protected(b"") if protected else b"")
@@ -1985,6 +2050,74 @@ class TermCanvas(Canvas):
 
         self.is_rotten_cursor = False
         self.set_term_cursor(x, y)
+
+    def csi_forward_tab(self, count: int) -> None:
+        """Move the cursor to the *count*-th next tab stop (CHT), or to the last column when there are fewer.
+
+        As in xterm, a pending wrap stays, and the cursor does not move.
+        """
+        for _ in range(min(count, self.width)):
+            self.tab()
+
+    def csi_backward_tab(self, count: int) -> None:
+        """Move the cursor to the *count*-th tab stop before it (CBT), or to the first column when there are fewer.
+
+        As in xterm, a pending wrap stays, and the cursor does not move.
+        """
+        if self.is_rotten_cursor:
+            return
+        x, y = self.term_cursor
+        for _ in range(min(count, self.width)):
+            while x > 0:
+                x -= 1
+                if self.is_tabstop(x):
+                    break
+        self.is_rotten_cursor = False
+        self.set_term_cursor(x, y)
+
+    def csi_repeat(self, count: int) -> None:
+        """Write the character written just before this sequence *count* more times (REP), as xterm does.
+
+        As in xterm:
+
+        - the character is the one that took a cell of its own, also when combining characters joined it;
+        - nothing is written when anything else came just before the sequence, such as a control character,
+          another control function or another REP;
+        - the count is at most 65535.
+
+        Once a screen and one more line are written, every full line of copies more leaves the screen as it was, so the
+        count is reduced past that by whole lines.
+        The screen and the cursor end as with the whole count, and the lines left out are not added to the scrollback.
+        """
+        if self._repeat_graphic is None:
+            return
+        char, dec_special, wide = self._repeat_graphic
+        self._repeat_graphic = None
+        count = min(count, _MAX_REPEAT)
+        per_line = max(self.width // 2, 1) if wide else self.width
+        limit = per_line * (self.height + 1)
+        if count > limit:
+            count = limit + (count - limit) % per_line
+        for _ in range(count):
+            if wide:
+                self.push_wide_char(char)
+            else:
+                self.push_cursor(char, dec_special=dec_special)
+        # the copies are no character written just before a REP that follows
+        self._last_graphic = None
+
+    def csi_report_window(self, operation: int) -> None:
+        """Answer the XTWINOPS size reports: the text area in pixels (14) and in characters (18).
+
+        The size in pixels is reported as 0 by 0, which stands for unknown, as the pty the child reads its size from
+        gives no pixels.
+        The other window operations are ignored, since the size of the canvas is set by the widget it belongs to.
+        """
+        match operation:
+            case 14:
+                self.widget.respond(f"{ESC}[4;0;0t")
+            case 18:
+                self.widget.respond(f"{ESC}[8;{self.height:d};{self.width:d}t")
 
     def scroll(self, reverse: bool = False, *, scrollback: bool = True) -> None:
         """Append a new line at the bottom of the scrolling region and remove its topmost line.
@@ -2166,7 +2299,7 @@ class TermCanvas(Canvas):
                     _mend_wide(line, run_first)
                     _mend_wide(line, run_last + 1)
 
-    def csi_set_attr(self, attrs: Sequence[int]) -> None:
+    def csi_set_attr(self, attrs: Sequence[int | tuple[int, ...]]) -> None:
         """Set graphics rendition.
 
         The colour/attribute-flag computation itself is delegated to the shared, platform-independent
@@ -2174,7 +2307,8 @@ class TermCanvas(Canvas):
         state rather than colour/attributes, so that side effect is applied separately, here, since
         ``sgi_params_to_attrspec`` deliberately ignores it (see its docstring).
 
-        :param attrs: the SGR numeric parameters to apply, in encounter order.
+        :param attrs: the SGR numeric parameters to apply, in encounter order;
+            a tuple is a code already split, as :func:`urwid.ansi_parser.split_sgr_parameters` gives it.
             The arguments of an extended color are never read as SGR 10 to 12.
         """
         for code in split_sgr_parameters(attrs):
@@ -2272,6 +2406,10 @@ class TermCanvas(Canvas):
                 self.modes.backarrow_sends_backspace = flag
             elif private_mode == PrivateMode.BRACKETED_PASTE:
                 self.modes.bracketed_paste = flag
+            elif private_mode == PrivateMode.FOCUS_REPORTING:
+                self.modes.focus_reporting = flag
+            elif private_mode == PrivateMode.ALTERNATE_SCROLL:
+                self.modes.alternate_scroll = flag
             elif private_mode == PrivateMode.IN_BAND_RESIZE:
                 self.modes.in_band_resize = flag
                 # the mode asks for a report of the current size on each set, also when it was already set
@@ -2316,6 +2454,10 @@ class TermCanvas(Canvas):
                 return modes.backarrow_sends_backspace
             case PrivateMode.BRACKETED_PASTE:
                 return modes.bracketed_paste
+            case PrivateMode.FOCUS_REPORTING:
+                return modes.focus_reporting
+            case PrivateMode.ALTERNATE_SCROLL:
+                return modes.alternate_scroll
             case PrivateMode.SYNCHRONIZED_OUTPUT:
                 return modes.synchronized_output
             case PrivateMode.IN_BAND_RESIZE:
@@ -2521,6 +2663,40 @@ class TermCanvas(Canvas):
         self.charset.end_single_shift()
         if flag_bits & (_FLAG_SS2 | _FLAG_SS3):
             self.charset.single_shift(2 if flag_bits & _FLAG_SS2 else 3)
+
+    def dcs_request_termcap(self, names: bytes) -> None:
+        """Answer an XTGETTCAP query (DCS + q Pt ST) for the capability names in *names*.
+
+        Each name is hex-encoded, and the names are separated by ``;``.
+        The capabilities answered describe the colors of the display, :attr:`display_colors`:
+
+        - ``Co`` and ``colors``, the termcap and terminfo names of the color count, for a display with colors,
+          at most the 256 of the palette;
+        - ``RGB``, 8 bits per channel, for a display that draws any RGB color.
+
+        The reply follows xterm:
+
+        - the names are answered in order up to the first one that is not answered;
+        - those answered are listed in one DCS 1 + r Pt ST, Pt holding ``name=value;`` for each, the value hex-encoded
+          as the name is;
+        - when the first name is not answered, the reply is DCS 0 + r ST.
+        """
+        values: dict[str, str] = {}
+        if self.display_colors is not None and self.display_colors > 1:
+            values["Co"] = values["colors"] = str(min(self.display_colors, _PALETTE_COLORS))
+            if self.display_colors == _TRUE_COLORS:
+                values["RGB"] = "8"
+        answered = ""
+        for name in names.split(b";"):
+            try:
+                hex_name = name.decode("ascii")
+                key = bytes.fromhex(hex_name).decode("ascii")
+            except ValueError:
+                break
+            if key not in values:
+                break
+            answered += f"{hex_name}={values[key].encode('ascii').hex().upper()};"
+        self.widget.respond(f"{ESC}P1+r{answered}{ESC}\\" if answered else f"{ESC}P0+r{ESC}\\")
 
     def dcs_restore_tab_stops(self, body: bytes) -> None:
         """Set the tab stops to the 1-based columns of a DECTABSR report *body* (DECRSPS 2), separated by ``/``.
