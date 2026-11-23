@@ -279,6 +279,7 @@ class _ScreenCanvas(Canvas):
         """Reset the terminal to its startup state on the main screen.
 
         The main screen is cleared. It keeps its scrollback. The alternate screen is replaced by a blank one.
+        The conformance level DECSCL selected stays, as in xterm.
         """
         if self.modes.alternate_screen:
             self._swap_screens()
@@ -302,8 +303,6 @@ class _ScreenCanvas(Canvas):
         self.reset_scroll()
 
         self.init_tabstops()
-
-        self.conformance_level = _CONFORMANCE_LEVELS[-1]
 
         # terminal modes
         self.modes.reset()

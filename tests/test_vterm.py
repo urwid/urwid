@@ -1801,7 +1801,12 @@ class TermTest(unittest.TestCase):
                 rf"\e[3;7r\e[?6h\e[1$w\eP1$t4;1;1;@;@;A;0;2;@;B0BB{_ST}\e[1$w",
                 b"\x1bP1$u3;1;1;@;@;A;0;2;@;B0BB\x1b\\\x1bP1$u4;1;1;@;@;A;0;2;@;B0BB\x1b\\",
             ),
-            ("RIS restores the VT300 level", rf'\e[61"p\ec\eP$q"p{_ST}', b'\x1bP1$r63;1"p\x1b\\'),
+            ("RIS keeps the level DECSCL selected, as in xterm", rf'\e[62;1"p\ec\eP$q"p{_ST}', b'\x1bP1$r62;1"p\x1b\\'),
+            (
+                "DECSTR keeps the level DECSCL selected, as in xterm",
+                rf'\e[62;1"p\e[!p\eP$q"p{_ST}',
+                b'\x1bP1$r62;1"p\x1b\\',
+            ),
             (
                 "DECCIR reports the cursor and the startup state",
                 r"\e[3;5H\e[1$w",
