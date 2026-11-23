@@ -1113,6 +1113,7 @@ class Table(Widget, WidgetContainerMixin[int]):
         row_attr: Callable[[int, typing.Any], _AttrMapLike | None] | None = None,
         select_navigation: bool = False,
         wheel: Literal["focus", "view"] = "focus",
+        home_end: Literal["any", "selectable"] = "any",
         scrollbar: bool | None = False,
         sortable: bool = False,
         sort_marks: tuple[str, str] | None = (" ^", " v"),
@@ -1142,6 +1143,7 @@ class Table(Widget, WidgetContainerMixin[int]):
         :param select_navigation: let the ``'next selectable'`` and ``'prev selectable'`` commands
             (:kbd:`tab` and :kbd:`shift tab`) move across the cells and then to the next or previous row
         :param wheel: what a notch of the mouse wheel moves; see :attr:`wheel`
+        :param home_end: what :kbd:`home` and :kbd:`end` move the focus to; see :attr:`home_end`
         :param scrollbar: ``True`` draws a scrollbar beside the rows, ``None`` only when the rows do not fit,
             ``False`` never; while it is on, its column counts in the natural width
         :param sortable: offer the header for sorting, see the class description; needs *header*
@@ -1159,6 +1161,7 @@ class Table(Widget, WidgetContainerMixin[int]):
         :raises TypeError: a keyword argument is neither a parameter of the table nor one of *scrollbar_options*,
             also while *scrollbar* is ``False``.
         :raises ValueError: :class:`ScrollBar` rejects the value of a ``scrollbar_`` parameter.
+            Also when *home_end* is neither ``"any"`` nor ``"selectable"``.
         """
         bar_options = _scrollbar_arguments("Table", scrollbar_options)
         if max_rows is not None and (not isinstance(max_rows, int) or isinstance(max_rows, bool) or max_rows < 0):
@@ -1224,6 +1227,7 @@ class Table(Widget, WidgetContainerMixin[int]):
             unfocused_focus_attr_func=typing.cast("_UnfocusedFocusAttrFunc | None", unfocused_focus_attr_func),
             focus_when_empty=False,
             wheel=wheel,
+            home_end=home_end,
         )
         self._bar = ScrollBar(self._listbox, visible=True, **bar_options) if scrollbar is not False else None
         signals.connect_signal(self._rows, "modified", type(self)._rows_modified, weak_args=[self])
@@ -1488,6 +1492,19 @@ class Table(Widget, WidgetContainerMixin[int]):
         :raises ValueError: *wheel* is neither ``"focus"`` nor ``"view"``.
         """
         self._listbox.wheel = wheel
+
+    @property
+    def home_end(self) -> Literal["any", "selectable"]:
+        """What :kbd:`home` and :kbd:`end` move the focus to among the rows, see :attr:`ListBox.home_end`."""
+        return self._listbox.home_end
+
+    @home_end.setter
+    def home_end(self, home_end: Literal["any", "selectable"]) -> None:
+        """Set what :kbd:`home` and :kbd:`end` move the focus to.
+
+        :raises ValueError: *home_end* is neither ``"any"`` nor ``"selectable"``.
+        """
+        self._listbox.home_end = home_end
 
     @property
     def contents(self) -> ListBoxContentsProto[int]:

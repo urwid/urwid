@@ -378,6 +378,10 @@ class CanvasTest(unittest.TestCase):
             ("unhashable anchor side", {"anchor_width": 1, "anchor_side": ["left"]}, "must be 'left' or 'right'"),
             ("right anchor side without a width", {"anchor_side": "right"}, "needs an anchor width"),
             ("anchor side callback without a width", {"on_anchor_side": print}, "on_anchor_side needs an anchor width"),
+            ("negative margin", {"margin": (2, -1)}, "Pop-up margin must be None or a pair of integers >= 0"),
+            ("margin of one number", {"margin": 2}, "Pop-up margin must be None or a pair of integers >= 0"),
+            ("float margin", {"margin": (2.0, 1)}, "Pop-up margin must be None or a pair of integers >= 0"),
+            ("bool margin", {"margin": (True, 1)}, "Pop-up margin must be None or a pair of integers >= 0"),
         ):
             with self.subTest(description):
                 params = {"left": 0, "top": 0, "overlay_width": 4, "overlay_height": 2, **kwargs}
@@ -391,6 +395,14 @@ class CanvasTest(unittest.TestCase):
             canvas.set_pop_up(widget, 0, 0, 4, 2)
             self.assertEqual((0, 0, (widget, 4, 2)), canvas.get_pop_up())
             self.assertIsNone(canvas.get_pop_up_anchor_height())
+            self.assertIsNone(canvas.get_pop_up_margin())
+
+        with self.subTest("a margin is kept with its pop-up"):
+            canvas = urwid.CompositeCanvas(urwid.SolidCanvas(" ", 10, 5))
+            canvas.set_pop_up(widget, 0, 0, 4, 2, margin=(2, 1))
+            self.assertEqual((2, 1), canvas.get_pop_up_margin())
+            canvas.set_pop_up(widget, 0, 0, 4, 2)
+            self.assertIsNone(canvas.get_pop_up_margin())
 
         with self.subTest("relative sizes are accepted"):
             canvas = urwid.CompositeCanvas(urwid.SolidCanvas(" ", 10, 5))

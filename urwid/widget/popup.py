@@ -55,6 +55,7 @@ if typing.TYPE_CHECKING:
         anchor_side: NotRequired[Literal["left", "right"]]
         on_anchor_side: NotRequired[Callable[[Literal["left", "right"]], None]]
         pass_key_below: NotRequired[PopUpPassKey]
+        margin: NotRequired[tuple[int, int]]
 
 
 WrappedWidget = typing.TypeVar("WrappedWidget", bound="AbstractBoxWidget")
@@ -172,6 +173,7 @@ class PopUpLauncher(
         other side of the launcher, or its width is clipped, when it does not fit on the side it prefers.
         The optional ``on_anchor_side`` key is called with the side the anchor ended up on.
         The optional ``pass_key_below`` key offers a key the pop-up leaves unhandled to the widgets under it.
+        The optional ``margin`` key keeps ``(columns, rows)`` of the :class:`PopUpTarget` clear at each of its edges.
         See :meth:`CompositeCanvas.set_pop_up <urwid.CompositeCanvas.set_pop_up>`.
 
         :raises NotImplementedError: the subclass does not override this method.
@@ -310,6 +312,16 @@ def _aligned_start(space: int, length: int, align: str) -> int:
     return max(start, 0)
 
 
+class PopUpPlacement(typing.NamedTuple):
+    """Where :class:`PopUpTarget` placed one open pop-up, in cells from the top left corner of the target."""
+
+    widget: AbstractWidget  # the widget PopUpLauncher.create_pop_up() returned
+    left: int
+    top: int
+    width: int
+    height: int
+
+
 class PopUpTarget(WidgetDecoration[WrappedWidget]):
     """Box widget that overlays the pop-up(s) declared by a :class:`PopUpLauncher` inside it.
 
@@ -340,6 +352,32 @@ class PopUpTarget(WidgetDecoration[WrappedWidget]):
         # or None when its launcher set no callback.
         self._pop_up_click_outside: tuple[Callable[[], None], tuple[int, int, int, int]] | None = None
         self._cache_original_canvas: Canvas | None = None
+        self._placements: tuple[PopUpPlacement, ...] = ()
+
+    @property
+    def placements(self) -> tuple[PopUpPlacement, ...]:
+        """Where the open pop-ups were placed by the last render, keypress, mouse event or other sized call.
+
+        It is one entry per open pop-up, outermost first, with the position and size the pop-up was rendered at:
+        a ``'pack'`` or relative size resolved to cells, an alignment resolved to a position,
+        and a pop-up moved or shrunk to fit inside the target.
+        It is empty before the first such call and when no pop-up is open.
+
+        >>> import urwid
+        >>> class Launcher(urwid.PopUpLauncher):
+        ...     def create_pop_up(self):
+        ...         return urwid.Filler(urwid.Text("pop-up"))
+        ...
+        ...     def get_pop_up_parameters(self):
+        ...         return {"left": "center", "top": "middle", "overlay_width": ("relative", 50), "overlay_height": 3}
+        >>> launcher = Launcher(urwid.Text("launcher"))
+        >>> target = urwid.PopUpTarget(urwid.Filler(launcher, valign="top"))
+        >>> launcher.open_pop_up()
+        >>> _ = target.render((20, 10))
+        >>> [(left, top, width, height) for _widget, left, top, width, height in target.placements]
+        [(5, 3, 10, 3)]
+        """
+        return self._placements
 
     def enter_selectable(self, *, reverse: bool = False) -> None:
         """Do nothing: every focus under this widget is kept when a parent container enters it.
@@ -369,6 +407,7 @@ class PopUpTarget(WidgetDecoration[WrappedWidget]):
 
         old_levels = self._pop_up_levels
         new_levels: list[tuple[AbstractWidget, Overlay[AbstractWidget, AbstractWidget]]] = []
+        placements: list[PopUpPlacement] = []
         bottom_widget: AbstractWidget = self._original_widget
         # Once a level is rebuilt, every deeper level must be rebuilt too: a reused Overlay's
         # bottom_w still points at the previous (now discarded) widget at the shallower level.
@@ -382,6 +421,7 @@ class PopUpTarget(WidgetDecoration[WrappedWidget]):
         on_unhandled_key = canv.get_pop_up_unhandled_key()
         pass_key_below = canv.get_pop_up_pass_key_below()
         on_click_outside = canv.get_pop_up_click_outside()
+        margin = canv.get_pop_up_margin()
         top_unhandled_key = None
         top_pass_key_below = None
         top_click_outside = None
@@ -394,6 +434,13 @@ class PopUpTarget(WidgetDecoration[WrappedWidget]):
             top = offset_top + top if v_align is None else 0
             sizing = w.sizing()
             packed = isinstance(overlay_width, str) or isinstance(overlay_height, str)
+            # The cells inside the margin on each axis cap the size, and hold an aligned pop-up.
+            # A margin that would leave no cell inside is reduced, so an aligned pop-up stays centred.
+            margin_cols, margin_rows = margin or (0, 0)
+            margin_cols = max(min(margin_cols, (size[0] - 1) // 2), 0)
+            margin_rows = max(min(margin_rows, (size[1] - 1) // 2), 0)
+            inner_cols = max(size[0] - 2 * margin_cols, 1)
+            inner_rows = max(size[1] - 2 * margin_rows, 1)
             # Resolve a relative or "pack" size to cells, so the anchor placement gets a number of cells.
             # A relative size uses Overlay's own rounding (half up), and is capped at the larger of that space and the
             # whole target, because a huge percentage gives an infinite product that has no integer value.
@@ -402,7 +449,9 @@ class PopUpTarget(WidgetDecoration[WrappedWidget]):
             # Either is at least one cell, like a size given in cells.
             width: int
             if isinstance(overlay_width, tuple):
-                if anchor_width is not None and anchor_width[1] == "right":
+                if h_align is not None:
+                    space = inner_cols
+                elif anchor_width is not None and anchor_width[1] == "right":
                     space = max(left, 0)
                 else:
                     space = max(size[0] - left, 0)
@@ -413,8 +462,9 @@ class PopUpTarget(WidgetDecoration[WrappedWidget]):
                 width = max(w.pack((), focus)[0], 1)
             else:
                 width = overlay_width
+            width = min(width, inner_cols)
             if h_align is not None:
-                left = _aligned_start(size[0], width, h_align)
+                left = margin_cols + _aligned_start(inner_cols, width, h_align)
             if anchor_width is not None:
                 edge = left
                 left, width = _place_anchored(
@@ -430,7 +480,7 @@ class PopUpTarget(WidgetDecoration[WrappedWidget]):
                     on_anchor_side("left" if left >= anchor_right else "right")
             height: int
             if isinstance(overlay_height, tuple):
-                space = max(size[1] - top, 0)
+                space = inner_rows if v_align is not None else max(size[1] - top, 0)
                 height = max(int(min(space * overlay_height[1] / 100, max(space, size[1])) + 0.5), 1)
             elif isinstance(overlay_height, str):
                 if Sizing.FLOW not in sizing:
@@ -438,8 +488,9 @@ class PopUpTarget(WidgetDecoration[WrappedWidget]):
                 height = max(w.pack((min(width, size[0]),), focus)[1], 1)
             else:
                 height = overlay_height
+            height = min(height, inner_rows)
             if v_align is not None:
-                top = _aligned_start(size[1], height, v_align)
+                top = margin_rows + _aligned_start(inner_rows, height, v_align)
             if anchor_height is not None:
                 top, height = _place_anchored(size[1], top, height, anchor_height)
             level = len(new_levels)
@@ -495,6 +546,7 @@ class PopUpTarget(WidgetDecoration[WrappedWidget]):
             offset_left, offset_top = pad_left, pad_top
             # Both dimensions were given to the Overlay in cells, so it returns a box size.
             w_size = typing.cast("tuple[int, int]", overlay.top_w_size(size, pad_left, pad_right, pad_top, pad_bottom))
+            placements.append(PopUpPlacement(w, pad_left, pad_top, *w_size))
             w_canv = top_w.render(w_size, focus=focus)
             pop_up = w_canv.get_pop_up()
             anchor_height = w_canv.get_pop_up_anchor_height()
@@ -504,8 +556,10 @@ class PopUpTarget(WidgetDecoration[WrappedWidget]):
             on_unhandled_key = w_canv.get_pop_up_unhandled_key()
             pass_key_below = w_canv.get_pop_up_pass_key_below()
             on_click_outside = w_canv.get_pop_up_click_outside()
+            margin = w_canv.get_pop_up_margin()
 
         self._pop_up_levels = new_levels
+        self._placements = tuple(placements)
         self._current_widget = bottom_widget
         self._pop_up_unhandled_key = top_unhandled_key
         self._pop_up_pass_key_below = top_pass_key_below

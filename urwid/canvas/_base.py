@@ -77,6 +77,8 @@ if typing.TYPE_CHECKING:
             "pop up pass key below": NotRequired[tuple[int, int, tuple[AbstractWidget, PopUpPassKey]]],
             # Same (x, y) as "pop up"; the data part is the pop-up widget and its outside click callback.
             "pop up click outside": NotRequired[tuple[int, int, tuple[AbstractWidget, Callable[[], None]]]],
+            # Same (x, y) as "pop up"; the data part is the pop-up widget and its (columns, rows) margin.
+            "pop up margin": NotRequired[tuple[int, int, tuple[AbstractWidget, int, int]]],
             # Same (x, y) as "pop up"; the data part is the pop-up widget and its alignments, None for an offset.
             "pop up align": NotRequired[tuple[int, int, tuple[AbstractWidget, str | None, str | None]]],
             "cursor": NotRequired[tuple[int, int, None]],
@@ -279,6 +281,19 @@ class Canvas:
             return None, None
         return align[2][1], align[2][2]
 
+    def get_pop_up_margin(self) -> tuple[int, int] | None:
+        """Return the margin set with the pop-up on this canvas.
+
+        :returns: the ``(columns, rows)`` `margin` given to :meth:`CompositeCanvas.set_pop_up`,
+            or ``None`` when the pop-up was set without a margin or no pop-up was set.
+        """
+        pop_up = self.coords.get("pop up", None)
+        margin = self.coords.get("pop up margin", None)
+        # As for the anchor, use only the margin set together with this pop-up.
+        if pop_up is None or margin is None or margin[:2] != pop_up[:2] or margin[2][0] is not pop_up[2][0]:
+            return None
+        return margin[2][1], margin[2][2]
+
     def set_pop_up(
         self,
         w: AbstractWidget,
@@ -294,6 +309,7 @@ class Canvas:
         on_unhandled_key: Callable[[str], str | None] | None = None,
         pass_key_below: PopUpPassKey | None = None,
         on_click_outside: Callable[[], None] | None = None,
+        margin: tuple[int, int] | None = None,
     ) -> None:
         """Add pop-up information to the canvas.
 
@@ -357,11 +373,19 @@ class Canvas:
         :param on_click_outside: called by :class:`PopUpTarget <urwid.PopUpTarget>` instead of passing on a press of
             mouse button 1, 2 or 3 outside `w` while it is the topmost open pop-up.
             ``None`` leaves such a press unhandled.
+        :param margin: ``(columns, rows)`` of the :class:`PopUpTarget <urwid.PopUpTarget>` kept clear at each of its
+            edges, each >= 0, or ``None`` for no margin.
+            The pop-up is at most as large as the target without the margins, whatever its size was given as.
+            An alignment places it inside the margins, and a relative size on an aligned axis is a percentage of the
+            cells inside them.
+            A pop-up placed by a number is not moved; it is shifted only to fit inside the target.
+            A margin that would leave no cell inside is reduced until at least one cell is left.
         :raises CanvasError: the canvas is already finalised, the anchor height or width is negative,
             an anchor height is given with an aligned `top`, an anchor width with an aligned `left`,
             `anchor_side` is neither ``"left"`` nor ``"right"``, ``anchor_side="right"`` or `on_anchor_side` is given
             without an anchor width, a position is neither a number nor an alignment of its
-            axis, or an overlay dimension is not a positive integer, a positive finite percentage or ``"pack"``
+            axis, an overlay dimension is not a positive integer, a positive finite percentage or ``"pack"``,
+            or `margin` is not a pair of integers >= 0
         """
         if self.widget_info and self.cacheable:
             raise CanvasError(self._finalized_message)
@@ -405,6 +429,16 @@ class Canvas:
         if on_anchor_side is not None and anchor_width is None:
             raise CanvasError("Pop-up on_anchor_side needs an anchor width")
 
+        match margin:
+            case None:
+                pass
+            case (int() as columns, int() as rows) if (
+                not isinstance(columns, bool) and not isinstance(rows, bool) and columns >= 0 and rows >= 0
+            ):
+                pass
+            case _:
+                raise CanvasError(f"Pop-up margin must be None or a pair of integers >= 0, got {margin!r}")
+
         # The coordinates are moved with this canvas, so an aligned axis keeps 0 there and its alignment beside it.
         x = left if isinstance(left, int) else 0
         y = top if isinstance(top, int) else 0
@@ -429,6 +463,10 @@ class Canvas:
             self.coords.pop("pop up click outside", None)
         else:
             self.coords["pop up click outside"] = (x, y, (w, on_click_outside))
+        if margin is None:
+            self.coords.pop("pop up margin", None)
+        else:
+            self.coords["pop up margin"] = (x, y, (w, *margin))
         if isinstance(left, int) and isinstance(top, int):
             self.coords.pop("pop up align", None)
         else:

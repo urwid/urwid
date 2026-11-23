@@ -414,8 +414,10 @@ class AnchoredLauncher(urwid.PopUpLauncher[urwid.Text]):
         close_on_click_outside: bool = False,
         label: str = "L",
         on_anchor_side: typing.Callable[[str], None] | None = None,
+        margin: tuple[int, int] | None = None,
     ) -> None:
         super().__init__(urwid.Text(label), close_on_click_outside=close_on_click_outside)
+        self.margin = margin
         self.pop_up_height = pop_up_height
         self.pop_up_width = pop_up_width
         self.pop_up = pop_up
@@ -444,6 +446,8 @@ class AnchoredLauncher(urwid.PopUpLauncher[urwid.Text]):
             parameters["anchor_side"] = self.anchor_side
         if self.on_anchor_side is not None:
             parameters["on_anchor_side"] = self.on_anchor_side
+        if self.margin is not None:
+            parameters["margin"] = self.margin
         return parameters
 
 
@@ -589,6 +593,7 @@ class PackedPopUpSizeTest(unittest.TestCase):
         inner = AnchoredLauncher(1, anchor_height=None, left=1, top=1)
         outer = AnchoredLauncher("pack", pop_up_width=4, pop_up=inner, anchor_height=None, top=2)
         target = urwid.PopUpTarget(urwid.Filler(outer, valign="top"))
+        self.assertEqual((), target.placements)
         outer.open_pop_up()
         inner.open_pop_up()
 
@@ -596,6 +601,16 @@ class PackedPopUpSizeTest(unittest.TestCase):
             ["L     ", "      ", "L     ", " ppp  ", "      "],
             [line.decode() for line in target.render((6, 5)).text],
         )
+        self.assertEqual(
+            [
+                urwid.PopUpPlacement(inner, 0, 2, 4, 1),
+                urwid.PopUpPlacement(typing.cast("urwid.Widget", inner.pop_up_widget), 1, 3, 3, 1),
+            ],
+            list(target.placements),
+        )
+        outer.close_pop_up()
+        target.keypress((6, 5), "x")
+        self.assertEqual((), target.placements)
 
     def test_packed_size_needs_a_matching_widget(self) -> None:
         for description, width, height in (
@@ -658,6 +673,47 @@ class AlignedPopUpTest(unittest.TestCase):
                 target = urwid.PopUpTarget(urwid.Filler(pile, valign="top"))
                 launcher.open_pop_up()
                 self.assertEqual(expected, [line.decode() for line in target.render((12, 5)).text])
+                ((_widget, left_col, top_row, cols, rows),) = target.placements
+                self.assertEqual(
+                    ["ab", "cde"][:rows],
+                    [line[left_col : left_col + cols].strip() for line in expected[top_row : top_row + rows]],
+                )
+
+    def test_margin(self) -> None:
+        """A margin caps every kind of size, holds an aligned pop-up, and leaves a numeric position as it is."""
+        wide = urwid.Text("\n".join("w" * 20 for _ in range(9)))
+        for description, left, top, width, height, pop_up, margin, expected in (
+            ("packed, larger than the inside", "center", "middle", "pack", "pack", wide, (2, 1), (2, 1, 8, 4)),
+            ("cells, larger than the inside", "center", "middle", 20, 10, None, (2, 1), (2, 1, 8, 4)),
+            (
+                "relative to the inside",
+                "center",
+                "middle",
+                ("relative", 50),
+                ("relative", 50),
+                None,
+                (2, 1),
+                (4, 2, 4, 2),
+            ),
+            ("right and bottom", "right", "bottom", 3, 1, None, (2, 1), (7, 4, 3, 1)),
+            ("at a position", 0, 0, 20, 10, None, (2, 1), (0, 0, 8, 4)),
+            # Reduced to 5 columns and 2 rows, which leave 2 cells on each axis, so the pop-up stays centred.
+            ("margins larger than the target", "center", "middle", 3, 3, None, (9, 9), (5, 2, 2, 2)),
+        ):
+            with self.subTest(description):
+                launcher = AnchoredLauncher(
+                    height,
+                    pop_up_width=width,
+                    pop_up=pop_up,
+                    anchor_height=None,
+                    left=left,
+                    top=top,
+                    margin=margin,
+                )
+                target = urwid.PopUpTarget(urwid.Filler(launcher, valign="top"))
+                launcher.open_pop_up()
+                target.render((12, 6))
+                self.assertEqual([expected], [placement[1:] for placement in target.placements])
 
     def test_nested_aligned_pop_up_is_centred_in_the_target(self) -> None:
         """An aligned nested pop-up ignores the position of the pop-up that opened it."""
