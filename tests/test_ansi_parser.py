@@ -242,6 +242,14 @@ class HorizontalMovementTest(unittest.TestCase):
                     self.assertEqual(expected, line.text)
                     self.assertEqual([], line.skipped)
 
+    def test_private_marker_is_no_horizontal_move(self) -> None:
+        """Skip a horizontal move with a ``?`` marker, which a terminal ignores."""
+        for final in "CDG":
+            with self.subTest(final=final):
+                line = parse_ansi_line(f"ab\x1b[?3{final}c")[0]
+                self.assertEqual("abc", line.text)
+                self.assertEqual([("unknown", f"\x1b[?3{final}")], [(op.kind, op.raw) for op in line.skipped])
+
     def test_right_then_overwrite(self) -> None:
         # move right past "abc", write "Z" at position 5 (padding gap with
         # None-attr spaces), leaving "abc" untouched

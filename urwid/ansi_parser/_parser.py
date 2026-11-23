@@ -64,6 +64,9 @@ _VERTICAL_MOVE_CSI = frozenset("ABEFdHf")
 #: for a single, canvas-less line of text.
 _TERMINAL_SETTING_CSI = frozenset("hlrJKsu@LMPXcng")
 
+#: CSI final bytes that move the cursor within its row; none of them takes a ``?`` marker.
+_HORIZONTAL_CSI: typing.Final = frozenset("CDG")
+
 #: Characters drawn in place of their ASCII counterparts while the DEC Special Graphics character set is shifted in.
 _DEC_SPECIAL_GRAPHICS: typing.Final = str.maketrans(ALT_DEC_SPECIAL_CHARS, DEC_SPECIAL_CHARS)
 
@@ -668,6 +671,8 @@ class AnsiParser(_VTParser[str]):
                 )
         elif final == "}":
             self._skip("terminal-setting", raw, "fbterm setting other than a color")
+        elif qmark and final in _HORIZONTAL_CSI:
+            self._skip("unknown", raw, f"CSI {final!r} with a private marker is not supported")
         elif final == "C":
             n = params[0] if params and params[0] else 1
             self._col += min(n, _MAX_CURSOR_POSITION)
