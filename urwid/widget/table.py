@@ -97,7 +97,8 @@ class TableColumn(typing.NamedTuple):
     label: _TagMarkup = ""
     width: Literal[WHSettings.PACK] | int | tuple[Literal[WHSettings.WEIGHT], int | float] = WHSettings.PACK
     #: The narrowest a PACK or WEIGHT column becomes before the table hides a column instead.
-    min_width: int = 1
+    #: :attr:`WHSettings.PACK`, for a PACK column only, keeps it as wide as its widest cell and its label.
+    min_width: int | Literal[WHSettings.PACK] = 1
     align: Literal[Align.LEFT, Align.CENTER, Align.RIGHT] = Align.LEFT
     wrap: Literal[WrapMode.SPACE, WrapMode.CLIP, WrapMode.ELLIPSIS] = WrapMode.CLIP
     #: Attribute map of the column's cells; the header label, a footer built from cells and a span row do not use it.
@@ -304,10 +305,14 @@ class TableLayout:
             kind, amount = WHSettings.WEIGHT, weight
         else:
             raise TableError(f"column {index}: invalid width {width!r}")
-        if kind != WHSettings.GIVEN and (
-            not isinstance(column.min_width, int) or isinstance(column.min_width, bool) or column.min_width < 1
+        if (
+            kind != WHSettings.GIVEN
+            and not (kind == WHSettings.PACK and column.min_width == WHSettings.PACK)
+            and (not isinstance(column.min_width, int) or isinstance(column.min_width, bool) or column.min_width < 1)
         ):
-            raise TableError(f"column {index}: min_width must be an int >= 1, not {column.min_width!r}")
+            raise TableError(
+                f"column {index}: min_width must be an int >= 1, or PACK for a PACK width, not {column.min_width!r}"
+            )
         if not isinstance(column.priority, int) or isinstance(column.priority, bool):
             raise TableError(f"column {index}: priority must be an int, not {column.priority!r}")
         if column.align not in _TEXT_ALIGNS:
@@ -541,16 +546,21 @@ class TableLayout:
             if kind == WHSettings.GIVEN:
                 natural.append(int(amount))
             elif kind == WHSettings.PACK:
-                natural.append(max(column.min_width, label, measured))
+                floor = column.min_width if isinstance(column.min_width, int) else 1
+                natural.append(max(floor, label, measured))
             else:
-                natural.append(column.min_width)
+                # The layout accepts min_width PACK on a PACK column only.
+                natural.append(typing.cast("int", column.min_width))
         return tuple(natural)
 
     def _allocate(self, maxcol: int) -> tuple[int, ...]:
         """Compute the widths at *maxcol*, as :meth:`widths` describes."""
         natural = self._natural
         kinds = self._kinds
-        minimums = [column.min_width for column in self._columns]
+        minimums = [
+            column.min_width if isinstance(column.min_width, int) else natural[index]
+            for index, column in enumerate(self._columns)
+        ]
         visible = [index for index in self._order if kinds[index] != WHSettings.GIVEN or natural[index]]
         drops = iter(self._drop_sequence)
         while visible:
@@ -576,7 +586,8 @@ class TableLayout:
         """Share *extra* screen columns and the minimums of the *weighted* columns by weight, as Columns does."""
         if not weighted:
             return
-        minimums = {index: self._columns[index].min_width for index in weighted}
+        # The layout accepts min_width PACK on a PACK column only.
+        minimums = {index: typing.cast("int", self._columns[index].min_width) for index in weighted}
         grow = extra + sum(minimums.values())
         weights = [(self._amounts[index], index) for index in weighted]
         if max(weight for weight, _index in weights) > sys.float_info.max / (len(weights) * max(grow, 1)):

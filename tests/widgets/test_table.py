@@ -55,6 +55,7 @@ class TableLayoutTest(unittest.TestCase):
             ([Column(width=("given", 1))], {}),
             ([Column(min_width=0)], {}),
             ([Column(width=(WEIGHT, 1), min_width=1.5)], {}),
+            ([Column(width=(WEIGHT, 1), min_width=PACK)], {}),
             ([Column(align="justify")], {}),
             ([Column(wrap="any")], {}),
             ([("a", PACK)], {}),
@@ -84,8 +85,9 @@ class TableLayoutTest(unittest.TestCase):
             ):
                 TableLayout([Column(key="a") if invalid.key == "a" else Column(), invalid])
 
-        with self.subTest("a given width of 0 ignores min_width"):
+        with self.subTest("a given width ignores min_width"):
             self.assertEqual((0, 1), TableLayout([Column(width=0, min_width=0), Column()]).widths(5))
+            self.assertEqual((3, 1), TableLayout([Column(width=3, min_width=PACK), Column()]).widths(5))
 
     def test_column_index(self) -> None:
         """A column is found by its index, its key, or the text of its label; anything else is an IndexError."""
@@ -194,6 +196,26 @@ class TableLayoutTest(unittest.TestCase):
         layout = TableLayout([Column(), Column()])
         pile = urwid.Pile([layout.row(["a\nlonger", "x"]), layout.row(["b", "y"])])
         self.assertEqual(["a      x", "longer  ", "b      y"], render_text(pile, (8,)))
+
+    def test_pack_min_width(self) -> None:
+        """A PACK column with min_width PACK keeps its widest cell and label: the table hides a column instead."""
+        for label, columns, expected in (
+            ("shrinks by default", [Column(), Column("Size")], {9: (4, 4), 8: (3, 4), 6: (2, 3), 5: (2, 2)}),
+            ("never shrinks", [Column(), Column("Size", min_width=PACK)], {9: (4, 4), 8: (3, 4), 6: (1, 4), 5: (4, 0)}),
+        ):
+            layout = TableLayout(columns, dividechars=1)
+            rows = [layout.row(["aaaa", "12"])]
+            for maxcol, widths in expected.items():
+                with self.subTest(label, maxcol=maxcol):
+                    self.assertEqual(widths, layout.widths(maxcol))
+            self.assertIsNotNone(rows)
+
+        with self.subTest("the floor follows the widest cell"):
+            layout = TableLayout([Column(min_width=PACK), Column(min_width=PACK)], dividechars=1)
+            rows = [layout.row(["aa", "bb"])]
+            self.assertEqual((2, 2), layout.widths(5))
+            rows.append(layout.row(["aaaa", "b"]))
+            self.assertEqual((4, 0), layout.widths(5))
 
     def test_unmeasurable_cell(self) -> None:
         """A FLOW-only cell is not measured: it counts as min_width in a PACK column."""
