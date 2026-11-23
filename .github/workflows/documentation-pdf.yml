@@ -33,7 +33,7 @@ jobs:
             libgirepository-2.0-dev \
             libcairo2-dev
       - name: Install uv
-        uses: astral-sh/setup-uv@v10.3.3
+        uses: astral-sh/setup-uv@v10.4.0
       - name: Build PDF documentation
         run: docs/tools/build_pdf.sh
       - uses: actions/upload-artifact@v7
