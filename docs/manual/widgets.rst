@@ -193,6 +193,33 @@ It differs from xterm, or adds to it, in these points:
 
 * VT52 mode, 132 columns, the status line and printing are not implemented,
   and replies use 7-bit controls only.  The child is given ``TERM=linux``.
+* Where the Linux console and xterm differ, it follows the Linux console,
+  which ``TERM=linux`` describes:
+
+  * F1 to F5 are sent as ``CSI [ A`` to ``CSI [ E``, and Shift+Tab as
+    ``ESC Tab``, while cursor key mode (DECCKM) is reset.
+  * G1 starts as DEC Special Graphics.
+  * SGR 11 and 12 select the IBM PC character set (CP437) and display control
+    mode, SGR 10 ends both, and ``CSI 3 h`` turns display control mode on.
+    In that mode NUL, BS, LF, FF, CR, SO, SI and ESC are still executed and
+    the other C0 controls and DEL are drawn; inside an escape sequence a
+    control acts as with the mode off.
+  * SO turns display control mode on and SI turns it off.  Both, DECRC and
+    SCORC end the IBM PC character set of SGR 11 and 12.
+  * A control inside the palette sequence ``ESC ] P nrrggbb`` is executed,
+    BEL included, and the sequence continues; the sequence itself is read and
+    ignored.
+  * The cursor style ``CSI ? Ps c`` is read and not answered as a device
+    attributes query.
+
+  It does not follow the Linux console in these points:
+
+  * While cursor key mode is set, F1 to F5 are sent as xterm sends them,
+    ``ESC O P`` to ``ESC O S`` and ``CSI 15 ~``.
+  * In display control mode the Linux console stops decoding UTF-8, runs an
+    8-bit CSI (0x9B), and gives no cell to a control its font has no glyph for.
+  * SGR 12 does not flip the high bit of each character as it does on the
+    Linux console.
 * SGR reads the colors and the underline style given with sub-parameters, such
   as ``38:2::r:g:b`` and ``4:3``, SGR 21 as a double underline, and the
   underline color of SGR 58 and 59, which the display draws as
