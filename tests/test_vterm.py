@@ -1315,8 +1315,8 @@ class TermTest(unittest.TestCase):
                 self.write(output)
                 self.expect(screen)
 
-    def test_left_and_right_margins(self) -> None:
-        """Keep the cursor, the editing functions and scrolling within the left and right margins, as xterm does.
+    def test_left_and_right_margins_and_pending_wraps(self) -> None:
+        """Match xterm for the left and right margins and for pending wraps.
 
         Each case starts on a 12x6 screen filled with text and ends with a cursor position report.
         The screens and the replies were taken from xterm 407 at its VT420 level.
@@ -1978,6 +1978,72 @@ class TermTest(unittest.TestCase):
                 "\\e[?69h\\e[4;8s\\e[2;6H\\e[9aX",
                 "abcdefghijkl\nABCDEFGHIJKX\nmnopqrstuvwx\nMNOPQRSTUVWX\n012345678901\n!#$%&*+-/=?^",
                 b"\x1b[2;12R",
+            ),
+            (
+                "ICH ends a pending wrap",
+                "\\e[2;12HX\\e[@Y",
+                "abcdefghijkl\nABCDEFGHIJKY\nmnopqrstuvwx\nMNOPQRSTUVWX\n012345678901\n!#$%&*+-/=?^",
+                b"\x1b[2;12R",
+            ),
+            (
+                "DCH ends a pending wrap",
+                "\\e[2;12HX\\e[PY",
+                "abcdefghijkl\nABCDEFGHIJKY\nmnopqrstuvwx\nMNOPQRSTUVWX\n012345678901\n!#$%&*+-/=?^",
+                b"\x1b[2;12R",
+            ),
+            (
+                "DECFI keeps a pending wrap",
+                "\\e[2;12HX\\e9Y",
+                "bcdefghijkl\nBCDEFGHIJKX\nYopqrstuvwx\nNOPQRSTUVWX\n12345678901\n#$%&*+-/=?^",
+                b"\x1b[3;2R",
+            ),
+            (
+                "DECBI moves the cursor left from a pending wrap",
+                "\\e[2;12HX\\e6Y",
+                "abcdefghijkl\nABCDEFGHIJYX\nmnopqrstuvwx\nMNOPQRSTUVWX\n012345678901\n!#$%&*+-/=?^",
+                b"\x1b[2;12R",
+            ),
+            (
+                "ICH ends a pending wrap at the right margin",
+                "\\e[?69h\\e[4;8s\\e[2;8HX\\e[@Y",
+                "abcdefghijkl\nABCDEFGYIJKL\nmnopqrstuvwx\nMNOPQRSTUVWX\n012345678901\n!#$%&*+-/=?^",
+                b"\x1b[2;8R",
+            ),
+            (
+                "DCH ends a pending wrap at the right margin",
+                "\\e[?69h\\e[4;8s\\e[2;8HX\\e[PY",
+                "abcdefghijkl\nABCDEFGYIJKL\nmnopqrstuvwx\nMNOPQRSTUVWX\n012345678901\n!#$%&*+-/=?^",
+                b"\x1b[2;8R",
+            ),
+            (
+                "DECFI keeps a pending wrap at the right margin",
+                "\\e[?69h\\e[4;8s\\e[2;8HX\\e9Y",
+                "abcefgh ijkl\nABCEFGX IJKL\nmnoYrst uvwx\nMNOQRST UVWX\n0124567 8901\n!#$&*+- /=?^",
+                b"\x1b[3;5R",
+            ),
+            (
+                "ICH right of the margins ends a pending wrap",
+                "\\e[?69h\\e[4;8s\\e[2;12HX\\e[@Y",
+                "abcdefghijkl\nABCDEFGHIJKY\nmnopqrstuvwx\nMNOPQRSTUVWX\n012345678901\n!#$%&*+-/=?^",
+                b"\x1b[2;12R",
+            ),
+            (
+                "DECDC keeps a pending wrap",
+                "\\e[2;12HX\\e['~Y",
+                "abcdefghijk\nABCDEFGHIJK\nYnopqrstuvw\nMNOPQRSTUVW\n01234567890\n!#$%&*+-/=?",
+                b"\x1b[3;2R",
+            ),
+            (
+                "DECIC keeps a pending wrap",
+                "\\e[2;12HX\\e['}Y",
+                "abcdefghijk\nABCDEFGHIJK\nYnopqrstuvw\nMNOPQRSTUVW\n01234567890\n!#$%&*+-/=?",
+                b"\x1b[3;2R",
+            ),
+            (
+                "SL keeps a pending wrap",
+                "\\e[2;12HX\\e[ @Y",
+                "bcdefghijkl\nBCDEFGHIJKX\nYopqrstuvwx\nNOPQRSTUVWX\n12345678901\n#$%&*+-/=?^",
+                b"\x1b[3;2R",
             ),
         ):
             with self.subTest(label), set_temporary_encoding("utf-8"):

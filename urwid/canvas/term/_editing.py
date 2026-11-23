@@ -439,14 +439,22 @@ class _EditingCanvas(_ScreenCanvas):
             self.move_cursor(0, 0)
 
     def csi_insert_chars(self, count: int) -> None:
-        """Insert *count* blanks at the cursor (ICH), or nothing while the cursor is outside the margins."""
+        """Insert *count* blanks at the cursor (ICH), or nothing while the cursor is outside the margins.
+
+        A pending wrap ends either way, as in xterm.
+        """
         if self.margin_left <= self.term_cursor[0] <= self.margin_right:
             self.insert_chars(chars=count)
+        self.is_rotten_cursor = False
 
     def csi_delete_chars(self, count: int) -> None:
-        """Delete *count* characters at the cursor (DCH), or nothing while the cursor is outside the margins."""
+        """Delete *count* characters at the cursor (DCH), or nothing while the cursor is outside the margins.
+
+        A pending wrap ends either way, as in xterm.
+        """
         if self.margin_left <= self.term_cursor[0] <= self.margin_right:
             self.remove_chars(chars=count)
+        self.is_rotten_cursor = False
 
     def csi_shift_columns(self, params: Sequence[int | None], *, right: bool = False) -> None:
         """Shift the columns of the scrolling region left by Ps, or right with *right* (SL and SR, CSI Ps SP @ / A).

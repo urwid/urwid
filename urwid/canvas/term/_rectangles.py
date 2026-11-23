@@ -370,6 +370,7 @@ class _RectanglesCanvas(_EditingCanvas):
         """Move the cursor one column right, or at the right margin delete the column at the left margin (DECFI).
 
         Right of the right margin, the cursor stops at the screen's right edge.
+        A pending wrap stays, as in xterm.
         """
         x, y = self.term_cursor
         if x == self.margin_right:
@@ -378,4 +379,3 @@ class _RectanglesCanvas(_EditingCanvas):
                     self.remove_chars((self.margin_left, row))
         elif x < self.width - 1:
             self.set_term_cursor(x + 1, y)
-        self.is_rotten_cursor = False
