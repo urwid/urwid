@@ -232,8 +232,8 @@ class _ScreenCanvas(Canvas):
         self._last_graphic: tuple[bytes, bool, bool] | None = None
         # the character REP repeats: the one written just before the escape sequence being read
         self._repeat_graphic: tuple[bytes, bool, bool] | None = None
-        #: the colors the display draws, as its screen reports them, which the XTGETTCAP replies describe;
-        #: None while unknown. The widget the canvas belongs to sets it.
+        #: the colors the display draws, which the XTGETTCAP replies describe and the redefined palette colors are drawn
+        #: with; None while unknown, which leaves those colors unchanged. The widget the canvas belongs to sets it.
         self.display_colors: Literal[1, 16, 88, 256, 16777216] | None = None
         # the palette colors the child redefined, with the Linux console's palette sequence or xterm's OSC 4, as red,
         # green and blue

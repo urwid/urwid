@@ -9,6 +9,7 @@ from urwid import event_loop, util
 from urwid.canvas import CompositeCanvas, SolidCanvas
 from urwid.canvas.term import TermCanvas, TermModes
 from urwid.canvas.term import _state as _term_state
+from urwid.canvas.term._palette import _TRUE_COLORS
 
 from .constants import MouseButton, Sizing
 from .widget import Widget
@@ -142,8 +143,8 @@ class TerminalOutput(Widget):
         """Resize the terminal to *size* when it differs, and return the terminal canvas.
 
         The cursor is drawn only when the widget has *focus*.
-        The palette colors the data redefined are drawn on the screen of the running :class:`MainLoop`, when it has 88
-        or more colors.
+        The palette colors the data redefined are drawn with the color count of the running :class:`MainLoop`'s
+        screen, unchanged on a screen that reports none, such as curses, and as 24-bit colors while no loop runs.
         A size with a zero dimension shows nothing and leaves the terminal at its size, so no output is lost.
         A ``"resize"`` handler that renders the widget at another size gets the terminal cut or padded to that size,
         and the terminal keeps the size the signal reports.
@@ -169,8 +170,10 @@ class TerminalOutput(Widget):
         if focus != term.has_focus:
             term.has_focus = focus
             term.set_term_cursor()
+        # read at each render, as the terminal canvas is never cached and a screen raises its color count from the
+        # terminal's replies
         running = event_loop.get_running_loop_or_none()
-        term.display_colors = None if running is None else getattr(running.screen, "colors", None)
+        term.display_colors = _TRUE_COLORS if running is None else getattr(running.screen, "colors", None)
         return term
 
     def get_cursor_coords(self, size: tuple[int, int]) -> tuple[int, int] | None:

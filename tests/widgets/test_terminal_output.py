@@ -109,16 +109,23 @@ class TerminalOutputTest(unittest.TestCase):
         with self.assertRaises(ValueError):
             urwid.TerminalOutput(term="vt100")  # type: ignore[arg-type]
 
-    def test_redefined_colors_are_drawn_on_the_running_screen(self) -> None:
-        """Draw a palette color the data redefined with its new value on a screen of 88 or more colors."""
+    def test_redefined_colors_follow_the_running_screen(self) -> None:
+        """Draw a palette color the data redefined in the running screen's colors, and as 24-bit without a loop.
+
+        A screen that reports no color count, such as curses, draws the cell in the color the data gave.
+        """
         output = urwid.TerminalOutput(size=(4, 1), term="xterm-256color")
         output.write("\x1b[31ma\x1b]4;1;rgb:ff/88/00\x07")
-        loop = mock.Mock(screen=mock.Mock(colors=2**24))
-        with mock.patch("urwid.event_loop.get_running_loop_or_none", return_value=loop):
-            cell = next(iter(output.render((4, 1)).content()))[0]
-        self.assertEqual(urwid.AttrSpec("#ff8800", "default", 2**24), cell[0])
-        # without a running loop the display is not known, and the cell keeps the color the data gave
-        self.assertEqual(urwid.AttrSpec("dark red", "default"), next(iter(output.render((4, 1)).content()))[0][0])
+        for label, screen, attr in (
+            ("no running loop", None, urwid.AttrSpec("#ff8800", "default", 2**24)),
+            ("256 colors", mock.Mock(colors=256), urwid.AttrSpec("#f80", "default", 256)),
+            ("no color count", mock.Mock(spec=[]), urwid.AttrSpec("dark red", "default")),
+        ):
+            with self.subTest(label):
+                loop = None if screen is None else mock.Mock(screen=screen)
+                with mock.patch("urwid.event_loop.get_running_loop_or_none", return_value=loop):
+                    cell = next(iter(output.render((4, 1)).content()))[0]
+                self.assertEqual(attr, cell[0])
 
     def test_text_and_its_utf8_bytes_give_the_same_cells(self) -> None:
         """Under UTF-8, write a character as text or as its UTF-8 bytes with the same result."""

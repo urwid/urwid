@@ -300,7 +300,9 @@ It differs from xterm, or adds to it, in these points:
 :class:`TerminalOutput` shows output the application writes to it, such as
 captured output, with no process behind it, and also works on Windows.  It
 reads the output as :class:`Terminal` does, and takes the same ``term``
-keyword for the terminal type the output was written for.
+keyword for the terminal type the output was written for.  It draws the
+palette colors the output redefines in the colors of the running main loop's
+screen, and as 24-bit colors while no main loop runs.
 
 The color of a widget's title in the figures shows the sizing modes it
 supports: blue for box, orange for flow and yellow for fixed.  A title in more
