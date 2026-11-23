@@ -5,15 +5,18 @@ from __future__ import annotations
 import re
 import typing
 
-from urwid import util
+from urwid import event_loop, util
 from urwid.canvas import CompositeCanvas, SolidCanvas
 from urwid.canvas.term import TermCanvas, TermModes
+from urwid.canvas.term import _state as _term_state
 
 from .constants import MouseButton, Sizing
 from .widget import Widget
 
 if typing.TYPE_CHECKING:
     from typing import Literal
+
+    from urwid.canvas.term._state import TermType
 
 # Runs of ASCII and of non-ASCII characters, which write() encodes one at a time.
 _ASCII_RUNS: typing.Final = re.compile(r"[\x00-\x7f]+|[^\x00-\x7f]+")
@@ -63,6 +66,7 @@ class TerminalOutput(Widget):
         size: tuple[int, int] = (80, 24),
         lf_to_crlf: bool = True,
         scroll_on_output: bool = True,
+        term: TermType = "linux",
     ) -> None:
         """Create the widget with an empty screen.
 
@@ -72,18 +76,23 @@ class TerminalOutput(Widget):
             Turn it off for a recording of a pty's raw output, where a line feed only moves the cursor down.
         :param scroll_on_output: move a view scrolled back to the bottom when :meth:`write` is given data.
             When off, the view stays on the lines it shows while new lines scroll into the scrollback below them.
-        :raises ValueError: a dimension of *size* is not positive.
+        :param term: the terminal type the data is written for: ``"linux"`` follows the Linux console where it differs
+            from xterm, and ``"xterm-256color"`` follows xterm, as for :class:`Terminal`.
+        :raises ValueError: a dimension of *size* is not positive, or *term* is not one of those terminal types.
         """
         columns, rows = size
         if columns <= 0 or rows <= 0:
             msg = f"size must be positive, got {size!r}"
+            raise ValueError(msg)
+        if term not in _term_state.TERM_TYPES:
+            msg = f"term must be one of {sorted(_term_state.TERM_TYPES)}, not {term!r}"
             raise ValueError(msg)
         super().__init__()
         #: Whether :meth:`write` writes each line feed as carriage return and line feed.
         self.lf_to_crlf = lf_to_crlf
         #: The modes the data set; the screen resets them, so they are this widget's own.
         self.term_modes = TermModes()
-        self._term = TermCanvas(columns, rows, self, scroll_on_output=scroll_on_output)
+        self._term = TermCanvas(columns, rows, self, scroll_on_output=scroll_on_output, term_type=term)
         # the "resize" signal is being emitted, so a render from its handlers does not resize the terminal again
         self._emitting_resize = False
 
@@ -133,6 +142,8 @@ class TerminalOutput(Widget):
         """Resize the terminal to *size* when it differs, and return the terminal canvas.
 
         The cursor is drawn only when the widget has *focus*.
+        The palette colors the data redefined are drawn on the screen of the running :class:`MainLoop`, when it has 88
+        or more colors.
         A size with a zero dimension shows nothing and leaves the terminal at its size, so no output is lost.
         A ``"resize"`` handler that renders the widget at another size gets the terminal cut or padded to that size,
         and the terminal keeps the size the signal reports.
@@ -158,6 +169,8 @@ class TerminalOutput(Widget):
         if focus != term.has_focus:
             term.has_focus = focus
             term.set_term_cursor()
+        running = event_loop.get_running_loop_or_none()
+        term.display_colors = None if running is None else getattr(running.screen, "colors", None)
         return term
 
     def get_cursor_coords(self, size: tuple[int, int]) -> tuple[int, int] | None:

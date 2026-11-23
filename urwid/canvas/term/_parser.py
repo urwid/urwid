@@ -30,6 +30,7 @@ from urwid import util, version
 from urwid.ansi_parser import (
     MAX_CSI_LENGTH,
     MAX_OSC_LENGTH,
+    OSC_IGNORED_CONTROLS,
     ParseState,
     attrspec_with_hyperlink,
     resolve_osc_hyperlink,
@@ -39,6 +40,15 @@ from urwid.ansi_parser._grammar import _STRING_STATES, _csi_parameters
 from urwid.ansi_parser._vt_parser import _VTParser
 from urwid.canvas.term._cells import CHARSET_DEFAULT, CHARSET_UTF8, ESC_B, _drawn_width
 from urwid.canvas.term._modes import _ModesCanvas
+from urwid.canvas.term._palette import (
+    _DYNAMIC_BACKGROUND,
+    _DYNAMIC_CURSOR,
+    _DYNAMIC_FOREGROUND,
+    _LAST_DYNAMIC_COLOR,
+    _x11_rgb,
+    _xterm_color_reply,
+    _xterm_palette_entry,
+)
 from urwid.canvas.term._rectangles import _RectanglesCanvas
 from urwid.canvas.term._reports import (
     _DESIGNATED_CHARSETS,
@@ -49,7 +59,8 @@ from urwid.canvas.term._reports import (
 )
 from urwid.canvas.term._screen import _CONFORMANCE_LEVELS
 from urwid.display._sgr import parse_sgr_parameters
-from urwid.display.escape import DCS, ST
+from urwid.display.common import _COLOR_VALUES_256
+from urwid.display.escape import BEL, DCS, OSC, ST
 from urwid.str_util import _may_continue_cluster
 
 if typing.TYPE_CHECKING:
@@ -72,6 +83,25 @@ _SINGLE_SHIFTS: typing.Final = types.MappingProxyType({b"N": 2, b"O": 3})
 
 #: the C0 controls that display control mode still executes, as the Linux console does: NUL, BS, LF, FF, CR, SO and SI
 _DISPLAY_CTRL_EXECUTED: typing.Final = frozenset((b"\x00", b"\x08", b"\n", b"\x0c", b"\r", b"\x0e", b"\x0f"))
+#: the control characters an OSC string goes on without, as bytes, but NUL: xterm keeps the string up to a NUL in it,
+#: and so still answers a query before one
+_OSC_IGNORED_BYTES: typing.Final = frozenset(control.encode("ascii") for control in OSC_IGNORED_CONTROLS) - {b"\x00"}
+#: xterm's color OSC commands: set and reset palette colors, and set and reset the dynamic colors
+_SET_PALETTE: typing.Final = 4
+_RESET_PALETTE: typing.Final = 104
+_DYNAMIC_COLOR_COMMANDS: typing.Final = range(_DYNAMIC_FOREGROUND, _LAST_DYNAMIC_COLOR + 1)
+#: what OSC 110 to 119 add to the number of the dynamic color they set back
+_RESET_DYNAMIC_OFFSET: typing.Final = 100
+_XTERM_COLOR_COMMANDS: typing.Final = frozenset(
+    (
+        _SET_PALETTE,
+        _RESET_PALETTE,
+        *_DYNAMIC_COLOR_COMMANDS,
+        *(number + _RESET_DYNAMIC_OFFSET for number in _DYNAMIC_COLOR_COMMANDS),
+    )
+)
+#: the bytes of the hex digits a Linux palette sequence is written with
+_HEX_DIGITS: typing.Final = frozenset(b"0123456789abcdefABCDEF")
 #: the controls executed inside a Linux palette sequence, which continues: the C0 controls and DEL but CAN and SUB,
 #: which cancel it, and ESC, which starts the next sequence
 _PALETTE_SET_EXECUTED: typing.Final = frozenset(bytes((code,)) for code in (*range(0x20), 0x7F)) - frozenset(
@@ -473,6 +503,72 @@ class TermCanvas(_ReportsCanvas, _RectanglesCanvas, _ModesCanvas, _VTParser[byte
                 link = None
         self.attrspec = attrspec_with_hyperlink(self.attrspec, link, unset_color="default")
 
+    def _osc_set_palette(self, params: str, *, bel: bool) -> None:
+        """Set or query xterm palette colors (OSC 4), given as *params* ``c ; spec`` pairs.
+
+        A spec of ``?`` asks for the color of entry c, the one set or xterm's default, which is answered as
+        ``OSC 4 ; c ; rgb:rrrr/gggg/bbbb``, ended by BEL when *bel* is set and by ST otherwise.
+        Any other spec is an X11 color in ``rgb:`` or ``#`` form, see :func:`~urwid.canvas.term._palette._x11_rgb`.
+        As in xterm, an index is read as C's ``atoi`` reads it, so one with no digits is 0, and the pairs are taken up
+        to the first one with an index outside 0 to 255 or a spec not read.
+        """
+        items = params.split(";")
+        for index, spec in zip(items[::2], items[1::2], strict=False):
+            entry = _xterm_palette_entry(index, leading_number=True)
+            if entry is None:
+                return
+            if spec == "?":
+                color = _xterm_color_reply(self._palette.get(entry, _COLOR_VALUES_256[entry]))
+                self.widget.respond(f"{OSC}4;{entry:d};{color}{BEL if bel else ST}")
+                continue
+            rgb = _x11_rgb(spec)
+            if rgb is None:
+                return
+            self._palette[entry] = rgb
+
+    def _osc_set_dynamic_colors(self, first: int, params: str, *, bel: bool) -> None:
+        """Set or query xterm's dynamic colors (OSC 10 to 19), from the color *first* on, one item of *params* each.
+
+        As in xterm, each item applies to the next dynamic color, up to 19, and an item that is neither ``?`` nor a
+        color in ``rgb:`` or ``#`` form, see :func:`~urwid.canvas.term._palette._x11_rgb`, is skipped.
+        The colors kept are the default foreground (10), the default background (11) and the cursor color (12).
+        A query is answered as ``OSC n ; rgb:rrrr/gggg/bbbb``, ended by BEL when *bel* is set and by ST otherwise,
+        with the color the child set or, for 10 and 11, the display's default color in
+        :attr:`display_default_colors`; a color known neither way, or a display color in a form not read, is not
+        answered.
+        """
+        displayed = {
+            number: None if spec is None else _x11_rgb(spec)
+            for number, spec in zip(
+                (_DYNAMIC_FOREGROUND, _DYNAMIC_BACKGROUND), self.display_default_colors, strict=True
+            )
+        }
+        for number, item in enumerate(params.split(";"), start=first):
+            if number > _LAST_DYNAMIC_COLOR:
+                return
+            if item == "?":
+                rgb = self._dynamic_colors.get(number, displayed.get(number))
+                if rgb is not None:
+                    self.widget.respond(f"{OSC}{number:d};{_xterm_color_reply(rgb)}{BEL if bel else ST}")
+            elif number <= _DYNAMIC_CURSOR and (rgb := _x11_rgb(item)) is not None:
+                self._dynamic_colors[number] = rgb
+
+    def _osc_reset_palette(self, params: str) -> None:
+        """Set xterm palette colors back to their defaults (OSC 104): the entries *params* lists, or all of them.
+
+        As in xterm, the entries are taken up to the first index that is not a number, and a number past 255 is
+        skipped.
+        """
+        if not params:
+            self._palette.clear()
+            return
+        for index in params.split(";"):
+            if not (index.isascii() and index.isdecimal()):
+                return
+            entry = _xterm_palette_entry(index, leading_number=False)
+            if entry is not None:
+                self._palette.pop(entry, None)
+
     def parse_dcs(self, body: bytes) -> None:
         """Apply the DCS string *body*, given without its ``ESC P`` and ST framing.
 
@@ -513,11 +609,12 @@ class TermCanvas(_ReportsCanvas, _RectanglesCanvas, _ModesCanvas, _VTParser[byte
         self._vt_leave()
 
     def _vt_leave(self) -> None:
-        """Drop the sequence being read, also forgetting whether the OSC string had invalid UTF-8."""
+        """Drop the sequence being read, also forgetting whether the OSC string had invalid UTF-8 or a control."""
         self._within_escape = False
         self._parsestate = _GROUND
         self._escbuf = b""
         self._osc_invalid_utf8 = False
+        self._osc_control = False
 
     def get_utf8_len(self, bytenum: int) -> int:
         """Process startbyte and return the number of bytes following it to get a valid UTF-8 multibyte sequence.
@@ -652,10 +749,18 @@ class TermCanvas(_ReportsCanvas, _RectanglesCanvas, _ModesCanvas, _VTParser[byte
                 self._parsestate = _CSI
                 self._repeat_graphic = graphic
                 return
-        elif self._parsestate == _OSC and self._escbuf[:1] == self._VT_PALETTE_SET and char in _PALETTE_SET_EXECUTED:
+        elif (
+            self._parsestate == _OSC
+            and self._escbuf[:1] == self._VT_PALETTE_SET
+            and self.linux_console
+            and char in _PALETTE_SET_EXECUTED
+        ):
             # the Linux console executes a control inside its palette sequence, which continues, as inside a CSI
             self._vt_execute(char, char[0])
             return
+        elif self._parsestate == _OSC and char in _OSC_IGNORED_BYTES:
+            # the string goes on without it, but xterm ignores a palette OSC that had one, see _vt_osc_dispatch()
+            self._osc_control = True
         self._vt_step(char, char[0])
 
     # -- the hooks of the state machine in urwid.ansi_parser._vt_parser ------------------------------------------------
@@ -667,15 +772,16 @@ class TermCanvas(_ReportsCanvas, _RectanglesCanvas, _ModesCanvas, _VTParser[byte
     def _vt_execute(self, token: bytes, code: int) -> None:
         """Execute a control character.
 
-        As on the Linux console, SO and SI also end the IBM PC mapping of SGR 11 and 12, and turn display control
-        mode on (SO) or off (SI).
+        As on the Linux console, SO and SI also end the IBM PC mapping of SGR 11 and 12, and, while the canvas follows
+        the Linux console, turn display control mode on (SO) or off (SI).
         """
         if code == 0x0D:  # carriage return CR
             self.carriage_return()
         elif code in {0x0E, 0x0F}:  # SO activates G1, SI activates G0
             self.charset.reset_sgr_ibmpc()
             self.charset.activate(1 if code == 0x0E else 0)
-            self.modes.display_ctrl = code == 0x0E
+            if self.linux_console:
+                self.modes.display_ctrl = code == 0x0E
         elif code in {0x0A, 0x0B, 0x0C}:  # line feed LF/VT/FF
             self.linefeed()
             if self.modes.lfnl:
@@ -713,12 +819,44 @@ class TermCanvas(_ReportsCanvas, _RectanglesCanvas, _ModesCanvas, _VTParser[byte
         if final in CSI_COMMANDS and len(parameters) < MAX_CSI_LENGTH:
             self.parse_csi(final)
 
-    def _vt_osc_dispatch(self, body: bytes) -> None:
-        """Apply an OSC string, see :meth:`parse_osc`."""
-        self.parse_osc(body.lstrip(b"0"))
+    def _vt_osc_dispatch(self, body: bytes, *, bel: bool) -> None:
+        """Apply an OSC string ended by BEL (*bel*) or ST.
+
+        While the canvas follows xterm, OSC 4 and OSC 104 set, query and set back palette colors, see
+        :meth:`_osc_set_palette` and :meth:`_osc_reset_palette`, and OSC 10 to 19 and OSC 110 to 119 the dynamic
+        colors, see :meth:`_osc_set_dynamic_colors`; as in xterm, one with a control character or, in UTF-8 mode, a
+        sequence that is not valid UTF-8 is ignored. Any other string is applied by :meth:`parse_osc`.
+        """
+        body = body.lstrip(b"0")
+        if not self.linux_console:
+            command, _, params = body.partition(b";")
+            number = int(command) if command.isdigit() and len(command) <= 3 else None
+            if number is not None and number in _XTERM_COLOR_COMMANDS:
+                if not (self._osc_invalid_utf8 or self._osc_control):
+                    # a character outside ASCII is replaced, so it ends the sequence as an invalid index or color does
+                    text = params.decode("ascii", "replace")
+                    if number == _SET_PALETTE:
+                        self._osc_set_palette(text, bel=bel)
+                    elif number == _RESET_PALETTE:
+                        self._osc_reset_palette(text)
+                    elif number in _DYNAMIC_COLOR_COMMANDS:
+                        self._osc_set_dynamic_colors(number, text, bel=bel)
+                    elif not params:
+                        # OSC 110 to 119 set a dynamic color back; xterm ignores one with parameters
+                        self._dynamic_colors.pop(number - _RESET_DYNAMIC_OFFSET, None)
+                return
+        self.parse_osc(body)
 
     def _vt_osc_palette(self, body: bytes) -> None:
-        """Ignore the Linux console's palette OSC, which is not applied."""
+        """Set one color of the Linux console's palette (``P n rr gg bb``), or set them all back (``R``).
+
+        A set whose seven characters are not all hex digits is ignored.
+        :meth:`content` draws the cells with the colors set.
+        """
+        if body == b"R":
+            self._palette.clear()
+        elif _HEX_DIGITS.issuperset(body[1:]):
+            self._palette[int(body[1:2], 16)] = (int(body[2:4], 16), int(body[4:6], 16), int(body[6:8], 16))
 
     def _vt_osc_overflow(self, body: bytes) -> None:
         """End the current link at an over-long OSC 8, which is refused like any other invalid one."""

@@ -135,7 +135,8 @@ text is sent as text.
 
 Without these flags, the Terminal passes ENTER, TAB, BACKSPACE and ESC with
 modifiers, and CTRL with SPACE, /, ? or ~, to its child as a legacy terminal
-sends them under the ``linux`` terminal type, so ``'ctrl enter'`` arrives as
+sends them under the ``linux`` terminal type, also for ``xterm-256color``
+except for Shift+TAB, which is sent as ``CSI Z``, so ``'ctrl enter'`` arrives as
 ENTER. It returns the other new keys, such as ``'super a'``.
 
 

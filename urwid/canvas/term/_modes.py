@@ -207,7 +207,7 @@ class _ModesCanvas(_EditingCanvas):
                 self.modes.synchronized_output = flag
         else:  # noqa: PLR5501  # pylint: disable=else-if-used  # readability
             # ECMA-48
-            if mode == 3:
+            if mode == 3 and self.linux_console:
                 self.modes.display_ctrl = flag
             elif mode == 4:
                 self.modes.insert = flag
@@ -282,6 +282,7 @@ class _ModesCanvas(_EditingCanvas):
         KAM (2) is reported as permanently reset (4), and SRM (12) as permanently set (3), since neither changes, and
         so are the ECMA-48 modes of a VT320 that keep their reset state (1, 5, 7, 10, 11 and 13 to 19), as in xterm.
         Any other mode this canvas keeps no state for is reported as 0.
+        Display control mode (3) is always reset while the canvas follows xterm, as xterm reports it.
         """
         modes = self.modes
         match mode:
@@ -305,6 +306,7 @@ class _ModesCanvas(_EditingCanvas):
         protected ones again, and the character sets are the startup ones.
         The cursor saved by DECSC is the home position with these attributes and character sets, origin mode off and no
         pending autowrap.
+        While the canvas follows xterm, the palette colors OSC 4 set are set back too.
         """
         modes = self.modes
         modes.visible_cursor = True
@@ -320,9 +322,12 @@ class _ModesCanvas(_EditingCanvas):
         self.csi_set_attr([0])
         self.protected = False
         self.modes.iso_protection = False
-        self.charset = TermCharset()
+        self.charset = TermCharset(g1_graphics=self.linux_console)
+        if not self.linux_console:
+            # as in xterm; the Linux console has no DECSTR
+            self._palette.clear()
         self.saved_cursor = (0, 0)
-        self.saved_attrs = (copy.copy(self.attrspec), TermCharset())
+        self.saved_attrs = (copy.copy(self.attrspec), TermCharset(g1_graphics=self.linux_console))
         self.saved_flags = (False, False, False)
         self.set_term_cursor()
 

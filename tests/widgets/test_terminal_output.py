@@ -96,6 +96,30 @@ class TerminalOutputTest(unittest.TestCase):
             with self.subTest(size=size), self.assertRaises(ValueError):
                 urwid.TerminalOutput(size=size)
 
+    def test_terminal_type(self) -> None:
+        """Read the data as the Linux console or xterm writes it, where the two differ, and refuse another type.
+
+        SO turns display control mode on on the Linux console, so its tab is drawn; in xterm it only selects G1.
+        """
+        for term, text in (("linux", b"a\tb"), ("xterm-256color", b"a       b")):
+            with self.subTest(term=term):
+                output = urwid.TerminalOutput(size=(20, 1), term=term)
+                output.write("\x1b)Ba\x0e\tb")
+                self.assertEqual([text], _text(output, (20, 1)))
+        with self.assertRaises(ValueError):
+            urwid.TerminalOutput(term="vt100")  # type: ignore[arg-type]
+
+    def test_redefined_colors_are_drawn_on_the_running_screen(self) -> None:
+        """Draw a palette color the data redefined with its new value on a screen of 88 or more colors."""
+        output = urwid.TerminalOutput(size=(4, 1), term="xterm-256color")
+        output.write("\x1b[31ma\x1b]4;1;rgb:ff/88/00\x07")
+        loop = mock.Mock(screen=mock.Mock(colors=2**24))
+        with mock.patch("urwid.event_loop.get_running_loop_or_none", return_value=loop):
+            cell = next(iter(output.render((4, 1)).content()))[0]
+        self.assertEqual(urwid.AttrSpec("#ff8800", "default", 2**24), cell[0])
+        # without a running loop the display is not known, and the cell keeps the color the data gave
+        self.assertEqual(urwid.AttrSpec("dark red", "default"), next(iter(output.render((4, 1)).content()))[0][0])
+
     def test_text_and_its_utf8_bytes_give_the_same_cells(self) -> None:
         """Under UTF-8, write a character as text or as its UTF-8 bytes with the same result."""
         for char in ("\xe9", "€", "\U0001f600", "漢", "─"):

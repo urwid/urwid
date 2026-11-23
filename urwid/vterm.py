@@ -53,6 +53,7 @@ from urwid.canvas.term import (
     TermCharset,
     TermModes,
 )
+from urwid.canvas.term import _state as _term_state
 from urwid.display import RealTerminal
 from urwid.display.escape import (
     _C1_CONTROLS,
@@ -78,6 +79,8 @@ from urwid.widget import MouseButton, Sizing, Widget
 if typing.TYPE_CHECKING:
     from collections.abc import Callable, Iterable, Mapping
     from typing import Literal
+
+    from urwid.canvas.term._state import TermType
 
     class _WatchLoop(typing.Protocol):
         """Loop the pty is watched on: an event loop or a :class:`urwid.MainLoop`."""
@@ -207,6 +210,25 @@ _KITTY_LETTER_KEYS: typing.Final = {name: chr(final) for final, name in _CSI_LET
 _KITTY_TILDE_KEYS: typing.Final = {
     name: number for number, name in _CSI_TILDE_KEYS.items() if number <= 24 and name not in _KITTY_LETTER_KEYS
 }
+#: the final byte of each key xterm sends as CSI or SS3 and a letter: the cursor keys, Home, End and F1 to F4; F3 is
+#: one too, where a report to urwid leaves it out
+_XTERM_LETTER_KEYS: typing.Final = types.MappingProxyType({**_KITTY_LETTER_KEYS, "f3": "R"})
+#: the keys xterm sends as SS3 and a letter without modifiers whatever cursor key mode (DECCKM) is: F1 to F4
+_XTERM_SS3_KEYS: typing.Final = frozenset(("f1", "f2", "f3", "f4"))
+#: the number of each key xterm sends as CSI number ~: the editing keys and F5 to F12
+_XTERM_TILDE_KEYS: typing.Final = types.MappingProxyType(
+    {
+        key: _TILDE_KEY_NUMBERS[key]
+        for key in ("insert", "delete", "page up", "page down", *(f"f{number:d}" for number in range(5, 13)))
+    }
+)
+#: F13 to F24, which xterm-256color describes as F1 to F12 with shift, by the key xterm sends them as
+_XTERM_SHIFTED_F_KEYS: typing.Final = types.MappingProxyType(
+    {f"f{number + 12:d}": f"f{number:d}" for number in range(1, 13)}
+)
+#: the modifiers xterm reports in a cursor, editing or function key
+_XTERM_KEY_MODIFIERS: typing.Final = KeyModifier.SHIFT | KeyModifier.ALT | KeyModifier.CTRL
+
 #: the code of each key a CSI u report names by a code that is not its text, by urwid name; Backspace is 127
 _KITTY_CSI_U_KEYS: typing.Final = {
     name: code for code, name in _CSI_U_KEYS.items() if code != 8 and code not in _KITTY_KEYPAD_CODES
@@ -275,6 +297,7 @@ class Terminal(Widget):
         *,
         scroll_on_output: bool = True,
         pass_signal_keys: bool = True,
+        term: TermType = "linux",
     ) -> None:
         """Initialize a terminal emulator widget.
 
@@ -310,14 +333,24 @@ class Terminal(Widget):
         Set it to ``False`` when that terminal is not the one the user types into, as for a widget shown in a browser,
         to keep the application's own terminal as it is.
 
+        ``term`` is the terminal type the child is given as ``TERM``: ``"linux"`` follows the Linux console where it
+        differs from xterm, and ``"xterm-256color"`` follows xterm, in the keys sent and in the control functions read,
+        as :ref:`the manual <basic-grafic-widgets>` describes.
+
+        :raises ValueError: *term* is not one of those terminal types.
+
         .. note::
 
             If your Terminal instance does not show Unicode glyphs correctly, urwid's encoding is not UTF-8.
             It is taken from the locale at start-up, and ``urwid.set_encoding("utf-8")`` sets it.
             See :ref:`text-encodings` for more details.
         """
+        if term not in _term_state.TERM_TYPES:
+            raise ValueError(f"term must be one of {sorted(_term_state.TERM_TYPES)}, not {term!r}")
         super().__init__()
 
+        #: The terminal type the child is given, see :meth:`__init__`.
+        self.term_type: TermType = term
         self.escape_sequence: str = escape_sequence or "ctrl a"
         self._scroll_on_output = scroll_on_output
         self._pass_signal_keys = pass_signal_keys
@@ -391,7 +424,7 @@ class Terminal(Widget):
     def spawn(self) -> None:
         """Fork the child process running :attr:`command` and connect it to a new pty."""
         env = self.env
-        env["TERM"] = "linux"
+        env["TERM"] = self.term_type
 
         self.pid, self.master = pty.fork()
 
@@ -569,7 +602,13 @@ class Terminal(Widget):
         self.set_termsize(width, height)
 
         if not self.term:
-            self.term = TermCanvas(width, height, self, scroll_on_output=self._scroll_on_output)
+            self.term = TermCanvas(
+                width,
+                height,
+                self,
+                scroll_on_output=self._scroll_on_output,
+                term_type=self.term_type,
+            )
         else:
             self.term.resize(width, height)
             if self.term.modes.in_band_resize:
@@ -617,15 +656,7 @@ class Terminal(Widget):
 
             width, height = size
             self.touch_term(width, height)
-            # the colors the replies to the child's queries describe; a screen without the attribute, such as curses,
-            # leaves them unknown
-            screen_loop = (
-                self.main_loop
-                if isinstance(self.main_loop, event_loop.MainLoop)
-                else event_loop.get_running_loop_or_none()
-            )
-            if screen_loop is not None:
-                self.term.display_colors = getattr(screen_loop.screen, "colors", None)  # type: ignore[union-attr]
+            self._read_display()
 
             if self.main_loop is None:
                 running = event_loop.get_running_loop_or_none()
@@ -682,6 +713,22 @@ class Terminal(Widget):
 
         self.feed()
 
+    def _read_display(self) -> None:
+        """Give the canvas the colors of the display the widget is drawn on, which its replies to the child describe.
+
+        They are the color count and the outer terminal's default colors of the screen of :attr:`main_loop`, or of the
+        running :class:`MainLoop`; a screen without the attributes, such as curses, leaves them unknown.
+        They are read again before each output of the child, since the screen learns them from the outer terminal's
+        replies after the first render.
+        """
+        screen_loop = (
+            self.main_loop if isinstance(self.main_loop, event_loop.MainLoop) else event_loop.get_running_loop_or_none()
+        )
+        if screen_loop is not None and self.term is not None:
+            screen = screen_loop.screen
+            self.term.display_colors = getattr(screen, "colors", None)
+            self.term.display_default_colors = getattr(screen, "terminal_default_colors", (None, None))
+
     def feed(self) -> None:
         """Read pending output from the pty and feed it to the terminal, terminating the child on EOF."""
         data = EOF
@@ -701,6 +748,7 @@ class Terminal(Widget):
             self._emit("closed")
             return
 
+        self._read_display()
         self.term.addstr(data)  # type: ignore[union-attr]
 
         # The child just opened a synchronized-output block (CSI ?2026h) and is still writing to it:
@@ -742,8 +790,8 @@ class Terminal(Widget):
         """Translate *key* into the byte sequence the child process expects and write it to the pty.
 
         :returns: ``None`` when the widget used *key*, or *key* when it did not: the child has exited, the key is
-            handed down to the parent outside a key grab, or the ``linux`` terminal type the child is given has no
-            byte form for it, as for a cursor or function key with shift, meta or ctrl.
+            handed down to the parent outside a key grab, or the terminal type the child is given has no byte form for
+            it, as the ``linux`` one has none for a cursor or function key with shift, meta or ctrl.
         """
         if self.terminated:
             return key
@@ -945,7 +993,14 @@ class Terminal(Widget):
         return sent
 
     def _legacy_key_sequence(self, key: str) -> str | None:
-        """Return the characters a ``linux`` terminal sends for *key*, or ``None`` when it has none."""
+        """Return the characters the child's terminal type sends for *key*, or ``None`` when it has none.
+
+        ``xterm-256color`` sends the cursor, editing and function keys as xterm does, and any other key as ``linux``.
+        """
+        if self.term_type != "linux" and (
+            sent := _xterm_key_sequence(_LEGACY_KEYS.get(key, key), cursor_keys_application=self.term_modes.keys_decckm)
+        ):
+            return sent
         meta = key.startswith("meta ")
         sent = key.removeprefix("meta ")
         sent = _LEGACY_KEYS.get(sent, sent)
@@ -980,6 +1035,51 @@ class Terminal(Widget):
         return sent
 
 
+def _split_key_modifiers(key: str) -> tuple[str, int]:
+    """Return the key name *key* without its modifier prefixes, and the modifier bits a terminal reports for them.
+
+    urwid's "meta" is the modifier a terminal sends Alt as, so it gives the ALT bit alone.
+    """
+    name = key
+    modifiers = 0
+    for prefix, bits in _KEY_MODIFIER_PREFIXES:
+        if name.startswith(prefix) and len(name) > len(prefix):
+            name = name.removeprefix(prefix)
+            modifiers |= bits & ~KeyModifier.META
+    return name, modifiers
+
+
+def _xterm_key_sequence(key: str, *, cursor_keys_application: bool) -> str | None:
+    """Return what xterm sends for the cursor, editing or function key *key*, or ``None`` for any other key.
+
+    Without modifiers, F1 to F4 are sent as SS3 and a letter, and so are the cursor keys, Home and End while
+    *cursor_keys_application* (DECCKM) is set; the other keys are sent as CSI and a letter or as CSI number ~.
+    With shift, meta or ctrl, the key is sent as ``CSI 1 ; m letter`` or ``CSI number ; m ~``, m being 1 plus the
+    modifier bits; Shift+Tab is sent as ``CSI Z``, and F13 to F24 as F1 to F12 with shift.
+    A key with any other modifier has no form.
+    """
+    name, modifiers = _split_key_modifiers(key)
+    if name == "tab" and modifiers == KeyModifier.SHIFT:
+        return f"{CSI}Z"
+    if name in _XTERM_SHIFTED_F_KEYS and not modifiers & KeyModifier.SHIFT:
+        name = _XTERM_SHIFTED_F_KEYS[name]
+        modifiers |= KeyModifier.SHIFT
+    if modifiers & ~_XTERM_KEY_MODIFIERS:
+        return None
+
+    if name in _XTERM_LETTER_KEYS:
+        final = _XTERM_LETTER_KEYS[name]
+        if modifiers:
+            return f"{CSI}1;{modifiers + 1:d}{final}"
+        if cursor_keys_application or name in _XTERM_SS3_KEYS:
+            return f"{ESC}O{final}"
+        return f"{CSI}{final}"
+    if name in _XTERM_TILDE_KEYS:
+        number = _XTERM_TILDE_KEYS[name]
+        return f"{CSI}{number:d};{modifiers + 1:d}~" if modifiers else f"{CSI}{number:d}~"
+    return None
+
+
 def _kitty_key_report(key: str, flags: int) -> str | None:
     """Return what a terminal sends for *key* in the kitty keyboard protocol, or ``None`` when it sends nothing.
 
@@ -993,13 +1093,7 @@ def _kitty_key_report(key: str, flags: int) -> str | None:
     :param key: the urwid key name.
     :param flags: the keyboard flags in effect, with disambiguate or all keys set.
     """
-    name = key
-    modifiers = 0
-    for prefix, bits in _KEY_MODIFIER_PREFIXES:
-        if name.startswith(prefix) and len(name) > len(prefix):
-            name = name.removeprefix(prefix)
-            # urwid's "meta" is the modifier a terminal sends Alt as
-            modifiers |= bits & ~KeyModifier.META
+    name, modifiers = _split_key_modifiers(key)
     all_keys = flags & KittyKeyboardFlag.ALL_KEYS
 
     if name in _KITTY_LETTER_KEYS:

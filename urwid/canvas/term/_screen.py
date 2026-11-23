@@ -42,9 +42,22 @@ from urwid.canvas.term._cells import (
     _Protected,
     _with_flag,
 )
+from urwid.canvas.term._palette import (
+    _BACKGROUND_KEY,
+    _DEFAULT_BACKGROUND_ENTRY,
+    _DEFAULT_FOREGROUND_ENTRY,
+    _DYNAMIC_BACKGROUND,
+    _DYNAMIC_FOREGROUND,
+    _FEWEST_PALETTE_COLORS,
+    _FOREGROUND_KEY,
+    _palette_entry,
+    _rgb_color,
+    _underline_palette_entry,
+)
 from urwid.canvas.term._state import TermCharset, TermModes
 from urwid.display import _sgr
 from urwid.display._sgr import sgi_params_to_attrspec, split_sgr_parameters
+from urwid.display.common import AttrSpec
 from urwid.display.escape import PrivateMode
 
 if typing.TYPE_CHECKING:
@@ -54,7 +67,7 @@ if typing.TYPE_CHECKING:
     # Imported by name for type checkers, see urwid._deprecation.
     from typing_extensions import deprecated
 
-    from urwid.display import AttrSpec
+    from urwid.canvas.term._state import TermType
 
     class _TermCanvasOwner(typing.Protocol):
         """Widget a :class:`TermCanvas` belongs to: it holds the modes and takes what the terminal reports."""
@@ -110,10 +123,13 @@ class _ScreenCanvas(Canvas):
     """
 
     __slots__ = (
+        "_dynamic_colors",
         "_escbuf",
         "_hidden_screen",
         "_last_graphic",
+        "_osc_control",
         "_osc_invalid_utf8",
+        "_palette",
         "_parsestate",
         "_repeat_graphic",
         "_within_escape",
@@ -122,6 +138,7 @@ class _ScreenCanvas(Canvas):
         "charset",
         "conformance_level",
         "display_colors",
+        "display_default_colors",
         "has_focus",
         "height",
         "is_rotten_cursor",
@@ -140,6 +157,7 @@ class _ScreenCanvas(Canvas):
         "tabstops",
         "term",
         "term_cursor",
+        "term_type",
         "utf8_buffer",
         "utf8_eat_bytes",
         "widget",
@@ -155,17 +173,22 @@ class _ScreenCanvas(Canvas):
         widget: _TermCanvasOwner,
         *,
         scroll_on_output: bool = True,
+        term_type: TermType = "linux",
     ) -> None:
         """Initialize an empty `width` by `height` canvas backing `widget`.
 
         :param scroll_on_output: move a view scrolled back from the bottom to the bottom when output arrives.
             When off, the view stays on the lines it shows while new lines scroll into the scrollback below them.
+        :param term_type: the terminal type the output is written for: ``"linux"`` follows the Linux console where it
+            differs from xterm, ``"xterm-256color"`` follows xterm.
         """
         super().__init__()
 
         self.width, self.height = width, height
         self.widget = widget
         self.modes: TermModes = widget.term_modes
+        #: The terminal type the output is written for, see :meth:`__init__`.
+        self.term_type: TermType = term_type
         self.has_focus = False
         #: Whether output returns a scrolled-back view to the bottom, see :meth:`__init__`.
         self.scroll_on_output = scroll_on_output
@@ -180,6 +203,8 @@ class _ScreenCanvas(Canvas):
         self._escbuf = b""
         # the OSC string being read had a sequence that is not valid UTF-8, in UTF-8 mode
         self._osc_invalid_utf8 = False
+        # the OSC string being read had a control character, which it goes on without
+        self._osc_control = False
 
         self.coords["cursor"] = (0, 0, None)
 
@@ -194,7 +219,7 @@ class _ScreenCanvas(Canvas):
         #: DECSACE: 2 makes DECCARA and DECRARA act on a rectangle, and any other value on a stream of cells
         self.attribute_extent = 0
 
-        self.charset = TermCharset()
+        self.charset = TermCharset(g1_graphics=self.linux_console)
 
         self.saved_cursor: tuple[int, int] | None = None
         self.saved_attrs: tuple[AttrSpec | None, TermCharset] | None = None
@@ -210,6 +235,15 @@ class _ScreenCanvas(Canvas):
         #: the colors the display draws, as its screen reports them, which the XTGETTCAP replies describe;
         #: None while unknown. The widget the canvas belongs to sets it.
         self.display_colors: Literal[1, 16, 88, 256, 16777216] | None = None
+        # the palette colors the child redefined, with the Linux console's palette sequence or xterm's OSC 4, as red,
+        # green and blue
+        self._palette: dict[int, tuple[int, int, int]] = {}
+        # xterm's dynamic colors the child set with OSC 10 to 12, by their number, as red, green and blue
+        self._dynamic_colors: dict[int, tuple[int, int, int]] = {}
+        #: the default foreground and background colors of the display, as X11 color specs such as
+        #: ``rgb:ffff/ffff/ffff``, which the replies to OSC 10 and OSC 11 describe until the child sets them; None while
+        #: unknown. The widget sets it.
+        self.display_default_colors: tuple[str | None, str | None] = (None, None)
 
         self.scrollregion_start = 0
         self.scrollregion_end = self.height - 1
@@ -301,11 +335,23 @@ class _ScreenCanvas(Canvas):
 
         self.set_term_cursor()
 
+    @property
+    def linux_console(self) -> bool:
+        """Return whether the canvas follows the Linux console where it differs from xterm."""
+        return self.term_type == "linux"
+
+    @property
+    def _vt_linux_palette(self) -> bool:
+        """Return whether the Linux console's palette sequence is read: while the canvas follows the Linux console."""
+        return self.linux_console
+
     def reset(self) -> None:
         """Reset the terminal to its startup state on the main screen.
 
         The main screen is cleared. It keeps its scrollback. The alternate screen is replaced by a blank one.
         The conformance level DECSCL selected stays, as in xterm.
+        The palette colors the child redefined stay while the canvas follows the Linux console, which keeps them, and
+        are set back while it follows xterm.
         """
         if self.modes.alternate_screen:
             self._swap_screens()
@@ -317,7 +363,10 @@ class _ScreenCanvas(Canvas):
         self.attrspec = None
         self.protected = False
         self.attribute_extent = 0
-        self.charset = TermCharset()
+        self.charset = TermCharset(g1_graphics=self.linux_console)
+        if not self.linux_console:
+            # xterm sets its palette back, the Linux console keeps it
+            self._palette.clear()
 
         self.saved_cursor = None
         self.saved_attrs = None
@@ -630,7 +679,7 @@ class _ScreenCanvas(Canvas):
         if with_attrs:
             if self.saved_attrs is None:
                 self.csi_set_attr([0])
-                self.charset = TermCharset()
+                self.charset = TermCharset(g1_graphics=self.linux_console)
             else:
                 self.attrspec, self.charset = (copy.copy(self.saved_attrs[0]), copy.copy(self.saved_attrs[1]))
                 self.charset.reset_sgr_ibmpc()
@@ -884,14 +933,16 @@ class _ScreenCanvas(Canvas):
         :param attrs: the SGR numeric parameters to apply, in encounter order;
             a tuple is a code already split, as :func:`urwid.ansi_parser.split_sgr_parameters` gives it.
             The arguments of an extended color are never read as SGR 10 to 12.
+            They are read only while the canvas follows the Linux console; xterm ignores them.
         """
-        for code in split_sgr_parameters(attrs):
-            if code == (10,):
-                self.charset.reset_sgr_ibmpc()
-                self.modes.display_ctrl = False
-            elif code in {(11,), (12,)}:
-                self.charset.set_sgr_ibmpc()
-                self.modes.display_ctrl = True
+        if self.linux_console:
+            for code in split_sgr_parameters(attrs):
+                if code == (10,):
+                    self.charset.reset_sgr_ibmpc()
+                    self.modes.display_ctrl = False
+                elif code in {(11,), (12,)}:
+                    self.charset.set_sgr_ibmpc()
+                    self.modes.display_ctrl = True
 
         self.attrspec = sgi_params_to_attrspec(attrs, self.attrspec)
 
@@ -951,6 +1002,8 @@ class _ScreenCanvas(Canvas):
         """Canvas content.
 
         The cells store the attributes the child set.
+        On a display of 88 or more colors, the palette colors the child redefined, with the Linux palette sequence or
+        xterm's OSC 4, are drawn with their new values; a display whose color count is unknown draws them unchanged.
         While the reverse video mode (DECSCNM) is on, every line is yielded with its attributes in standout.
         After a DECSCUSR the shown cursor cell is drawn in reverse video for a block or a bar, or underlined for an
         underline, and the blinking styles are drawn steady.
@@ -959,6 +1012,9 @@ class _ScreenCanvas(Canvas):
         All parameters are ignored.
         """
         lines = self._screen_lines()
+        colors = self.display_colors
+        if (self._palette or self._dynamic_colors) and colors is not None and colors >= _FEWEST_PALETTE_COLORS:
+            lines = self._recolored(lines, colors)
         style = self.modes.cursor_style
         if style is None or (shown := self._shown_cursor()) is None:
             yield from lines
@@ -979,6 +1035,82 @@ class _ScreenCanvas(Canvas):
             cell_attr = _with_flag(cell_attr, flag, remove=cell_attr is not None and getattr(cell_attr, flag))
             drawn[cursor_x] = (cell_attr, charset, text)
             yield drawn
+
+    def _recolored(
+        self,
+        lines: Iterable[list[tuple[AttrSpec | None, Literal["0", "U"] | None, bytes]]],
+        colors: Literal[1, 16, 88, 256, 16777216],
+    ) -> Iterator[list[tuple[AttrSpec | None, Literal["0", "U"] | None, bytes]]]:
+        """Yield *lines* with each palette color the child redefined drawn as its new value.
+
+        The palette entries are the colors of their number, 0 to 15 on the Linux console and 0 to 255 in xterm.
+        The default foreground and background are entries 7 and 0 on the Linux console; in xterm they are the
+        dynamic colors OSC 10 and OSC 11 set.
+        The new value takes the closest color of a display of *colors* colors.
+        """
+        redefined: dict[int | str | None, tuple[int, int, int]] = dict(self._palette.items())
+        for number, key in ((_DYNAMIC_FOREGROUND, _FOREGROUND_KEY), (_DYNAMIC_BACKGROUND, _BACKGROUND_KEY)):
+            if number in self._dynamic_colors:
+                redefined[key] = self._dynamic_colors[number]
+        # a screen holds few distinct attributes, so each one is recolored once per call
+        recolored: dict[AttrSpec | None, AttrSpec | None] = {}
+        for line in lines:
+            new_line = []
+            for cell_attr, charset, text in line:
+                if cell_attr not in recolored:
+                    recolored[cell_attr] = self._recolored_attr(cell_attr, colors, redefined)
+                new_line.append((recolored[cell_attr], charset, text))
+            yield new_line
+
+    def _recolored_attr(
+        self,
+        attr: AttrSpec | None,
+        colors: Literal[1, 16, 88, 256, 16777216],
+        redefined: Mapping[int | str | None, tuple[int, int, int]],
+    ) -> AttrSpec | None:
+        """Return *attr* with its colors, the underline color included, from the *redefined* colors, or *attr* itself.
+
+        :param redefined: the new values, by palette entry and by the keys of the default colors.
+        """
+        # the Linux console draws the default colors with palette entries, xterm with colors of their own
+        default_fg: int | str = _DEFAULT_FOREGROUND_ENTRY if self.linux_console else _FOREGROUND_KEY
+        default_bg: int | str = _DEFAULT_BACKGROUND_ENTRY if self.linux_console else _BACKGROUND_KEY
+        fg_entry: int | str | None
+        bg_entry: int | str | None
+        if attr is None:
+            foreground, settings, background = "default", "", "default"
+            fg_entry, bg_entry = default_fg, default_bg
+        else:
+            foreground, _, settings = attr.foreground.partition(",")
+            background = attr.background
+            fg_entry = _palette_entry(
+                attr.foreground_basic,
+                attr.foreground_high,
+                attr.foreground_true,
+                attr.foreground_number,
+                default_fg,
+            )
+            bg_entry = _palette_entry(
+                attr.background_basic,
+                attr.background_high,
+                attr.background_true,
+                attr.background_number,
+                default_bg,
+            )
+        line_entry = None if attr is None else _underline_palette_entry(attr)
+        if fg_entry not in redefined and bg_entry not in redefined and line_entry not in redefined:
+            return attr
+        if fg_entry in redefined:
+            foreground = _rgb_color(redefined[fg_entry], colors)
+        if bg_entry in redefined:
+            background = _rgb_color(redefined[bg_entry], colors)
+        fg = f"{foreground},{settings}" if settings else foreground
+        if attr is None:
+            return AttrSpec(fg, background, colors)
+        if line_entry in redefined:
+            line = _rgb_color(redefined[line_entry], colors)
+            return attr.copy_modified(fg=fg, bg=background, colors=colors, underline_color=line)
+        return attr.copy_modified(fg=fg, bg=background, colors=colors)
 
     def _screen_lines(self) -> Iterator[list[tuple[AttrSpec | None, Literal["0", "U"] | None, bytes]]]:
         """Yield the rows in view, with their attributes in standout while the reverse video mode (DECSCNM) is on."""
