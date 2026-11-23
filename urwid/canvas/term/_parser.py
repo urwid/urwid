@@ -70,6 +70,10 @@ _LOCKING_SHIFTS: typing.Final = types.MappingProxyType({b"n": 2, b"o": 3})
 _SINGLE_SHIFTS: typing.Final = types.MappingProxyType({b"N": 2, b"O": 3})
 
 
+#: the C0 controls that display control mode still executes, as the Linux console does: NUL, BS, LF, FF, CR, SO and SI
+_DISPLAY_CTRL_EXECUTED: typing.Final = frozenset((b"\x00", b"\x08", b"\n", b"\x0c", b"\r", b"\x0e", b"\x0f"))
+
+
 #: the private markers of the kitty keyboard protocol's CSI u sequences: query, push, pop and set the flags
 _KITTY_KEYBOARD_MARKERS: typing.Final = frozenset((b"?", b">", b"<", b"="))
 
@@ -629,12 +633,10 @@ class TermCanvas(_ReportsCanvas, _RectanglesCanvas, _ModesCanvas, _VTParser[byte
             if char == ESC_B:
                 self._repeat_graphic = graphic
             elif self.modes.display_ctrl:
-                if char < b" " or char == b"\x7f":
-                    # display control mode draws a control character, or reads it as part of the sequence being read
-                    if within:
-                        self._vt_escape_char(char, char[0])
-                    else:
-                        self.push_cursor(char)
+                if not within and ((char < b" " and char not in _DISPLAY_CTRL_EXECUTED) or char == b"\x7f"):
+                    # display control mode draws a control character outside a sequence, as the Linux console does;
+                    # inside a sequence it acts as with the mode off
+                    self.push_cursor(char)
                     return
             elif char == b"\x9b":
                 # CSI, equivalent to "ESC [": like ESC, it drops a sequence still being read
@@ -652,12 +654,7 @@ class TermCanvas(_ReportsCanvas, _RectanglesCanvas, _ModesCanvas, _VTParser[byte
         self.push_cursor(token)
 
     def _vt_execute(self, token: bytes, code: int) -> None:
-        """Execute a control character.
-
-        In display control mode only one inside a string, after an ESC, reaches this hook, and it is ignored there.
-        """
-        if self.modes.display_ctrl:
-            return
+        """Execute a control character."""
         if code == 0x0D:  # carriage return CR
             self.carriage_return()
         elif code == 0x0F:  # activate G0

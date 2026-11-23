@@ -1010,6 +1010,7 @@ class TermTest(unittest.TestCase):
         """Execute a control after an ESC in an OSC string, keep DEL in it, and abort it at CAN with display_ctrl.
 
         DEL right after the ESC is ignored, as in xterm, so the ESC still starts the ST.
+        display_ctrl leaves a control after the ESC executed, as the Linux console executes one inside a sequence.
         """
         self.connect_signal("title")
         self.write("a\\e]0;t\\e\n\\b")
@@ -1037,6 +1038,10 @@ class TermTest(unittest.TestCase):
         self.write("\\e]0;z\\e\x7f\\")
         self.read()
         self.expect_signal("z")
+        self.write("\\e]0;s\\e\r\\")
+        self.read()
+        self.expect_signal("s")
+        self.assertEqual(0, self.term.term.term_cursor[0])
         self.disconnect_signal("title")
 
     def test_other_controls_are_ignored(self):
@@ -1285,6 +1290,10 @@ class TermTest(unittest.TestCase):
             ("OSC palette set cut short by a CSI", (80, 24), r"ab\e]Pabcdef\e[1GX", "Xb"),
             ("ESC inside a CSI sequence starts a new one", (80, 24), r"ab\e[3\e[1GX", "Xb"),
             ("C1 CSI is displayed in display control mode", (80, 24), "\\e[3hab\x9bc", "ab\x9bc"),
+            ("HT is displayed in display control mode", (80, 24), "\\e[3ha\tb", "a\tb"),
+            ("display control mode still executes CR and FF", (80, 24), "\\e[3hab\rc\x0cd", "cb\n d"),
+            ("display control mode executes FF inside a CSI", (80, 24), "\\e[3hab\\e[2\x0cCc", "ab\n    c"),
+            ("display control mode executes CR after an ESC", (80, 24), "\\e[3hab\\e\r[1Cc", "ac"),
             ("ESC after an ESC starts a new sequence", (80, 24), r"ab\e\e[1GX", "Xb"),
             ("ESC inside ESC % starts a new sequence", (80, 24), r"ab\e%\e[1GX", "Xb"),
             ("ESC inside ESC ( starts a new sequence", (4, 2), r"\e(\e#8", "EEEE\nEEEE"),
