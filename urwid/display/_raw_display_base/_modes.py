@@ -29,7 +29,13 @@ import typing
 from urwid import util
 from urwid.display import escape
 from urwid.display._raw_display_base._attributes import _AttributesScreen
-from urwid.display._raw_display_base._detection import _is_linux_console, _rejects_osc
+from urwid.display._raw_display_base._detection import (
+    _QUERIED_CAPABILITIES,
+    _is_linux_console,
+    _properties_from_capabilities,
+    _rejects_osc,
+    _underline_styles_from_version,
+)
 from urwid.display.common import (
     AttrSpec,
 )
@@ -43,7 +49,16 @@ if typing.TYPE_CHECKING:
     _KeyboardProtocolReport = tuple[typing.Literal["keyboard protocol report"], int]
     _ModifyKeysReport = tuple[typing.Literal["modify keys report"], int, int | None]
     _DeviceAttributesReport = tuple[typing.Literal["device attributes"], tuple[int, ...]]
-    _TerminalReport = _PrivateModeReport | _KeyboardProtocolReport | _ModifyKeysReport | _DeviceAttributesReport
+    _TerminalVersionReport = tuple[typing.Literal["terminal version"], str]
+    _TerminalCapabilitiesReport = tuple[typing.Literal["terminal capabilities"], tuple[tuple[str, str | None], ...]]
+    _TerminalReport = (
+        _PrivateModeReport
+        | _KeyboardProtocolReport
+        | _ModifyKeysReport
+        | _DeviceAttributesReport
+        | _TerminalVersionReport
+        | _TerminalCapabilitiesReport
+    )
     _WindowSizeReport = tuple[typing.Literal["window size report"], int, int]
     _DecodedInput = list[str | _MouseInput | _CursorPosition]
 
@@ -98,6 +113,9 @@ class _ModesScreen(_AttributesScreen):  # pylint: disable=abstract-method  # a p
         Replies are recognized later, during normal `parse_input()`
         (see `escape.KeyqueueTrie.read_private_mode_report`, `_apply_terminal_reports()`).
         With ``extended_keys``, the kitty keyboard protocol and modifyOtherKeys are queried as well, once.
+        Until the terminal has answered them, the terminal's version (XTVERSION) and its colour and underline style
+        capabilities (XTGETTCAP) are queried as well,
+        unless the application set both properties itself or the terminal is the Linux console.
         """
         if not self._is_real_terminal():
             return
@@ -121,11 +139,25 @@ class _ModesScreen(_AttributesScreen):  # pylint: disable=abstract-method  # a p
         # a late reply to a query of an earlier start describes the same terminal, so it may answer the new query
         self._mode_queries_pending = set(modes)
         queries = "".join(mode.query for mode in modes)
+        # A terminal ignores a query it does not know, and answers Primary DA in the order it reads the queries,
+        # so a query that has no reply by the time the Primary DA reply arrives is one the terminal does not answer.
+        ends_with_device_attributes = False
         if self.extended_keys and self.modes.kitty_keyboard is None and not self._keyboard_query_pending:
-            # A terminal ignores a query it does not know, and answers Primary DA in the order it reads the queries,
-            # so a protocol that has no reply by the time the Primary DA reply arrives is not supported.
-            queries += escape.KITTY_KEYBOARD_QUERY + escape.MODIFY_OTHER_KEYS_QUERY + escape.REPORT_DEVICE_ATTRIBUTES
+            queries += escape.KITTY_KEYBOARD_QUERY + escape.MODIFY_OTHER_KEYS_QUERY
             self._keyboard_query_pending = True
+            ends_with_device_attributes = True
+        # the Linux console answers neither query, and nothing it draws depends on them
+        if (
+            not (self._capabilities_answered or self._capability_query_pending)
+            and not self._properties_set.issuperset(("colors", "underline_styles"))
+            and not _is_linux_console(self.term)
+        ):
+            queries += escape.REPORT_TERMINAL_VERSION
+            queries += "".join(escape.request_capability(name) for name in _QUERIED_CAPABILITIES)
+            self._capability_query_pending = True
+            ends_with_device_attributes = True
+        if ends_with_device_attributes:
+            queries += escape.REPORT_DEVICE_ATTRIBUTES
         self.write(queries)
         self.flush()
 
@@ -210,7 +242,7 @@ class _ModesScreen(_AttributesScreen):  # pylint: disable=abstract-method  # a p
         self,
         decoded_codes: list[str | _MouseInput | _CursorPosition | _TerminalReport | _WindowSizeReport],
     ) -> list[str | _MouseInput | _CursorPosition | _WindowSizeReport]:
-        """Apply the query replies among *decoded_codes* to `self.modes` and strip them out.
+        """Apply the query replies among *decoded_codes* to the modes and terminal properties, and strip them out.
 
         A reply counts only as the answer to a query urwid sent and has no answer for yet.
         Any other reply is dropped without effect, so input that only looks like a reply cannot change the modes.
@@ -218,6 +250,8 @@ class _ModesScreen(_AttributesScreen):  # pylint: disable=abstract-method  # a p
         - A private mode report counts once for each mode queried.
         - A keyboard protocol reply counts between the keyboard protocol queries and the Primary DA reply sent
           after them.
+        - A terminal version or capabilities reply counts the same way after the capability queries.
+          It only raises the colour count and turns the underline styles on, see `_raise_terminal_properties()`.
         """
         logger = self.logger.getChild("terminal_reports")
         filtered: list[str | _MouseInput | _CursorPosition | _WindowSizeReport] = []
@@ -236,10 +270,16 @@ class _ModesScreen(_AttributesScreen):  # pylint: disable=abstract-method  # a p
                     reports.append((mode, value))
                 case ("private mode report", *_):
                     logger.debug(f"Dropped a reply to a query urwid has no answer pending for: {item!r}")
-                case ("keyboard protocol report" | "modify keys report" | "device attributes", *_) if (
-                    not self._keyboard_query_pending
-                ):
+                case ("keyboard protocol report" | "modify keys report", *_) if not self._keyboard_query_pending:
                     logger.debug(f"Dropped a reply to a query urwid has no answer pending for: {item!r}")
+                case ("terminal version" | "terminal capabilities", *_) if not self._capability_query_pending:
+                    logger.debug(f"Dropped a reply to a query urwid has no answer pending for: {item!r}")
+                case ("device attributes", *_) if not (self._keyboard_query_pending or self._capability_query_pending):
+                    logger.debug(f"Dropped a reply to a query urwid has no answer pending for: {item!r}")
+                case ("terminal version", str() as version):
+                    self._raise_terminal_properties(None, _underline_styles_from_version(version))
+                case ("terminal capabilities", capabilities):
+                    self._raise_terminal_properties(*_properties_from_capabilities(capabilities))
                 case ("keyboard protocol report", _flags):
                     self.modes.kitty_keyboard = True
                 case ("modify keys report", escape.MODIFY_OTHER_KEYS_RESOURCE, value):
@@ -248,11 +288,15 @@ class _ModesScreen(_AttributesScreen):  # pylint: disable=abstract-method  # a p
                 case ("modify keys report", *_):
                     pass  # another key modifier resource, which urwid did not query
                 case ("device attributes", _attributes):
-                    # the Primary DA reply that ends the answers to the keyboard protocol queries
-                    self._keyboard_query_pending = False
-                    self.modes.kitty_keyboard = bool(self.modes.kitty_keyboard)
-                    self.modes.modify_other_keys = bool(self.modes.modify_other_keys)
-                    self._enable_keyboard_protocol()
+                    # the Primary DA reply that ends the answers to the queries sent before it
+                    if self._capability_query_pending:
+                        self._capability_query_pending = False
+                        self._capabilities_answered = True
+                    if self._keyboard_query_pending:
+                        self._keyboard_query_pending = False
+                        self.modes.kitty_keyboard = bool(self.modes.kitty_keyboard)
+                        self.modes.modify_other_keys = bool(self.modes.modify_other_keys)
+                        self._enable_keyboard_protocol()
                 case _:
                     filtered.append(item)
 
@@ -292,7 +336,7 @@ class _ModesScreen(_AttributesScreen):  # pylint: disable=abstract-method  # a p
         """Restore the keyboard protocol state `_enable_keyboard_protocol()` changed, as the screen stops.
 
         Replies not read by then can be lost, as a POSIX stop discards the pending input, so queries still waiting for
-        them are sent again on the next start.
+        them, the capability queries included, are sent again on the next start.
         """
         if self._keyboard_protocol_enabled == "kitty":
             self.write(escape.KITTY_KEYBOARD_POP)
@@ -300,6 +344,7 @@ class _ModesScreen(_AttributesScreen):  # pylint: disable=abstract-method  # a p
             self.write(escape.set_modify_other_keys(self._modify_other_keys_reported))
         self._keyboard_protocol_enabled = None
         self._keyboard_query_pending = False
+        self._capability_query_pending = False
 
     def _drop_past_end_mouse_events(self, codes: _DecodedInput) -> _DecodedInput:
         """Drop the mouse events at a position an X10 report cannot carry, when the terminal has no SGR reports.

@@ -1833,6 +1833,33 @@ class UnderlineStylesDetectionTest(unittest.TestCase):
             with self.subTest(len(data)), self.assertRaises(ValueError):
                 _raw_display_base._parse_terminfo_extended_names(data)
 
+    def test_terminal_version_replies(self) -> None:
+        """Turn the styles on for a terminal's XTVERSION reply at or after its first release that draws them all."""
+        for reply, expected in (
+            ("VTE(7600)", True),
+            ("VTE(6800)", False),
+            ("Konsole 22.12.0", True),
+            ("Konsole 22.08.3", False),
+            ("WezTerm 20240203-110809-5046fc22", True),
+            ("iTerm2 3.6.7", True),
+            ("iTerm2 3.5.10", False),
+            ("ghostty 1.2.0", True),
+            ("ghostty 1.3.0-dev+0123abc", False),
+            ("mintty 3.7.8", True),
+            ("Rio 0.2.33", True),
+            ("foot(1.20.0)", True),
+            ("foot(1.17.2)", False),
+            ("xterm.js(6.1.0)", True),
+            ("XTerm(407)", False),
+            ("contour 0.6.1.7494", False),
+            ("tmux 3.5a", False),
+            ("tmux next-3.9", False),
+            ("X.Org 7.7(407)", False),
+            ("", False),
+        ):
+            with self.subTest(reply):
+                self.assertIs(expected, raw_detection._underline_styles_from_version(reply))
+
     def test_detection(self) -> None:
         """Take the terminfo entry's Smulx or Setulc, or a known terminal version, outside screen and tmux."""
         smulx = _terminfo_entry({"Smulx": b"\x1b[4:%p1%dm"})

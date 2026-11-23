@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import dataclasses
 import errno
 import os
 import signal
@@ -13,6 +14,7 @@ from unittest import mock
 import urwid
 from urwid import signals
 from urwid.display import escape
+from urwid.display._raw_display_base import _detection as raw_detection
 from urwid.display.common import INPUT_DESCRIPTORS_CHANGED
 
 # `_posix_raw_display` (and `fcntl`/`termios`) is not importable on Windows at all, so importing
@@ -1239,6 +1241,8 @@ class TestDetectTerminalModes(unittest.TestCase):
     @mock.patch("os.isatty", return_value=True)
     def test_extended_keys_query_both_protocols_before_primary_da(self, mock_isatty):
         s, written = self._screen_over_pipe(extended_keys=True)
+        # set by the application, so no capability query is sent with the keyboard protocol queries
+        s.set_terminal_properties(colors=s.colors, underline_styles=s.underline_styles)
 
         s._detect_terminal_modes()
 
@@ -1260,6 +1264,7 @@ class TestDetectTerminalModes(unittest.TestCase):
     @mock.patch("os.isatty", return_value=True)
     def test_keyboard_protocols_are_not_queried_without_extended_keys(self, mock_isatty):
         s, written = self._screen_over_pipe()
+        s.set_terminal_properties(colors=s.colors, underline_styles=s.underline_styles)
 
         s._detect_terminal_modes()
 
@@ -1415,6 +1420,146 @@ class TestApplyPrivateModeReports(unittest.TestCase):
                 reply = f"\x1b[?1006;{value}$y\x1b[M".encode()
                 keys, _raw = s.parse_input(None, None, [*reply, 32, 0, 33, ord("a")])
                 self.assertEqual(["a"], keys)
+
+
+def _capabilities_reply(*capabilities: tuple[str, str | None]) -> bytes:
+    """Build the XTGETTCAP reply listing *capabilities*: their value, "" for a boolean one, None for an unknown one."""
+    valid = all(value is not None for _name, value in capabilities)
+    items = ";".join(
+        name.encode().hex() + ("" if not value else "=" + value.encode().hex()) for name, value in capabilities
+    )
+    return f"\x1bP{int(valid)}+r{items}\x1b\\".encode()
+
+
+@unittest.skipIf(IS_WINDOWS, "_posix_raw_display is not importable on Windows (no fcntl/termios/tty)")
+class TestTerminalCapabilities(unittest.TestCase):
+    """The XTVERSION and XTGETTCAP replies raise the colour count and turn the underline styles on."""
+
+    @staticmethod
+    def _screen(*, colors: int = 16, query: bool = True) -> Screen:
+        s = _make_screen()
+        # as if detected, so the replies may raise them
+        s._terminal_properties = dataclasses.replace(s._terminal_properties, colors=colors, underline_styles=False)
+        s.write = lambda data: None
+        s.flush = lambda: None
+        if query:
+            _send_mode_queries(s)
+        return s
+
+    def test_queries_end_with_primary_da(self):
+        s = _make_screen()
+        written: list[str] = []
+        s.write = written.append
+        s.flush = lambda: None
+
+        _send_mode_queries(s)
+        _send_mode_queries(s)
+
+        output = "".join(written)
+        capability_queries = escape.REPORT_TERMINAL_VERSION + "".join(
+            escape.request_capability(name) for name in ("colors", "RGB", "Smulx", "Setulc")
+        )
+        self.assertIn(capability_queries + escape.REPORT_DEVICE_ATTRIBUTES, output)
+        # sent once while the answer is pending
+        self.assertEqual(1, output.count(escape.REPORT_TERMINAL_VERSION))
+
+    def test_no_query_when_the_application_set_both_properties(self):
+        s = _make_screen()
+        s.colors = 256
+        s.set_terminal_properties(underline_styles=False)
+        written: list[str] = []
+        s.write = written.append
+        s.flush = lambda: None
+
+        _send_mode_queries(s)
+
+        self.assertNotIn(escape.REPORT_TERMINAL_VERSION, "".join(written))
+        self.assertNotIn(escape.REPORT_DEVICE_ATTRIBUTES, "".join(written))
+
+    def test_no_query_on_the_linux_console(self):
+        s = _make_screen()
+        s.term = "linux"
+        written: list[str] = []
+        s.write = written.append
+        s.flush = lambda: None
+
+        _send_mode_queries(s)
+
+        self.assertNotIn(escape.REPORT_TERMINAL_VERSION, "".join(written))
+
+    def test_replies_raise_the_detected_properties(self):
+        for label, reply, colors, underline_styles in (
+            ("colors", _capabilities_reply(("colors", "256")), 256, False),
+            ("RGB", _capabilities_reply(("RGB", "")), 2**24, False),
+            ("Smulx", _capabilities_reply(("Smulx", "\x1b[4:%p1%dm")), 16, True),
+            ("Setulc", _capabilities_reply(("Setulc", "\x1b[58:2::%p1%dm")), 16, True),
+            ("unknown capabilities", _capabilities_reply(("RGB", None), ("Smulx", None)), 16, False),
+            ("fewer colours", _capabilities_reply(("colors", "8")), 16, False),
+        ):
+            with self.subTest(label):
+                s = self._screen()
+
+                keys, _raw = s.parse_input(None, None, [*reply, ord("a")])
+
+                self.assertEqual(["a"], keys)
+                self.assertEqual((colors, underline_styles), (s.colors, s.underline_styles))
+
+    def test_terminal_version_turns_the_underline_styles_on(self):
+        s = self._screen()
+        with mock.patch.dict(raw_detection._XTVERSION_UNDERLINE_STYLE_FLOORS, {"term": (1, 2)}):
+            s.parse_input(None, None, list(b"\x1bP>|Term(1.1)\x1b\\"))
+            self.assertFalse(s.underline_styles)
+            s.parse_input(None, None, list(b"\x1bP>|Term(1.2.3)\x1b\\"))
+        self.assertTrue(s.underline_styles)
+
+    def test_a_reply_does_not_lower_or_override(self):
+        s = self._screen(colors=256)
+        s.parse_input(None, None, list(_capabilities_reply(("colors", "88"))))
+        self.assertEqual(256, s.colors)
+
+        s = self._screen()
+        s.set_terminal_properties(colors=16)
+        s.parse_input(None, None, list(_capabilities_reply(("RGB", ""), ("Smulx", ""))))
+        self.assertEqual((16, True), (s.colors, s.underline_styles))
+
+        # the constructor's setting is the application's choice as well
+        read_fd, write_fd = os.pipe()
+        self.addCleanup(os.close, write_fd)
+        s = Screen(
+            input=os.fdopen(read_fd, "rb", buffering=0),
+            output=open(os.devnull, "w"),  # noqa: SIM115
+            underline_styles=False,
+        )
+        s.write = lambda data: None
+        s.flush = lambda: None
+        _send_mode_queries(s)
+        s.parse_input(None, None, list(_capabilities_reply(("Smulx", ""))))
+        self.assertFalse(s.underline_styles)
+
+    def test_only_replies_before_primary_da_count(self):
+        reply = list(_capabilities_reply(("RGB", "")))
+        s = self._screen(query=False)
+        s.parse_input(None, None, reply)
+        self.assertEqual(16, s.colors)
+
+        s = self._screen()
+        keys, _raw = s.parse_input(None, None, [*b"\x1b[?62;22c", *reply])
+        self.assertEqual(([], 16), (keys, s.colors))
+        written: list[str] = []
+        s.write = written.append
+        _send_mode_queries(s)
+        # the terminal answered what it could, so it is not asked again
+        self.assertNotIn(escape.REPORT_TERMINAL_VERSION, "".join(written))
+
+    def test_a_stop_before_the_answer_asks_again(self):
+        s = self._screen()
+        s._disable_keyboard_protocol()
+        written: list[str] = []
+        s.write = written.append
+
+        _send_mode_queries(s)
+
+        self.assertIn(escape.REPORT_TERMINAL_VERSION, "".join(written))
 
 
 @unittest.skipIf(IS_WINDOWS, "_posix_raw_display is not importable on Windows (no fcntl/termios/tty)")

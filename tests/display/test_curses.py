@@ -474,6 +474,8 @@ class CursesGetInputTest(unittest.TestCase):
             ("keyboard protocol report", "\x1b[?1u"),
             ("modify keys report", "\x1b[>4;2m"),
             ("device attributes", "\x1b[?62;22c"),
+            ("terminal version", "\x1bP>|XTerm(390)\x1b\\"),
+            ("terminal capabilities", "\x1bP1+r524742\x1b\\"),
         ):
             with self.subTest(label):
                 screen = curses_display.Screen()
