@@ -115,7 +115,8 @@ class _RectanglesCanvas(_EditingCanvas):
         """Return the rectangle the parameters Pt ; Pl ; Pb ; Pr of a VT420 rectangular area sequence select.
 
         A missing or zero parameter selects the edge of the page, and a parameter past the edge selects the edge.
-        In origin mode the rows count from the top margin and stop at the bottom margin, as in xterm.
+        In origin mode the rows count from the top margin and stop at the bottom margin, and the columns count from the
+        left margin and stop at the right margin, as in xterm.
 
         :returns: the 0-based top row, left column, bottom row and right column, all included, or None for a rectangle
             whose top is below its bottom or whose left is right of its right.
@@ -123,12 +124,14 @@ class _RectanglesCanvas(_EditingCanvas):
         top, left, bottom, right = (*params, None, None, None, None)[:4]
         if self.modes.constrain_scrolling:
             first, last = self.scrollregion_start, self.scrollregion_end
+            first_col, last_col = self.margin_left, self.margin_right
         else:
             first, last = 0, self.height - 1
+            first_col, last_col = 0, self.width - 1
         top_row = min(first + (top or 1) - 1, last)
         bottom_row = last if not bottom else min(first + bottom - 1, last)
-        left_col = min((left or 1) - 1, self.width - 1)
-        right_col = self.width - 1 if not right else min(right - 1, self.width - 1)
+        left_col = min(first_col + (left or 1) - 1, last_col)
+        right_col = last_col if not right else min(first_col + right - 1, last_col)
         if top_row > bottom_row or left_col > right_col:
             return None
         return top_row, left_col, bottom_row, right_col
@@ -335,38 +338,44 @@ class _RectanglesCanvas(_EditingCanvas):
     def csi_insert_columns(self, params: Sequence[int | None]) -> None:
         """Insert blank columns at the cursor column in the scrolling region (DECIC, CSI Ps ' }).
 
-        Nothing happens while the cursor is outside the scrolling region.
+        The columns up to the right margin move, and those pushed past it are dropped.
+        Nothing happens while the cursor is outside the scrolling region or the left and right margins.
         """
         x, y = self.term_cursor
-        if self.scrollregion_start <= y <= self.scrollregion_end:
+        if self.scrollregion_start <= y <= self.scrollregion_end and self.margin_left <= x <= self.margin_right:
             for row in range(self.scrollregion_start, self.scrollregion_end + 1):
                 self.insert_chars((x, row), chars=params[0] or 1)
 
     def csi_delete_columns(self, params: Sequence[int | None]) -> None:
         """Delete columns at the cursor column in the scrolling region (DECDC, CSI Ps ' ~).
 
-        Nothing happens while the cursor is outside the scrolling region.
+        The columns up to the right margin move, and blank ones fill the place before it.
+        Nothing happens while the cursor is outside the scrolling region or the left and right margins.
         """
         x, y = self.term_cursor
-        if self.scrollregion_start <= y <= self.scrollregion_end:
+        if self.scrollregion_start <= y <= self.scrollregion_end and self.margin_left <= x <= self.margin_right:
             for row in range(self.scrollregion_start, self.scrollregion_end + 1):
                 self.remove_chars((x, row), chars=params[0] or 1)
 
     def back_index(self) -> None:
-        """Move the cursor one column left, or at the left edge insert a blank column there (DECBI)."""
+        """Move the cursor one column left, or at the left margin insert a blank column there (DECBI)."""
         x, y = self.term_cursor
-        if x > 0:
-            self.set_term_cursor(x - 1, y)
-        else:
+        if x == self.margin_left:
             self.csi_insert_columns([1])
+        elif x > 0:
+            self.set_term_cursor(x - 1, y)
         self.is_rotten_cursor = False
 
     def forward_index(self) -> None:
-        """Move the cursor one column right, or at the right edge delete the leftmost column (DECFI)."""
+        """Move the cursor one column right, or at the right margin delete the column at the left margin (DECFI).
+
+        Right of the right margin, the cursor stops at the screen's right edge.
+        A pending wrap stays, as in xterm.
+        """
         x, y = self.term_cursor
-        if x < self.width - 1:
+        if x == self.margin_right:
+            if self.scrollregion_start <= y <= self.scrollregion_end:
+                for row in range(self.scrollregion_start, self.scrollregion_end + 1):
+                    self.remove_chars((self.margin_left, row))
+        elif x < self.width - 1:
             self.set_term_cursor(x + 1, y)
-        elif self.scrollregion_start <= y <= self.scrollregion_end:
-            for row in range(self.scrollregion_start, self.scrollregion_end + 1):
-                self.remove_chars((0, row))
-        self.is_rotten_cursor = False

@@ -80,8 +80,12 @@ else:
 _UNDERLINE_CURSOR_STYLES: typing.Final = frozenset((3, 4))
 
 
-#: the conformance levels DECSCL selects: VT100 (61), VT200 (62) and VT300 (63), the highest and the startup one
-_CONFORMANCE_LEVELS: typing.Final = range(61, 64)
+#: the conformance levels DECSCL selects: VT100 (61), VT200 (62), VT300 (63) and VT400 (64), the highest and the startup
+#: one
+_CONFORMANCE_LEVELS: typing.Final = range(61, 65)
+
+#: the conformance level from which DECLRMM sets the left and right margins: VT400, as in xterm
+_LEFT_RIGHT_MARGIN_LEVEL: typing.Final = 64
 
 
 @dataclass(slots=True, weakref_slot=True)
@@ -121,6 +125,8 @@ class _ScreenCanvas(Canvas):
         "has_focus",
         "height",
         "is_rotten_cursor",
+        "margin_left",
+        "margin_right",
         "modes",
         "protected",
         "saved_attrs",
@@ -207,8 +213,12 @@ class _ScreenCanvas(Canvas):
 
         self.scrollregion_start = 0
         self.scrollregion_end = self.height - 1
+        #: the left and right margins DECSLRM set, 0-based columns included; the screen's edges while DECLRMM is reset
+        self.margin_left = 0
+        self.margin_right = self.width - 1
 
-        #: the conformance level DECSCL selected, 61 to 63: at 61 the VT300 reports are not answered
+        #: the conformance level DECSCL selected, 61 to 64: at 61 the VT300 reports are not answered, and below 64 the
+        #: left and right margins cannot be set
         self.conformance_level = _CONFORMANCE_LEVELS[-1]
 
         self.tabstops: list[int] = []
@@ -224,13 +234,17 @@ class _ScreenCanvas(Canvas):
         """Set terminal cursor to x/y and update canvas cursor.
 
         If one or both axes are omitted, use the values of the current position.
+        In origin mode the cursor stays within the left and right margins too.
         """
         if x is None:
             x = self.term_cursor[0]
         if y is None:
             y = self.term_cursor[1]
 
-        self.term_cursor = x, y = self.constrain_coords(x, y)
+        x, y = self.constrain_coords(x, y)
+        if self.modes.constrain_scrolling:
+            x = min(max(x, self.margin_left), self.margin_right)
+        self.term_cursor = x, y
 
         # with a cursor style set, content() draws the cursor and the display shows none
         self.cursor = self._shown_cursor() if self.modes.cursor_style is None else None
@@ -246,6 +260,18 @@ class _ScreenCanvas(Canvas):
         """Reset scrolling region to full terminal size."""
         self.scrollregion_start = 0
         self.scrollregion_end = self.height - 1
+
+    def reset_margins(self) -> None:
+        """Set the left and right margins to the screen's edges."""
+        self.margin_left = 0
+        self.margin_right = self.width - 1
+
+    def right_edge(self, x: int) -> int:
+        """Return the last column the cursor at column *x* reaches.
+
+        It is the right margin, or the screen's right edge for a cursor right of the margin.
+        """
+        return self.margin_right if x <= self.margin_right else self.width - 1
 
     def scroll_buffer(self, up: bool = True, reset: bool = False, lines: int | None = None) -> None:
         """Scroll the scrolling buffer up (up=True) or down (up=False) the given amount of lines.
@@ -279,6 +305,7 @@ class _ScreenCanvas(Canvas):
         """Reset the terminal to its startup state on the main screen.
 
         The main screen is cleared. It keeps its scrollback. The alternate screen is replaced by a blank one.
+        The conformance level DECSCL selected stays, as in xterm.
         """
         if self.modes.alternate_screen:
             self._swap_screens()
@@ -300,10 +327,9 @@ class _ScreenCanvas(Canvas):
         self._last_graphic = self._repeat_graphic = None
 
         self.reset_scroll()
+        self.reset_margins()
 
         self.init_tabstops()
-
-        self.conformance_level = _CONFORMANCE_LEVELS[-1]
 
         # terminal modes
         self.modes.reset()
@@ -461,6 +487,7 @@ class _ScreenCanvas(Canvas):
         self.height = height
 
         self.reset_scroll()
+        self.reset_margins()
         if self.scrolling_up:
             # the lines moved into the scrollback, or taken back from it, would otherwise move the view
             self.scrolling_up = max(0, min(self.scrolling_up - shift, len(self.scrollback_buffer)))
@@ -618,7 +645,12 @@ class _ScreenCanvas(Canvas):
         The removed line goes into the scrollback buffer when the region starts at the top row, as in xterm.
         A region below the top row drops it, and so does a scroll without *scrollback*.
         If reverse is True, do exactly the opposite, but don't save into scrollback buffer.
+        With left and right margins inside the screen, only the cells between them scroll, and nothing goes into the
+        scrollback buffer, as in xterm.
         """
+        if self.margin_left or self.margin_right < self.width - 1:
+            self._shift_between_margins(self.scrollregion_start, self.scrollregion_end, -1 if reverse else 1)
+            return
         if reverse:
             self.term.pop(self.scrollregion_end)
             self.term.insert(self.scrollregion_start, self.empty_line())
@@ -632,11 +664,34 @@ class _ScreenCanvas(Canvas):
                 # the view moves up with the lines it shows
                 self.scrolling_up = min(self.scrolling_up + 1, len(self.scrollback_buffer))
 
+    def _shift_between_margins(self, top: int, bottom: int, lines: int) -> None:
+        """Move the cells between the left and right margins in rows *top* to *bottom* up by *lines* rows.
+
+        A negative *lines* moves them down.
+        The cells left behind between the margins become blank.
+        """
+        left, right = self.margin_left, self.margin_right
+        rows = [self.term[y][left : right + 1] for y in range(top, bottom + 1)]
+        count = min(abs(lines), len(rows))
+        blanks = [[self.empty_char()] * (right - left + 1)] * count
+        rows = [*rows[count:], *blanks] if lines > 0 else [*blanks, *rows[: len(rows) - count]]
+        for y, cells in enumerate(rows, top):
+            line = self.term[y]
+            line[left : right + 1] = cells
+            _mend_wide(line, left)
+            _mend_wide(line, right + 1)
+
     def decaln(self) -> None:
-        """DEC screen alignment test: fill the screen with E's, without attributes and in ASCII, as xterm does."""
+        """DEC screen alignment test: fill the screen with E's, without attributes and in ASCII, as xterm does.
+
+        As in xterm, the left and right margins are reset and the cursor moves home.
+        """
         cell: tuple[AttrSpec | None, Literal["0", "U"] | None, bytes] = (None, None, b"E")
         for row in range(self.height):
             self.term[row] = [cell] * self.width
+        self.reset_margins()
+        self.set_term_cursor(0, 0)
+        self.is_rotten_cursor = False
 
     def blank_line(self, row: int) -> None:
         """Blank a single line at the specified row, without modifying other lines."""
@@ -654,6 +709,7 @@ class _ScreenCanvas(Canvas):
 
         Defaults to the current position if 'position' is not specified,
         pushing subsequent characters of the line to the right without wrapping.
+        The characters pushed past :meth:`right_edge` are dropped, as in xterm.
         With *dec_special*, 'char' is stored in the DEC special character set instead of the active one.
         """
         if position is None:
@@ -671,18 +727,20 @@ class _ScreenCanvas(Canvas):
 
         x, y = position
         line = self.term[y]
-        chars = min(chars, self.width - x)
+        right = self.right_edge(x)
+        chars = min(chars, right + 1 - x)
         line[x:x] = [char_spec] * chars
-        del line[self.width :]
+        del line[right + 1 : right + 1 + chars]
         _mend_wide(line, x)
         _mend_wide(line, x + chars)
-        _mend_wide(line, self.width)
+        _mend_wide(line, right + 1)
 
     def remove_chars(self, position: tuple[int, int] | None = None, chars: int = 1) -> None:
         """Remove 'chars' number of empty characters from 'position'.
 
         Defaults to the current position if 'position' is not specified,
         pulling subsequent characters of the line to the left without joining any subsequent lines.
+        The characters up to :meth:`right_edge` move, and blanks fill the cells left before it, as in xterm.
         """
         if position is None:
             position = self.term_cursor
@@ -691,18 +749,25 @@ class _ScreenCanvas(Canvas):
             chars = 1
 
         x, y = position
-        chars = min(chars, self.width - x)
+        right = self.right_edge(x)
+        chars = min(chars, right + 1 - x)
         line = self.term[y]
         del line[x : x + chars]
-        line += [self.empty_char()] * chars
+        line[right + 1 - chars : right + 1 - chars] = [self.empty_char()] * chars
         _mend_wide(line, x)
+        _mend_wide(line, right + 1 - chars)
+        _mend_wide(line, right + 1)
 
     def insert_lines(self, row: int | None = None, lines: int = 1) -> None:
         """Insert 'lines' empty lines at 'row', or the cursor row, pushing the lines below down the scrolling region.
 
         Lines pushed past the bottom of the scrolling region are dropped.
         Nothing happens when the row is outside the scrolling region.
+        At the cursor row, as IL, the cursor moves to the left margin and a pending wrap ends, as in xterm, and
+        nothing happens while the cursor is outside the left and right margins.
+        With left and right margins inside the screen, only the cells between them move.
         """
+        at_cursor = row is None
         if row is None:
             row = self.term_cursor[1]
 
@@ -710,6 +775,16 @@ class _ScreenCanvas(Canvas):
             lines = 1
 
         if not self.scrollregion_start <= row <= self.scrollregion_end:
+            return
+
+        if at_cursor:
+            if not self.margin_left <= self.term_cursor[0] <= self.margin_right:
+                return
+            self.set_term_cursor(self.margin_left, row)
+            self.is_rotten_cursor = False
+
+        if self.margin_left or self.margin_right < self.width - 1:
+            self._shift_between_margins(row, self.scrollregion_end, -lines)
             return
 
         for _ in range(min(lines, self.scrollregion_end - row + 1)):
@@ -721,7 +796,11 @@ class _ScreenCanvas(Canvas):
 
         Empty lines fill the bottom of the scrolling region.
         Nothing happens when the row is outside the scrolling region.
+        At the cursor row, as DL, the cursor moves to the left margin and a pending wrap ends, as in xterm, and
+        nothing happens while the cursor is outside the left and right margins.
+        With left and right margins inside the screen, only the cells between them move.
         """
+        at_cursor = row is None
         if row is None:
             row = self.term_cursor[1]
 
@@ -729,6 +808,16 @@ class _ScreenCanvas(Canvas):
             lines = 1
 
         if not self.scrollregion_start <= row <= self.scrollregion_end:
+            return
+
+        if at_cursor:
+            if not self.margin_left <= self.term_cursor[0] <= self.margin_right:
+                return
+            self.set_term_cursor(self.margin_left, row)
+            self.is_rotten_cursor = False
+
+        if self.margin_left or self.margin_right < self.width - 1:
+            self._shift_between_margins(row, self.scrollregion_end, lines)
             return
 
         for _ in range(min(lines, self.scrollregion_end - row + 1)):

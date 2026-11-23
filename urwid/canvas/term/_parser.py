@@ -125,13 +125,13 @@ CSI_COMMANDS: dict[bytes, CSIAlias | CSICommand] = {
     #
     # while callback is executed as:
     #     callback(<instance of TermCanvas>, arguments, has_question_mark)
-    b"@": CSICommand(1, 1, lambda s, number, q: s.insert_chars(chars=number[0])),
+    b"@": CSICommand(1, 1, lambda s, number, q: s.csi_insert_chars(number[0])),
     b"A": CSICommand(1, 1, lambda s, rows, q: s.move_cursor(0, -rows[0], relative=True)),
     b"B": CSICommand(1, 1, lambda s, rows, q: s.move_cursor(0, rows[0], relative=True)),
     b"C": CSICommand(1, 1, lambda s, cols, q: s.move_cursor(cols[0], 0, relative=True)),
     b"D": CSICommand(1, 1, lambda s, cols, q: s.move_cursor(-cols[0], 0, relative=True)),
-    b"E": CSICommand(1, 1, lambda s, rows, q: s.move_cursor(0, rows[0], relative_y=True)),
-    b"F": CSICommand(1, 1, lambda s, rows, q: s.move_cursor(0, -rows[0], relative_y=True)),
+    b"E": CSICommand(1, 1, lambda s, rows, q: s.csi_cursor_next_line(rows[0])),
+    b"F": CSICommand(1, 1, lambda s, rows, q: s.csi_cursor_next_line(-rows[0])),
     b"G": CSICommand(1, 1, lambda s, col, q: s.move_cursor(col[0] - 1, 0, relative_y=True)),
     b"H": CSICommand(2, 1, lambda s, x_y, q: s.move_cursor(x_y[1] - 1, x_y[0] - 1)),
     b"I": CSICommand(1, 1, lambda s, count, _q: s.csi_forward_tab(count[0])),
@@ -139,7 +139,7 @@ CSI_COMMANDS: dict[bytes, CSIAlias | CSICommand] = {
     b"K": CSICommand(1, 0, lambda s, mode, q: s.csi_erase_line(mode[0], selective=q or s.modes.iso_protection)),
     b"L": CSICommand(1, 1, lambda s, number, q: s.insert_lines(lines=number[0])),
     b"M": CSICommand(1, 1, lambda s, number, q: s.remove_lines(lines=number[0])),
-    b"P": CSICommand(1, 1, lambda s, number, q: s.remove_chars(chars=number[0])),
+    b"P": CSICommand(1, 1, lambda s, number, q: s.csi_delete_chars(number[0])),
     b"S": CSICommand(1, 1, lambda s, lines, q: s.csi_scroll(lines[0])),
     # SD (CSI Ps T) is run in parse_csi, which sees whether its parameter is 0
     b"T": CSICommand(0, 0, lambda s, none, q: None),
@@ -155,7 +155,7 @@ CSI_COMMANDS: dict[bytes, CSIAlias | CSICommand] = {
         ),
     ),
     b"Z": CSICommand(1, 1, lambda s, count, _q: s.csi_backward_tab(count[0])),
-    b"a": CSIAlias("alias", b"C"),
+    b"a": CSICommand(1, 1, lambda s, cols, _q: s.csi_character_position_relative(cols[0])),
     b"b": CSICommand(1, 1, lambda s, count, _q: s.csi_repeat(count[0])),
     b"c": CSICommand(0, 0, lambda s, none, q: s.csi_get_device_attributes(q)),
     b"d": CSICommand(1, 1, lambda s, row, q: s.move_cursor(0, row[0] - 1, relative_x=True)),
@@ -173,14 +173,22 @@ CSI_COMMANDS: dict[bytes, CSIAlias | CSICommand] = {
     b"q": CSICommand(1, 0, lambda s, mode, q: s.csi_set_keyboard_leds(mode[0])),
     b"r": CSICommand(2, 0, lambda s, t_b, q: s.csi_set_scroll(t_b[0], t_b[1])),
     # SCOSC and SCORC save and restore what DECSC and DECRC do, as in xterm and the Linux console
-    b"s": CSICommand(0, 0, lambda s, none, q: s.save_cursor(with_attrs=True)),
+    # DECSLRM while DECLRMM is set, SCOSC otherwise, as in xterm
+    b"s": CSICommand(
+        2,
+        0,
+        lambda s, l_r, q: (
+            s.csi_set_margins(l_r[0], l_r[1]) if s.modes.left_right_margins else s.save_cursor(with_attrs=True)
+        ),
+    ),
     b"u": CSICommand(0, 0, lambda s, none, q: s.restore_cursor(with_attrs=True)),
     # DECRQPSR (CSI Ps $ w) is answered in parse_csi, and the other forms are not implemented
     b"w": CSICommand(0, 0, lambda s, none, q: None),
     # the VT420 sequences with an intermediate byte, run in parse_csi from _INTERMEDIATE_COMMANDS: DECRQDE (CSI " v),
     # DECFRA (CSI ... $ x), DECERA (CSI ... $ z), DECSERA (CSI ... $ {), DECCRA (CSI ... $ v), DECCARA (CSI ... $ r),
     # DECRARA (CSI ... $ t), DECSACE (CSI Ps * x), DECRQCRA (CSI ... * y), DECIC (CSI Ps ' }) and DECDC (CSI Ps ' ~);
-    # DECSCA (CSI Ps " q) and DECRQUPSS (CSI & u) are run there too
+    # DECSCA (CSI Ps " q), DECRQUPSS (CSI & u), DECSCUSR (CSI Ps SP q), and SL and SR (CSI Ps SP @, CSI Ps SP A) are
+    # run there too
     b"t": CSICommand(1, 0, lambda s, operation, q: s.csi_report_window(operation[0])),
     b"v": CSICommand(0, 0, lambda s, none, q: None),
     b"x": CSICommand(0, 0, lambda s, none, q: None),
@@ -662,9 +670,9 @@ class TermCanvas(_ReportsCanvas, _RectanglesCanvas, _ModesCanvas, _VTParser[byte
                 self.carriage_return()
         elif code == 0x09:  # char tab
             self.tab()
-        elif code == 0x08:  # backspace BS
+        elif code == 0x08:  # backspace BS, which stops at the left margin, as in xterm
             x, y = self.term_cursor
-            if x > 0:
+            if x > 0 and x != self.margin_left:
                 self.set_term_cursor(x - 1, y)
             self.is_rotten_cursor = False
         elif code == 0x07:  # BEL, which ends an OSC string instead of reaching this hook there
@@ -742,6 +750,8 @@ _INTERMEDIATE_COMMANDS: typing.Final[Mapping[tuple[bytes, bytes], Callable[[Term
             (b"'", b"}"): TermCanvas.csi_insert_columns,
             (b"'", b"~"): TermCanvas.csi_delete_columns,
             (b" ", b"q"): TermCanvas.csi_set_cursor_style,
+            (b" ", b"@"): TermCanvas.csi_shift_columns,
+            (b" ", b"A"): lambda canvas, params: canvas.csi_shift_columns(params, right=True),
         }
     )
 )

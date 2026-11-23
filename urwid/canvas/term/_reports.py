@@ -28,6 +28,7 @@ import typing
 from urwid.ansi_parser import led_state
 from urwid.canvas.term._cells import _RENDITION_BITS
 from urwid.canvas.term._editing import _EditingCanvas
+from urwid.canvas.term._screen import _LEFT_RIGHT_MARGIN_LEVEL
 from urwid.display import _sgr
 from urwid.display.escape import CSI, DCS, ST
 
@@ -37,10 +38,11 @@ if typing.TYPE_CHECKING:
     from urwid.display import AttrSpec
 
 
-#: the Primary DA reply: a VT320 (63) with selective erase (6) and ANSI colour (22)
-_PRIMARY_DEVICE_ATTRIBUTES: typing.Final = f"{CSI}?63;6;22c"
-#: the Secondary DA reply, as a VT320 sends it: the VT320 (24), firmware version 1.0 (10), no ROM cartridge (0)
-_SECONDARY_DEVICE_ATTRIBUTES: typing.Final = f"{CSI}>24;10;0c"
+#: the Primary DA reply: a VT420 (64) with selective erase (6), horizontal scrolling (21), ANSI colour (22) and
+#: rectangular editing (28); xterm sends it at every conformance level
+_PRIMARY_DEVICE_ATTRIBUTES: typing.Final = f"{CSI}?64;6;21;22;28c"
+#: the Secondary DA reply, as a VT420 sends it: the VT420 (41), firmware version 1.0 (10), no ROM cartridge (0)
+_SECONDARY_DEVICE_ATTRIBUTES: typing.Final = f"{CSI}>41;10;0c"
 
 #: the Tertiary DA reply (DECRPTUI): the unit ID, zero as in xterm
 _TERTIARY_DEVICE_ATTRIBUTES: typing.Final = f"{DCS}!|00000000{ST}"
@@ -142,9 +144,9 @@ class _ReportsCanvas(_EditingCanvas):
             case b"$|":
                 # DECSCPP: the columns per page
                 setting = f"{self.width:d}$|"
-            case b"s":
-                # DECSLRM: the left and right margins, the screen's edges, since DECLRMM cannot be set
-                setting = f"1;{self.width:d}s"
+            case b"s" if self.conformance_level >= _LEFT_RIGHT_MARGIN_LEVEL:
+                # DECSLRM: the left and right margins, a VT420 setting, as in xterm
+                setting = f"{self.margin_left + 1:d};{self.margin_right + 1:d}s"
             case b"*|":
                 # DECSNLS: the lines per screen
                 setting = f"{self.height:d}*|"
@@ -324,7 +326,8 @@ class _ReportsCanvas(_EditingCanvas):
         :param mode: the report asked for:
 
             - 5, the device status report: the terminal is OK;
-            - 6, the cursor position report, with the row counted from the top margin in origin mode, as CUP takes it.
+            - 6, the cursor position report, with the row and the column counted from the top and left margins in
+              origin mode, as CUP takes them.
         :param private: the DEC form, ``CSI ? Ps n``, was sent.
             Its cursor position report (DECXCPR) adds page 1, and it also answers 15 (no printer), 25 (user-defined
             keys unlocked) and 26 (a North American keyboard, ready, an LK201).
@@ -335,6 +338,7 @@ class _ReportsCanvas(_EditingCanvas):
         elif mode == 6:
             x, y = self.term_cursor
             if self.modes.constrain_scrolling:
+                x -= self.margin_left
                 y -= self.scrollregion_start
             self.widget.respond(f"{CSI}{prefix}{y + 1:d};{x + 1:d}{';1' if private else ''}R")
         elif private and mode in _PRIVATE_STATUS_REPORTS:

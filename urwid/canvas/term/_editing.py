@@ -29,6 +29,9 @@ from urwid.canvas.term._cells import _drawn_width, _mend_wide, _Protected
 from urwid.canvas.term._screen import _ScreenCanvas
 from urwid.str_util import _MAX_CLUSTER_LENGTH, _continues_cluster
 
+if typing.TYPE_CHECKING:
+    from collections.abc import Sequence
+
 #: the largest count REP takes, xterm's largest parameter value; a larger one counts as this
 _MAX_REPEAT: typing.Final = 65535
 
@@ -39,21 +42,28 @@ class _EditingCanvas(_ScreenCanvas):
     __slots__ = ()
 
     def linefeed(self, reverse: bool = False) -> None:
-        """Move the cursor down (or up if reverse is True) one line but don't reset horizontal position."""
+        """Move the cursor down (or up if reverse is True) one line but don't reset horizontal position.
+
+        At the edge of the scrolling region it scrolls the region instead, and does nothing while the cursor is outside
+        the left and right margins, as in xterm.
+        """
         x, y = self.term_cursor
+        inside = self.margin_left <= x <= self.margin_right
 
         if reverse:
             if y <= 0 < self.scrollregion_start:
                 pass
             elif y == self.scrollregion_start:
-                self.scroll(reverse=True)
+                if inside:
+                    self.scroll(reverse=True)
             else:
                 y -= 1
         else:  # noqa: PLR5501  # pylint: disable=else-if-used  # readability
             if y >= self.height - 1 > self.scrollregion_end:
                 pass
             elif y == self.scrollregion_end:
-                self.scroll()
+                if inside:
+                    self.scroll()
             else:
                 y += 1
 
@@ -61,11 +71,12 @@ class _EditingCanvas(_ScreenCanvas):
         self.set_term_cursor(x, y)
 
     def carriage_return(self) -> None:
-        """Move the cursor to column 0 of the current line.
+        """Move the cursor to the left margin, or to column 0 from left of the margin.
 
         A pending wrap ends, as in xterm.
         """
-        self.set_term_cursor(0, self.term_cursor[1])
+        x, y = self.term_cursor
+        self.set_term_cursor(self.margin_left if x >= self.margin_left else 0, y)
         self.is_rotten_cursor = False
 
     def newline(self) -> None:
@@ -85,12 +96,21 @@ class _EditingCanvas(_ScreenCanvas):
 
         If 'relative' is True, x/y is relative to the current cursor position.
         'relative_x' and 'relative_y' is the same but just with the corresponding axis.
+        A relative move along the row stops at the margin when it starts between them, as CUF and CUB do in xterm.
+        In origin mode an absolute column counts from the left margin.
         """
         if relative:
             relative_y = relative_x = True
 
         if relative_x:
-            x += self.term_cursor[0]
+            start = self.term_cursor[0]
+            x += start
+            if x > start:
+                x = min(x, self.right_edge(start))
+            elif x < start:
+                x = max(x, self.margin_left if start >= self.margin_left else 0)
+        elif self.modes.constrain_scrolling:
+            x += self.margin_left
 
         if relative_y:
             y += self.term_cursor[1]
@@ -111,7 +131,8 @@ class _EditingCanvas(_ScreenCanvas):
         if char is not None:
             if not dec_special:
                 char = self.charset.apply_mapping(char)
-            if self.modes.insert:
+            # insert mode inserts only between the margins, and overwrites outside them, as in xterm
+            if self.modes.insert and self.margin_left <= self.term_cursor[0] <= self.margin_right:
                 self.insert_chars(char=char, dec_special=dec_special)
             else:
                 self.set_char(char, dec_special=dec_special)
@@ -131,8 +152,9 @@ class _EditingCanvas(_ScreenCanvas):
         if char is not None:
             self._last_graphic = (char, dec_special, False)
 
+        right = self.right_edge(x)
         if self.modes.autowrap:
-            if x + 1 >= self.width and not self.is_rotten_cursor:
+            if x >= right and not self.is_rotten_cursor:
                 # "rotten cursor" - this is when the cursor gets to the rightmost
                 # position of the screen, the cursor position remains the same but
                 # one last set_char() is allowed for that piece of sh^H^H"border".
@@ -141,23 +163,25 @@ class _EditingCanvas(_ScreenCanvas):
             else:
                 x += 1
 
-                if x >= self.width and self.is_rotten_cursor:
-                    # as a line feed: only the bottom row of the scrolling region scrolls it
+                if x > right and self.is_rotten_cursor:
+                    # as a line feed: only the bottom row of the scrolling region scrolls it, and from inside the
+                    # margins; the next line starts at the left margin, as in xterm
                     if y == self.scrollregion_end:
-                        self.scroll()
+                        if right == self.margin_right:
+                            self.scroll()
                     else:
                         y += 1
 
-                    x = 1
+                    x = self.margin_left + 1
 
-                    self.set_term_cursor(0, y)
+                    self.set_term_cursor(self.margin_left, y)
 
                 self.push_char(char, x, y, dec_special=dec_special)
 
                 self.is_rotten_cursor = False
         else:
             # as in xterm, a write in the last column leaves a pending wrap, which only autowrap acts on
-            self.is_rotten_cursor = x + 1 >= self.width
+            self.is_rotten_cursor = x >= right
             if not self.is_rotten_cursor:
                 x += 1
 
@@ -167,24 +191,27 @@ class _EditingCanvas(_ScreenCanvas):
         """Write a character two columns wide at the cursor and move the cursor past it, as xterm does.
 
         It takes the cursor cell and the one after it, which holds an empty string.
-        A character that does not fit before the right edge moves to the next line first with autowrap, and is dropped
-        without it.
+        A character that does not fit before :meth:`right_edge` moves to the next line first with autowrap, and is
+        dropped without it.
 
         :param char: the character, in urwid's encoding.
         """
         self._last_graphic = (char, False, True)
         x, y = self.term_cursor
-        if self.width < 2 or (not self.modes.autowrap and x + 1 >= self.width):
+        right = self.right_edge(x)
+        if right == self.margin_left or (not self.modes.autowrap and x >= right):
             return
-        if self.modes.autowrap and x + 1 >= self.width:
-            # as a line feed: only the bottom row of the scrolling region scrolls it
+        if self.modes.autowrap and x >= right:
+            # as a line feed: only the bottom row of the scrolling region scrolls it, from inside the margins
             if y == self.scrollregion_end:
-                self.scroll()
+                if right == self.margin_right:
+                    self.scroll()
             else:
                 y += 1
-            self.set_term_cursor(0, y)
+            self.set_term_cursor(self.margin_left, y)
             x, y = self.term_cursor
-        if self.modes.insert:
+            right = self.margin_right
+        if self.modes.insert and self.margin_left <= x <= self.margin_right:
             self.insert_chars(chars=2)
         char = self.charset.apply_mapping(char)
         if self.protected:
@@ -196,8 +223,8 @@ class _EditingCanvas(_ScreenCanvas):
         _mend_wide(line, x + 2)
         self.charset.end_single_shift()
         # in the last two columns the cursor stays on the second half, with a pending wrap
-        self.set_term_cursor(min(x + 2, self.width - 1), y)
-        self.is_rotten_cursor = x + 2 >= self.width
+        self.set_term_cursor(min(x + 2, right), y)
+        self.is_rotten_cursor = x + 2 > right
 
     def combine_char(self, char: bytes, text: str, *, width: int | None = None) -> bool:
         """Join *char* to the character before the cursor when it continues its grapheme cluster.
@@ -233,7 +260,8 @@ class _EditingCanvas(_ScreenCanvas):
         if width is None:
             width = _drawn_width(char)
         x, y = self.term_cursor
-        if not (self.is_rotten_cursor and x == self.width - 1):
+        right = self.right_edge(x)
+        if not (self.is_rotten_cursor and x == right):
             x -= 1
         if x < 0:
             return width == 0
@@ -250,8 +278,8 @@ class _EditingCanvas(_ScreenCanvas):
         if len(held) + len(text) > _MAX_CLUSTER_LENGTH or new_width not in {old_width, 2}:
             return width == 0
         protected = isinstance(cell, _Protected)
-        if new_width != old_width and x + 1 >= self.width:
-            if not self.modes.autowrap or self.width < 2:
+        if new_width != old_width and x >= right:
+            if not self.modes.autowrap or right == self.margin_left:
                 return width == 0
             # as in kitty, the cluster moves to the next line, as a wide character that does not fit does
             line[x] = self.empty_char()
@@ -260,16 +288,16 @@ class _EditingCanvas(_ScreenCanvas):
             self.push_wide_char(joined)
             self._last_graphic = base
             row = self.term[self.term_cursor[1]]
-            row[0] = (attrspec, charset, _Protected(joined) if protected else joined)
-            row[1] = (attrspec, charset, _Protected(b"") if protected else b"")
+            row[self.margin_left] = (attrspec, charset, _Protected(joined) if protected else joined)
+            row[self.margin_left + 1] = (attrspec, charset, _Protected(b"") if protected else b"")
             return True
         if new_width != old_width:
             if self.modes.insert:
                 self.insert_chars((x + 1, y))
             line[x + 1] = (attrspec, charset, _Protected(b"") if protected else b"")
             _mend_wide(line, x + 2)
-            self.set_term_cursor(min(x + 2, self.width - 1), y)
-            self.is_rotten_cursor = x + 2 >= self.width
+            self.set_term_cursor(min(x + 2, right), y)
+            self.is_rotten_cursor = x + 2 > right
         line[x] = (attrspec, charset, _Protected(joined) if protected else joined)
         return True
 
@@ -277,6 +305,7 @@ class _EditingCanvas(_ScreenCanvas):
         """Move cursor to the next 'tabstop', leaving the cells it passes unchanged.
 
         As in xterm, a pending wrap stays, and the cursor does not move.
+        As in xterm too, the cursor stops at the right margin, also when it starts right of it.
         """
         if self.is_rotten_cursor:
             return
@@ -287,6 +316,7 @@ class _EditingCanvas(_ScreenCanvas):
 
             if self.is_tabstop(x):
                 break
+        x = min(x, self.margin_right)
 
         self.is_rotten_cursor = False
         self.set_term_cursor(x, y)
@@ -325,8 +355,8 @@ class _EditingCanvas(_ScreenCanvas):
           another control function or another REP;
         - the count is at most 65535.
 
-        Once a screen and one more line are written, every full line of copies more leaves the screen as it was, so the
-        count is reduced past that by whole lines.
+        Once a first line, a screen and one more line are written, every full line of copies more leaves the screen as
+        it was, so the count is reduced past that by whole lines, which run between the left and right margins.
         The screen and the cursor end as with the whole count, and the lines left out are not added to the scrollback.
         """
         if self._repeat_graphic is None:
@@ -334,8 +364,11 @@ class _EditingCanvas(_ScreenCanvas):
         char, dec_special, wide = self._repeat_graphic
         self._repeat_graphic = None
         count = min(count, _MAX_REPEAT)
-        per_line = max(self.width // 2, 1) if wide else self.width
-        limit = per_line * (self.height + 1)
+        # after the first line, the copies fill the lines between the margins
+        line = self.margin_right - self.margin_left + 1
+        per_line = max(line // 2, 1) if wide else line
+        # a first line that starts left of the right margin can be as long as the screen is wide
+        limit = per_line * (self.height + 1) + (self.width - line) // (2 if wide else 1)
         if count > limit:
             count = limit + (count - limit) % per_line
         for _ in range(count):
@@ -353,7 +386,11 @@ class _EditingCanvas(_ScreenCanvas):
         The cursor and a pending wrap stay.
         As in xterm, the lines scrolled off the top are not saved in the scrollback.
         """
-        for _ in range(min(lines, self.scrollregion_end - self.scrollregion_start + 1)):
+        count = min(lines, self.scrollregion_end - self.scrollregion_start + 1)
+        if self.margin_left or self.margin_right < self.width - 1:
+            self._shift_between_margins(self.scrollregion_start, self.scrollregion_end, -count if reverse else count)
+            return
+        for _ in range(count):
             self.scroll(reverse=reverse, scrollback=False)
 
     def csi_set_scroll(self, top: int = 0, bottom: int = 0) -> None:
@@ -372,6 +409,68 @@ class _EditingCanvas(_ScreenCanvas):
 
             self.set_term_cursor(0, 0)
             self.is_rotten_cursor = False
+
+    def csi_cursor_next_line(self, rows: int) -> None:
+        """Move the cursor down *rows* lines, or up for a negative count, then as CR does (CNL and CPL).
+
+        The cursor goes to the left margin, or to column 0 from left of the margin, as in xterm.
+        """
+        self.move_cursor(0, rows, relative=True)
+        self.carriage_return()
+
+    def csi_character_position_relative(self, count: int) -> None:
+        """Move the cursor right *count* columns (HPR), up to the screen's right edge, past the margin, as in xterm."""
+        x, y = self.term_cursor
+        self.set_term_cursor(x + count, y)
+        self.is_rotten_cursor = False
+
+    def csi_set_margins(self, left: int, right: int) -> None:
+        """Set the left and right margins, 1-based columns, and move the cursor home (DECSLRM, CSI Pl ; Pr s).
+
+        0 selects the screen's edge, and a right margin past it selects the edge, as in xterm.
+        A left margin that is not left of the right one is ignored.
+        The home position is the top left of the margins and the scrolling region in origin mode.
+        """
+        left = left or 1
+        right = min(right or self.width, self.width)
+        if left < right:
+            self.margin_left = left - 1
+            self.margin_right = right - 1
+            self.move_cursor(0, 0)
+
+    def csi_insert_chars(self, count: int) -> None:
+        """Insert *count* blanks at the cursor (ICH), or nothing while the cursor is outside the margins.
+
+        A pending wrap ends either way, as in xterm.
+        """
+        if self.margin_left <= self.term_cursor[0] <= self.margin_right:
+            self.insert_chars(chars=count)
+        self.is_rotten_cursor = False
+
+    def csi_delete_chars(self, count: int) -> None:
+        """Delete *count* characters at the cursor (DCH), or nothing while the cursor is outside the margins.
+
+        A pending wrap ends either way, as in xterm.
+        """
+        if self.margin_left <= self.term_cursor[0] <= self.margin_right:
+            self.remove_chars(chars=count)
+        self.is_rotten_cursor = False
+
+    def csi_shift_columns(self, params: Sequence[int | None], *, right: bool = False) -> None:
+        """Shift the columns of the scrolling region left by Ps, or right with *right* (SL and SR, CSI Ps SP @ / A).
+
+        Only the columns between the left and right margins move, blank ones fill the place left, and the cursor stays.
+        Nothing happens while the cursor is outside the margins or the scrolling region, as in xterm.
+        """
+        x, y = self.term_cursor
+        if not (self.margin_left <= x <= self.margin_right and self.scrollregion_start <= y <= self.scrollregion_end):
+            return
+        count = params[0] or 1
+        for row in range(self.scrollregion_start, self.scrollregion_end + 1):
+            if right:
+                self.insert_chars((self.margin_left, row), chars=count)
+            else:
+                self.remove_chars((self.margin_left, row), chars=count)
 
     def csi_clear_tabstop(self, mode: int = 0) -> None:
         """Clear tabstop at current position or if 'mode' is 3, delete all tabstops."""
