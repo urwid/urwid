@@ -140,6 +140,17 @@ class AttrSpecToCssTest(unittest.TestCase):
         self.assertEqual(1, common._style_to_css.cache_info().currsize)
 
 
+class AttrSpecRgbTest(unittest.TestCase):
+    """The red, green and blue values of the 256 colors."""
+
+    def test_gray_ramp_is_xterms(self) -> None:
+        """Give the gray ramp 232 to 255 xterm's values, 8 plus 10 per step."""
+        for number in range(232, 256):
+            with self.subTest(number=number):
+                gray = 8 + 10 * (number - 232)
+                self.assertEqual((gray, gray, gray), AttrSpec(f"h{number:d}", "default").get_rgb_values()[:3])
+
+
 class AttrSpecInheritTest(unittest.TestCase):
     """Tests for the 'inherit' color of AttrSpec and AttrSpec.layered_over."""
 
