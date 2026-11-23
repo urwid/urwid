@@ -50,6 +50,7 @@ if typing.TYPE_CHECKING:
     from typing import Literal, Self
 
     from urwid import Canvas
+    from urwid.display import common
     from urwid.display.common import Hyperlink
 
 
@@ -397,7 +398,7 @@ class _ScreenBase(BaseScreen, RealTerminal):
 
         return None
 
-    def _on_update_palette_entry(self, name: Hashable, *attrspecs: AttrSpec) -> None:
+    def _on_update_palette_entry(self, name: Hashable, *attrspecs: common.AttrSpec) -> None:
         # any drawn attribute may inherit colors from the changed entry; the next draw compares every row again
         self._pal_escape.clear()
         self._screen_buf_canvas = None
@@ -519,7 +520,7 @@ class _ScreenBase(BaseScreen, RealTerminal):
         *,
         hyperlink: Hyperlink | str | None = None,
         underline_color: str | None = None,
-    ) -> AttrSpec:
+    ) -> common.AttrSpec:
         """Create an :class:`AttrSpec` using this screen's number of colors.
 
         :param fg: the foreground color and settings, as for :class:`AttrSpec`

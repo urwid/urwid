@@ -11,6 +11,7 @@ if typing.TYPE_CHECKING:
     from typing import assert_type
 
     import urwid
+    import urwid.testing
 
     def mouse_button(widget: urwid.Widget) -> None:
         """Pass a member where a mouse event takes an int button, and type a conversion."""

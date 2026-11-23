@@ -302,7 +302,7 @@ def calc_string_text_pos(text: str, start_offs: int, end_offs: int, pref_col: in
         if SAFE_ASCII_RE.fullmatch(segment) and (stop == end_offs or pref_col < len(segment) - 1):
             # Keep a character beyond the target so a following combining mark
             # cannot change the boundary at the returned position.
-            cols = int(min(pref_col, len(segment)))
+            cols = min(pref_col, len(segment))
             return start_offs + cols, cols
 
     cols = 0

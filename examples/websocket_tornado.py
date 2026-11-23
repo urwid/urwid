@@ -704,7 +704,7 @@ def main(argv: Sequence[str] | None = None) -> int:
             token_file = pathlib.Path(directory, "token")
         try:
             config = build_config(args, token_file)
-        except (ValueError, OSError, ssl.SSLError) as exc:
+        except (ValueError, OSError) as exc:
             LOG.error("%s", exc)  # noqa: TRY400  # the message is the whole report; a traceback adds nothing
             return 2
         try:
