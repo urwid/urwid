@@ -146,6 +146,9 @@ class InputEscapeSequenceParserTest(unittest.TestCase):
             ([*b"\x1b^a\x1b\\"], ["meta ^", "a", "meta \\"]),
             ([*b"\x1b_a\x1b\\"], ["meta _", "a", "meta \\"]),
             ([*b"\x1b]11;x\x07"], ["meta ]", "1", "1", ";", "x", "ctrl g"]),
+            # a curses key code after the start of an OSC 10 reply
+            ([*b"\x1b]10;", 259], ["meta ]", "1", "0", ";", "up"]),
+            ([*b"\x1b]10;r", 259], ["meta ]", "1", "0", ";", "r", "up"]),
         ):
             with self.subTest(codes=codes):
                 for more_available in (False, True):
@@ -1041,6 +1044,10 @@ class ReadKeyboardQueryReplyTest(unittest.TestCase):
             (b"P0+r\x1b\\", ("terminal capabilities", ())),
             # the Terminal widget ends each name it answers with ";"
             (b"P1+r524742;;\x1b\\", ("terminal capabilities", (("RGB", ""),))),
+            # the default colors, ended by ST or by BEL
+            (b"]10;rgb:0000/0000/0000\x1b\\", ("default color", 10, "rgb:0000/0000/0000")),
+            (b"]11;rgb:ff/ff/ff\x07", ("default color", 11, "rgb:ff/ff/ff")),
+            (b"]11;rgba:0000/0000/0000/dddd\x1b\\", ("default color", 11, "rgba:0000/0000/0000/dddd")),
         ):
             with self.subTest(sequence=sequence):
                 actual, rest = escape.process_keyqueue([27, *sequence, ord("x")], more_available=False)
@@ -1061,6 +1068,11 @@ class ReadKeyboardQueryReplyTest(unittest.TestCase):
             b"P>|XTerm\x07(390)\x1b\\",
             b"P>|" + b"x" * 257 + b"\x1b\\",
             b"P2+r524742\x1b\\",
+            # an OSC reply has a color in the rgb: form, and only the default colors are read
+            b"]11;#ffffff\x07",
+            b"]11;white\x1b\\",
+            b"]12;rgb:0/0/0\x07",
+            b"]11;rgb:0/0/0\x1bx",
         ):
             with self.subTest(sequence=sequence):
                 self.assertIsNone(escape.input_trie.read_string_report(list(sequence), more_available=False))

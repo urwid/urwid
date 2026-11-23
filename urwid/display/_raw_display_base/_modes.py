@@ -51,6 +51,7 @@ if typing.TYPE_CHECKING:
     _DeviceAttributesReport = tuple[typing.Literal["device attributes"], tuple[int, ...]]
     _TerminalVersionReport = tuple[typing.Literal["terminal version"], str]
     _TerminalCapabilitiesReport = tuple[typing.Literal["terminal capabilities"], tuple[tuple[str, str | None], ...]]
+    _DefaultColorReport = tuple[typing.Literal["default color"], int, str]
     _TerminalReport = (
         _PrivateModeReport
         | _KeyboardProtocolReport
@@ -58,6 +59,7 @@ if typing.TYPE_CHECKING:
         | _DeviceAttributesReport
         | _TerminalVersionReport
         | _TerminalCapabilitiesReport
+        | _DefaultColorReport
     )
     _WindowSizeReport = tuple[typing.Literal["window size report"], int, int]
     _DecodedInput = list[str | _MouseInput | _CursorPosition]
@@ -113,9 +115,9 @@ class _ModesScreen(_AttributesScreen):  # pylint: disable=abstract-method  # a p
         Replies are recognized later, during normal `parse_input()`
         (see `escape.KeyqueueTrie.read_private_mode_report`, `_apply_terminal_reports()`).
         With ``extended_keys``, the kitty keyboard protocol and modifyOtherKeys are queried as well, once.
-        Until the terminal has answered them, the terminal's version (XTVERSION) and its colour and underline style
-        capabilities (XTGETTCAP) are queried as well,
-        unless the application set both properties itself or the terminal is the Linux console.
+        Until the terminal has answered them, the terminal's version (XTVERSION), its colour and underline style
+        capabilities (XTGETTCAP) and its default foreground and background colours (OSC 10 and OSC 11) are queried as
+        well, unless the application set both properties itself or the terminal is the Linux console.
         """
         if not self._is_real_terminal():
             return
@@ -152,7 +154,7 @@ class _ModesScreen(_AttributesScreen):  # pylint: disable=abstract-method  # a p
             and not self._properties_set.issuperset(("colors", "underline_styles"))
             and not _is_linux_console(self.term)
         ):
-            queries += escape.REPORT_TERMINAL_VERSION
+            queries += escape.REPORT_DEFAULT_COLORS + escape.REPORT_TERMINAL_VERSION
             queries += "".join(escape.request_capability(name) for name in _QUERIED_CAPABILITIES)
             self._capability_query_pending = True
             ends_with_device_attributes = True
@@ -252,6 +254,7 @@ class _ModesScreen(_AttributesScreen):  # pylint: disable=abstract-method  # a p
           after them.
         - A terminal version or capabilities reply counts the same way after the capability queries.
           It only raises the colour count and turns the underline styles on, see `_raise_terminal_properties()`.
+        - A default colour reply counts the same way, and sets `terminal_default_colors`.
         """
         logger = self.logger.getChild("terminal_reports")
         filtered: list[str | _MouseInput | _CursorPosition | _WindowSizeReport] = []
@@ -272,7 +275,9 @@ class _ModesScreen(_AttributesScreen):  # pylint: disable=abstract-method  # a p
                     logger.debug(f"Dropped a reply to a query urwid has no answer pending for: {item!r}")
                 case ("keyboard protocol report" | "modify keys report", *_) if not self._keyboard_query_pending:
                     logger.debug(f"Dropped a reply to a query urwid has no answer pending for: {item!r}")
-                case ("terminal version" | "terminal capabilities", *_) if not self._capability_query_pending:
+                case ("terminal version" | "terminal capabilities" | "default color", *_) if (
+                    not self._capability_query_pending
+                ):
                     logger.debug(f"Dropped a reply to a query urwid has no answer pending for: {item!r}")
                 case ("device attributes", *_) if not (self._keyboard_query_pending or self._capability_query_pending):
                     logger.debug(f"Dropped a reply to a query urwid has no answer pending for: {item!r}")
@@ -280,6 +285,8 @@ class _ModesScreen(_AttributesScreen):  # pylint: disable=abstract-method  # a p
                     self._raise_terminal_properties(None, _underline_styles_from_version(version))
                 case ("terminal capabilities", capabilities):
                     self._raise_terminal_properties(*_properties_from_capabilities(capabilities))
+                case ("default color", number, color):
+                    self._terminal_default_colors[number] = color
                 case ("keyboard protocol report", _flags):
                     self.modes.kitty_keyboard = True
                 case ("modify keys report", escape.MODIFY_OTHER_KEYS_RESOURCE, value):

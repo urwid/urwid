@@ -183,6 +183,9 @@ REPORT_CURSOR_POSITION: typing.Final = f"{CSI}6n"
 REPORT_DEVICE_ATTRIBUTES: typing.Final = f"{CSI}c"
 # XTVERSION, replied as DCS > | name and version ST
 REPORT_TERMINAL_VERSION: typing.Final = f"{CSI}>0q"
+# the default foreground and background colors (OSC 10 and OSC 11 queries), replied as OSC 10 ; color ST and OSC 11 ;
+# color ST, or ended by BEL
+REPORT_DEFAULT_COLORS: typing.Final = f"{OSC}10;?{ST}{OSC}11;?{ST}"
 
 
 def request_capability(name: str) -> str:

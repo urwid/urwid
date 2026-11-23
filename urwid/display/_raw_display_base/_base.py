@@ -208,6 +208,7 @@ class _ScreenBase(BaseScreen, RealTerminal):
         "_setup_G1_done",
         "_term_input_file",
         "_term_output_file",
+        "_terminal_default_colors",
         "_terminal_properties",
         "_title",
         "_title_saved",
@@ -244,6 +245,18 @@ class _ScreenBase(BaseScreen, RealTerminal):
     underline_styles = _TerminalProperty[bool]()
 
     hyperlinks = _TerminalProperty[bool]()
+
+    @property
+    def terminal_default_colors(self) -> tuple[str | None, str | None]:
+        """Return the terminal's default foreground and background colors.
+
+        Each is an X11 color spec, such as ``rgb:ffff/ffff/ffff``, as the terminal answered the OSC 10 and OSC 11
+        queries, or None when it did not answer.
+        The screen sends the queries as it starts, with the capability queries: not on the Linux console, and not when
+        the application set both the color count and the underline styles.
+        The :class:`~urwid.Terminal` widget answers its child's queries with them.
+        """
+        return self._terminal_default_colors.get(10), self._terminal_default_colors.get(11)
 
     def __init__(
         self,
@@ -308,6 +321,8 @@ class _ScreenBase(BaseScreen, RealTerminal):
         self._capability_query_pending = False
         # the Primary DA reply after those queries arrived, so the terminal answered what it could
         self._capabilities_answered = False
+        # the terminal's default foreground (10) and background (11) colors, as its OSC 10 and OSC 11 replies give them
+        self._terminal_default_colors: dict[int, str] = {}
         # the terminal properties the application set, which no terminal reply changes
         self._properties_set: set[str] = set()
         # the private modes queried by the last start and not answered yet

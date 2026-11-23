@@ -51,6 +51,7 @@ if typing.TYPE_CHECKING:
     _WindowSizeReport = tuple[typing.Literal["window size report"], int, int]
     _TerminalVersionReport = tuple[typing.Literal["terminal version"], str]
     _TerminalCapabilitiesReport = tuple[typing.Literal["terminal capabilities"], tuple[tuple[str, str | None], ...]]
+    _DefaultColorReport = tuple[typing.Literal["default color"], int, str]
     _TerminalReport = (
         _PrivateModeReport
         | _KeyboardProtocolReport
@@ -59,6 +60,7 @@ if typing.TYPE_CHECKING:
         | _WindowSizeReport
         | _TerminalVersionReport
         | _TerminalCapabilitiesReport
+        | _DefaultColorReport
     )
     _DecodedInput = list[str | _MouseInput | _CursorPosition]
 
@@ -377,7 +379,8 @@ class Screen(BaseScreen, RealTerminal):
                     | "modify keys report"
                     | "device attributes"
                     | "terminal version"
-                    | "terminal capabilities",
+                    | "terminal capabilities"
+                    | "default color",
                     *_,
                 ):
                     logger.debug(f"Dropped a reply to a query this screen did not send: {item!r}")

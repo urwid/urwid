@@ -1459,7 +1459,7 @@ class TestTerminalCapabilities(unittest.TestCase):
         capability_queries = escape.REPORT_TERMINAL_VERSION + "".join(
             escape.request_capability(name) for name in ("colors", "RGB", "Smulx", "Setulc")
         )
-        self.assertIn(capability_queries + escape.REPORT_DEVICE_ATTRIBUTES, output)
+        self.assertIn(escape.REPORT_DEFAULT_COLORS + capability_queries + escape.REPORT_DEVICE_ATTRIBUTES, output)
         # sent once while the answer is pending
         self.assertEqual(1, output.count(escape.REPORT_TERMINAL_VERSION))
 
@@ -1503,6 +1503,20 @@ class TestTerminalCapabilities(unittest.TestCase):
 
                 self.assertEqual(["a"], keys)
                 self.assertEqual((colors, underline_styles), (s.colors, s.underline_styles))
+
+    def test_default_color_replies_are_kept(self):
+        s = self._screen()
+        self.assertEqual((None, None), s.terminal_default_colors)
+
+        keys, _raw = s.parse_input(None, None, [*b"\x1b]11;rgb:ffff/ffff/dddd\x07\x1b]10;rgb:0/0/0\x1b\\", ord("a")])
+
+        self.assertEqual(["a"], keys)
+        self.assertEqual(("rgb:0/0/0", "rgb:ffff/ffff/dddd"), s.terminal_default_colors)
+
+    def test_default_color_reply_after_primary_da_is_dropped(self):
+        s = self._screen()
+        keys, _raw = s.parse_input(None, None, [*b"\x1b[?62;22c\x1b]11;rgb:0/0/0\x07"])
+        self.assertEqual(([], (None, None)), (keys, s.terminal_default_colors))
 
     def test_terminal_version_turns_the_underline_styles_on(self):
         s = self._screen()

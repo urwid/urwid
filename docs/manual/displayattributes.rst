@@ -24,6 +24,10 @@ The raw display starts with the number of colors that ``TERM``, its terminfo ent
 As it starts, it asks the terminal for its own capabilities (XTGETTCAP) and its version (XTVERSION).
 A reply can raise the number of colors and turn on the underline styles, and the screen is then drawn again.
 A reply never lowers them, and never changes a property the application set.
+With those queries it also asks for the terminal's default foreground and background colors (OSC 10 and OSC 11),
+which :attr:`display.raw.Screen.terminal_default_colors` then holds, and with which the :class:`Terminal` widget
+answers its child's queries of the same colors. Like the other queries, they are not sent on the Linux console, nor
+when the application set both the number of colors and the underline styles.
 
 .. seealso::
    :meth:`register_palette() reference <BaseScreen.register_palette>`,

@@ -22,6 +22,7 @@
 
 from __future__ import annotations
 
+import types
 import typing
 from collections.abc import MutableMapping
 
@@ -65,6 +66,9 @@ if typing.TYPE_CHECKING:
     _TerminalVersionReport = tuple[typing.Literal["terminal version"], str]
     # the capabilities of an XTGETTCAP reply by name: their value, "" for a boolean one, None for one the terminal lacks
     _TerminalCapabilitiesReport = tuple[typing.Literal["terminal capabilities"], tuple[tuple[str, str | None], ...]]
+    # the number of a dynamic color, 10 for the default foreground and 11 for the background, and its color as the
+    # terminal described it in its reply to OSC 10 or OSC 11, an X11 color spec such as rgb:rrrr/gggg/bbbb
+    _DefaultColorReport = tuple[typing.Literal["default color"], int, str]
     _TerminalReport = (
         _PrivateModeReport
         | _KeyboardProtocolReport
@@ -73,6 +77,7 @@ if typing.TYPE_CHECKING:
         | _WindowSizeReport
         | _TerminalVersionReport
         | _TerminalCapabilitiesReport
+        | _DefaultColorReport
     )
     # the keyboard protocol the terminal has on, beyond the legacy key encoding
     _KeyboardProtocol = typing.Literal["kitty", "modify other keys"]
@@ -94,6 +99,12 @@ _WINDOW_SIZE_MAX: typing.Final = 0xFFFF
 _XTVERSION_INTRODUCER: typing.Final = b"P>|"
 _XTGETTCAP_VALID_INTRODUCER: typing.Final = b"P1+r"
 _XTGETTCAP_INTRODUCERS: typing.Final = (_XTGETTCAP_VALID_INTRODUCER, b"P0+r")
+# the codes after ESC that start the OSC replies urwid reads, by the dynamic color they describe: OSC 10 and OSC 11
+_DEFAULT_COLOR_INTRODUCERS: typing.Final = types.MappingProxyType({b"]10;": 10, b"]11;": 11})
+# the starts of the color in an OSC 10 or OSC 11 reply: terminals answer in these X11 forms, rxvt-unicode with alpha
+# in the second, and a body that starts otherwise is typed keys, as Alt+] followed by text
+_DEFAULT_COLOR_PREFIXES: typing.Final = ("rgb:", "rgba:")
+_BEL: typing.Final = 0x07
 # longest body of a DCS reply accepted before its ST
 _STRING_REPORT_MAX_LEN: typing.Final = 256
 _HEX_DIGITS: typing.Final = frozenset("0123456789abcdefABCDEF")
@@ -721,23 +732,29 @@ class KeyqueueTrie:
         self,
         keys: list[int],
         more_available: bool,
-    ) -> tuple[_TerminalVersionReport | _TerminalCapabilitiesReport, list[int]] | None:
-        r"""Interpret an XTVERSION reply (DCS > | text ST) or an XTGETTCAP reply (DCS 1 + r ... ST or DCS 0 + r ... ST).
+    ) -> tuple[_TerminalVersionReport | _TerminalCapabilitiesReport | _DefaultColorReport, list[int]] | None:
+        r"""Interpret an XTVERSION, XTGETTCAP, or OSC 10 or OSC 11 reply.
 
-        An XTGETTCAP reply lists ``name=value`` pairs separated by ``;``, each part hex-encoded.
-        The valid form gives each value, or only the name for a boolean capability; the invalid form names what the
-        terminal does not know.
+        - XTVERSION: DCS > | text ST.
+        - XTGETTCAP: DCS 1 + r ... ST or DCS 0 + r ... ST, listing ``name=value`` pairs separated by ``;``, each part
+          hex-encoded. The valid form gives each value, or only the name for a boolean capability; the invalid form
+          names what the terminal does not know.
+        - OSC 10 or OSC 11: OSC 10 ; color ST or OSC 11 ; color ST, the default foreground or background color as an
+          X11 color spec in the ``rgb:`` or ``rgba:`` form terminals answer with; BEL may end it instead of ST. A color
+          in another form is no reply, so the codes are keys.
 
         >>> from urwid.display.escape import input_trie
         >>> input_trie.read_string_report(list(b"P>|XTerm(390)\x1b\\"), more_available=False)
         (('terminal version', 'XTerm(390)'), [])
         >>> input_trie.read_string_report(list(b"P1+r636f6c6f7273=323536;524742\x1b\\"), more_available=False)
         (('terminal capabilities', (('colors', '256'), ('RGB', ''))), [])
+        >>> input_trie.read_string_report(list(b"]11;rgb:ffff/ffff/ffff\x07"), more_available=False)
+        (('default color', 11, 'rgb:ffff/ffff/ffff'), [])
 
         :param keys: the codes after the ESC that starts the reply.
         :param more_available: raise MoreInputRequired when the codes end in the middle of a reply.
-        :returns: ``('terminal version', text)`` or ``('terminal capabilities', ((name, value), ...))``,
-            with value None for a capability the terminal does not know.
+        :returns: ``('terminal version', text)``, ``('terminal capabilities', ((name, value), ...))``,
+            with value None for a capability the terminal does not know, or ``('default color', number, color)``.
             A complete XTGETTCAP reply whose body cannot be read lists no capability, so it is not read as keys.
         :raises MoreInputRequired: the codes end in the middle of a reply and *more_available* is set.
         """
@@ -751,14 +768,15 @@ class KeyqueueTrie:
         codes: list[int],
         start: int,
         more_available: bool,
-    ) -> tuple[_TerminalVersionReport | _TerminalCapabilitiesReport, int] | None:
+    ) -> tuple[_TerminalVersionReport | _TerminalCapabilitiesReport | _DefaultColorReport, int] | None:
         """Do what :meth:`read_string_report` does for ``codes[start:]``, returning the position after the reply.
 
-        Codes cut short after ``P`` alone are not waited for, since ESC P is also the key :kbd:`Alt+Shift+P`.
+        Codes cut short after ``P`` or ``]`` alone are not waited for, since ESC P and ESC ] are also the keys
+        :kbd:`Alt+Shift+P` and :kbd:`Alt+]`.
 
         :raises MoreInputRequired: the codes end in the middle of a reply and *more_available* is set.
         """
-        for introducer in (_XTVERSION_INTRODUCER, *_XTGETTCAP_INTRODUCERS):
+        for introducer in (_XTVERSION_INTRODUCER, *_XTGETTCAP_INTRODUCERS, *_DEFAULT_COLOR_INTRODUCERS):
             head = codes[start : start + len(introducer)]
             if head == list(introducer):
                 break
@@ -776,11 +794,26 @@ class KeyqueueTrie:
         body_start = start + len(introducer)
         # the body, its ESC and the backslash of ST are the most this reads
         keys = codes[body_start : body_start + _STRING_REPORT_MAX_LEN + 2]
+        if introducer in _DEFAULT_COLOR_INTRODUCERS:
+            # chr(), as the codes include the curses key codes above 255
+            seen = "".join(map(chr, keys[: max(map(len, _DEFAULT_COLOR_PREFIXES))]))
+            if not any(seen.startswith(prefix) or prefix.startswith(seen) for prefix in _DEFAULT_COLOR_PREFIXES):
+                # not waited for: the codes are keys
+                return None
         if (esc := next((pos for pos, code in enumerate(keys) if not 0x20 <= code <= 0x7E), None)) is None:
             if more_available and len(keys) <= _STRING_REPORT_MAX_LEN:
                 raise MoreInputRequired
             return None
-        if keys[esc] != 0x1B or esc > _STRING_REPORT_MAX_LEN:
+        if esc > _STRING_REPORT_MAX_LEN:
+            return None
+        if introducer in _DEFAULT_COLOR_INTRODUCERS:
+            color = bytes(keys[:esc]).decode("ascii")
+            if not color.startswith(_DEFAULT_COLOR_PREFIXES):
+                return None
+            if keys[esc] == _BEL:
+                # an OSC reply, which xterm ends as the query was ended, may end with BEL
+                return ("default color", _DEFAULT_COLOR_INTRODUCERS[introducer], color), body_start + esc + 1
+        if keys[esc] != 0x1B:
             return None
         if esc + 1 == len(keys):
             if more_available:
@@ -792,6 +825,8 @@ class KeyqueueTrie:
         end = body_start + esc + 2
         if introducer == _XTVERSION_INTRODUCER:
             return ("terminal version", body), end
+        if introducer in _DEFAULT_COLOR_INTRODUCERS:
+            return ("default color", _DEFAULT_COLOR_INTRODUCERS[introducer], body), end
 
         valid = introducer == _XTGETTCAP_VALID_INTRODUCER
         capabilities: list[tuple[str, str | None]] = []
