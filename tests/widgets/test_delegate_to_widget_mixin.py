@@ -7,7 +7,6 @@ import unittest
 import urwid
 from urwid.widget.widget import delegate_to_widget_mixin
 
-
 FORWARDED = (
     "render",
     "selectable",

@@ -520,7 +520,7 @@ class EditTest(unittest.TestCase):
 
             def set_edit_text(self, text: str, edit_pos: int | None = None) -> None:
                 super().set_edit_text(text)
-                self.set_edit_pos(edit_pos if edit_pos else len(text))
+                self.set_edit_pos(edit_pos or len(text))
 
         for key, expected in (("X", ("abXcdef", 3)), ("backspace", ("acdef", 1))):
             with self.subTest(key=key):

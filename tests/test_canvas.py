@@ -726,13 +726,11 @@ class BlankCanvasTest(unittest.TestCase):
 
 class SolidCanvasErrorTest(unittest.TestCase):
     def test_fill_char_not_exactly_one_column_wide_raises(self):
-        with self.subTest("empty"):
-            with self.assertRaises(ValueError):
-                urwid.SolidCanvas("", 3, 1)
+        with self.subTest("empty"), self.assertRaises(ValueError):
+            urwid.SolidCanvas("", 3, 1)
 
-        with self.subTest("double-width"):
-            with self.assertRaises(ValueError):
-                urwid.SolidCanvas("\N{HIRAGANA LETTER A}", 3, 1)
+        with self.subTest("double-width"), self.assertRaises(ValueError):
+            urwid.SolidCanvas("\N{HIRAGANA LETTER A}", 3, 1)
 
 
 class ShardBodyTest(unittest.TestCase):
@@ -945,25 +943,20 @@ class ShardsTrimTest(unittest.TestCase):
     def test_argument_validation(self):
         shards = [(5, [(0, 0, 10, 5, None, "foo")])]
 
-        with self.subTest("trim_top requires a positive amount"):
-            with self.assertRaises(ValueError):
-                canvas.shards_trim_top(shards, 0)
+        with self.subTest("trim_top requires a positive amount"), self.assertRaises(ValueError):
+            canvas.shards_trim_top(shards, 0)
 
-        with self.subTest("trim_top cannot remove every shard"):
-            with self.assertRaises(canvas.CanvasError):
-                canvas.shards_trim_top(shards, 5)
+        with self.subTest("trim_top cannot remove every shard"), self.assertRaises(canvas.CanvasError):
+            canvas.shards_trim_top(shards, 5)
 
-        with self.subTest("trim_rows rejects a negative row count"):
-            with self.assertRaises(ValueError):
-                canvas.shards_trim_rows(shards, -1)
+        with self.subTest("trim_rows rejects a negative row count"), self.assertRaises(ValueError):
+            canvas.shards_trim_rows(shards, -1)
 
-        with self.subTest("trim_sides rejects a negative left"):
-            with self.assertRaises(ValueError):
-                canvas.shards_trim_sides(shards, -1, 5)
+        with self.subTest("trim_sides rejects a negative left"), self.assertRaises(ValueError):
+            canvas.shards_trim_sides(shards, -1, 5)
 
-        with self.subTest("trim_sides rejects a non-positive width"):
-            with self.assertRaises(ValueError):
-                canvas.shards_trim_sides(shards, 0, 0)
+        with self.subTest("trim_sides rejects a non-positive width"), self.assertRaises(ValueError):
+            canvas.shards_trim_sides(shards, 0, 0)
 
     def test_sides_after_a_shard_of_no_rows(self):
         """A cview starting in a shard of no rows continues into the next shard and is kept once."""
@@ -1340,24 +1333,20 @@ class CompositeCanvasTrimTest(unittest.TestCase):
     def test_trim_argument_validation(self) -> None:
         canv = urwid.CompositeCanvas(urwid.SolidCanvas(" ", 3, 5))
 
-        with self.subTest("negative top"):
-            with self.assertRaises(ValueError):
-                canv.trim(-1)
+        with self.subTest("negative top"), self.assertRaises(ValueError):
+            canv.trim(-1)
 
-        with self.subTest("top at or beyond the row count"):
-            with self.assertRaises(ValueError):
-                canv.trim(5)
+        with self.subTest("top at or beyond the row count"), self.assertRaises(ValueError):
+            canv.trim(5)
 
     def test_trim_end_argument_validation(self) -> None:
         canv = urwid.CompositeCanvas(urwid.SolidCanvas(" ", 3, 5))
 
-        with self.subTest("non-positive end"):
-            with self.assertRaises(ValueError):
-                canv.trim_end(0)
+        with self.subTest("non-positive end"), self.assertRaises(ValueError):
+            canv.trim_end(0)
 
-        with self.subTest("end beyond the row count"):
-            with self.assertRaises(ValueError):
-                canv.trim_end(6)
+        with self.subTest("end beyond the row count"), self.assertRaises(ValueError):
+            canv.trim_end(6)
 
     def test_trim_to_no_rows_keeps_the_width(self) -> None:
         for description, trim in (
@@ -1407,13 +1396,11 @@ class CompositeCanvasOverlayValidationTest(unittest.TestCase):
     def test_overlay_rejects_a_mismatched_size(self) -> None:
         base = urwid.CompositeCanvas(urwid.SolidCanvas(" ", 5, 5))
 
-        with self.subTest("too wide"):
-            with self.assertRaises(ValueError):
-                base.overlay(urwid.CompositeCanvas(urwid.SolidCanvas(" ", 3, 2)), 3, 0)
+        with self.subTest("too wide"), self.assertRaises(ValueError):
+            base.overlay(urwid.CompositeCanvas(urwid.SolidCanvas(" ", 3, 2)), 3, 0)
 
-        with self.subTest("too tall"):
-            with self.assertRaises(ValueError):
-                base.overlay(urwid.CompositeCanvas(urwid.SolidCanvas(" ", 2, 3)), 0, 3)
+        with self.subTest("too tall"), self.assertRaises(ValueError):
+            base.overlay(urwid.CompositeCanvas(urwid.SolidCanvas(" ", 2, 3)), 0, 3)
 
     def test_overlay_on_a_rowless_canvas_keeps_its_width(self) -> None:
         base = urwid.CompositeCanvas(urwid.SolidCanvas(" ", 5, 5))

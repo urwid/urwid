@@ -15,7 +15,6 @@ from urwid.util import get_encoding, set_temporary_encoding
 
 if typing.TYPE_CHECKING:
     from collections.abc import Callable
-
     from typing import Literal
 
 

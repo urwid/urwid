@@ -232,7 +232,7 @@ def pipe_terminal() -> Iterator[tuple[urwid.Terminal, int]]:
     No child process is started, the tty is not touched, and :meth:`urwid.Terminal.terminate` does nothing,
     so the pipe can be watched by a real selector.
     """
-    from unittest import mock  # noqa: PLC0415  # urwid.vterm, which the patches import, does not exist on Windows
+    from unittest import mock  # urwid.vterm, which the patches import, does not exist on Windows
 
     rd, wr = os.pipe()
     try:

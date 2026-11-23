@@ -62,9 +62,11 @@ class InputEscapeSequenceParserTest(unittest.TestCase):
     def test_st_editing_keys_wait_for_complete_sequence(self):
         for sequence in (b"\x1b[4h", b"\x1b[P"):
             for length in range(1, len(sequence)):
-                with self.subTest(sequence=sequence, length=length):
-                    with self.assertRaises(escape.MoreInputRequired):
-                        escape.process_keyqueue(list(sequence[:length]), more_available=True)
+                with (
+                    self.subTest(sequence=sequence, length=length),
+                    self.assertRaises(escape.MoreInputRequired),
+                ):
+                    escape.process_keyqueue(list(sequence[:length]), more_available=True)
 
     def test_bare_escape(self):
         codes = [27]
@@ -986,7 +988,7 @@ class KeyReportTest(unittest.TestCase):
         self.assertEqual(["meta f1"], actual)
 
     def test_csi_u_carries_the_shifted_character_with_modify_other_keys(self):
-        """xterm's formatOtherKeys sends modifyOtherKeys reports as CSI u, with the character typed with shift."""
+        """Xterm's formatOtherKeys sends modifyOtherKeys reports as CSI u, with the character typed with shift."""
         for keyboard_protocol, key in (
             (None, "shift ctrl !"),
             ("kitty", "shift ctrl !"),

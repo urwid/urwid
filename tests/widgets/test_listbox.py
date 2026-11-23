@@ -3590,7 +3590,7 @@ class ListBoxSetFocusCompleteTest(unittest.TestCase):
                 lbox.focus_position = start
                 lbox.render((10, 5), focus=True)
                 moves: list[tuple[int | None, int | None]] = []
-                walker.set_focus_moved_callback(lambda old, new: moves.append((old, new)))  # noqa: B023
+                walker.set_focus_moved_callback(lambda old, new: moves.append((old, new)))
 
                 lbox.set_focus(target, coming_from)
                 lbox.render((10, 5), focus=True)

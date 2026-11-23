@@ -237,23 +237,27 @@ class ColumnsTest(unittest.TestCase):
             self.assertEqual(rows, canvas.rows())
             self.assertEqual([b"te", b"xt"], canvas.text)
 
-        with self.subTest("Wrong sizing -> fallback to historic hardcoded"):
-            with self.assertWarns(urwid.widget.ColumnsWarning) as ctx:
-                widget = urwid.Columns(((urwid.PACK, box_only),))
-                self.assertEqual(frozenset((urwid.BOX, urwid.FLOW)), widget.sizing())
-                self.assertEqual(
-                    f"Sizing combination of widget {box_only} (position=0) not supported: PACK box=False",
-                    str(ctx.warnings[0].message),
-                )
+        with (
+            self.subTest("Wrong sizing -> fallback to historic hardcoded"),
+            self.assertWarns(urwid.widget.ColumnsWarning) as ctx,
+        ):
+            widget = urwid.Columns(((urwid.PACK, box_only),))
+            self.assertEqual(frozenset((urwid.BOX, urwid.FLOW)), widget.sizing())
+            self.assertEqual(
+                f"Sizing combination of widget {box_only} (position=0) not supported: PACK box=False",
+                str(ctx.warnings[0].message),
+            )
 
-        with self.subTest("Wrong sizing -> fallback to historic hardcoded 2"):
-            with self.assertWarns(urwid.widget.ColumnsWarning) as ctx:
-                widget = urwid.Columns(((urwid.WEIGHT, 1, fixed_only),))
-                self.assertEqual(frozenset((urwid.BOX, urwid.FLOW)), widget.sizing())
-                self.assertEqual(
-                    f"Sizing combination of widget {fixed_only} (position=0) not supported: WEIGHT box=False",
-                    str(ctx.warnings[0].message),
-                )
+        with (
+            self.subTest("Wrong sizing -> fallback to historic hardcoded 2"),
+            self.assertWarns(urwid.widget.ColumnsWarning) as ctx,
+        ):
+            widget = urwid.Columns(((urwid.WEIGHT, 1, fixed_only),))
+            self.assertEqual(frozenset((urwid.BOX, urwid.FLOW)), widget.sizing())
+            self.assertEqual(
+                f"Sizing combination of widget {fixed_only} (position=0) not supported: WEIGHT box=False",
+                str(ctx.warnings[0].message),
+            )
 
         with (
             self.subTest('BOX not added to "box_columns" but widget handled as FLOW'),
