@@ -654,13 +654,17 @@ class TermCanvas(_ReportsCanvas, _RectanglesCanvas, _ModesCanvas, _VTParser[byte
         self.push_cursor(token)
 
     def _vt_execute(self, token: bytes, code: int) -> None:
-        """Execute a control character."""
+        """Execute a control character.
+
+        As on the Linux console, SO and SI also end the IBM PC mapping of SGR 11 and 12, and turn display control
+        mode on (SO) or off (SI).
+        """
         if code == 0x0D:  # carriage return CR
             self.carriage_return()
-        elif code == 0x0F:  # activate G0
-            self.charset.activate(0)
-        elif code == 0x0E:  # activate G1
-            self.charset.activate(1)
+        elif code in {0x0E, 0x0F}:  # SO activates G1, SI activates G0
+            self.charset.reset_sgr_ibmpc()
+            self.charset.activate(1 if code == 0x0E else 0)
+            self.modes.display_ctrl = code == 0x0E
         elif code in {0x0A, 0x0B, 0x0C}:  # line feed LF/VT/FF
             self.linefeed()
             if self.modes.lfnl:

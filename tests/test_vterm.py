@@ -909,8 +909,18 @@ class TermTest(unittest.TestCase):
             self.write("\\e[11m\x18\\e[10m\x18")
             self.expect([[(None, "U", b"\x18")]], raw=True)
 
+            # SO turns display control mode on, as on the Linux console, so CAN is drawn from G1; SI turns it off
             self.write("\\ec\\e)U\x0e\x18\x0f\\e[3h\x18\\e[3l\x18")
-            self.expect([[(None, None, b"\x18")]], raw=True)
+            self.expect([[(None, "U", b"\x18"), (None, None, b"\x18")]], raw=True)
+
+            # SI, SO and DECRC end the IBM PC mapping of SGR 11, as on the Linux console
+            for shift in ("\x0f", "\x0e", "\\e7\\e8", "\\e[s\\e[u"):
+                self.write(f"\\ec\\e)B\\e[11m{shift}\xdb")
+                self.expect([[(None, None, b"\xdb")]], raw=True)
+
+            # a slot designated as the IBM PC set stays one across DECRC
+            self.write("\\ec\\e)U\x0e\\e7\\e8\xdb")
+            self.expect([[(None, "U", b"\xdb")]], raw=True)
 
             self.write("\\ec\\e[11m\xdb\x18\\e[10m\xdb")
             self.expect(
@@ -1288,9 +1298,13 @@ class TermTest(unittest.TestCase):
             ("OSC palette reset ends with its R", (80, 24), r"\e]Rxy", "xy"),
             ("OSC palette set cut short by ST", (80, 24), r"\e]Pabcdef\e\xy", "xy"),
             ("OSC palette set cut short by a CSI", (80, 24), r"ab\e]Pabcdef\e[1GX", "Xb"),
+            ("DECRC leaves display control mode on", (80, 24), "\\e[3h\\e7\\e8a\tb", "a\tb"),
             ("ESC inside a CSI sequence starts a new one", (80, 24), r"ab\e[3\e[1GX", "Xb"),
             ("C1 CSI is displayed in display control mode", (80, 24), "\\e[3hab\x9bc", "ab\x9bc"),
             ("HT is displayed in display control mode", (80, 24), "\\e[3ha\tb", "a\tb"),
+            ("SO turns display control mode on", (80, 24), "\\e)Ba\x0e\tb", "a\tb"),
+            ("SI turns display control mode off", (80, 24), "\\e[11ma\x0f\tb", "a       b"),
+            ("SO inside a CSI is executed, and the CSI continues", (80, 24), "\\e)Bab\\e[1\x0eC\tc", "ab \tc"),
             ("display control mode still executes CR and FF", (80, 24), "\\e[3hab\rc\x0cd", "cb\n d"),
             ("display control mode executes FF inside a CSI", (80, 24), "\\e[3hab\\e[2\x0cCc", "ab\n    c"),
             ("display control mode executes CR after an ESC", (80, 24), "\\e[3hab\\e\r[1Cc", "ac"),
