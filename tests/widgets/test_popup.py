@@ -276,6 +276,18 @@ class PopUpTargetTest(unittest.TestCase):
                 self.assertEqual(expected, bool(target.mouse_event((20, 6), event, button, col, row, True)))
                 self.assertEqual(still_open, launcher.pop_up_widget is not None)
 
+    def test_placements_follow_a_mouse_event(self) -> None:
+        """A mouse event places the open pop-up without a render, and a later call drops a pop-up closed meanwhile."""
+        launcher = AnchoredLauncher(2, pop_up_width=4, anchor_height=None, close_on_click_outside=True)
+        target = urwid.PopUpTarget(urwid.Filler(launcher, valign="top"))
+        launcher.open_pop_up()
+        self.assertFalse(target.mouse_event((8, 5), "mouse press", 1, 1, 1, focus=True))
+        self.assertEqual([(0, 1, 4, 2)], [placement[1:] for placement in target.placements])
+        self.assertTrue(target.mouse_event((8, 5), "mouse press", 1, 7, 4, focus=True))
+        self.assertIsNone(launcher.pop_up_widget)
+        target.mouse_event((8, 5), "mouse release", 1, 7, 4, focus=True)
+        self.assertEqual((), target.placements)
+
     def test_open_pop_up_pickles(self) -> None:
         """Pickle a target whose open pop-up closes on an outside click."""
         launcher = ThingWithAPopUp(close_on_click_outside=True)
@@ -713,6 +725,60 @@ class AlignedPopUpTest(unittest.TestCase):
                 target = urwid.PopUpTarget(urwid.Filler(launcher, valign="top"))
                 launcher.open_pop_up()
                 target.render((12, 6))
+                self.assertEqual([expected], [placement[1:] for placement in target.placements])
+
+    def test_margin_of_a_nested_pop_up(self) -> None:
+        """A nested pop-up keeps its own margin inside the whole target, and the outer margin stays out of it."""
+        for description, inner_margin, outer_margin, expected in (
+            ("margin on the nested pop-up", (2, 1), None, (2, 1, 8, 4)),
+            ("margin on the outer pop-up only", None, (3, 2), (0, 0, 12, 6)),
+        ):
+            with self.subTest(description):
+                inner = AnchoredLauncher(
+                    10,
+                    pop_up_width=20,
+                    anchor_height=None,
+                    left="center",
+                    top="middle",
+                    margin=inner_margin,
+                )
+                outer = AnchoredLauncher(
+                    "pack",
+                    pop_up_width=4,
+                    pop_up=inner,
+                    anchor_height=None,
+                    top=2,
+                    margin=outer_margin,
+                )
+                target = urwid.PopUpTarget(urwid.Filler(outer, valign="top"))
+                outer.open_pop_up()
+                inner.open_pop_up()
+                target.render((12, 6))
+                self.assertEqual([(0, 2, 4, 1), expected], [placement[1:] for placement in target.placements])
+
+    def test_margin_caps_an_anchored_pop_up(self) -> None:
+        """A margin caps the size of an anchored pop-up, which stays beside its anchor rather than inside the margin."""
+        for description, launcher, size, expected in (
+            ("anchor height", AnchoredLauncher(10, pop_up_width=3, margin=(0, 2)), (12, 8), (0, 1, 3, 4)),
+            (
+                "anchor width",
+                AnchoredLauncher(
+                    2,
+                    pop_up_width=20,
+                    anchor_height=None,
+                    anchor_width=1,
+                    left=1,
+                    top=0,
+                    margin=(3, 0),
+                ),
+                (12, 4),
+                (1, 0, 6, 2),
+            ),
+        ):
+            with self.subTest(description):
+                target = urwid.PopUpTarget(urwid.Filler(launcher, valign="top"))
+                launcher.open_pop_up()
+                target.render(size)
                 self.assertEqual([expected], [placement[1:] for placement in target.placements])
 
     def test_nested_aligned_pop_up_is_centred_in_the_target(self) -> None:
