@@ -64,6 +64,9 @@ _VERTICAL_MOVE_CSI = frozenset("ABEFdHf")
 #: for a single, canvas-less line of text.
 _TERMINAL_SETTING_CSI = frozenset("hlrJKsu@LMPXcng")
 
+#: CSI final bytes that move the cursor within its row or repeat a character; none of them takes a ``?`` marker.
+_HORIZONTAL_CSI: typing.Final = frozenset("CDGa`IZb")
+
 #: Characters drawn in place of their ASCII counterparts while the DEC Special Graphics character set is shifted in.
 _DEC_SPECIAL_GRAPHICS: typing.Final = str.maketrans(ALT_DEC_SPECIAL_CHARS, DEC_SPECIAL_CHARS)
 
@@ -106,8 +109,11 @@ _MAX_SKIPPED = 65536
 #: Padding cells a parser may insert regardless of input length, one full 1024 x 1024 screen.
 _PADDING_BUDGET = _MAX_CURSOR_POSITION * _MAX_CURSOR_POSITION
 
-#: Padding cells each fed character adds to the budget, as many as a tab writes.
+#: Padding cells each fed character adds to the budget, as many as a tab passes.
 _PADDING_PER_CHARACTER = 8
+
+#: Columns between tab stops, which are fixed: setting or clearing a tab stop is not supported.
+_TAB_STOP: typing.Final = 8
 
 #: Padding cells an empty row inserted by a vertical move costs, about what the row allocates.
 _PADDING_PER_ROW = 8
@@ -122,9 +128,10 @@ class AnsiParser(_VTParser[str]):
 
     Internally, a :class:`AnsiParser` always maintains a two-dimensional grid of rows (one cell buffer per screen
     row) plus a cursor (``row``, ``col``). The two constructor modes below share the *overwhelming majority* of
-    their behaviour -- printable characters, horizontal cursor movement (``CSI n C/D/G``), backspace, tab, SGR
-    colour/attribute handling (``CSI ... m``, and fbterm's ``CSI 1;n }``/``CSI 2;n }`` colors), DEC Special Graphics
-    selected with ``ESC ( 0``/``ESC ) 0`` and SI/SO, BEL, OSC window-title recognition, OSC 8 hyperlinks (carried in
+    their behaviour -- printable characters, horizontal cursor movement (``CSI n C/D/G``, ``CSI n a/`/I/Z`` and
+    ``ESC 9``), repeating the last character (``CSI n b``), backspace, tab, SGR colour/attribute handling
+    (``CSI ... m``, and fbterm's ``CSI 1;n }``/``CSI 2;n }`` colors), DEC Special Graphics selected with
+    ``ESC ( 0``/``ESC ) 0`` and SI/SO, BEL, OSC window-title recognition, OSC 8 hyperlinks (carried in
     :attr:`AttrSpec.hyperlink <urwid.AttrSpec.hyperlink>` of the written text), keyboard-LED requests
     (``CSI n q``) and terminal-wide setting sequences (stripped and logged, see :class:`SkippedOp`) are interpreted
     identically regardless of mode. They differ only in how a **line end** and **vertical cursor movement** are
@@ -163,6 +170,13 @@ class AnsiParser(_VTParser[str]):
     that half as a space. A character with no width and no character before the cursor to join is dropped, and so is
     one that would make a cluster longer than 32 code points.
 
+    Tab stops are every 8 columns.
+    Tab, ``CSI n I`` and ``CSI n Z`` move the cursor between them and leave the cells they pass as in a terminal.
+    ``CSI n b`` (REP) writes the character written just before it n more times, as xterm does.
+    It writes nothing when a control character or another sequence came between them.
+    A character that joined a grapheme cluster takes no cell of its own,
+    so REP repeats the first character of the cluster, as xterm does after a combining mark.
+
     SGR bold stays a setting of its own and does not brighten the foreground: ``CSI 1;31 m`` is
     ``'dark red,bold'``, and a display draws it in a bright color where the terminal does so for bold text.
     So the escapes of a terminal that shows bright colors as bold, or bright backgrounds as blink (the Linux
@@ -190,10 +204,10 @@ class AnsiParser(_VTParser[str]):
 
     The padding inserted to reach a moved cursor -- blank cells before a written character and empty rows below the
     last one -- is limited to ``1024 * 1024 + 8 * n`` cells over the parser's lifetime, ``n`` being the number of
-    characters parsed so far, and an empty row counts as 8 cells.
+    characters parsed so far, and an empty row counts as 8 cells. The copies REP writes count against it as well.
     The limit is therefore the same however the input is split into :meth:`feed` calls.
     Once the limit is reached, a character is written at the end of its row instead,
-    a vertical move past the last row stays on the last row,
+    a vertical move past the last row stays on the last row, REP writes only the copies the limit leaves room for,
     and each such cut is recorded as a :class:`SkippedOp` with ``kind="unknown"``.
 
     :meth:`finalize` returns a uniform ``tuple[ParsedLine, ...]`` in both modes: in ``one_line=True`` mode, every
@@ -242,6 +256,11 @@ class AnsiParser(_VTParser[str]):
         # padding cells still allowed, and the last cursor move a cut padding is recorded against
         self._padding_budget = _PADDING_BUDGET
         self._last_move = ""
+
+        # the character written last when nothing came after it yet, and the one REP repeats: the character written
+        # just before the ESC of the sequence being read, while no control character interrupted it
+        self._last_char: str | None = None
+        self._repeat_char: str | None = None
 
         # side channels -- reset per completed line in one_line mode (see
         # _complete_line()), aggregated over the entire input otherwise
@@ -316,6 +335,7 @@ class AnsiParser(_VTParser[str]):
                     # a line end inside a command string is ignored, as other control characters there are
                     i += 1
                     continue
+                self._last_char = self._repeat_char = None
                 if self._one_line:
                     # an escape sequence in progress continues on the next line, as in a terminal
                     self._complete_line()
@@ -340,6 +360,12 @@ class AnsiParser(_VTParser[str]):
                     self._pending_line_end = ch
                 i += 1
                 continue
+            if not self._within_escape:
+                if ch < " " or "\x7f" <= ch < "\xa0":
+                    self._repeat_char = self._last_char if ch == ESC else None
+                    self._last_char = None
+            elif ch < " " or ch == "\x7f":
+                self._repeat_char = None
             self._vt_step(ch, ord(ch))
             i += 1
 
@@ -466,7 +492,7 @@ class AnsiParser(_VTParser[str]):
 
     def _vt_esc_dispatch(self, final: str, intermediates: str) -> None:
         """Apply an ESC sequence, or record it as skipped."""
-        if intermediates or final in "cDEHMZ78>=":
+        if intermediates or final in "cDEHMZ789>=":
             self._dispatch_noncsi(final, intermediates)
         else:
             self._skip("unknown", f"{ESC}{final}", f"unrecognised escape sequence ESC {final!r}")
@@ -492,7 +518,8 @@ class AnsiParser(_VTParser[str]):
         elif ch == SI:
             self._active_charset = 0
         elif ch == "\t":
-            self._handle_tab()
+            self._col = (self._col // _TAB_STOP + 1) * _TAB_STOP
+            self._last_move = ch
         elif ch == "\b":
             self._col = max(0, self._col - 1)
         elif ch in {"\v", "\f"}:
@@ -501,11 +528,6 @@ class AnsiParser(_VTParser[str]):
             else:
                 self._last_move = ch
                 self._move_to_row(self._row + 1, ch)
-
-    def _handle_tab(self, tabstop: int = 8) -> None:
-        target = ((self._col // tabstop) + 1) * tabstop
-        while self._col < target:
-            self._write_char(" ", self._attrspec)
 
     def _write_run(self, run: str) -> None:
         """Write *run*, characters that are no control characters, as :meth:`_vt_print` writes each of them."""
@@ -524,13 +546,21 @@ class AnsiParser(_VTParser[str]):
         self._write_char(run[0], attr)
         if rest := len(run) - 1:
             self._padding_budget += _PADDING_PER_CHARACTER * rest
-            col = self._col
-            row = self._rows[self._row]
-            row[col : col + rest] = [(char, attr) for char in run[1:]]
-            self._col = end = col + rest
-            if end < len(row) and not row[end][0]:
-                # the second half of a wide character whose first half the run wrote over
-                row[end] = (" ", row[end][1])
+            self._put_narrow([(char, attr) for char in run[1:]])
+            self._last_char = run[-1]
+
+    def _put_narrow(self, cells: list[tuple[str, Hashable | None]]) -> None:
+        """Put *cells* of narrow characters that join nothing at the cursor, which is within its row or at its end.
+
+        The cursor moves past them.
+        A wide character they split from its first half leaves its second half as a space, as in a terminal.
+        """
+        col = self._col
+        row = self._rows[self._row]
+        self._col = end = col + len(cells)
+        row[col:end] = cells
+        if end < len(row) and not row[end][0]:
+            row[end] = (" ", row[end][1])
 
     def _write_char(self, ch: str, attr: Hashable | None) -> None:
         """Write *ch* at the cursor, in as many cells as it is wide, or join it to the cluster before the cursor.
@@ -546,6 +576,7 @@ class AnsiParser(_VTParser[str]):
             # a character with no width always may join, and _join_cluster drops it when it cannot
             if may_join and self._join_cluster(row, ch, width):
                 return
+        self._last_char = ch
         col = self._col
         size = len(row)
         if col >= size:
@@ -666,17 +697,29 @@ class AnsiParser(_VTParser[str]):
                 )
         elif final == "}":
             self._skip("terminal-setting", raw, "fbterm setting other than a color")
-        elif final == "C":
+        elif qmark and final in _HORIZONTAL_CSI:
+            self._skip("unknown", raw, f"CSI {final!r} with a private marker is not supported")
+        elif final in "Ca":
             n = params[0] if params and params[0] else 1
             self._col += min(n, _MAX_CURSOR_POSITION)
             self._last_move = raw
         elif final == "D":
             n = params[0] if params and params[0] else 1
             self._col = max(0, self._col - n)
-        elif final == "G":
+        elif final in "G`":
             n = params[0] if params and params[0] else 1
             self._col = min(n, _MAX_CURSOR_POSITION) - 1
             self._last_move = raw
+        elif final == "I":
+            n = params[0] if params and params[0] else 1
+            self._col = (self._col // _TAB_STOP + min(n, _MAX_CURSOR_POSITION // _TAB_STOP)) * _TAB_STOP
+            self._last_move = raw
+        elif final == "Z":
+            n = params[0] if params and params[0] else 1
+            # -(-col // stop) is the tab stop at or after the cursor, so the first step reaches the one before it
+            self._col = max(0, (-(-self._col // _TAB_STOP) - n) * _TAB_STOP)
+        elif final == "b":
+            self._repeat(params[0] if params and params[0] else 1, raw)
         elif final == "q":
             mode = params[0] if params and params[0] else 0
             self._leds = led_state(mode)
@@ -686,6 +729,32 @@ class AnsiParser(_VTParser[str]):
             self._skip("terminal-setting", raw, f"CSI {final!r} terminal-wide setting is out of scope for this pass")
         else:
             self._skip("unknown", raw, f"unrecognised CSI final byte {final!r}")
+
+    def _repeat(self, count: int, raw: str) -> None:
+        """Write the character REP repeats *count* more times.
+
+        The count is at most 1024.
+        The copies count against the padding limit: past it, REP writes only the copies that fit, and *raw* is recorded
+        as skipped.
+        """
+        if (char := self._repeat_char) is None:
+            return
+        width, may_join = (1, False) if " " <= char < "\x7f" else _char_cells(char)
+        count = min(count, _MAX_CURSOR_POSITION)
+        if count * width > self._padding_budget:
+            count = self._padding_budget // width
+            self._skip("unknown", raw, "padding limit reached, repeat cut short")
+        self._padding_budget -= count * width
+        attr = self._attrspec
+        if may_join or width != 1:
+            for _ in range(count):
+                self._write_char(char, attr)
+        elif count:
+            # the first copy pads up to the cursor, and the others follow it in one step, as a run of text does
+            self._write_char(char, attr)
+            self._put_narrow([(char, attr)] * (count - 1))
+        # the copies are no character written just before a REP that follows
+        self._last_char = None
 
     def _dispatch_vertical_move_csi(self, final: str, params: list[int | None], raw: str) -> None:
         if self._one_line:
@@ -744,6 +813,10 @@ class AnsiParser(_VTParser[str]):
             self._skip("vertical-move", raw, "newline")
         elif ch == "H":
             self._skip("terminal-setting", raw, "set tabstop")
+        elif ch == "9":
+            # DECFI; this parser has no right margin to scroll at
+            self._col += 1
+            self._last_move = raw
         elif ch == "c":
             self._charsets = [_ASCII_SET, _ASCII_SET]
             self._active_charset = 0
