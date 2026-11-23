@@ -1016,6 +1016,13 @@ class TermTest(unittest.TestCase):
         self.expect_signal("title")
         self.disconnect_signal("title")
 
+    def test_palette_set_split_across_writes(self) -> None:
+        """Execute a control inside an OSC palette set that arrives over several writes, which continues it."""
+        self.write("ab\\e]P")
+        self.write("0\r")
+        self.write("ff0000c")
+        self.expect("cb")
+
     def test_osc_controls_after_escape_and_in_display_ctrl_mode(self):
         """Execute a control after an ESC in an OSC string, keep DEL in it, and abort it at CAN with display_ctrl.
 
@@ -1298,6 +1305,12 @@ class TermTest(unittest.TestCase):
             ("OSC palette reset ends with its R", (80, 24), r"\e]Rxy", "xy"),
             ("OSC palette set cut short by ST", (80, 24), r"\e]Pabcdef\e\xy", "xy"),
             ("OSC palette set cut short by a CSI", (80, 24), r"ab\e]Pabcdef\e[1GX", "Xb"),
+            ("A control inside an OSC palette set is executed", (80, 24), "ab\\e]P0\rff0000c", "cb"),
+            ("BEL inside an OSC palette set does not end it", (80, 24), "a\\e]P0\x07ff0000b", "ab"),
+            ("CAN cancels an OSC palette set", (80, 24), "a\\e]P0\x18f0b", "af0b"),
+            ("SUB cancels an OSC palette set", (80, 24), "a\\e]P0\x1af0b", "af0b"),
+            ("DEL inside an OSC palette set is ignored", (80, 24), "a\\e]P0\x7fff0000b", "ab"),
+            ("SO inside an OSC palette set is executed", (80, 24), "\\e)Ba\\e]P\x0e0ff0000\tb", "a\tb"),
             ("DECRC leaves display control mode on", (80, 24), "\\e[3h\\e7\\e8a\tb", "a\tb"),
             ("ESC inside a CSI sequence starts a new one", (80, 24), r"ab\e[3\e[1GX", "Xb"),
             ("C1 CSI is displayed in display control mode", (80, 24), "\\e[3hab\x9bc", "ab\x9bc"),
