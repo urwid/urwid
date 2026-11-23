@@ -1404,6 +1404,17 @@ class Table(Widget, WidgetContainerMixin[int]):
         self._header_focused = True
         self._invalidate()
 
+    def forget_header_column(self) -> None:
+        """Forget the header label that :kbd:`up` returns to.
+
+        The focus goes back to the rows, and :kbd:`up` at the first row focuses the first visible label again,
+        as in a new table.
+        Setting :attr:`header_column` to ``None`` only gives the focus back and keeps the label.
+        """
+        self._header_column = None
+        self._header_focused = False
+        self._invalidate()
+
     def _header_target(self, arrangement: _Arrangement) -> int | None:
         """Return the header column the focus is shown on at *arrangement*, or ``None`` when it cannot be shown.
 

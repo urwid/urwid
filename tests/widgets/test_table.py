@@ -1583,6 +1583,26 @@ class TableTest(unittest.TestCase):
                 marked.sort(1)
                 self.assertEqual(expected, self.labels(marked))
 
+    def test_forget_header_column(self) -> None:
+        """Up returns to the label used last, until forget_header_column() starts over at the first visible one."""
+        table = urwid.Table([Column("A", width=3), Column("B", width=2)], [["a", "b"]], sortable=True)
+        size = (10, 2)
+        press(table, size, "up", "right", "down")
+        self.assertIsNone(table.header_column)
+        press(table, size, "up")
+        self.assertEqual(1, table.header_column)
+        table.forget_header_column()
+        self.assertIsNone(table.header_column)
+        press(table, size, "up")
+        self.assertEqual(0, table.header_column)
+
+        with self.subTest("the header gives the focus back"):
+            press(table, size, "right")
+            table.forget_header_column()
+            self.assertIsNone(table.header_column)
+            self.assertEqual(["up"], press(table, size, "up", "up"))
+            self.assertEqual(0, table.header_column)
+
     def test_header_click(self) -> None:
         """A press of button 1 on a label sends its column; a handler's true result consumes it."""
         table = urwid.Table([Column("A", width=3), Column("B", width=2)], [["a", "b"]], sortable=True)

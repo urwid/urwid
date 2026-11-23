@@ -1088,6 +1088,8 @@ sort.  A table built with ``sortable=True`` also offers its header for sorting:
 * :kbd:`up` at the first row focuses the header, :kbd:`left` and
   :kbd:`right` move over the labels, and :kbd:`down` goes back to the rows.
   :attr:`Table.header_column` reads and sets the focused label.
+  The table remembers that label for the next :kbd:`up`;
+  :meth:`Table.forget_header_column` starts over at the first visible label.
   ``header_focus_attr`` marks it while the table is in focus.
 * The label of the sorted column carries a mark, ``" ^"`` or ``" v"`` by
   default; ``sort_marks=`` changes the two marks, and ``None`` draws none.
