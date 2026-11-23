@@ -137,6 +137,8 @@ class StreamingFeedTest(unittest.TestCase):
             "dcs esc at limit": f"\x1bP{'q' * (MAX_OSC_LENGTH - 2)}\x1b\\X",
             "dcs past limit": f"\x1bP{'q' * MAX_OSC_LENGTH}\x1b\\X",
             "dcs ended by another sequence": f"\x1bP{'q' * MAX_OSC_LENGTH}\x1b[31mX",
+            "repeat": "ab\x1b[3bc\x1b[31m\x1b[2b\x1b(0q\x1b[2b中\x1b[1bé\x1b[b",
+            "repeat after a line end": "a\r\n\x1b[2b",
         }
         for name, text in cases.items():
             for one_line in (True, False):
@@ -231,7 +233,24 @@ class HorizontalMovementTest(unittest.TestCase):
         """
         cases = (
             ("a tab leaves the cells it passes", "abcdefghij\x1b[G\tX", "abcdefghXj"),
+            ("CBT onto a wide character", "中" * 5 + "\x1b[Zx", "中" * 4 + "x "),
             ("a tab writes nothing at the end of the row", "A\t", "A"),
+            ("CHT moves to the n-th next tab stop", "ab\x1b[2Ic", "ab" + " " * 14 + "c"),
+            ("CBT moves to the tab stop before the cursor", "abcdefghijk\x1b[Zx", "abcdefghxjk"),
+            ("CBT from a tab stop moves to the one before", "abcdefgh\x1b[Zx", "xbcdefgh"),
+            ("CBT stops at the first column", "abcdefghijk\x1b[5Zx", "xbcdefghijk"),
+            ("HPA is an absolute column", "a\x1b[5`b", "a   b"),
+            ("HPR is a relative column", "a\x1b[3ab", "a   b"),
+            ("DECFI moves one column right", "a\x1b9b", "a b"),
+            ("REP repeats the character written before it", "a\x1b[3b", "aaaa"),
+            ("REP counts 0 as 1", "a\x1b[0b", "aa"),
+            ("REP repeats a wide character", "中\x1b[2bx", "中中中x"),
+            ("REP repeats the base of a cluster", "é\x1b[2b", "éee"),
+            ("REP repeats a DEC Special Graphics character", "\x1b(0q\x1b[2b", "───"),
+            ("REP after another sequence writes nothing", "a\x1b[31m\x1b[3b", "a"),
+            ("REP after a control character writes nothing", "a\x07\x1b[3b", "a"),
+            ("REP interrupted by a control character writes nothing", "a\x1b[\x073b", "a"),
+            ("REP after a REP writes nothing", "a\x1b[1b\x1b[1b", "aa"),
         )
         for label, text, expected in cases:
             for one_line in (True, False):
@@ -243,12 +262,17 @@ class HorizontalMovementTest(unittest.TestCase):
                     self.assertEqual([], line.skipped)
 
     def test_private_marker_is_no_horizontal_move(self) -> None:
-        """Skip a horizontal move with a ``?`` marker, which a terminal ignores."""
-        for final in "CDG":
+        """Skip a horizontal move or REP with a ``?`` marker, which a terminal ignores."""
+        for final in "CDGa`IZb":
             with self.subTest(final=final):
                 line = parse_ansi_line(f"ab\x1b[?3{final}c")[0]
                 self.assertEqual("abc", line.text)
                 self.assertEqual([("unknown", f"\x1b[?3{final}")], [(op.kind, op.raw) for op in line.skipped])
+
+    def test_repeat_needs_the_character_in_the_same_line(self) -> None:
+        """Write nothing for a REP after a line end, which comes between it and the character."""
+        self.assertEqual(["a", ""], [line.text for line in parse_ansi_line("a\n\x1b[2b")])
+        self.assertEqual("a\n", parse_ansi_text("a\n\x1b[2b").text)
 
     def test_right_then_overwrite(self) -> None:
         # move right past "abc", write "Z" at position 5 (padding gap with
@@ -1034,8 +1058,8 @@ class UntrustedInputBoundsTest(unittest.TestCase):
     """
 
     def test_cursor_right_and_absolute_column_are_bounded(self) -> None:
-        """Cap the CSI C step and the CSI G column."""
-        for text in ("\x1b[100000Cx", "\x1b[100000Gx", "ab\x1b[100000Gx"):
+        """Cap the CSI C, a and I steps and the CSI G and ` columns."""
+        for text in ("\x1b[100000Cx", "\x1b[100000ax", "\x1b[100000Ix", "\x1b[100000Gx", "ab\x1b[100000`x"):
             with self.subTest(text=text):
                 line = parse_ansi_line(text)[0]
                 self.assertLessEqual(len(line.text), 1025)
@@ -1047,6 +1071,15 @@ class UntrustedInputBoundsTest(unittest.TestCase):
         self.assertTrue(line.text.endswith("a   y"))
         line = parse_ansi_line("a" * 1500 + "\x1b[100000Cy")[0]
         self.assertEqual(1500 + 1024 + 1, len(line.text))
+
+    def test_repeat_is_bounded(self) -> None:
+        """Cap a REP at 1024 copies, and count the copies against the padding limit."""
+        self.assertEqual("a" * 1025, parse_ansi_line("a\x1b[100000b")[0].text)
+        unit = "a\x1b[1024b"
+        text = unit * 3000
+        line = parse_ansi_line(text)[0]
+        self.assertLessEqual(len(line.text), 1024 * 1024 + 8 * len(text) + 3000)
+        self.assertIn("\x1b[1024b", [op.raw for op in line.skipped if op.reason.startswith("padding limit")])
 
     def test_cursor_down_and_absolute_row_are_bounded(self) -> None:
         """Cap the CSI B and E steps and the CSI d and H rows and columns."""
@@ -1158,7 +1191,7 @@ class UntrustedInputBoundsTest(unittest.TestCase):
 
     def test_padding_budget_spans_feed_calls(self) -> None:
         """Cut the padding at the same place however the text is split into feed calls."""
-        for unit in ("\n\x1b[1024Gx", "\r\n\x1b[1024Gx", "\x1b[1024Cx", "\x1b[1024Bx"):
+        for unit in ("\n\x1b[1024Gx", "\r\n\x1b[1024Gx", "\x1b[1024Cx", "\x1b[1024Bx", "a\x1b[1024b"):
             text = unit * 3000
             whole = AnsiParser()
             whole.feed(text)
