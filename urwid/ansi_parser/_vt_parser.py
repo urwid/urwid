@@ -113,6 +113,11 @@ class _VTParser(typing.Generic[_TextT]):
     _VT_CSI_RUN: re.Pattern[typing.Any]
     _VT_STRING_RUN: re.Pattern[typing.Any]
 
+    @property
+    def _vt_linux_palette(self) -> bool:
+        """Return whether the Linux console's palette OSC is read: framed by its length and taken by a hook."""
+        raise NotImplementedError
+
     def _vt_leave(self) -> None:
         """Drop the sequence being read and return to the ground state."""
         self._within_escape = False
@@ -289,7 +294,7 @@ class _VTParser(typing.Generic[_TextT]):
                 self._escbuf = self._VT_EMPTY + token
             return
         if code == _BEL or (buffer[-1:] == self._VT_ESC and code == _BACKSLASH):
-            self._vt_osc_dispatch(buffer if code == _BEL else buffer[:-1])
+            self._vt_osc_dispatch(buffer if code == _BEL else buffer[:-1], bel=code == _BEL)
             self._vt_leave()
             return
         if len(buffer) >= MAX_OSC_LENGTH:
@@ -297,13 +302,18 @@ class _VTParser(typing.Generic[_TextT]):
             self._parsestate = _OSC_OVERFLOW
             self._escbuf = self._VT_EMPTY + token
             return
-        if not buffer and code == _PALETTE_RESET:
+        if not buffer and code == _PALETTE_RESET and self._vt_linux_palette:
             self._vt_osc_palette(self._VT_EMPTY + token)
             self._vt_leave()
             return
         self._escbuf = buffer = buffer + token
         # an ESC is no digit: the next character decides whether it starts ST or a new sequence
-        if code != _ESC and len(buffer) == _PALETTE_SET_LENGTH and buffer[:1] == self._VT_PALETTE_SET:
+        if (
+            code != _ESC
+            and len(buffer) == _PALETTE_SET_LENGTH
+            and buffer[:1] == self._VT_PALETTE_SET
+            and self._vt_linux_palette
+        ):
             # the Linux console's palette set, ESC ] P n rr gg bb, ends with its 7th hex digit
             self._vt_osc_palette(buffer)
             self._vt_leave()
@@ -330,8 +340,8 @@ class _VTParser(typing.Generic[_TextT]):
         """
         raise NotImplementedError
 
-    def _vt_osc_dispatch(self, body: _TextT) -> None:
-        """Take the body of an OSC string ended by BEL or ST, without its framing."""
+    def _vt_osc_dispatch(self, body: _TextT, *, bel: bool) -> None:
+        """Take the body of an OSC string ended by BEL (*bel*) or ST, without its framing."""
         raise NotImplementedError
 
     def _vt_osc_palette(self, body: _TextT) -> None:

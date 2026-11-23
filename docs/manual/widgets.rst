@@ -192,9 +192,11 @@ answered from the VT200 level on.
 It differs from xterm, or adds to it, in these points:
 
 * VT52 mode, 132 columns, the status line and printing are not implemented,
-  and replies use 7-bit controls only.  The child is given ``TERM=linux``.
-* Where the Linux console and xterm differ, it follows the Linux console,
-  which ``TERM=linux`` describes:
+  and replies use 7-bit controls only.
+* The child is given the terminal type of the ``term`` keyword as ``TERM``,
+  ``linux`` by default.
+* With ``term="linux"``, where the Linux console and xterm differ, it follows
+  the Linux console, which ``TERM=linux`` describes:
 
   * F1 to F5 are sent as ``CSI [ A`` to ``CSI [ E``, and Shift+Tab as
     ``ESC Tab``, while cursor key mode (DECCKM) is reset.
@@ -206,9 +208,13 @@ It differs from xterm, or adds to it, in these points:
     control acts as with the mode off.
   * SO turns display control mode on and SI turns it off.  Both, DECRC and
     SCORC end the IBM PC character set of SGR 11 and 12.
-  * A control inside the palette sequence ``ESC ] P nrrggbb`` is executed,
-    BEL included, and the sequence continues; the sequence itself is read and
-    ignored.
+  * The palette sequence ``ESC ] P nrrggbb`` sets color ``n``, 0 to 15, and
+    ``ESC ] R`` sets them all back; RIS keeps them.  The cells in those colors,
+    and the underline colors of SGR 58, are drawn with the new values, the
+    ones written before included, and the default foreground and background
+    with colors 7 and 0, on a display of 88 or more colors as its closest
+    color.  A control inside the sequence is executed, BEL included, and the
+    sequence continues.
   * The cursor style ``CSI ? Ps c`` is read and not answered as a device
     attributes query.
 
@@ -220,6 +226,46 @@ It differs from xterm, or adds to it, in these points:
     8-bit CSI (0x9B), and gives no cell to a control its font has no glyph for.
   * SGR 12 does not flip the high bit of each character as it does on the
     Linux console.
+  * A bold color 0 to 7 given as ``38;5;n`` is drawn with palette color n,
+    where the Linux console draws it with the bright color, 8 to 15, as the
+    widget draws a bold color of SGR 30 to 37.
+* With ``term="xterm-256color"`` it follows xterm in those points:
+
+  * F1 to F4 are sent as ``ESC O P`` to ``ESC O S``, Home and End as
+    ``CSI H`` and ``CSI F``, or ``ESC O H`` and ``ESC O F`` while cursor key
+    mode is set, Shift+Tab as ``CSI Z``, and F13 to F24 as F1 to F12 with
+    shift.  A cursor, editing or function key with shift, meta or
+    ctrl is sent as ``CSI 1 ; m`` and its letter, or as ``CSI number ; m ~``,
+    m being 1 plus 1 for shift, 2 for meta and 4 for ctrl.
+  * G1 starts as ASCII.
+  * SGR 10, 11 and 12 and ``CSI 3 h`` are ignored, SO and SI only select G1
+    and G0, and ``ESC ] P`` and ``ESC ] R`` are read as any other OSC string,
+    up to BEL or ST, and ignored.
+  * OSC 4 sets palette colors 0 to 255, given in the ``rgb:r/g/b`` or ``#rgb``
+    form, and answers a query (``?``) with the color in xterm's reply, ended as
+    the query was; OSC 104 sets the colors listed back, or all of them.  The
+    cells in those colors are drawn with the new values as for the Linux
+    palette sequence above, but the default foreground and background are no
+    palette colors.  RIS and DECSTR set the palette back.
+  * OSC 10, 11 and 12 set the default foreground, the default background and
+    the cursor color, each further item setting the next color, and answer a
+    query with the color set or, for the default colors, the outer terminal's
+    when the screen reports it; OSC 110, 111 and 112 set them back.  The cells
+    in the default colors are drawn with the colors set, on a display of 88 or
+    more colors.  RIS and DECSTR keep them.
+
+  It does not follow xterm in these points:
+
+  * OSC 4, 10, 11 and 12 do not read X11 color names, such as ``orange``, or
+    the ``rgbi:`` form; such a color ends an OSC 4 sequence, as an invalid one
+    does in xterm, and is skipped in the others.
+  * A query of a default color neither the child nor the screen gave, of the
+    cursor color before the child set it, and of the dynamic colors 13 to 19
+    is not answered, and the widget does not draw its cursor in the cursor
+    color.
+  * ``ESC ( U`` and ``ESC ( K`` still select the IBM PC character set and the
+    Linux console's user map; xterm has no ``U`` set and reads ``K`` as the
+    German national set.
 * SGR reads the colors and the underline style given with sub-parameters, such
   as ``38:2::r:g:b`` and ``4:3``, SGR 21 as a double underline, and the
   underline color of SGR 58 and 59, which the display draws as
@@ -252,7 +298,11 @@ It differs from xterm, or adds to it, in these points:
     the cell's width.
 
 :class:`TerminalOutput` shows output the application writes to it, such as
-captured output, with no process behind it, and also works on Windows.
+captured output, with no process behind it, and also works on Windows.  It
+reads the output as :class:`Terminal` does, and takes the same ``term``
+keyword for the terminal type the output was written for.  It draws the
+palette colors the output redefines in the colors of the running main loop's
+screen, and as 24-bit colors while no main loop runs.
 
 The color of a widget's title in the figures shows the sizing modes it
 supports: blue for box, orange for flow and yellow for fixed.  A title in more

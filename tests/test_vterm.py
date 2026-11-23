@@ -299,6 +299,7 @@ class TermTest(unittest.TestCase):
         *,
         scroll_on_output: bool = True,
         pass_signal_keys: bool = True,
+        term: typing.Literal["linux", "xterm-256color"] = "linux",
     ) -> None:
         """Replace the terminal under test with a fresh one on a fresh fake PTY, for one case of a table test."""
         self.term.terminate()
@@ -308,6 +309,7 @@ class TermTest(unittest.TestCase):
             main_loop=self.event_loop,
             scroll_on_output=scroll_on_output,
             pass_signal_keys=pass_signal_keys,
+            term=term,
         )
         self.resize(width, height, soft)
 
@@ -1036,6 +1038,250 @@ class TermTest(unittest.TestCase):
         )
         self.expect_signal("title")
         self.disconnect_signal("title")
+
+    def test_linux_palette_recolors_the_cells(self) -> None:
+        """Draw the colors 0 to 15 and the default ones with the values the Linux palette sequence set.
+
+        The cells written before the sequence change too, RIS keeps the palette, and ESC ] R sets it back.
+        """
+
+        def first_cells(colors: typing.Literal[16, 256, 16777216]) -> list[urwid.AttrSpec | None]:
+            self.term.term.display_colors = colors
+            return [attr for attr, _charset, _text in next(iter(self.term.term.content()))[:3]]
+
+        self.write("\\e[31ma\\e[0mb\\e[38;5;9mc")
+        self.term.wait_and_feed()
+        unchanged = {colors: first_cells(colors) for colors in (16, 2**24)}
+        self.write("\\e]P1ff8800\\e]P0102030\\e]P2gg0000")
+        self.term.wait_and_feed()
+        self.assertEqual(
+            [
+                urwid.AttrSpec("#ff8800", "#102030", 2**24),
+                urwid.AttrSpec("default", "#102030", 2**24),
+                urwid.AttrSpec("h9", "#102030", 2**24),
+            ],
+            first_cells(2**24),
+        )
+        self.assertEqual(urwid.AttrSpec("#f80", "#123", 256), first_cells(256)[0])
+        # a display of 16 colors has no color to draw the new values with
+        self.assertEqual(unchanged[16], first_cells(16))
+
+        self.write("\\ec\\e[31ma")
+        self.term.wait_and_feed()
+        self.assertEqual(urwid.AttrSpec("#ff8800", "#102030", 2**24), first_cells(2**24)[0])
+        self.write("\\e]R")
+        self.term.wait_and_feed()
+        self.assertEqual(unchanged[2**24][0], first_cells(2**24)[0])
+
+    def test_xterm_palette_osc(self) -> None:
+        """Set, query and set back palette colors with OSC 4 and OSC 104 under xterm-256color.
+
+        The replies are the ones xterm 407 sends for the same output.
+        """
+        for label, output, reply in (
+            ("a query of a default color ended by BEL", "\\e]4;1;?\x07", b"\x1b]4;1;rgb:cdcd/0000/0000\x07"),
+            ("a query ended by ST", "\\e]4;1;?\\e\\", b"\x1b]4;1;rgb:cdcd/0000/0000\x1b\\"),
+            (
+                "each query is answered on its own",
+                "\\e]4;1;?;200;?\x07",
+                b"\x1b]4;1;rgb:cdcd/0000/0000\x07\x1b]4;200;rgb:ffff/0000/d7d7\x07",
+            ),
+            ("rgb: scales each component", "\\e]4;1;rgb:f/8/0\x07\\e]4;1;?\x07", b"\x1b]4;1;rgb:ffff/8888/0000\x07"),
+            ("rgb: with 3 digits", "\\e]4;1;rgb:123/456/789\x07\\e]4;1;?\x07", b"\x1b]4;1;rgb:1212/4545/7878\x07"),
+            ("# gives the high bits", "\\e]4;1;#f80\x07\\e]4;1;?\x07", b"\x1b]4;1;rgb:f0f0/8080/0000\x07"),
+            (
+                "the prefix is case-insensitive",
+                "\\e]4;11;RGB:12/34/56\x07\\e]4;11;?\x07",
+                b"\x1b]4;11;rgb:1212/3434/5656\x07",
+            ),
+            (
+                "an index is read as atoi reads it",
+                "\\e]4;;?;x;?; 1;?;+2;?;3y;?\x07",
+                (
+                    b"\x1b]4;0;rgb:0000/0000/0000\x07\x1b]4;0;rgb:0000/0000/0000\x07\x1b]4;1;rgb:cdcd/0000/0000\x07"
+                    b"\x1b]4;2;rgb:0000/cdcd/0000\x07\x1b]4;3;rgb:cdcd/cdcd/0000\x07"
+                ),
+            ),
+            (
+                "a spec with a space is not read",
+                "\\e]4;1; rgb:11/22/33\x07\\e]4;1;?\x07",
+                b"\x1b]4;1;rgb:cdcd/0000/0000\x07",
+            ),
+            ("a string that is not valid UTF-8 is ignored", "\\e]4;1;?\xff\x07", b""),
+            ("a string with a control character is ignored", "\\e]4;1;\t?\x07", b""),
+            ("a query before a NUL is answered", "\\e]4;1;?\x00\x07", b"\x1b]4;1;rgb:cdcd/0000/0000\x07"),
+            ("entry 245 of the gray ramp", "\\e]4;245;?\x07", b"\x1b]4;245;rgb:8a8a/8a8a/8a8a\x07"),
+            (
+                "OSC 104 skips an index past 255",
+                "\\e]4;1;rgb:11/22/33;2;rgb:44/55/66\x07\\e]104;1;300;2\x07\\e]4;1;?;2;?\x07",
+                b"\x1b]4;1;rgb:cdcd/0000/0000\x07\x1b]4;2;rgb:0000/cdcd/0000\x07",
+            ),
+            (
+                "an index with leading zeros",
+                "\\e]4;007;rgb:11/22/33\x07\\e]4;7;?\x07",
+                b"\x1b]4;7;rgb:1111/2222/3333\x07",
+            ),
+            (
+                "a spec not read ends the sequence",
+                "\\e]4;1;rgb:0/0/0\x07\\e]4;1;orange;2;rgb:11/22/33\x07\\e]4;1;?;2;?\x07",
+                b"\x1b]4;1;rgb:0000/0000/0000\x07\x1b]4;2;rgb:0000/cdcd/0000\x07",
+            ),
+            (
+                "an index past 255 ends the sequence",
+                "\\e]4;300;rgb:11/11/11;3;rgb:44/55/66\x07\\e]4;3;?\x07",
+                b"\x1b]4;3;rgb:cdcd/cdcd/0000\x07",
+            ),
+            (
+                "OSC 104 sets the entries listed back",
+                "\\e]4;1;rgb:aa/bb/cc;2;rgb:aa/bb/cc\x07\\e]104;1\x07\\e]4;1;?;2;?\x07",
+                b"\x1b]4;1;rgb:cdcd/0000/0000\x07\x1b]4;2;rgb:aaaa/bbbb/cccc\x07",
+            ),
+            (
+                "OSC 104 without a list sets them all back",
+                "\\e]4;1;rgb:aa/bb/cc;2;rgb:aa/bb/cc\x07\\e]104\x07\\e]4;1;?;2;?\x07",
+                b"\x1b]4;1;rgb:cdcd/0000/0000\x07\x1b]4;2;rgb:0000/cdcd/0000\x07",
+            ),
+            (
+                "OSC 104 stops at an index not read",
+                "\\e]4;1;rgb:aa/bb/cc\x07\\e]104;x;1\x07\\e]4;1;?\x07",
+                b"\x1b]4;1;rgb:aaaa/bbbb/cccc\x07",
+            ),
+            (
+                "RIS sets the palette back",
+                "\\e]4;6;rgb:aa/bb/cc\x07\\ec\\e]4;6;?\x07",
+                b"\x1b]4;6;rgb:0000/cdcd/cdcd\x07",
+            ),
+            (
+                "DECSTR sets the palette back",
+                "\\e]4;6;rgb:aa/bb/cc\x07\\e[!p\\e]4;6;?\x07",
+                b"\x1b]4;6;rgb:0000/cdcd/cdcd\x07",
+            ),
+            (
+                "the alternate screen keeps the palette",
+                "\\e]4;6;rgb:aa/bb/cc\x07\\e[?1049h\\e]4;6;?\x07",
+                b"\x1b]4;6;rgb:aaaa/bbbb/cccc\x07",
+            ),
+        ):
+            with self.subTest(label):
+                self.restart(term="xterm-256color")
+                self.write(output)
+                self.term.wait_and_feed()
+                self.assertEqual(bytes(self.pty.from_widget), reply)
+
+    def test_xterm_dynamic_colors(self) -> None:
+        """Set, query and set back the default colors and the cursor color with OSC 10 to 12 and OSC 110 to 112.
+
+        The display's default colors are black on white, as xterm's; the replies are the ones xterm 407 sends.
+        """
+        black, white = b"rgb:0000/0000/0000", b"rgb:ffff/ffff/ffff"
+        for label, output, reply in (
+            ("a query of each", "\\e]10;?\x07\\e]11;?\\e\\", b"\x1b]10;" + black + b"\x07\x1b]11;" + white + b"\x1b\\"),
+            ("each item is the next color", "\\e]10;?;?\x07", b"\x1b]10;" + black + b"\x07\x1b]11;" + white + b"\x07"),
+            ("a set, then a query of the next", "\\e]10;rgb:11/22/33;?\x07", b"\x1b]11;" + white + b"\x07"),
+            ("a color not read is skipped", "\\e]10;orange;?\x07", b"\x1b]11;" + white + b"\x07"),
+            ("an index with leading zeros", "\\e]010;?\x07", b"\x1b]10;" + black + b"\x07"),
+            ("an empty item sets nothing", "\\e]10;\x07\\e]10;?\x07", b"\x1b]10;" + black + b"\x07"),
+            ("# form", "\\e]10;#123\x07\\e]10;?\x07", b"\x1b]10;rgb:1010/2020/3030\x07"),
+            (
+                "OSC 110 sets the foreground back",
+                "\\e]10;rgb:12/34/56\x07\\e]10;?\x07\\e]110\x07\\e]10;?\x07",
+                b"\x1b]10;rgb:1212/3434/5656\x07\x1b]10;" + black + b"\x07",
+            ),
+            (
+                "OSC 110 with a parameter is ignored",
+                "\\e]10;rgb:44/55/66\x07\\e]110;x\x07\\e]10;?\x07",
+                b"\x1b]10;rgb:4444/5555/6666\x07",
+            ),
+            (
+                "the cursor color is answered once set",
+                "\\e]12;?\x07\\e]12;rgb:aa/00/00\x07\\e]12;?\x07\\e]112\x07\\e]12;?\x07",
+                b"\x1b]12;rgb:aaaa/0000/0000\x07",
+            ),
+            (
+                "RIS, DECSTR and the alternate screen keep them",
+                "\\e]11;rgb:44/55/66\x07\\ec\\e[!p\\e[?1049h\\e]11;?\x07",
+                b"\x1b]11;rgb:4444/5555/6666\x07",
+            ),
+        ):
+            with self.subTest(label):
+                self.restart(term="xterm-256color")
+                self.term.term.display_default_colors = ("rgb:0000/0000/0000", "rgb:ff/ff/ff")
+                self.write(output)
+                self.term.wait_and_feed()
+                self.assertEqual(bytes(self.pty.from_widget), reply)
+
+    def test_xterm_dynamic_color_unknown_is_not_answered(self) -> None:
+        """Leave a query of a default color the display does not report and the child did not set unanswered."""
+        self.restart(term="xterm-256color")
+        self.write("\\e]10;?;?\x07\\e]11;rgb:01/02/03\x07\\e]10;?;?\x07")
+        self.term.wait_and_feed()
+        self.assertEqual(bytes(self.pty.from_widget), b"\x1b]11;rgb:0101/0202/0303\x07")
+
+    def test_xterm_dynamic_colors_draw_the_default_colors(self) -> None:
+        """Draw the default foreground and background with the colors OSC 10 and OSC 11 set, under xterm-256color."""
+        self.restart(term="xterm-256color")
+        self.term.term.display_colors = 2**24
+        self.write("a\\e[31mb\\e]10;rgb:11/22/33\x07\\e]11;rgb:44/55/66\x07")
+        self.term.wait_and_feed()
+        self.assertEqual(
+            [urwid.AttrSpec("#112233", "#445566", 2**24), urwid.AttrSpec("dark red", "#445566", 2**24)],
+            [attr for attr, _charset, _text in next(iter(self.term.term.content()))[:2]],
+        )
+
+    def test_display_default_colors_learned_after_the_render_answer_the_child(self) -> None:
+        """Answer a query with the screen's default colors as they are when the child asks, not at the last render."""
+        self.restart(term="xterm-256color")
+        screen = mock.Mock(colors=256, terminal_default_colors=(None, None))
+        loop = mock.Mock(screen=screen)
+        with mock.patch("urwid.vterm.event_loop.get_running_loop_or_none", return_value=loop):
+            self.term.render(self.termsize, focus=False)
+            screen.terminal_default_colors = (None, "rgb:ffff/ffff/ffff")
+            self.write("\\e]11;?\x07")
+            self.term.wait_and_feed()
+        self.assertEqual(bytes(self.pty.from_widget), b"\x1b]11;rgb:ffff/ffff/ffff\x07")
+
+    def test_terminal_passes_the_display_default_colors(self) -> None:
+        """Give the canvas the default colors of the screen the terminal is rendered on, and none for another screen."""
+        for screen, colors in (
+            (mock.Mock(colors=256, terminal_default_colors=("rgb:1/2/3", None)), ("rgb:1/2/3", None)),
+            (mock.Mock(spec=["colors"], colors=256), (None, None)),
+        ):
+            with self.subTest(colors=colors):
+                self.restart(term="xterm-256color")
+                loop = mock.Mock(screen=screen)
+                with mock.patch("urwid.vterm.event_loop.get_running_loop_or_none", return_value=loop):
+                    self.term.render(self.termsize, focus=False)
+                self.assertEqual(self.term.term.display_default_colors, colors)
+
+    def test_linux_console_ignores_xterm_palette_osc(self) -> None:
+        """Ignore OSC 4, OSC 104 and OSC 10 to 12 under the linux terminal type, as the Linux console does."""
+        self.term.term.display_default_colors = ("rgb:0000/0000/0000", "rgb:ff/ff/ff")
+        self.write("\\e]4;1;rgb:aa/bb/cc;2;?\x07\\e]104\x07\\e]10;rgb:11/22/33;?\x07")
+        self.term.wait_and_feed()
+        self.assertEqual(bytes(self.pty.from_widget), b"")
+        self.assertEqual(self.term.term._palette, {})
+        self.assertEqual(self.term.term._dynamic_colors, {})
+
+    def test_xterm_palette_recolors_the_cells(self) -> None:
+        """Draw the 256 palette colors OSC 4 set with their new values, underline colors included, not the defaults."""
+        self.restart(term="xterm-256color")
+        self.term.term.display_colors = 2**24
+        self.write("\\e[31ma\\e[0mb\\e[38;5;200;48;5;9mc\\e[0;4;58;5;3md")
+        self.term.wait_and_feed()
+        unchanged = [attr for attr, _charset, _text in next(iter(self.term.term.content()))[:4]]
+        self.write(
+            "\\e]4;1;rgb:ff/88/00;200;rgb:10/20/30;9;rgb:01/02/03;3;rgb:11/22/33;7;rgb:aa/aa/aa;0;rgb:bb/bb/bb\x07"
+        )
+        self.term.wait_and_feed()
+        self.assertEqual(
+            [
+                urwid.AttrSpec("#ff8800", "default", 2**24),
+                unchanged[1],
+                urwid.AttrSpec("#102030", "#010203", 2**24),
+                urwid.AttrSpec("default,underline", "default", 2**24, underline_color="#112233"),
+            ],
+            [attr for attr, _charset, _text in next(iter(self.term.term.content()))[:4]],
+        )
 
     def test_palette_set_split_across_writes(self) -> None:
         """Execute a control inside an OSC palette set that arrives over several writes, which continues it."""
@@ -3891,6 +4137,102 @@ class TermTest(unittest.TestCase):
                 self.term.term.scroll_buffer(up=True, lines=2)
                 self.write("\n6\n7\n8")
                 self.expect(view)
+
+    def test_xterm_keys(self) -> None:
+        """Send the cursor, editing and function keys as xterm does under the xterm-256color terminal type.
+
+        urwid's own input parser reads each one back as the same key, except F13 to F24, which it reads as F1 to F12
+        with shift, and F3 with modifiers, whose report it reads as a cursor position report.
+        """
+        for mode, key, sent in (
+            ("", "up", b"\x1b[A"),
+            ("\\e[?1h", "up", b"\x1bOA"),
+            ("", "home", b"\x1b[H"),
+            ("", "end", b"\x1b[F"),
+            ("\\e[?1h", "end", b"\x1bOF"),
+            ("", "f1", b"\x1bOP"),
+            ("", "f4", b"\x1bOS"),
+            ("", "f5", b"\x1b[15~"),
+            ("", "f12", b"\x1b[24~"),
+            ("", "insert", b"\x1b[2~"),
+            ("", "page down", b"\x1b[6~"),
+            ("", "shift tab", b"\x1b[Z"),
+            ("", "shift ctrl tab", b"\x1b[Z"),
+            ("", "shift up", b"\x1b[1;2A"),
+            ("\\e[?1h", "shift up", b"\x1b[1;2A"),
+            ("", "meta left", b"\x1b[1;3D"),
+            ("", "ctrl home", b"\x1b[1;5H"),
+            ("", "shift meta ctrl f1", b"\x1b[1;8P"),
+            ("", "ctrl f5", b"\x1b[15;5~"),
+            ("", "meta delete", b"\x1b[3;3~"),
+            ("", "f13", b"\x1b[1;2P"),
+            ("", "ctrl f20", b"\x1b[19;6~"),
+            ("", "f3", b"\x1bOR"),
+            ("", "ctrl f3", b"\x1b[1;5R"),
+            # the other keys are sent as under the linux terminal type
+            ("", "backspace", b"\x7f"),
+            ("", "meta x", b"\x1bx"),
+            ("", "ctrl b", b"\x02"),
+        ):
+            with self.subTest(mode=mode, key=key):
+                self.restart(term="xterm-256color")
+                self.write(mode)
+                self.read()
+                self.pty.from_widget.clear()
+                self.term.keygrab = True
+                self.assertIsNone(self.term.keypress(self.termsize, key))
+                self.assertEqual(bytes(self.pty.from_widget), sent)
+                if key not in {"f13", "ctrl f20", "ctrl f3", "shift ctrl tab"}:
+                    self.assertEqual(
+                        urwid.display.escape.process_keyqueue(list(sent), more_available=False), ([key], [])
+                    )
+
+    def test_xterm_keys_without_byte_form_are_not_handled(self) -> None:
+        """Return a key xterm has no byte form for unhandled under the xterm-256color terminal type."""
+        self.restart(term="xterm-256color")
+        for key in ("super up", "shift f13", "focus in"):
+            with self.subTest(key=key):
+                self.term.keygrab = True
+                self.assertEqual(self.term.keypress(self.termsize, key), key)
+                self.assertEqual(bytes(self.pty.from_widget), b"")
+
+    def test_terminal_type(self) -> None:
+        """Give the child the terminal type as TERM, and refuse a terminal type the widget does not emulate.
+
+        G1 starts as DEC Special Graphics on the Linux console, and as ASCII in xterm, also after RIS and DECSTR.
+        """
+        for term, g1 in (("linux", b"0"), ("xterm-256color", b"B")):
+            with self.subTest(term=term):
+                self.restart(term=term)
+                self.assertEqual(self.term.env["TERM"], term)
+                for reset in ("", "\\e)A\\ec", "\\e)A\\e[!p"):
+                    self.write(reset)
+                    self.read()
+                    self.assertEqual(self.term.term.charset.designations[0][1:2], g1)
+        with self.assertRaises(ValueError):
+            urwid.Terminal(["/bin/false"], term="vt100")  # type: ignore[arg-type]
+
+    def test_xterm_control_functions(self) -> None:
+        """Read the control functions the Linux console and xterm differ in as xterm under xterm-256color."""
+        for label, output, screen in (
+            ("SO selects G1 only", "\\e)Ba\x0e\tb", "a       b"),
+            ("SGR 11 is ignored", "\\e[11ma\x01\tb", "a       b"),
+            ("CSI 3 h is ignored", "\\e[3ha\tb", "a       b"),
+            ("the palette set is an OSC string up to BEL", "a\\e]P1ff0000b\x07c", "ac"),
+            ("the palette reset is an OSC string up to ST", "a\\e]Rb\\e\\c", "ac"),
+        ):
+            with self.subTest(label):
+                self.restart(term="xterm-256color")
+                self.write(output)
+                self.expect(screen)
+                self.assertEqual(self.term.term._palette, {})
+
+    def test_xterm_reports_display_control_mode_as_reset(self) -> None:
+        """Report display control mode (3) to DECRQM as reset under xterm-256color also after CSI 3 h, as in xterm."""
+        self.restart(term="xterm-256color")
+        self.write("\\e[3h\\e[3$p")
+        self.read()
+        self.assertEqual(bytes(self.pty.from_widget), b"\x1b[3;2$y")
 
     def test_function_keys_above_f12_send_linux_sequences(self) -> None:
         """Send F13-F20 as the linux terminal type defines them, which urwid's own input parser reads back."""

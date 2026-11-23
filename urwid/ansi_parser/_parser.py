@@ -234,6 +234,7 @@ class AnsiParser(_VTParser[str]):
     _VT_EMPTY = ""
     _VT_ESC = ESC
     _VT_PALETTE_SET = "P"
+    _vt_linux_palette = True
     _VT_CSI_RUN = re.compile("[ -?]+")
     _VT_STRING_RUN = re.compile("[^\x00-\x1f\x1b\x7f]+")
 
@@ -828,8 +829,11 @@ class AnsiParser(_VTParser[str]):
         else:
             self._skip("unknown", raw, f"unrecognised escape sequence {raw!r}")
 
-    def _vt_osc_dispatch(self, body: str) -> None:
-        """Apply an OSC window title or hyperlink, or record another OSC string as skipped."""
+    def _vt_osc_dispatch(self, body: str, *, bel: bool) -> None:
+        """Apply an OSC window title or hyperlink, or record another OSC string as skipped.
+
+        *bel* is not read: nothing is answered here.
+        """
         raw = f"{ESC}]{body}"
         title = resolve_osc_title(body)
         if title is not None:

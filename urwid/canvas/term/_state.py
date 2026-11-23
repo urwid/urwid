@@ -39,6 +39,10 @@ from urwid.display.escape import (
 if typing.TYPE_CHECKING:
     from typing import Literal
 
+#: the terminal types a TermCanvas emulates, the Linux console or xterm, which the child is given as TERM
+TermType: typing.TypeAlias = typing.Literal["linux", "xterm-256color"]
+TERM_TYPES: typing.Final = frozenset(typing.get_args(TermType))
+
 
 #: the final byte each TermCharset name is reported with, the inverse of _DESIGNATED_CHARSETS, ASCII for the default
 _CHARSET_FINALS: typing.Final = types.MappingProxyType({"default": b"B", "vt100": b"0", "ibmpc": b"U", "user": b"K"})
@@ -142,12 +146,17 @@ class TermCharset:
         "user": None,
     }
 
-    def __init__(self) -> None:
-        """Initialize with G1 as DEC special graphics and G0, G2 and G3 at the default charset, G0 active."""
+    def __init__(self, *, g1_graphics: bool = True) -> None:
+        """Initialize with G0, G2 and G3 at the default charset, G0 active.
+
+        :param g1_graphics: G1 starts as DEC special graphics, as on the Linux console; otherwise it starts at the
+            default charset, as in xterm.
+        """
+        g1 = "vt100" if g1_graphics else "default"
         # a tuple, so a copy kept by DECSC is not changed by a later designation
-        self._g: tuple[str, ...] = ("default", "vt100", "default", "default")
+        self._g: tuple[str, ...] = ("default", g1, "default", "default")
         # the final byte each slot was designated with, and a bit per slot designated with a 96-character set
-        self._finals: tuple[bytes, ...] = (b"B", b"0", b"B", b"B")
+        self._finals: tuple[bytes, ...] = (b"B", _CHARSET_FINALS[g1], b"B", b"B")
         self._sets96 = 0
         #: the slot invoked into GR by LS1R, LS2R or LS3R; GR is not drawn from, only reported
         self.gr = 2

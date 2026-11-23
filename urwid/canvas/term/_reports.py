@@ -28,6 +28,7 @@ import typing
 from urwid.ansi_parser import led_state
 from urwid.canvas.term._cells import _RENDITION_BITS
 from urwid.canvas.term._editing import _EditingCanvas
+from urwid.canvas.term._palette import _TRUE_COLORS
 from urwid.canvas.term._screen import _LEFT_RIGHT_MARGIN_LEVEL
 from urwid.display import _sgr
 from urwid.display.escape import CSI, DCS, ST
@@ -52,9 +53,8 @@ _TERTIARY_DEVICE_ATTRIBUTES: typing.Final = f"{DCS}!|00000000{ST}"
 _DEFAULT_CURSOR_STYLE: typing.Final = 2
 
 
-#: the colors of the palette SGR 38;5 and 48;5 select from, and the colors of a display that draws any RGB color
+#: the colors of the palette SGR 38;5 and 48;5 select from
 _PALETTE_COLORS: typing.Final = 256
-_TRUE_COLORS: typing.Final = 2**24
 
 
 #: the DECCIR flag bits: origin mode, a pending SS2, a pending SS3, and a pending autowrap
