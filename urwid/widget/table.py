@@ -6,6 +6,7 @@
 from __future__ import annotations
 
 import collections
+import contextlib
 import itertools
 import math
 import numbers
@@ -372,10 +373,8 @@ class TableLayout:
                 if 0 <= column < len(self._columns):
                     return column
             else:
-                try:
+                with contextlib.suppress(KeyError, TypeError):
                     return self._key_index[column]
-                except (KeyError, TypeError):
-                    pass
         raise IndexError(f"No Table column at index or key {column!r}")
 
     @property

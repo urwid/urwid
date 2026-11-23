@@ -196,8 +196,8 @@ class _ReportsCanvas(_EditingCanvas):
                 # as in xterm, the characters SPA protects are not reported
                 protection = self.protected and not self.modes.iso_protection
                 body = (
-                    f"{y + 1:d};{x + 1:d};1;{chr(0x40 + rendition)};{chr(0x40 + protection)};{chr(0x40 + flags)};"
-                    f"{self.charset.active:d};{self.charset.gr:d};{chr(0x40 + sets96)};{finals.decode('ascii')}"
+                    f"{y + 1:d};{x + 1:d};1;{0x40 + rendition:c};{0x40 + protection:c};{0x40 + flags:c};"
+                    f"{self.charset.active:d};{self.charset.gr:d};{0x40 + sets96:c};{finals.decode('ascii')}"
                 )
                 self.widget.respond(f"{DCS}1$u{body}{ST}")
             case 2:
