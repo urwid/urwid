@@ -2267,6 +2267,32 @@ class TableOptionsTest(unittest.TestCase):
         with self.assertRaises(ValueError):
             table.wheel = "page"  # type: ignore[assignment]
 
+    def test_home_end(self) -> None:
+        """Home and end focus the first or last row; in "selectable" mode the first or last selectable one."""
+        cases: tuple[tuple[typing.Literal["any", "selectable"], str, int], ...] = (
+            ("any", "home", 0),
+            ("any", "end", 5),
+            ("selectable", "home", 1),
+            ("selectable", "end", 4),
+        )
+        for home_end, key, expected in cases:
+            with self.subTest(home_end=home_end, key=key):
+                table = urwid.Table([Column("A")], home_end=home_end)
+                note = table.layout.row
+                table.body.extend(
+                    [note(["title"], selectable=False), ["a"], ["b"], ["c"], ["d"], note(["total"], selectable=False)]
+                )
+                self.assertEqual(home_end, table.home_end)
+                table.focus_position = 2
+                self.assertIsNone(table.keypress((9, 8), key))
+                self.assertEqual(expected, table.focus_position)
+        table.home_end = "any"
+        self.assertEqual("any", table.home_end)
+        with self.assertRaises(ValueError):
+            table.home_end = "first"  # type: ignore[assignment]
+        with self.assertRaises(ValueError):
+            urwid.Table([Column("A")], home_end="first")  # type: ignore[arg-type]
+
     def test_scrollbar_natural_width(self) -> None:
         """The scrollbar column counts in the natural width, and the header is padded over it."""
         table = urwid.Table([Column("A"), Column("B")], [["a", "b"]] * 5, scrollbar=True)

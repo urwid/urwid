@@ -182,6 +182,11 @@ PopUpTarget
 
 .. autoclass:: PopUpTarget
 
+PopUpPlacement
+~~~~~~~~~~~~~~
+
+.. autoclass:: PopUpPlacement
+
 Special Widget Classes
 ----------------------
 

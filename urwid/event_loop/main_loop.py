@@ -25,6 +25,7 @@
 from __future__ import annotations
 
 import contextvars
+import enum
 import functools
 import heapq
 import inspect
@@ -134,6 +135,12 @@ class _ThreadCall:
         self.call: typing.Final = call
         # Set by the loop thread before it runs the call, so the sender can tell a call that ran from a dropped one.
         self.taken = False
+
+
+class _NoThreadCalls(enum.Enum):
+    """Why a run of :class:`MainLoop` takes no :meth:`MainLoop.call_from_thread` calls although it is running."""
+
+    UNWATCHABLE = enum.auto()  # the event loop cannot watch files, such as asyncio's ProactorEventLoop
 
 
 class _ThreadCalls:
@@ -261,7 +268,6 @@ class MainLoop:
         "_resized",
         "_size_read_after_resize",
         "_thread_calls",
-        "_thread_calls_unwatchable",
         "_topmost_widget",
         "_unhandled_input",
         "_watch_pipes",
@@ -343,10 +349,9 @@ class MainLoop:
         self._watch_pipes: dict[int, tuple[typing.Any, int]] = {}
         # set from start() to stop(): the entry that makes this loop the running loop
         self._activation: _Activation | None = None
-        # set while the loop runs: the calls other threads hand over through call_from_thread()
-        self._thread_calls: _ThreadCalls | None = None
-        # set while the loop runs on an event loop that cannot watch files, so call_from_thread() is not available
-        self._thread_calls_unwatchable = False
+        # set while the loop runs: the calls other threads hand over through call_from_thread(),
+        # or the reason the run takes none
+        self._thread_calls: _ThreadCalls | typing.Literal[_NoThreadCalls.UNWATCHABLE] | None = None
 
     @property
     def widget(self) -> AbstractWidget:
@@ -651,7 +656,9 @@ class MainLoop:
             msg = f"call_from_thread() cannot await {callback!r}"
             raise TypeError(msg)
         if (state := self._thread_calls) is None:
-            raise RuntimeError(_CANNOT_WATCH if self._thread_calls_unwatchable else _NOT_RUNNING)
+            raise RuntimeError(_NOT_RUNNING)
+        if state is _NoThreadCalls.UNWATCHABLE:
+            raise RuntimeError(_CANNOT_WATCH)
         entry = _ThreadCall(functools.partial(callback, *args, **kwargs))
         state.calls.append(entry)
         with suppress(BlockingIOError):  # a full buffer means wake-ups are already pending
@@ -661,7 +668,7 @@ class MainLoop:
             raise RuntimeError(_NOT_RUNNING)
 
     def _open_thread_calls(self) -> None:
-        """Start accepting :meth:`call_from_thread` calls, unless a run of this loop already does."""
+        """Start accepting :meth:`call_from_thread` calls, unless a run of this loop already set them up."""
         if self._thread_calls is not None:
             return
         # A socket pair rather than a pipe: select() on Windows takes sockets only.
@@ -675,7 +682,7 @@ class MainLoop:
             # asyncio's ProactorEventLoop cannot watch a socket; a screen that watches no files still runs on it.
             reader.close()
             writer.close()
-            self._thread_calls_unwatchable = True
+            self._thread_calls = _NoThreadCalls.UNWATCHABLE
             return
         except BaseException:
             reader.close()
@@ -685,15 +692,15 @@ class MainLoop:
         # would write into a reused descriptor number, or raise SIGPIPE where the application restored its default.
         weakref.finalize(state, reader.close)
         weakref.finalize(state, writer.close)
-        self._thread_calls = state
+        self._thread_calls = state  # pylint: disable=redefined-variable-type  # the state, or why a run has none
 
     def _close_thread_calls(self) -> None:
         """Stop accepting :meth:`call_from_thread` calls and drop the calls still queued."""
-        self._thread_calls_unwatchable = False
-        if (state := self._thread_calls) is None:
+        state = self._thread_calls
+        self._thread_calls = None
+        if not isinstance(state, _ThreadCalls):
             return
         try:
-            self._thread_calls = None
             state.active = False
             self.event_loop.remove_watch_file(state.handle)
         finally:
@@ -1316,7 +1323,7 @@ class MainLoop:
         The widgets render with this loop as the running loop, also when the loop is not started.
         """
         with self._as_running(explicit=True):
-            if (thread_calls := self._thread_calls) is not None:
+            if isinstance(thread_calls := self._thread_calls, _ThreadCalls):
                 thread_calls.drawn = True
             if not self.screen_size:
                 self.screen_size = self.screen.get_cols_rows()

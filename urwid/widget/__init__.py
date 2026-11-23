@@ -55,7 +55,7 @@ from .overlay import Overlay, OverlayError, OverlayWarning
 from .overlay_stack import OverlayStack
 from .padding import Padding, PaddingError, PaddingWarning, calculate_left_right_padding
 from .pile import Pile, PileError, PileWarning
-from .popup import PopUpLauncher, PopUpTarget
+from .popup import PopUpLauncher, PopUpPlacement, PopUpTarget
 from .progress_bar import ProgressBar
 from .scrollable import Scrollable, ScrollableError, ScrollBar
 from .solid_fill import SolidFill
@@ -166,6 +166,7 @@ __all__ = (
     "PileError",
     "PileWarning",
     "PopUpLauncher",
+    "PopUpPlacement",
     "PopUpTarget",
     "ProgressBar",
     "RadioButton",
