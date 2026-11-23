@@ -1228,9 +1228,22 @@ class EditValidatorTest(unittest.TestCase):
         self.assertEqual(e.validation, ())
 
     def test_severity_is_worst(self) -> None:
+        severity = urwid.Severity
+        self.assertEqual(
+            [severity.DEBUG, severity.INFO, severity.WARNING, severity.ERROR, severity.CRITICAL],
+            sorted(severity),
+        )
+        self.assertEqual((1, 2, 3), (severity.INFO, severity.WARNING, severity.ERROR))
         e = urwid.Edit(validator=lambda _text: [self.INFO, self.ERROR, self.WARNING])
-        self.assertIs(e.severity, urwid.Severity.ERROR)
+        self.assertIs(e.severity, severity.ERROR)
         self.assertIsNone(urwid.Edit().severity)
+        debug = urwid.ValidationMessage(severity.DEBUG, "trace")
+        e = urwid.Edit(validator=lambda _text: debug)
+        self.assertEqual(e.validation, (debug,))
+        self.assertIs(e.severity, severity.DEBUG)
+        critical = urwid.ValidationMessage(severity.CRITICAL, "fatal")
+        e = urwid.Edit(validator=lambda _text: [debug, critical, self.ERROR])
+        self.assertIs(e.severity, severity.CRITICAL)
 
     def test_called_once_per_change(self) -> None:
         validator = mock.Mock(return_value=None)

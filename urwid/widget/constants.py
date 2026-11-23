@@ -62,11 +62,18 @@ class Severity(enum.IntEnum):
     """How serious a :class:`ValidationMessage` or a message of :class:`Notifications` is.
 
     The members are ordered, so :func:`max` gives the worst of several.
+    There is one member per default :mod:`logging` level.
+    :attr:`DEBUG` is 0, so test a severity that may be absent with ``is None``, not by its truth value.
+
+    >>> max(Severity.DEBUG, Severity.WARNING)
+    <Severity.WARNING: 2>
     """
 
+    DEBUG = 0
     INFO = 1
     WARNING = 2
     ERROR = 3
+    CRITICAL = 4
 
 
 class MouseButton(enum.IntEnum):
