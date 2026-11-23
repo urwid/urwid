@@ -120,10 +120,9 @@ skip = [ "pp*", "*-musllinux_*" ]
 [tool.ruff]
 target-version = "py311"
 line-length = 120
-# The test suite is not checked by ruff, mypy, pyrefly, pylint or refurb yet: it is not clean against their
-# rule sets, and that is a gap to close rather than a decision.
+# The test suite is not linted by ruff, or checked by mypy, pyrefly, pylint or refurb yet: it is not clean against
+# their rule sets, and that is a gap to close rather than a decision. Its formatting is checked.
 # tests/type_checks is the exception for mypy and pyrefly: it is a fixture written for them, and they check it.
-extend-exclude = [ "tests" ]
 output-format = "full"
 [tool.ruff.format]
 docstring-code-format = true
@@ -133,6 +132,19 @@ docstring-code-format = true
 # Shown verbatim in the docs as numbered listings, wcur2.py from a fixed line (`:lines: 7-`).
 "docs/tutorial/*.py" = [ "D100", "D101", "D102", "D103", "D107" ]
 "docs/manual/*.py" = [ "D100", "D101", "D102", "D103", "D107" ]
+"tests/**" = [
+  "S101", # a test states its expectation with assert, which pytest rewrites to report the compared values
+  "B023", # a closure made in a test loop runs in the iteration that made it
+  "E741", # short names such as l are the data of a test
+  "D100", # a docstring on every test module, class and method would only repeat its name
+  "D101",
+  "D102",
+  "D103",
+  "D104",
+  "D105",
+  "D106",
+  "D107",
+]
 [tool.ruff.lint.isort]
 known-third-party = []
 [tool.ruff.lint.pydocstyle]
@@ -145,6 +157,7 @@ allow-dunder-method-names = [
   "_contents__setitem__", # class generation
 ]
 [tool.ruff.lint]
+exclude = [ "tests/**" ]
 extend-select = [
   "A",     # flake8-builtins
   "ASYNC", # flake8-async
@@ -357,7 +370,7 @@ disable_error_code = [
 
 [tool.pyrefly]
 python-version = "3.11.0"
-# Docs are not checked; tests other than tests/type_checks are not checked, see [tool.ruff] extend-exclude.
+# Docs are not checked; tests other than tests/type_checks are not checked, see [tool.ruff.lint] exclude.
 project-includes = [ "examples", "tests/type_checks", "urwid" ]
 check-unannotated-defs = true
 # PyGObject is only installed with the "glib" extra, which needs system libraries.
