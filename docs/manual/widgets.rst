@@ -978,7 +978,13 @@ its own focus colour.
 
 When the columns do not fit, the weighted columns are at their minimum
 first, then the ``PACK`` columns shrink towards their ``min_width``, and as the
-last resort a column is hidden.  A given width never shrinks.
+last resort a column is hidden.  A given width never shrinks, and neither does
+a ``PACK`` column with ``min_width=urwid.PACK``: it stays as wide as its
+widest measured cell and its label, so a column of numbers is hidden rather
+than cut::
+
+    urwid.TableColumn("Size", align=urwid.RIGHT, min_width=urwid.PACK)
+
 The column hidden first is the one with the lowest ``priority``, the rightmost
 of equal priorities first, so with every column at the default of 0 the
 rightmost one goes first.
@@ -1082,6 +1088,8 @@ sort.  A table built with ``sortable=True`` also offers its header for sorting:
 * :kbd:`up` at the first row focuses the header, :kbd:`left` and
   :kbd:`right` move over the labels, and :kbd:`down` goes back to the rows.
   :attr:`Table.header_column` reads and sets the focused label.
+  The table remembers that label for the next :kbd:`up`;
+  :meth:`Table.forget_header_column` starts over at the first visible label.
   ``header_focus_attr`` marks it while the table is in focus.
 * The label of the sorted column carries a mark, ``" ^"`` or ``" v"`` by
   default; ``sort_marks=`` changes the two marks, and ``None`` draws none.

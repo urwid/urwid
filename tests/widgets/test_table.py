@@ -55,6 +55,7 @@ class TableLayoutTest(unittest.TestCase):
             ([Column(width=("given", 1))], {}),
             ([Column(min_width=0)], {}),
             ([Column(width=(WEIGHT, 1), min_width=1.5)], {}),
+            ([Column(width=(WEIGHT, 1), min_width=PACK)], {}),
             ([Column(align="justify")], {}),
             ([Column(wrap="any")], {}),
             ([("a", PACK)], {}),
@@ -84,8 +85,9 @@ class TableLayoutTest(unittest.TestCase):
             ):
                 TableLayout([Column(key="a") if invalid.key == "a" else Column(), invalid])
 
-        with self.subTest("a given width of 0 ignores min_width"):
+        with self.subTest("a given width ignores min_width"):
             self.assertEqual((0, 1), TableLayout([Column(width=0, min_width=0), Column()]).widths(5))
+            self.assertEqual((3, 1), TableLayout([Column(width=3, min_width=PACK), Column()]).widths(5))
 
     def test_column_index(self) -> None:
         """A column is found by its index, its key, or the text of its label; anything else is an IndexError."""
@@ -195,14 +197,52 @@ class TableLayoutTest(unittest.TestCase):
         pile = urwid.Pile([layout.row(["a\nlonger", "x"]), layout.row(["b", "y"])])
         self.assertEqual(["a      x", "longer  ", "b      y"], render_text(pile, (8,)))
 
+    def test_pack_min_width(self) -> None:
+        """A PACK column with min_width PACK keeps its widest cell and label: the table hides a column instead."""
+        for label, columns, expected in (
+            ("shrinks by default", [Column(), Column("Size")], {9: (4, 4), 8: (3, 4), 6: (2, 3), 5: (2, 2)}),
+            ("never shrinks", [Column(), Column("Size", min_width=PACK)], {9: (4, 4), 8: (3, 4), 6: (1, 4), 5: (4, 0)}),
+        ):
+            layout = TableLayout(columns, dividechars=1)
+            rows = [layout.row(["aaaa", "12"])]
+            for maxcol, widths in expected.items():
+                with self.subTest(label, maxcol=maxcol):
+                    self.assertEqual(widths, layout.widths(maxcol))
+            self.assertIsNotNone(rows)
+
+        with self.subTest("the floor follows the widest cell"):
+            layout = TableLayout([Column(min_width=PACK), Column(min_width=PACK)], dividechars=1)
+            rows = [layout.row(["aa", "bb"])]
+            self.assertEqual((2, 2), layout.widths(5))
+            rows.append(layout.row(["aaaa", "b"]))
+            self.assertEqual((4, 0), layout.widths(5))
+
+    def test_min_width_capped_by_natural_width(self) -> None:
+        """A PACK column narrower than its min_width keeps its natural width; a wider one shrinks to min_width."""
+        layout = TableLayout([Column(min_width=4), Column(min_width=4)], dividechars=1)
+        rows = [layout.row(["ab", "abcdef"])]
+        self.assertEqual(9, layout.natural_width())
+        self.assertEqual((2, 6), layout.widths(9))
+        self.assertEqual((2, 4), layout.widths(7))
+        self.assertEqual((2, 0), layout.widths(6))
+        self.assertIsNotNone(rows)
+
     def test_unmeasurable_cell(self) -> None:
-        """A FLOW-only cell is not measured: it counts as min_width in a PACK column."""
+        """A FLOW-only cell is not measured: it counts as min_width in a PACK column while it is there."""
         edit = urwid.Edit("", "a long value")
         layout = TableLayout([Column(min_width=3), Column()])
         rows = [layout.row([edit, "x"]), layout.row(["ab", "y"])]
         self.assertEqual((3, 1), layout.widths(10))
         self.assertEqual(5, layout.natural_width())
         self.assertEqual([None, 1], list(rows[0]._cell_widths))
+
+        with self.subTest("the room goes with the last unmeasured cell"):
+            table = urwid.Table([Column(min_width=6), Column()], [["ab", "x"]], header=False)
+            self.assertEqual(4, table.layout.natural_width())
+            table.body.append(urwid.TableRow(table.layout, [urwid.Edit(), "y"]))
+            self.assertEqual(8, table.layout.natural_width())
+            del table.body[-1]
+            self.assertEqual(4, table.layout.natural_width())
 
     def test_cell_kinds(self) -> None:
         """Buttons, check boxes, decorations and nested Columns are cells; a BOX-only widget is not."""
@@ -1542,6 +1582,26 @@ class TableTest(unittest.TestCase):
                 marked = self.make_unsorted(sort_marks=marks)
                 marked.sort(1)
                 self.assertEqual(expected, self.labels(marked))
+
+    def test_forget_header_column(self) -> None:
+        """Up returns to the label used last, until forget_header_column() starts over at the first visible one."""
+        table = urwid.Table([Column("A", width=3), Column("B", width=2)], [["a", "b"]], sortable=True)
+        size = (10, 2)
+        press(table, size, "up", "right", "down")
+        self.assertIsNone(table.header_column)
+        press(table, size, "up")
+        self.assertEqual(1, table.header_column)
+        table.forget_header_column()
+        self.assertIsNone(table.header_column)
+        press(table, size, "up")
+        self.assertEqual(0, table.header_column)
+
+        with self.subTest("the header gives the focus back"):
+            press(table, size, "right")
+            table.forget_header_column()
+            self.assertIsNone(table.header_column)
+            self.assertEqual(["up"], press(table, size, "up", "up"))
+            self.assertEqual(0, table.header_column)
 
     def test_header_click(self) -> None:
         """A press of button 1 on a label sends its column; a handler's true result consumes it."""
