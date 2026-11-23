@@ -382,7 +382,8 @@ color of the enclosing attribute is taken::
 
 The raw display draws the styles and the color where the terminal does, and an underline in the
 text color and single elsewhere. It finds them in the terminal's terminfo entry (``Smulx`` or
-``Setulc``) or from the terminal's version in the environment (VTE and Konsole), and
+``Setulc``) or from the terminal's version in the environment (VTE, Konsole, iTerm2, WezTerm,
+Ghostty, mintty, Rio and the VS Code terminal), and
 ``underline_styles`` given to :class:`display.raw.Screen` or
 :meth:`display.raw.Screen.set_terminal_properties` turns them on or off. The web displays draw
 them as the text decoration's style and color; the curses display draws a single underline.

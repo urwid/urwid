@@ -81,10 +81,25 @@ _TRUECOLOR_FAMILIES = frozenset(
     }
 )
 _NO_UNDERLINE_FAMILIES = frozenset({"dumb", "unknown", "vt52"})
-# the terminals that draw underline styles and colors without a terminfo entry saying so, by the environment variable
-# holding their version, and the first version taken to draw them: VTE 0.52 and Konsole 22.04; these first versions
-# are not confirmed against the projects' release notes, the ones checked are VTE 0.84 and Konsole 25.12
-_UNDERLINE_STYLE_VERSIONS: Sequence[tuple[str, int]] = (("VTE_VERSION", 5200), ("KONSOLE_VERSION", 220400))
+# the terminals that draw every underline style (SGR 4:2 to 4:5) and the underline colour without a terminfo entry
+# saying so, by the environment variable holding their version, and the first version that draws them all:
+# VTE 0.76, the first with dotted and dashed underlines, and Konsole 22.12
+_UNDERLINE_STYLE_VERSIONS: Sequence[tuple[str, int]] = (("VTE_VERSION", 7600), ("KONSOLE_VERSION", 221200))
+# the same first versions by the lower-case TERM_PROGRAM of a terminal that sets TERM_PROGRAM_VERSION;
+# iTerm2 also sets LC_TERMINAL and LC_TERMINAL_VERSION, which SSH passes on with the locale
+_TERM_PROGRAM_UNDERLINE_STYLE_FLOORS: Mapping[str, tuple[int, ...]] = {
+    "ghostty": (1, 0, 0),
+    "iterm.app": (3, 6, 7),
+    "mintty": (3, 1, 5),
+    "rio": (0, 1, 6),
+    "vscode": (1, 71, 0),
+    "wezterm": (20210203, 95643),
+}
+_ITERM2_UNDERLINE_STYLE_FLOOR: typing.Final = _TERM_PROGRAM_UNDERLINE_STYLE_FLOORS["iterm.app"]
+# the numbers a version starts with, separated by "." or "-", as in "3.6.7" or WezTerm's "20240203-110809-5046fc22"
+_VERSION_NUMBERS = re.compile(r"v?(\d{1,9}(?:[.-]\d{1,9}){0,7})")
+# a word after the numbers that marks a build before the release they name
+_PRERELEASE = re.compile(r"alpha|beta|canary|dev|insider|nightly|pre|rc", re.IGNORECASE)
 
 
 # Windows 10 TH2 (1511) gained 256-color VT; 1703-era build 14931 gained 24-bit color.
@@ -394,6 +409,25 @@ def _terminfo_entry(term: str, environ: Mapping[str, str]) -> bytes | None:
     return None
 
 
+def _version_reaches(version: str, floor: tuple[int, ...] | None) -> bool:
+    """Return whether *version* is a release at or after *floor*.
+
+    A version with a pre-release word after its numbers, such as ``3.6.7beta2`` or ``1.2.0-dev``, counts as before.
+
+    >>> _version_reaches("3.6.7", (3, 6, 7)), _version_reaches("3.6.7beta2", (3, 6, 7))
+    (True, False)
+    >>> _version_reaches("20240203-110809-5046fc22", (20210203, 95643))
+    True
+
+    :param floor: the first release, None for a terminal with none.
+    """
+    if floor is None or (match := _VERSION_NUMBERS.match(version)) is None:
+        return False
+    if _PRERELEASE.search(version, match.end()):
+        return False
+    return tuple(int(part) for part in re.split(r"[.-]", match.group(1))) >= floor
+
+
 def _terminfo_colors(term: str, environ: Mapping[str, str]) -> _ColorCount | None:
     """Return the colour count the terminfo entry of *term* allows, as :func:`_terminfo_entry` finds the entry.
 
@@ -515,6 +549,17 @@ def _has_underline_styles(term: str, environ: Mapping[str, str], families: froze
             value = environ.get(name, "")
             if value.isascii() and value.isdigit() and len(value) <= 9 and int(value) >= first:
                 return True
+        program = environ.get("TERM_PROGRAM", "").lower()
+        if _version_reaches(
+            environ.get("TERM_PROGRAM_VERSION", ""),
+            _TERM_PROGRAM_UNDERLINE_STYLE_FLOORS.get(program),
+        ):
+            return True
+        if environ.get("LC_TERMINAL") == "iTerm2" and _version_reaches(
+            environ.get("LC_TERMINAL_VERSION", ""),
+            _ITERM2_UNDERLINE_STYLE_FLOOR,
+        ):
+            return True
     if (data := _terminfo_entry(term, environ)) is None:
         return False
     try:
