@@ -70,6 +70,15 @@ _LOCKING_SHIFTS: typing.Final = types.MappingProxyType({b"n": 2, b"o": 3})
 _SINGLE_SHIFTS: typing.Final = types.MappingProxyType({b"N": 2, b"O": 3})
 
 
+#: the C0 controls that display control mode still executes, as the Linux console does: NUL, BS, LF, FF, CR, SO and SI
+_DISPLAY_CTRL_EXECUTED: typing.Final = frozenset((b"\x00", b"\x08", b"\n", b"\x0c", b"\r", b"\x0e", b"\x0f"))
+#: the controls executed inside a Linux palette sequence, which continues: the C0 controls and DEL but CAN and SUB,
+#: which cancel it, and ESC, which starts the next sequence
+_PALETTE_SET_EXECUTED: typing.Final = frozenset(bytes((code,)) for code in (*range(0x20), 0x7F)) - frozenset(
+    (b"\x18", b"\x1a", ESC_B)
+)
+
+
 #: the private markers of the kitty keyboard protocol's CSI u sequences: query, push, pop and set the flags
 _KITTY_KEYBOARD_MARKERS: typing.Final = frozenset((b"?", b">", b"<", b"="))
 
@@ -100,6 +109,7 @@ _ESC_FINALS: typing.Final = frozenset(
 # the parser states the per-byte path compares against
 _GROUND: typing.Final = ParseState.ESCAPE
 _CSI: typing.Final = ParseState.CSI
+_OSC: typing.Final = ParseState.OSC
 
 
 class CSIAlias(typing.NamedTuple):
@@ -610,8 +620,9 @@ class TermCanvas(_ReportsCanvas, _RectanglesCanvas, _ModesCanvas, _VTParser[byte
         """
         Process a single character (single- and multi-byte).
 
-        Display control mode and the 8-bit CSI are handled here, and REP is tracked; everything else is the
-        escape-sequence state machine's, see :class:`urwid.ansi_parser._vt_parser._VTParser`.
+        Display control mode, the 8-bit CSI and the controls inside the Linux palette sequence are handled here,
+        and REP is tracked; everything else is the escape-sequence state machine's,
+        see :class:`urwid.ansi_parser._vt_parser._VTParser`.
 
         :param char: a byte string
         """
@@ -629,12 +640,10 @@ class TermCanvas(_ReportsCanvas, _RectanglesCanvas, _ModesCanvas, _VTParser[byte
             if char == ESC_B:
                 self._repeat_graphic = graphic
             elif self.modes.display_ctrl:
-                if char < b" " or char == b"\x7f":
-                    # display control mode draws a control character, or reads it as part of the sequence being read
-                    if within:
-                        self._vt_escape_char(char, char[0])
-                    else:
-                        self.push_cursor(char)
+                if not within and ((char < b" " and char not in _DISPLAY_CTRL_EXECUTED) or char == b"\x7f"):
+                    # display control mode draws a control character outside a sequence, as the Linux console does;
+                    # inside a sequence it acts as with the mode off
+                    self.push_cursor(char)
                     return
             elif char == b"\x9b":
                 # CSI, equivalent to "ESC [": like ESC, it drops a sequence still being read
@@ -643,6 +652,10 @@ class TermCanvas(_ReportsCanvas, _RectanglesCanvas, _ModesCanvas, _VTParser[byte
                 self._parsestate = _CSI
                 self._repeat_graphic = graphic
                 return
+        elif self._parsestate == _OSC and self._escbuf[:1] == self._VT_PALETTE_SET and char in _PALETTE_SET_EXECUTED:
+            # the Linux console executes a control inside its palette sequence, which continues, as inside a CSI
+            self._vt_execute(char, char[0])
+            return
         self._vt_step(char, char[0])
 
     # -- the hooks of the state machine in urwid.ansi_parser._vt_parser ------------------------------------------------
@@ -654,16 +667,15 @@ class TermCanvas(_ReportsCanvas, _RectanglesCanvas, _ModesCanvas, _VTParser[byte
     def _vt_execute(self, token: bytes, code: int) -> None:
         """Execute a control character.
 
-        In display control mode only one inside a string, after an ESC, reaches this hook, and it is ignored there.
+        As on the Linux console, SO and SI also end the IBM PC mapping of SGR 11 and 12, and turn display control
+        mode on (SO) or off (SI).
         """
-        if self.modes.display_ctrl:
-            return
         if code == 0x0D:  # carriage return CR
             self.carriage_return()
-        elif code == 0x0F:  # activate G0
-            self.charset.activate(0)
-        elif code == 0x0E:  # activate G1
-            self.charset.activate(1)
+        elif code in {0x0E, 0x0F}:  # SO activates G1, SI activates G0
+            self.charset.reset_sgr_ibmpc()
+            self.charset.activate(1 if code == 0x0E else 0)
+            self.modes.display_ctrl = code == 0x0E
         elif code in {0x0A, 0x0B, 0x0C}:  # line feed LF/VT/FF
             self.linefeed()
             if self.modes.lfnl:
@@ -675,7 +687,7 @@ class TermCanvas(_ReportsCanvas, _RectanglesCanvas, _ModesCanvas, _VTParser[byte
             if x > 0 and x != self.margin_left:
                 self.set_term_cursor(x - 1, y)
             self.is_rotten_cursor = False
-        elif code == 0x07:  # BEL, which ends an OSC string instead of reaching this hook there
+        elif code == 0x07:  # BEL, which ends an OSC string other than the palette sequence instead of reaching here
             self.widget.beep()
         # as in a terminal, any other C0 control character and DEL are ignored, and an escape sequence continues
 

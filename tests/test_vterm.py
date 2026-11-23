@@ -94,6 +94,8 @@ class _FakePTY:
     as for a setuid child.
     With ``reaped_on_exit`` the child is reaped as soon as it exits, as when ``SIGCHLD`` is ignored.
     Without ``child_reads`` the child reads no input, so the master does not take more.
+    With ``room`` set, the master takes that many more bytes of input before a write would block;
+    ``fcntl`` keeps whether the master is non-blocking, and a blocking write that would wait fails the test.
     """
 
     def __init__(self) -> None:
@@ -110,6 +112,8 @@ class _FakePTY:
         self.signals_allowed = True
         self.reaped_on_exit = False
         self.child_reads = True
+        self.room: int | None = None
+        self.nonblocking = False
         self.signals_sent: list[int] = []
 
     def is_readable(self) -> bool:
@@ -133,9 +137,26 @@ class _FakePTY:
         """Stand in for ``os.write``, echoing what the master receives like a PTY in cooked mode."""
         if fd != _FAKE_MASTER_FD:
             return _REAL_OS_WRITE(fd, data)
-        self.from_widget.extend(data)
-        self.to_widget.extend(_pty_echo(data))
-        return len(data)
+        taken = len(data) if self.room is None else min(len(data), self.room)
+        if taken < len(data) and not self.nonblocking:
+            msg = "a blocking os.write() on a PTY master the child does not read would hang a real event loop"
+            raise AssertionError(msg)
+        if not taken and data:
+            raise BlockingIOError(errno.EAGAIN, os.strerror(errno.EAGAIN))
+        if self.room is not None:
+            self.room -= taken
+        self.from_widget.extend(data[:taken])
+        self.to_widget.extend(_pty_echo(data[:taken]))
+        return taken
+
+    def fcntl(self, fd: int, cmd: int, arg: int = 0) -> int:
+        """Stand in for ``fcntl.fcntl``, keeping the master's non-blocking flag."""
+        if fd != _FAKE_MASTER_FD:
+            msg = f"fcntl.fcntl({fd}, {cmd}) outside the fake PTY"
+            raise AssertionError(msg)
+        if cmd == fcntl.F_SETFL:
+            self.nonblocking = bool(arg & os.O_NONBLOCK)
+        return os.O_NONBLOCK if self.nonblocking else 0
 
     def close(self, fd: int) -> None:
         """Stand in for ``os.close``."""
@@ -204,7 +225,7 @@ class _FakeSelector:
         ready = 0
         if self.events & selectors.EVENT_READ and self.pty_state.is_readable():
             ready |= selectors.EVENT_READ
-        if self.events & selectors.EVENT_WRITE and self.pty_state.child_reads:
+        if self.events & selectors.EVENT_WRITE and self.pty_state.child_reads and self.pty_state.room != 0:
             ready |= selectors.EVENT_WRITE
         return [(None, ready)] if ready else []
 
@@ -309,7 +330,7 @@ class TermTest(unittest.TestCase):
             mock.patch("urwid.vterm.os.killpg", side_effect=_forbidden("os.killpg")),
             mock.patch("urwid.vterm.signal.pthread_kill", side_effect=_forbidden("signal.pthread_kill")),
             mock.patch("urwid.vterm.os.execvpe"),
-            mock.patch("urwid.vterm.fcntl.fcntl", return_value=0),
+            mock.patch("urwid.vterm.fcntl.fcntl", side_effect=self.pty.fcntl),
             mock.patch("urwid.vterm.fcntl.ioctl", return_value=0),
             mock.patch("urwid.vterm.atexit", self.atexit),
             mock.patch("urwid.vterm.RealTerminal", return_value=self.tty),
@@ -909,8 +930,18 @@ class TermTest(unittest.TestCase):
             self.write("\\e[11m\x18\\e[10m\x18")
             self.expect([[(None, "U", b"\x18")]], raw=True)
 
+            # SO turns display control mode on, as on the Linux console, so CAN is drawn from G1; SI turns it off
             self.write("\\ec\\e)U\x0e\x18\x0f\\e[3h\x18\\e[3l\x18")
-            self.expect([[(None, None, b"\x18")]], raw=True)
+            self.expect([[(None, "U", b"\x18"), (None, None, b"\x18")]], raw=True)
+
+            # SI, SO and DECRC end the IBM PC mapping of SGR 11, as on the Linux console
+            for shift in ("\x0f", "\x0e", "\\e7\\e8", "\\e[s\\e[u"):
+                self.write(f"\\ec\\e)B\\e[11m{shift}\xdb")
+                self.expect([[(None, None, b"\xdb")]], raw=True)
+
+            # a slot designated as the IBM PC set stays one across DECRC
+            self.write("\\ec\\e)U\x0e\\e7\\e8\xdb")
+            self.expect([[(None, "U", b"\xdb")]], raw=True)
 
             self.write("\\ec\\e[11m\xdb\x18\\e[10m\xdb")
             self.expect(
@@ -1006,10 +1037,18 @@ class TermTest(unittest.TestCase):
         self.expect_signal("title")
         self.disconnect_signal("title")
 
+    def test_palette_set_split_across_writes(self) -> None:
+        """Execute a control inside an OSC palette set that arrives over several writes, which continues it."""
+        self.write("ab\\e]P")
+        self.write("0\r")
+        self.write("ff0000c")
+        self.expect("cb")
+
     def test_osc_controls_after_escape_and_in_display_ctrl_mode(self):
         """Execute a control after an ESC in an OSC string, keep DEL in it, and abort it at CAN with display_ctrl.
 
         DEL right after the ESC is ignored, as in xterm, so the ESC still starts the ST.
+        display_ctrl leaves a control after the ESC executed, as the Linux console executes one inside a sequence.
         """
         self.connect_signal("title")
         self.write("a\\e]0;t\\e\n\\b")
@@ -1037,6 +1076,10 @@ class TermTest(unittest.TestCase):
         self.write("\\e]0;z\\e\x7f\\")
         self.read()
         self.expect_signal("z")
+        self.write("\\e]0;s\\e\r\\")
+        self.read()
+        self.expect_signal("s")
+        self.assertEqual(0, self.term.term.term_cursor[0])
         self.disconnect_signal("title")
 
     def test_other_controls_are_ignored(self):
@@ -1283,8 +1326,22 @@ class TermTest(unittest.TestCase):
             ("OSC palette reset ends with its R", (80, 24), r"\e]Rxy", "xy"),
             ("OSC palette set cut short by ST", (80, 24), r"\e]Pabcdef\e\xy", "xy"),
             ("OSC palette set cut short by a CSI", (80, 24), r"ab\e]Pabcdef\e[1GX", "Xb"),
+            ("A control inside an OSC palette set is executed", (80, 24), "ab\\e]P0\rff0000c", "cb"),
+            ("BEL inside an OSC palette set does not end it", (80, 24), "a\\e]P0\x07ff0000b", "ab"),
+            ("CAN cancels an OSC palette set", (80, 24), "a\\e]P0\x18f0b", "af0b"),
+            ("SUB cancels an OSC palette set", (80, 24), "a\\e]P0\x1af0b", "af0b"),
+            ("DEL inside an OSC palette set is ignored", (80, 24), "a\\e]P0\x7fff0000b", "ab"),
+            ("SO inside an OSC palette set is executed", (80, 24), "\\e)Ba\\e]P\x0e0ff0000\tb", "a\tb"),
+            ("DECRC leaves display control mode on", (80, 24), "\\e[3h\\e7\\e8a\tb", "a\tb"),
             ("ESC inside a CSI sequence starts a new one", (80, 24), r"ab\e[3\e[1GX", "Xb"),
             ("C1 CSI is displayed in display control mode", (80, 24), "\\e[3hab\x9bc", "ab\x9bc"),
+            ("HT is displayed in display control mode", (80, 24), "\\e[3ha\tb", "a\tb"),
+            ("SO turns display control mode on", (80, 24), "\\e)Ba\x0e\tb", "a\tb"),
+            ("SI turns display control mode off", (80, 24), "\\e[11ma\x0f\tb", "a       b"),
+            ("SO inside a CSI is executed, and the CSI continues", (80, 24), "\\e)Bab\\e[1\x0eC\tc", "ab \tc"),
+            ("display control mode still executes CR and FF", (80, 24), "\\e[3hab\rc\x0cd", "cb\n d"),
+            ("display control mode executes FF inside a CSI", (80, 24), "\\e[3hab\\e[2\x0cCc", "ab\n    c"),
+            ("display control mode executes CR after an ESC", (80, 24), "\\e[3hab\\e\r[1Cc", "ac"),
             ("ESC after an ESC starts a new sequence", (80, 24), r"ab\e\e[1GX", "Xb"),
             ("ESC inside ESC % starts a new sequence", (80, 24), r"ab\e%\e[1GX", "Xb"),
             ("ESC inside ESC ( starts a new sequence", (4, 2), r"\e(\e#8", "EEEE\nEEEE"),
@@ -2737,6 +2794,66 @@ class TermTest(unittest.TestCase):
                 with mock.patch("urwid.vterm.event_loop.get_running_loop_or_none", return_value=loop):
                     self.term.render(self.termsize, focus=False)
                 self.assertEqual(self.term.term.display_colors, colors)
+
+    def test_input_the_pty_does_not_take_is_sent_later_in_order(self) -> None:
+        """Keep the replies and keys the pty does not take, without blocking, and send them in order as the child reads.
+
+        The rest is written by an alarm on the event loop the pty is watched on.
+        """
+        replies = b"\x1b[1;1R" * 5
+        self.pty.room = 10
+        self.write("\\e[6n" * 5)
+        self.term.wait_and_feed()
+        self.assertEqual(bytes(self.pty.from_widget), replies[:10])
+        self.term.keygrab = True
+        self.assertIsNone(self.term.keypress(self.termsize, "a"))
+        self.assertEqual(bytes(self.pty.from_widget), replies[:10])
+
+        delay, retry = self.event_loop.alarm.call_args.args
+        self.assertEqual(delay, urwid.vterm._UNSENT_RETRY_DELAY)
+        self.pty.room = None
+        retry()
+        self.assertEqual(bytes(self.pty.from_widget), replies + b"a")
+        self.assertEqual(self.event_loop.alarm.call_count, 2)
+        self.assertFalse(self.pty.nonblocking)
+
+    def test_report_is_sent_once_the_unsent_input_is(self) -> None:
+        """Send a report when the pty takes the input kept before it, and drop it while that input is still kept."""
+        for room, sent in ((6, b"\x1b[1;1R"), (None, b"\x1b[1;1R\x1b[O")):
+            with self.subTest(room=room):
+                self.restart()
+                self.write("\\e[?1004h")
+                self.read()
+                self.pty.from_widget.clear()
+                self.pty.room = 0
+                self.write("\\e[6n")
+                self.term.wait_and_feed()
+                self.pty.room = room
+                self.term.keypress(self.termsize, "focus out")
+                self.assertEqual(bytes(self.pty.from_widget), sent)
+
+    def test_terminate_removes_the_retry_alarm(self) -> None:
+        """Remove the alarm that writes the unsent input again when the terminal is terminated."""
+        self.pty.room = 0
+        self.write("\\e[6n")
+        self.term.wait_and_feed()
+        handle = self.event_loop.alarm.return_value
+        self.term.terminate()
+        self.event_loop.remove_alarm.assert_called_with(handle)
+
+    def test_unsent_input_is_limited(self) -> None:
+        """Drop input that would make the kept input longer than its limit, and send what was kept."""
+        self.pty.room = 0
+        with mock.patch("urwid.vterm._UNSENT_INPUT_LIMIT", 20):
+            self.write("\\e[6n" * 3)
+            self.term.wait_and_feed()
+            self.term.keygrab = True
+            self.term.keypress(self.termsize, "a")
+            self.term.keypress(self.termsize, "b")
+            self.term.keypress(self.termsize, "c")
+        self.pty.room = None
+        self.term.render(self.termsize)
+        self.assertEqual(bytes(self.pty.from_widget), b"\x1b[1;1R" * 3 + b"ab")
 
     def test_in_band_resize_reports_each_new_size(self) -> None:
         """Send the child a report after its new size is set, while mode 2048 is set and the pty takes input."""

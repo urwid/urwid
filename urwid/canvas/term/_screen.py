@@ -620,6 +620,7 @@ class _ScreenCanvas(Canvas):
         restored too.
         Whatever :meth:`save_cursor` did not save with them is reset instead, as in xterm: the cursor moves home when no
         position was saved, and the attributes, DECSCA, the character sets and origin mode take their startup values.
+        The IBM PC mapping of SGR 11 and 12 ends, as on the Linux console, which draws from the restored slot's set.
         """
         if self.saved_cursor is None and not with_attrs:
             return
@@ -632,6 +633,7 @@ class _ScreenCanvas(Canvas):
                 self.charset = TermCharset()
             else:
                 self.attrspec, self.charset = (copy.copy(self.saved_attrs[0]), copy.copy(self.saved_attrs[1]))
+                self.charset.reset_sgr_ibmpc()
             self.protected = protected
             # origin mode first, since it decides how the position is constrained
             self.modes.constrain_scrolling = origin
