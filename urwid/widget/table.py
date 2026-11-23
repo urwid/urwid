@@ -97,6 +97,8 @@ class TableColumn(typing.NamedTuple):
     label: _TagMarkup = ""
     width: Literal[WHSettings.PACK] | int | tuple[Literal[WHSettings.WEIGHT], int | float] = WHSettings.PACK
     #: The narrowest a PACK or WEIGHT column becomes before the table hides a column instead.
+    #: A PACK column whose cells and label are narrower keeps the width of its widest cell and label instead, unless
+    #: it holds a cell that cannot be measured, which counts as this wide.
     #: :attr:`WHSettings.PACK`, for a PACK column only, keeps it as wide as its widest cell and its label.
     min_width: int | Literal[WHSettings.PACK] = 1
     align: Literal[Align.LEFT, Align.CENTER, Align.RIGHT] = Align.LEFT
@@ -262,6 +264,8 @@ class TableLayout:
         self._drop_sequence = self._drop_order()
         # the widest measured cell of each PACK column (0 for the other columns) over the registered rows
         self._pack_max = [0] * len(self._columns)
+        # the number of registered rows, span rows aside, with a cell that cannot be measured in each PACK column
+        self._pack_unmeasured = [0] * len(self._columns)
         self._natural = self._natural_from_maxima()
         # rows built through this layout and not in a table, with their count: a smaller len() means some were
         # collected, and the maxima are recomputed without them
@@ -535,19 +539,20 @@ class TableLayout:
     def _natural_from_maxima(self) -> tuple[int, ...]:
         """Return the natural width of each column from the measured maxima."""
         natural: list[int] = []
-        for column, kind, amount, label, measured in zip(
+        for column, kind, amount, label, measured, unmeasured in zip(
             self._columns,
             self._kinds,
             self._amounts,
             self._label_widths,
             self._pack_max,
+            self._pack_unmeasured,
             strict=True,
         ):
             if kind == WHSettings.GIVEN:
                 natural.append(int(amount))
             elif kind == WHSettings.PACK:
-                floor = column.min_width if isinstance(column.min_width, int) else 1
-                natural.append(max(floor, label, measured))
+                room = column.min_width if isinstance(column.min_width, int) and unmeasured else 1
+                natural.append(max(room, label, measured))
             else:
                 # The layout accepts min_width PACK on a PACK column only.
                 natural.append(typing.cast("int", column.min_width))
@@ -557,10 +562,12 @@ class TableLayout:
         """Compute the widths at *maxcol*, as :meth:`widths` describes."""
         natural = self._natural
         kinds = self._kinds
-        minimums = [
-            column.min_width if isinstance(column.min_width, int) else natural[index]
+        # the narrowest each PACK column shrinks to; a weighted column keeps its min_width in _grow()
+        minimums = {
+            index: min(column.min_width, natural[index]) if isinstance(column.min_width, int) else natural[index]
             for index, column in enumerate(self._columns)
-        ]
+            if kinds[index] == WHSettings.PACK
+        }
         visible = [index for index in self._order if kinds[index] != WHSettings.GIVEN or natural[index]]
         drops = iter(self._drop_sequence)
         while visible:
@@ -622,13 +629,17 @@ class TableLayout:
         if not columns:
             return
         maxima = dict.fromkeys(columns, 0)
+        unmeasured = dict.fromkeys(columns, 0)
         for row in self._iter_rows():
             widths = row._cell_widths
             for index in columns:
-                if (width := widths[index]) is not None and width > maxima[index]:
+                if (width := widths[index]) is None:
+                    unmeasured[index] += not row._span
+                elif width > maxima[index]:
                     maxima[index] = width
         for index, width in maxima.items():
             self._pack_max[index] = width
+            self._pack_unmeasured[index] = unmeasured[index]
 
     def _update_natural(self) -> None:
         """Recompute the natural widths from the maxima, and drop what was laid out with them if they changed."""
@@ -662,10 +673,14 @@ class TableLayout:
         """Remember that *columns* was laid out with the current widths."""
         self._rendered.add(columns)
 
-    def _add_widths(self, cell_widths: Sequence[int | None]) -> None:
+    def _add_widths(self, row: TableRow) -> None:
         """Count the stored widths of a row that became registered."""
-        for index, width in enumerate(cell_widths):
-            if width is not None and width > self._pack_max[index] and self._kinds[index] == WHSettings.PACK:
+        for index, width in enumerate(row._cell_widths):
+            if self._kinds[index] != WHSettings.PACK:
+                continue
+            if width is None:
+                self._pack_unmeasured[index] += not row._span
+            elif width > self._pack_max[index]:
                 self._pack_max[index] = width
         self._update_natural()
 
@@ -685,7 +700,7 @@ class TableLayout:
         self._free_rows.add(row)
         self._free_count += 1
         row._registered = True
-        self._add_widths(row._cell_widths)
+        self._add_widths(row)
 
     def _adopt(self, row: TableRow) -> None:
         """Count *row* as a row of the table that owns the layout."""
@@ -696,15 +711,19 @@ class TableLayout:
                 self._free_count -= 1
             return
         row._registered = True
-        self._add_widths(row._cell_widths)
+        self._add_widths(row)
 
     def _release(self, rows: Iterable[TableRow]) -> None:
         """Stop counting *rows*, removed from the table that owns the layout, recomputing each column once."""
         affected: set[int] = set()
         for row in rows:
             row._registered = False
+            if row._span:
+                # a span row is neither measured nor counted
+                continue
             for index, width in enumerate(row._cell_widths):
-                if width is not None and width >= self._pack_max[index]:
+                # an unmeasured cell leaves the count of its column, a measured one may have been its maximum
+                if width is None or width >= self._pack_max[index]:
                     affected.add(index)
         self._recompute_maxima(sorted(affected))
         self._update_natural()

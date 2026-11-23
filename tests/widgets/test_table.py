@@ -217,14 +217,32 @@ class TableLayoutTest(unittest.TestCase):
             rows.append(layout.row(["aaaa", "b"]))
             self.assertEqual((4, 0), layout.widths(5))
 
+    def test_min_width_capped_by_natural_width(self) -> None:
+        """A PACK column narrower than its min_width keeps its natural width; a wider one shrinks to min_width."""
+        layout = TableLayout([Column(min_width=4), Column(min_width=4)], dividechars=1)
+        rows = [layout.row(["ab", "abcdef"])]
+        self.assertEqual(9, layout.natural_width())
+        self.assertEqual((2, 6), layout.widths(9))
+        self.assertEqual((2, 4), layout.widths(7))
+        self.assertEqual((2, 0), layout.widths(6))
+        self.assertIsNotNone(rows)
+
     def test_unmeasurable_cell(self) -> None:
-        """A FLOW-only cell is not measured: it counts as min_width in a PACK column."""
+        """A FLOW-only cell is not measured: it counts as min_width in a PACK column while it is there."""
         edit = urwid.Edit("", "a long value")
         layout = TableLayout([Column(min_width=3), Column()])
         rows = [layout.row([edit, "x"]), layout.row(["ab", "y"])]
         self.assertEqual((3, 1), layout.widths(10))
         self.assertEqual(5, layout.natural_width())
         self.assertEqual([None, 1], list(rows[0]._cell_widths))
+
+        with self.subTest("the room goes with the last unmeasured cell"):
+            table = urwid.Table([Column(min_width=6), Column()], [["ab", "x"]], header=False)
+            self.assertEqual(4, table.layout.natural_width())
+            table.body.append(urwid.TableRow(table.layout, [urwid.Edit(), "y"]))
+            self.assertEqual(8, table.layout.natural_width())
+            del table.body[-1]
+            self.assertEqual(4, table.layout.natural_width())
 
     def test_cell_kinds(self) -> None:
         """Buttons, check boxes, decorations and nested Columns are cells; a BOX-only widget is not."""
