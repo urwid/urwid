@@ -33,7 +33,7 @@ import sys
 import typing
 
 if typing.TYPE_CHECKING:
-    from collections.abc import Mapping, Sequence
+    from collections.abc import Iterable, Mapping, Sequence
 
 
 IS_WINDOWS = sys.platform == "win32"
@@ -81,10 +81,45 @@ _TRUECOLOR_FAMILIES = frozenset(
     }
 )
 _NO_UNDERLINE_FAMILIES = frozenset({"dumb", "unknown", "vt52"})
-# the terminals that draw underline styles and colors without a terminfo entry saying so, by the environment variable
-# holding their version, and the first version taken to draw them: VTE 0.52 and Konsole 22.04; these first versions
-# are not confirmed against the projects' release notes, the ones checked are VTE 0.84 and Konsole 25.12
-_UNDERLINE_STYLE_VERSIONS: Sequence[tuple[str, int]] = (("VTE_VERSION", 5200), ("KONSOLE_VERSION", 220400))
+# the terminals that draw every underline style (SGR 4:2 to 4:5) and the underline colour without a terminfo entry
+# saying so, by the environment variable holding their version, and the first version that draws them all:
+# VTE 0.76, the first with dotted and dashed underlines, and Konsole 22.12
+_VTE_UNDERLINE_STYLE_VERSION: typing.Final = 7600
+_KONSOLE_UNDERLINE_STYLE_VERSION: typing.Final = 221200
+_UNDERLINE_STYLE_VERSIONS: Sequence[tuple[str, int]] = (
+    ("VTE_VERSION", _VTE_UNDERLINE_STYLE_VERSION),
+    ("KONSOLE_VERSION", _KONSOLE_UNDERLINE_STYLE_VERSION),
+)
+# the same first versions by the lower-case TERM_PROGRAM of a terminal that sets TERM_PROGRAM_VERSION;
+# iTerm2 also sets LC_TERMINAL and LC_TERMINAL_VERSION, which SSH passes on with the locale
+_TERM_PROGRAM_UNDERLINE_STYLE_FLOORS: Mapping[str, tuple[int, ...]] = {
+    "ghostty": (1, 0, 0),
+    "iterm.app": (3, 6, 7),
+    "mintty": (3, 1, 5),
+    "rio": (0, 1, 6),
+    "vscode": (1, 71, 0),
+    "wezterm": (20210203, 95643),
+}
+_ITERM2_UNDERLINE_STYLE_FLOOR: typing.Final = _TERM_PROGRAM_UNDERLINE_STYLE_FLOORS["iterm.app"]
+# the same first versions by the lower-case terminal name of an XTVERSION reply; VTE replies with VTE_VERSION's number
+# and Konsole with its release, and foot drew the styles from 1.18.0 and xterm.js from 5.0.0
+_XTVERSION_UNDERLINE_STYLE_FLOORS: Mapping[str, tuple[int, ...]] = {
+    **{name: _TERM_PROGRAM_UNDERLINE_STYLE_FLOORS[name] for name in ("ghostty", "mintty", "rio", "wezterm")},
+    "foot": (1, 18, 0),
+    "iterm2": _ITERM2_UNDERLINE_STYLE_FLOOR,
+    "konsole": (_KONSOLE_UNDERLINE_STYLE_VERSION // 10000, _KONSOLE_UNDERLINE_STYLE_VERSION // 100 % 100),
+    "vte": (_VTE_UNDERLINE_STYLE_VERSION,),
+    "xterm.js": (5, 0, 0),
+}
+# the numbers a version starts with, separated by "." or "-", as in "3.6.7" or WezTerm's "20240203-110809-5046fc22"
+_VERSION_NUMBERS = re.compile(r"v?(\d{1,9}(?:[.-]\d{1,9}){0,7})")
+# a word after the numbers that marks a build before the release they name
+_PRERELEASE = re.compile(r"alpha|beta|canary|dev|insider|nightly|pre|rc", re.IGNORECASE)
+# an XTVERSION reply's terminal name and its version, as in "XTerm(390)" or "WezTerm 20240203-110809-5046fc22"
+_XTVERSION_TEXT = re.compile(r"([A-Za-z][\w.+-]*?)[ (](.*)")
+#: the terminfo capabilities asked of the terminal with XTGETTCAP: the colour count, 24-bit colour,
+#: and the underline style and colour strings
+_QUERIED_CAPABILITIES: typing.Final = ("colors", "RGB", "Smulx", "Setulc")
 
 
 # Windows 10 TH2 (1511) gained 256-color VT; 1703-era build 14931 gained 24-bit color.
@@ -394,6 +429,61 @@ def _terminfo_entry(term: str, environ: Mapping[str, str]) -> bytes | None:
     return None
 
 
+def _version_reaches(version: str, floor: tuple[int, ...] | None) -> bool:
+    """Return whether *version* is a release at or after *floor*.
+
+    A version with a pre-release word after its numbers, such as ``3.6.7beta2`` or ``1.2.0-dev``, counts as before.
+
+    >>> _version_reaches("3.6.7", (3, 6, 7)), _version_reaches("3.6.7beta2", (3, 6, 7))
+    (True, False)
+    >>> _version_reaches("20240203-110809-5046fc22", (20210203, 95643))
+    True
+
+    :param floor: the first release, None for a terminal with none.
+    """
+    if floor is None or (match := _VERSION_NUMBERS.match(version)) is None:
+        return False
+    if _PRERELEASE.search(version, match.end()):
+        return False
+    return tuple(int(part) for part in re.split(r"[.-]", match.group(1))) >= floor
+
+
+def _underline_styles_from_version(text: str) -> bool:
+    """Return whether the terminal an XTVERSION reply names draws every underline style and the underline colour.
+
+    >>> _underline_styles_from_version("Konsole 25.08.3"), _underline_styles_from_version("XTerm(407)")
+    (True, False)
+
+    :param text: the reply's text, a terminal name and its version.
+    """
+    if (match := _XTVERSION_TEXT.match(text)) is None:
+        return False
+    return _version_reaches(match.group(2), _XTVERSION_UNDERLINE_STYLE_FLOORS.get(match.group(1).lower()))
+
+
+def _properties_from_capabilities(capabilities: Iterable[tuple[str, str | None]]) -> tuple[_ColorCount | None, bool]:
+    """Return what the capabilities of an XTGETTCAP reply show the terminal draws.
+
+    :param capabilities: ``(name, value)`` pairs, the value None for a capability the terminal lacks.
+    :returns: the colour count ``colors`` and ``RGB`` allow, None when they allow fewer than 8 colours or are not given;
+        and whether ``Smulx`` or ``Setulc`` is there.
+    """
+    colors: int | None = None
+    underline_styles = False
+    for name, value in capabilities:
+        if value is None:
+            continue
+        if name == "RGB":
+            colors = 16777216
+        elif name == "colors" and value.isascii() and value.isdigit() and len(value) <= 9 and colors is None:
+            colors = int(value)
+        elif name in {"Smulx", "Setulc"}:
+            underline_styles = True
+    if colors is None:
+        return None, underline_styles
+    return next((count for minimum, count in _TERMINFO_COLOR_COUNTS if colors >= minimum), None), underline_styles
+
+
 def _terminfo_colors(term: str, environ: Mapping[str, str]) -> _ColorCount | None:
     """Return the colour count the terminfo entry of *term* allows, as :func:`_terminfo_entry` finds the entry.
 
@@ -515,6 +605,17 @@ def _has_underline_styles(term: str, environ: Mapping[str, str], families: froze
             value = environ.get(name, "")
             if value.isascii() and value.isdigit() and len(value) <= 9 and int(value) >= first:
                 return True
+        program = environ.get("TERM_PROGRAM", "").lower()
+        if _version_reaches(
+            environ.get("TERM_PROGRAM_VERSION", ""),
+            _TERM_PROGRAM_UNDERLINE_STYLE_FLOORS.get(program),
+        ):
+            return True
+        if environ.get("LC_TERMINAL") == "iTerm2" and _version_reaches(
+            environ.get("LC_TERMINAL_VERSION", ""),
+            _ITERM2_UNDERLINE_STYLE_FLOOR,
+        ):
+            return True
     if (data := _terminfo_entry(term, environ)) is None:
         return False
     try:

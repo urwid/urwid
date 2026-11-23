@@ -2786,6 +2786,21 @@ class TermTest(unittest.TestCase):
                 self.term.wait_and_feed()
                 self.assertEqual(bytes(self.pty.from_widget), answer)
 
+    def test_raw_display_reads_the_answers_to_its_own_queries(self) -> None:
+        """Decode what the widget answers to the queries a raw display sends as it starts, as replies and no keys."""
+        queries = urwid.display.escape.REPORT_TERMINAL_VERSION + "".join(
+            urwid.display.escape.request_capability(name) for name in ("colors", "RGB", "Smulx", "Setulc")
+        )
+        self.term.term.display_colors = 2**24
+        self.write(queries.replace("\x1b", r"\e") + r"\e[c")
+        self.term.wait_and_feed()
+
+        decoded, _consumed = urwid.display.escape.decode_input(list(bytes(self.pty.from_widget)), more_available=False)
+
+        self.assertEqual([], [item for item in decoded if isinstance(item, str)])
+        self.assertIn(("terminal capabilities", (("colors", "256"),)), decoded)
+        self.assertIn(("terminal capabilities", (("RGB", "8"),)), decoded)
+
     def test_render_takes_the_display_colors_from_the_main_loop(self) -> None:
         """Take the display colors from the screen of the running main loop, unknown for a screen without them."""
         for screen, colors in ((mock.Mock(colors=88), 88), (mock.Mock(spec=[]), None)):

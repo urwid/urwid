@@ -285,6 +285,8 @@ class PopUpTargetTest(unittest.TestCase):
         self.assertEqual([(0, 1, 4, 2)], [placement[1:] for placement in target.placements])
         self.assertTrue(target.mouse_event((8, 5), "mouse press", 1, 7, 4, focus=True))
         self.assertIsNone(launcher.pop_up_widget)
+        # placed at the start of the call that closed it
+        self.assertEqual([(0, 1, 4, 2)], [placement[1:] for placement in target.placements])
         target.mouse_event((8, 5), "mouse release", 1, 7, 4, focus=True)
         self.assertEqual((), target.placements)
 

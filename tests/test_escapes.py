@@ -146,6 +146,9 @@ class InputEscapeSequenceParserTest(unittest.TestCase):
             ([*b"\x1b^a\x1b\\"], ["meta ^", "a", "meta \\"]),
             ([*b"\x1b_a\x1b\\"], ["meta _", "a", "meta \\"]),
             ([*b"\x1b]11;x\x07"], ["meta ]", "1", "1", ";", "x", "ctrl g"]),
+            # a curses key code after the start of an OSC 10 reply
+            ([*b"\x1b]10;", 259], ["meta ]", "1", "0", ";", "up"]),
+            ([*b"\x1b]10;r", 259], ["meta ]", "1", "0", ";", "r", "up"]),
         ):
             with self.subTest(codes=codes):
                 for more_available in (False, True):
@@ -1031,6 +1034,20 @@ class ReadKeyboardQueryReplyTest(unittest.TestCase):
             (b"[48;24;80;1234567;7654321t", ("window size report", 80, 24)),
             (b"[48;24:1;80:2:3;0:4;0t", ("window size report", 80, 24)),
             (b"[48;65535;65535;0;0t", ("window size report", 65535, 65535)),
+            (b"P>|XTerm(390)\x1b\\", ("terminal version", "XTerm(390)")),
+            (b"P>|\x1b\\", ("terminal version", "")),
+            (b"P1+r636f6c6f7273=323536\x1b\\", ("terminal capabilities", (("colors", "256"),))),
+            # a boolean capability has no value, and a string one may hold an escape sequence
+            (b"P1+r524742\x1b\\", ("terminal capabilities", (("RGB", ""),))),
+            (b"P1+r536D756C78=1B5B343A257031256D\x1b\\", ("terminal capabilities", (("Smulx", "\x1b[4:%p1%m"),))),
+            (b"P0+r536574756C63\x1b\\", ("terminal capabilities", (("Setulc", None),))),
+            (b"P0+r\x1b\\", ("terminal capabilities", ())),
+            # the Terminal widget ends each name it answers with ";"
+            (b"P1+r524742;;\x1b\\", ("terminal capabilities", (("RGB", ""),))),
+            # the default colors, ended by ST or by BEL
+            (b"]10;rgb:0000/0000/0000\x1b\\", ("default color", 10, "rgb:0000/0000/0000")),
+            (b"]11;rgb:ff/ff/ff\x07", ("default color", 11, "rgb:ff/ff/ff")),
+            (b"]11;rgba:0000/0000/0000/dddd\x1b\\", ("default color", 11, "rgba:0000/0000/0000/dddd")),
         ):
             with self.subTest(sequence=sequence):
                 actual, rest = escape.process_keyqueue([27, *sequence, ord("x")], more_available=False)
@@ -1044,6 +1061,35 @@ class ReadKeyboardQueryReplyTest(unittest.TestCase):
         for sequence in (b"[>m", b"[>;2m", b"[>4;2;1m", b"[>4:1m"):
             with self.subTest(sequence=sequence):
                 self.assertIsNone(escape.input_trie.read_modify_keys_report(list(sequence), more_available=False))
+        # a DCS reply needs ST, printable ASCII before it, a body no longer than 256, and a known introducer
+        for sequence in (
+            b"P>|XTerm(390)\x1b",
+            b"P>|XTerm(390)\x1bx",
+            b"P>|XTerm\x07(390)\x1b\\",
+            b"P>|" + b"x" * 257 + b"\x1b\\",
+            b"P2+r524742\x1b\\",
+            # an OSC reply has a color in the rgb: form, and only the default colors are read
+            b"]11;#ffffff\x07",
+            b"]11;white\x1b\\",
+            b"]12;rgb:0/0/0\x07",
+            b"]11;rgb:0/0/0\x1bx",
+        ):
+            with self.subTest(sequence=sequence):
+                self.assertIsNone(escape.input_trie.read_string_report(list(sequence), more_available=False))
+        # a complete XTGETTCAP reply with a body that is not hex-encoded capabilities answers nothing
+        for sequence in (
+            b"P1+r52474\x1b\\",
+            b"P1+rzz=31\x1b\\",
+            b"P1+r52 47 42\x1b\\",
+            b"P1+r=31\x1b\\",
+            b"P1+r0A=31\x1b\\",
+            b"P1+r524742=3\x1b\\",
+        ):
+            with self.subTest(sequence=sequence):
+                self.assertEqual(
+                    (("terminal capabilities", ()), []),
+                    escape.input_trie.read_string_report(list(sequence), more_available=False),
+                )
         # a window size report has two or four values, and a row and a column count from 1 to 65535
         for sequence in (
             b"[48;24t",
@@ -1062,10 +1108,20 @@ class ReadKeyboardQueryReplyTest(unittest.TestCase):
                 self.assertEqual([f"<csi {sequence[1:].decode()}>"], actual)
 
     def test_truncated_replies_wait_for_more_input(self):
-        for sequence in (b"[?62;22c", b"[>4;2m", b"[48;24;80;0;0t", b"[48;24:1;80;1234567;7654321t"):
-            for length in range(1, len(sequence)):
+        """Wait for the rest of a reply, except after ESC P alone, which is also the key Alt+Shift+P."""
+        for sequence, first in (
+            (b"[?62;22c", 1),
+            (b"[>4;2m", 1),
+            (b"[48;24;80;0;0t", 1),
+            (b"[48;24:1;80;1234567;7654321t", 1),
+            (b"P>|XTerm(390)\x1b\\", 2),
+            (b"P1+r524742\x1b\\", 2),
+            (b"P0+r524742\x1b\\", 2),
+        ):
+            for length in range(first, len(sequence)):
                 with self.subTest(sequence=sequence, length=length), self.assertRaises(escape.MoreInputRequired):
                     escape.process_keyqueue([27, *sequence[:length]], more_available=True)
+        self.assertEqual((["meta P"], []), escape.process_keyqueue([27, ord("P")], more_available=True))
 
 
 class DecodeInputTest(unittest.TestCase):

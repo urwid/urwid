@@ -181,6 +181,23 @@ REPORT_STATUS: typing.Final = f"{CSI}5n"
 REPORT_CURSOR_POSITION: typing.Final = f"{CSI}6n"
 # Primary DA; every terminal answers it, so its reply arriving first means an earlier query got no answer
 REPORT_DEVICE_ATTRIBUTES: typing.Final = f"{CSI}c"
+# XTVERSION, replied as DCS > | name and version ST
+REPORT_TERMINAL_VERSION: typing.Final = f"{CSI}>0q"
+# the default foreground and background colors (OSC 10 and OSC 11 queries), replied as OSC 10 ; color ST and OSC 11 ;
+# color ST, or ended by BEL
+REPORT_DEFAULT_COLORS: typing.Final = f"{OSC}10;?{ST}{OSC}11;?{ST}"
+
+
+def request_capability(name: str) -> str:
+    r"""Return the XTGETTCAP query for the terminfo capability *name*, replied as DCS 1 + r or DCS 0 + r.
+
+    >>> request_capability("RGB")
+    '\x1bP+q524742\x1b\\'
+
+    :raises UnicodeEncodeError: *name* is not ASCII, as no terminfo capability name is.
+    """
+    return f"{DCS}+q{name.encode('ascii').hex().upper()}{ST}"
+
 
 # kitty keyboard protocol: the flags query (replied as CSI ? flags u), and pushing and popping the flags on the
 # terminal's per-screen stack

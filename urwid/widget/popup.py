@@ -361,7 +361,9 @@ class PopUpTarget(WidgetDecoration[WrappedWidget]):
         It is one entry per open pop-up, outermost first, with the position and size the pop-up was rendered at:
         a ``'pack'`` or relative size resolved to cells, an alignment resolved to a position,
         and a pop-up moved or shrunk to fit inside the target.
-        It is empty before the first such call and when no pop-up is open.
+        It is empty before the first such call and after a call that found no pop-up open.
+        A call places the pop-ups before it handles its event,
+        so a pop-up that the call itself closes, such as by a click outside it, is listed until the next sized call.
 
         >>> import urwid
         >>> class Launcher(urwid.PopUpLauncher):

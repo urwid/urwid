@@ -97,7 +97,8 @@ class Screen(_raw_display_base.Screen):
             and the state the terminal reported is set back when it stops; without a report the mode stays as set.
         :param underline_styles: draw the underline styles and the underline colors of the display attributes;
             without them an underline is drawn single and in the text color.
-            None (default) detects them by the terminfo entry of ``TERM`` and by the terminal's environment variables;
+            None (default) detects them by the terminfo entry of ``TERM`` and by the terminal's environment variables,
+            and turns them on when the terminal's reply to a capability or version query shows them;
             pass True/False to force it.
         """
         del in_band_resize  # the console implements no mode 2048 to turn on

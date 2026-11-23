@@ -49,8 +49,18 @@ if typing.TYPE_CHECKING:
     _ModifyKeysReport = tuple[typing.Literal["modify keys report"], int, int | None]
     _DeviceAttributesReport = tuple[typing.Literal["device attributes"], tuple[int, ...]]
     _WindowSizeReport = tuple[typing.Literal["window size report"], int, int]
+    _TerminalVersionReport = tuple[typing.Literal["terminal version"], str]
+    _TerminalCapabilitiesReport = tuple[typing.Literal["terminal capabilities"], tuple[tuple[str, str | None], ...]]
+    _DefaultColorReport = tuple[typing.Literal["default color"], int, str]
     _TerminalReport = (
-        _PrivateModeReport | _KeyboardProtocolReport | _ModifyKeysReport | _DeviceAttributesReport | _WindowSizeReport
+        _PrivateModeReport
+        | _KeyboardProtocolReport
+        | _ModifyKeysReport
+        | _DeviceAttributesReport
+        | _WindowSizeReport
+        | _TerminalVersionReport
+        | _TerminalCapabilitiesReport
+        | _DefaultColorReport
     )
     _DecodedInput = list[str | _MouseInput | _CursorPosition]
 
@@ -364,7 +374,13 @@ class Screen(BaseScreen, RealTerminal):
                 case ("window size report", *_):
                     logger.debug(f"Dropped a window size report this screen did not ask for: {item!r}")
                 case (
-                    "private mode report" | "keyboard protocol report" | "modify keys report" | "device attributes",
+                    "private mode report"
+                    | "keyboard protocol report"
+                    | "modify keys report"
+                    | "device attributes"
+                    | "terminal version"
+                    | "terminal capabilities"
+                    | "default color",
                     *_,
                 ):
                     logger.debug(f"Dropped a reply to a query this screen did not send: {item!r}")

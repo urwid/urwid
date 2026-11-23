@@ -20,6 +20,15 @@ and high color modes. You can then switch between these modes with
 where ``screen`` is your screen instance or :attr:`MainLoop.screen`.
 The same method turns on terminal hyperlinks with ``hyperlinks=True`` (see :ref:`hyperlinks`).
 
+The raw display starts with the number of colors that ``TERM``, its terminfo entry and the environment give.
+As it starts, it asks the terminal for its own capabilities (XTGETTCAP) and its version (XTVERSION).
+A reply can raise the number of colors and turn on the underline styles, and the screen is then drawn again.
+A reply never lowers them, and never changes a property the application set.
+With those queries it also asks for the terminal's default foreground and background colors (OSC 10 and OSC 11),
+which :attr:`display.raw.Screen.terminal_default_colors` then holds, and with which the :class:`Terminal` widget
+answers its child's queries of the same colors. Like the other queries, they are not sent on the Linux console, nor
+when the application set both the number of colors and the underline styles.
+
 .. seealso::
    :meth:`register_palette() reference <BaseScreen.register_palette>`,
 
@@ -382,7 +391,9 @@ color of the enclosing attribute is taken::
 
 The raw display draws the styles and the color where the terminal does, and an underline in the
 text color and single elsewhere. It finds them in the terminal's terminfo entry (``Smulx`` or
-``Setulc``) or from the terminal's version in the environment (VTE and Konsole), and
+``Setulc``), from the terminal's version in the environment (VTE, Konsole, iTerm2, WezTerm, Ghostty,
+mintty, Rio and the VS Code terminal),
+or from the terminal's replies to its capability and version queries, and
 ``underline_styles`` given to :class:`display.raw.Screen` or
 :meth:`display.raw.Screen.set_terminal_properties` turns them on or off. The web displays draw
 them as the text decoration's style and color; the curses display draws a single underline.

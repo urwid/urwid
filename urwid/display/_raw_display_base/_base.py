@@ -91,6 +91,7 @@ class _TerminalProperty(typing.Generic[_T]):
         # the field is named at run time, so its type cannot be checked against the keyword
         change: dict[str, typing.Any] = {self.name: value}
         instance._terminal_properties = dataclasses.replace(instance._terminal_properties, **change)
+        instance._properties_set.add(self.name)
 
     def __delete__(self, instance: _ScreenBase) -> None:
         """Refuse to delete the setting, which every screen has.
@@ -180,6 +181,8 @@ class _ScreenBase(BaseScreen, RealTerminal):
         "_alternate_buffer",
         "_alternate_scroll_reported",
         "_alternate_scroll_written",
+        "_capabilities_answered",
+        "_capability_query_pending",
         "_cy",
         "_drawn_rows",
         "_hold_resize",
@@ -194,6 +197,7 @@ class _ScreenBase(BaseScreen, RealTerminal):
         "_pal_escape",
         "_partial_codes",
         "_partial_deadline",
+        "_properties_set",
         "_reported_cols_rows",
         "_resize_held_passes",
         "_resize_pipe_rd",
@@ -204,6 +208,7 @@ class _ScreenBase(BaseScreen, RealTerminal):
         "_setup_G1_done",
         "_term_input_file",
         "_term_output_file",
+        "_terminal_default_colors",
         "_terminal_properties",
         "_title",
         "_title_saved",
@@ -240,6 +245,18 @@ class _ScreenBase(BaseScreen, RealTerminal):
     underline_styles = _TerminalProperty[bool]()
 
     hyperlinks = _TerminalProperty[bool]()
+
+    @property
+    def terminal_default_colors(self) -> tuple[str | None, str | None]:
+        """Return the terminal's default foreground and background colors.
+
+        Each is an X11 color spec, such as ``rgb:ffff/ffff/ffff``, as the terminal answered the OSC 10 and OSC 11
+        queries, or None when it did not answer.
+        The screen sends the queries as it starts, with the capability queries: not on the Linux console, and not when
+        the application set both the color count and the underline styles.
+        The :class:`~urwid.Terminal` widget answers its child's queries with them.
+        """
+        return self._terminal_default_colors.get(10), self._terminal_default_colors.get(11)
 
     def __init__(
         self,
@@ -278,7 +295,8 @@ class _ScreenBase(BaseScreen, RealTerminal):
             and the state the terminal reported is set back when it stops; without a report the mode stays as set.
         :param underline_styles: draw the underline styles and the underline colors of the display attributes;
             without them an underline is drawn single and in the text color.
-            None (default) detects them by the terminfo entry of ``TERM`` and by the terminal's environment variables;
+            None (default) detects them by the terminfo entry of ``TERM`` and by the terminal's environment variables,
+            and turns them on when the terminal's reply to a capability or version query shows them;
             pass True/False to force it.
         """
         super().__init__()
@@ -299,6 +317,14 @@ class _ScreenBase(BaseScreen, RealTerminal):
         self._alternate_scroll_written = False
         # the keyboard protocol queries were sent and the Primary DA reply that ends their answers has not arrived
         self._keyboard_query_pending = False
+        # the XTVERSION and XTGETTCAP queries were sent and the Primary DA reply that ends their answers has not arrived
+        self._capability_query_pending = False
+        # the Primary DA reply after those queries arrived, so the terminal answered what it could
+        self._capabilities_answered = False
+        # the terminal's default foreground (10) and background (11) colors, as its OSC 10 and OSC 11 replies give them
+        self._terminal_default_colors: dict[int, str] = {}
+        # the terminal properties the application set, which no terminal reply changes
+        self._properties_set: set[str] = set()
         # the private modes queried by the last start and not answered yet
         self._mode_queries_pending: set[str] = set()
         # the modifyOtherKeys value the terminal reported, written back when the screen stops
@@ -316,6 +342,7 @@ class _ScreenBase(BaseScreen, RealTerminal):
             self._terminal_properties = dataclasses.replace(
                 self._terminal_properties, underline_styles=underline_styles
             )
+            self._properties_set.add("underline_styles")
         # the window title set_title() asked for, shown while the screen runs
         self._title: str | None = None
         # the title the terminal had before is saved, and is given back when the screen stops
@@ -494,22 +521,45 @@ class _ScreenBase(BaseScreen, RealTerminal):
             Off by default: no query for OSC 8 support exists, so applications that know their terminal set it.
         :param underline_styles: set to True to draw the underline styles and colors of display attributes,
             False to draw every underline single and in the text color, or None to leave unchanged.
+
+        A property given here is the application's choice: the terminal's replies to the capability and version
+        queries no longer change it.
         """
-        current = self._terminal_properties
-        properties = dataclasses.replace(
-            current,
-            colors=current.colors if colors is None else colors,
-            fg_bright_is_bold=current.fg_bright_is_bold if bright_is_bold is None else bright_is_bold,
-            has_underline=current.has_underline if has_underline is None else has_underline,
-            hyperlinks=current.hyperlinks if hyperlinks is None else hyperlinks,
-            underline_styles=current.underline_styles if underline_styles is None else underline_styles,
-        )
-        if properties == current:
+        changes: dict[str, typing.Any] = {
+            "colors": colors,
+            "fg_bright_is_bold": bright_is_bold,
+            "has_underline": has_underline,
+            "hyperlinks": hyperlinks,
+            "underline_styles": underline_styles,
+        }
+        given = {name: value for name, value in changes.items() if value is not None}
+        self._properties_set.update(given)
+        self._replace_terminal_properties(given)
+
+    def _replace_terminal_properties(self, changes: Mapping[str, typing.Any]) -> None:
+        """Replace the terminal properties named in *changes*, and draw everything again when that changed any."""
+        properties = dataclasses.replace(self._terminal_properties, **changes)
+        if properties == self._terminal_properties:
             return
         self._terminal_properties = properties
 
         self.clear()
         self._pal_escape.clear()
+
+    def _raise_terminal_properties(self, colors: _ColorCount | None, underline_styles: bool) -> None:
+        """Raise the properties the application left to detection to what a terminal reply shows the terminal draws.
+
+        A reply only adds what the detection missed: a colour count above it, and the underline styles.
+
+        :param colors: the colour count the terminal reported, None when it reported none.
+        :param underline_styles: the terminal reported that it draws the underline styles and colours.
+        """
+        changes: dict[str, typing.Any] = {}
+        if colors is not None and "colors" not in self._properties_set and colors > self.colors:
+            changes["colors"] = colors
+        if underline_styles and "underline_styles" not in self._properties_set:
+            changes["underline_styles"] = True
+        self._replace_terminal_properties(changes)
 
     # shortcut for creating an AttrSpec with this screen object's
     # number of colors
