@@ -106,8 +106,11 @@ _MAX_SKIPPED = 65536
 #: Padding cells a parser may insert regardless of input length, one full 1024 x 1024 screen.
 _PADDING_BUDGET = _MAX_CURSOR_POSITION * _MAX_CURSOR_POSITION
 
-#: Padding cells each fed character adds to the budget, as many as a tab writes.
+#: Padding cells each fed character adds to the budget, as many as a tab passes.
 _PADDING_PER_CHARACTER = 8
+
+#: Columns between tab stops, which are fixed: setting or clearing a tab stop is not supported.
+_TAB_STOP: typing.Final = 8
 
 #: Padding cells an empty row inserted by a vertical move costs, about what the row allocates.
 _PADDING_PER_ROW = 8
@@ -162,6 +165,9 @@ class AnsiParser(_VTParser[str]):
     tabs and padding line up as on a terminal. A character that splits a wide character from its other half leaves
     that half as a space. A character with no width and no character before the cursor to join is dropped, and so is
     one that would make a cluster longer than 32 code points.
+
+    Tab stops are every 8 columns.
+    Tab moves the cursor to the next one and leaves the cells it passes as they are, as in a terminal.
 
     SGR bold stays a setting of its own and does not brighten the foreground: ``CSI 1;31 m`` is
     ``'dark red,bold'``, and a display draws it in a bright color where the terminal does so for bold text.
@@ -492,7 +498,8 @@ class AnsiParser(_VTParser[str]):
         elif ch == SI:
             self._active_charset = 0
         elif ch == "\t":
-            self._handle_tab()
+            self._col = (self._col // _TAB_STOP + 1) * _TAB_STOP
+            self._last_move = ch
         elif ch == "\b":
             self._col = max(0, self._col - 1)
         elif ch in {"\v", "\f"}:
@@ -501,11 +508,6 @@ class AnsiParser(_VTParser[str]):
             else:
                 self._last_move = ch
                 self._move_to_row(self._row + 1, ch)
-
-    def _handle_tab(self, tabstop: int = 8) -> None:
-        target = ((self._col // tabstop) + 1) * tabstop
-        while self._col < target:
-            self._write_char(" ", self._attrspec)
 
     def _write_run(self, run: str) -> None:
         """Write *run*, characters that are no control characters, as :meth:`_vt_print` writes each of them."""

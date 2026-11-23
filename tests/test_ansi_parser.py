@@ -224,6 +224,24 @@ class HorizontalMovementTest(unittest.TestCase):
                     self.assertEqual(expected, line.text)
                     self.assertEqual(attrib, line.attrib)
 
+    def test_row_sequences(self) -> None:
+        """Apply the sequences that act within the cursor's row, as xterm does.
+
+        Tab stops are every 8 columns.
+        """
+        cases = (
+            ("a tab leaves the cells it passes", "abcdefghij\x1b[G\tX", "abcdefghXj"),
+            ("a tab writes nothing at the end of the row", "A\t", "A"),
+        )
+        for label, text, expected in cases:
+            for one_line in (True, False):
+                with self.subTest(label, one_line=one_line):
+                    parser = AnsiParser(one_line=one_line)
+                    parser.feed(text)
+                    (line,) = parser.finalize()
+                    self.assertEqual(expected, line.text)
+                    self.assertEqual([], line.skipped)
+
     def test_right_then_overwrite(self) -> None:
         # move right past "abc", write "Z" at position 5 (padding gap with
         # None-attr spaces), leaving "abc" untouched
@@ -253,16 +271,12 @@ class HorizontalMovementTest(unittest.TestCase):
         lines = parse_ansi_line("ab\bC")
         self.assertEqual("aC", lines[0].text)
 
-    def test_tab_fills_with_current_attrspec(self) -> None:
-        lines = parse_ansi_line("\x1b[31mA\tB")
-        line = lines[0]
+    def test_tab_pads_with_none_attr(self) -> None:
+        """Leave the cells a tab passes unwritten, as a terminal does, so they carry no attribute."""
+        line = parse_ansi_line("\x1b[31mA\tB")[0]
         self.assertEqual("A       B", line.text)
-        expanded: list = []
-        for attr, run in line.attrib:
-            expanded.extend([attr] * run)
-        # every cell up to and including the tab-filled spaces uses the
-        # current (red) attrspec, unlike a bare cursor move
-        self.assertTrue(all(a is not None for a in expanded[:9]))
+        red = AttrSpec("dark red", "inherit")
+        self.assertEqual([(red, 1), (None, 7), (red, 1)], line.attrib)
 
 
 class StripAndLogTest(unittest.TestCase):
