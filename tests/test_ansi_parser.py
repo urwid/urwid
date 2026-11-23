@@ -245,6 +245,7 @@ class HorizontalMovementTest(unittest.TestCase):
             ("REP repeats the character written before it", "a\x1b[3b", "aaaa"),
             ("REP counts 0 as 1", "a\x1b[0b", "aa"),
             ("REP repeats a wide character", "中\x1b[2bx", "中中中x"),
+            ("REP copies over a wide character blank its other half", "中" * 3 + "\x1b[Ga\x1b[2b", "aaa 中"),
             ("REP repeats the base of a cluster", "é\x1b[2b", "éee"),
             ("REP repeats a DEC Special Graphics character", "\x1b(0q\x1b[2b", "───"),
             ("REP after another sequence writes nothing", "a\x1b[31m\x1b[3b", "a"),

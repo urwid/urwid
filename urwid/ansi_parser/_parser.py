@@ -546,14 +546,21 @@ class AnsiParser(_VTParser[str]):
         self._write_char(run[0], attr)
         if rest := len(run) - 1:
             self._padding_budget += _PADDING_PER_CHARACTER * rest
-            col = self._col
-            row = self._rows[self._row]
-            row[col : col + rest] = [(char, attr) for char in run[1:]]
+            self._put_narrow([(char, attr) for char in run[1:]])
             self._last_char = run[-1]
-            self._col = end = col + rest
-            if end < len(row) and not row[end][0]:
-                # the second half of a wide character whose first half the run wrote over
-                row[end] = (" ", row[end][1])
+
+    def _put_narrow(self, cells: list[tuple[str, Hashable | None]]) -> None:
+        """Put *cells* of narrow characters that join nothing at the cursor, which is within its row or at its end.
+
+        The cursor moves past them.
+        A wide character they split from its first half leaves its second half as a space, as in a terminal.
+        """
+        col = self._col
+        row = self._rows[self._row]
+        self._col = end = col + len(cells)
+        row[col:end] = cells
+        if end < len(row) and not row[end][0]:
+            row[end] = (" ", row[end][1])
 
     def _write_char(self, ch: str, attr: Hashable | None) -> None:
         """Write *ch* at the cursor, in as many cells as it is wide, or join it to the cluster before the cursor.
@@ -732,15 +739,20 @@ class AnsiParser(_VTParser[str]):
         """
         if (char := self._repeat_char) is None:
             return
-        width = 1 if " " <= char < "\x7f" else _char_cells(char)[0]
+        width, may_join = (1, False) if " " <= char < "\x7f" else _char_cells(char)
         count = min(count, _MAX_CURSOR_POSITION)
         if count * width > self._padding_budget:
             count = self._padding_budget // width
             self._skip("unknown", raw, "padding limit reached, repeat cut short")
         self._padding_budget -= count * width
         attr = self._attrspec
-        for _ in range(count):
+        if may_join or width != 1:
+            for _ in range(count):
+                self._write_char(char, attr)
+        elif count:
+            # the first copy pads up to the cursor, and the others follow it in one step, as a run of text does
             self._write_char(char, attr)
+            self._put_narrow([(char, attr)] * (count - 1))
         # the copies are no character written just before a REP that follows
         self._last_char = None
 
