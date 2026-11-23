@@ -188,7 +188,9 @@ class MonitoredFocusListFocusMovedCallbackTest(unittest.TestCase):
             with self.subTest(name):
                 ml = urwid.MonitoredFocusList(range(6), focus=2)
                 seen: list[tuple[int | None, int | None, list[int], int | None]] = []
-                ml.set_focus_moved_callback(lambda old, new, ml=ml, seen=seen: seen.append((old, new, list(ml), ml.focus)))
+                ml.set_focus_moved_callback(
+                    lambda old, new, ml=ml, seen=seen: seen.append((old, new, list(ml), ml.focus))
+                )
                 operation(ml)
                 self.assertEqual(new_focus, ml.focus)
                 self.assertEqual([] if new_focus == 2 else [(2, new_focus, list(ml), new_focus)], seen)

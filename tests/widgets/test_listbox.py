@@ -3086,13 +3086,15 @@ class ListBoxWheelModeTest(unittest.TestCase):
         """
         size = (5, 3)
         # Item 2 has its cursor in column 0; item 5 is a three-row Edit with its cursor at the end of its last row.
-        walker = urwid.SimpleFocusListWalker([
-            *map(urwid.Text, "01"),
-            urwid.Edit("", "ab", edit_pos=0),
-            *map(urwid.Text, "34"),
-            urwid.Edit("", "5a\n5b\n5c", multiline=True),
-            *map(urwid.Text, "6789"),
-        ])
+        walker = urwid.SimpleFocusListWalker(
+            [
+                *map(urwid.Text, "01"),
+                urwid.Edit("", "ab", edit_pos=0),
+                *map(urwid.Text, "34"),
+                urwid.Edit("", "5a\n5b\n5c", multiline=True),
+                *map(urwid.Text, "6789"),
+            ]
+        )
         lbox = urwid.ListBox(walker, wheel="view")
         lbox.render(size, focus=True)
         lbox.change_focus(size, 2, 0)
@@ -3438,17 +3440,19 @@ class ListBoxSetFocusCompleteTest(unittest.TestCase):
             for with_cursor in (False, True):
                 for target_position in (0, 2):
                     with self.subTest(size=size, cursor=with_cursor, target=target_position):
+
                         def make_pile():
                             children = [
-                                urwid.Edit(edit_text="abc") if with_cursor else SelectableText("abc")
-                                for _ in range(3)
+                                urwid.Edit(edit_text="abc") if with_cursor else SelectableText("abc") for _ in range(3)
                             ]
                             return urwid.Pile(children)
 
                         first, last = make_pile(), make_pile()
-                        lbox = urwid.ListBox(urwid.SimpleListWalker([
-                            urwid.AttrMap(first, None), urwid.Divider(), urwid.Padding(last, width=18)
-                        ]))
+                        lbox = urwid.ListBox(
+                            urwid.SimpleListWalker(
+                                [urwid.AttrMap(first, None), urwid.Divider(), urwid.Padding(last, width=18)]
+                            )
+                        )
                         lbox.render(size, focus=True)
                         if target_position == 0:
                             lbox.focus_position = 2
@@ -3484,9 +3488,7 @@ class ListBoxSetFocusCompleteTest(unittest.TestCase):
     def test_undirected_focus_still_snaps_cursorless_widgets_into_view(self) -> None:
         for at_bottom, expected in ((True, (3, 0)), (False, (0, 0))):
             with self.subTest(bottom=at_bottom):
-                lbox = urwid.ListBox(urwid.SimpleListWalker([
-                    SelectableText(f"{i}\n{i}") for i in range(4)
-                ]))
+                lbox = urwid.ListBox(urwid.SimpleListWalker([SelectableText(f"{i}\n{i}") for i in range(4)]))
                 size = (20, 5)
                 if not at_bottom:
                     lbox.set_focus(3, "above")

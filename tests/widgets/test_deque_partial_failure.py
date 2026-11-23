@@ -47,8 +47,13 @@ class DequePartialFailureTest(unittest.TestCase):
                 for maxlen in [None, 2]:
                     for failure_type in [ValueError, KeyboardInterrupt, SystemExit, GeneratorExit]:
                         for shutdown_type in [RuntimeError, KeyboardInterrupt, SystemExit, GeneratorExit]:
-                            with self.subTest(cls=cls, operation=operation, maxlen=maxlen,
-                                              failure=failure_type, shutdown=shutdown_type):
+                            with self.subTest(
+                                cls=cls,
+                                operation=operation,
+                                maxlen=maxlen,
+                                failure=failure_type,
+                                shutdown=shutdown_type,
+                            ):
                                 items = cls([1, 2], maxlen=maxlen)
                                 failure = failure_type("input failed")
                                 shutdown = shutdown_type("callback requested shutdown")
@@ -78,8 +83,12 @@ class DequePartialFailureTest(unittest.TestCase):
                                 self.assertEqual([expected], seen)
 
     def test_no_committed_change_does_not_notify(self):
-        for cls in [urwid.MonitoredDeque, urwid.MonitoredFocusDeque,
-                    urwid.SimpleDequeWalker, urwid.SimpleFocusDequeWalker]:
+        for cls in [
+            urwid.MonitoredDeque,
+            urwid.MonitoredFocusDeque,
+            urwid.SimpleDequeWalker,
+            urwid.SimpleFocusDequeWalker,
+        ]:
             for operation in ["extend", "extendleft", "__iadd__"]:
                 for maxlen, yields in [(None, False), (0, True)]:
                     with self.subTest(cls=cls, operation=operation, maxlen=maxlen, yields=yields):

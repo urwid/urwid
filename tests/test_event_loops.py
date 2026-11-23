@@ -1529,6 +1529,7 @@ class TornadoOpaqueAlarmTest(unittest.TestCase):
 
     def test_weakrefable_opaque_handle_without_cancelled(self) -> None:
         """Weak-reference support alone does not imply the asyncio timer API."""
+
         class Handle:
             pass
 

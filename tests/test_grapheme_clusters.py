@@ -5,13 +5,13 @@ import unittest
 from urwid import str_util
 
 # 🇨🇦 regional indicator Canada flag
-FLAG_CA = "\U0001F1E8\U0001F1E6"
+FLAG_CA = "\U0001f1e8\U0001f1e6"
 # 👨‍👩‍👧 family (man + ZWJ + woman + ZWJ + girl)
-FAMILY = "\U0001F468\u200D\U0001F469\u200D\U0001F467"
+FAMILY = "\U0001f468\u200d\U0001f469\u200d\U0001f467"
 # 👩🏻‍💻 woman technologist with light skin tone
-TECHNOLOGIST = "\U0001F469\U0001F3FB\u200D\U0001F4BB"
+TECHNOLOGIST = "\U0001f469\U0001f3fb\u200d\U0001f4bb"
 # 👋🏻 waving hand with light skin tone
-WAVE_SKIN = "\U0001F44B\U0001F3FB"
+WAVE_SKIN = "\U0001f44b\U0001f3fb"
 # café with combining acute accent on e
 CAFE = "cafe\u0301"
 # ❤️ red heart with VS16 (emoji presentation)
