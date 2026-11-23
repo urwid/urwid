@@ -702,7 +702,9 @@ class _ScreenCanvas(Canvas):
 
         Lines pushed past the bottom of the scrolling region are dropped.
         Nothing happens when the row is outside the scrolling region.
+        At the cursor row, as IL, the cursor moves to the first column and a pending wrap ends, as in xterm.
         """
+        at_cursor = row is None
         if row is None:
             row = self.term_cursor[1]
 
@@ -711,6 +713,10 @@ class _ScreenCanvas(Canvas):
 
         if not self.scrollregion_start <= row <= self.scrollregion_end:
             return
+
+        if at_cursor:
+            self.set_term_cursor(0, row)
+            self.is_rotten_cursor = False
 
         for _ in range(min(lines, self.scrollregion_end - row + 1)):
             self.term.insert(row, self.empty_line())
@@ -721,7 +727,9 @@ class _ScreenCanvas(Canvas):
 
         Empty lines fill the bottom of the scrolling region.
         Nothing happens when the row is outside the scrolling region.
+        At the cursor row, as DL, the cursor moves to the first column and a pending wrap ends, as in xterm.
         """
+        at_cursor = row is None
         if row is None:
             row = self.term_cursor[1]
 
@@ -730,6 +738,10 @@ class _ScreenCanvas(Canvas):
 
         if not self.scrollregion_start <= row <= self.scrollregion_end:
             return
+
+        if at_cursor:
+            self.set_term_cursor(0, row)
+            self.is_rotten_cursor = False
 
         for _ in range(min(lines, self.scrollregion_end - row + 1)):
             self.term.pop(row)

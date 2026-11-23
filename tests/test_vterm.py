@@ -1300,6 +1300,15 @@ class TermTest(unittest.TestCase):
             ("IL pushes the bottom line off the region", (3, 3), "a\nb\nc\\e[H\\e[L", "\na\nb"),
             ("IL below the scrolling region is ignored", (3, 4), "a\nb\nc\nd\\e[1;2r\\e[4;1H\\e[L", "a\nb\nc\nd"),
             ("DL below the scrolling region is ignored", (3, 4), "a\nb\nc\nd\\e[1;2r\\e[4;1H\\e[M", "a\nb\nc\nd"),
+            ("IL moves the cursor to the first column", (3, 3), "abc\nabc\\e[2;3H\\e[LX", "abc\nX\nabc"),
+            ("DL moves the cursor to the first column", (3, 3), "abc\nabc\nabc\\e[2;3H\\e[MX", "abc\nXbc"),
+            ("IL ends a pending wrap", (3, 3), "abc\\e[LX", "X\nabc"),
+            (
+                "IL outside the scrolling region keeps the cursor",
+                (3, 4),
+                "a\nb\nc\nd\\e[1;2r\\e[4;2H\\e[LX",
+                "a\nb\nc\ndX",
+            ),
         ):
             with self.subTest(label):
                 self.restart(*size)
