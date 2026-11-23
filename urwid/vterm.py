@@ -165,6 +165,12 @@ KEY_TRANSLATIONS_DECCKM = {
     "f5": f"{CSI}{_TILDE_KEY_NUMBERS['f5']:d}~",
 }
 
+#: the most bytes of the child's input kept while the pty does not take them; more is dropped, so a child that sends
+#: queries and never reads its input cannot make the widget keep the replies without bound
+_UNSENT_INPUT_LIMIT: typing.Final = 1 << 20
+#: seconds between tries to write the rest of the child's input while the pty does not take it
+_UNSENT_RETRY_DELAY: typing.Final = 0.05
+
 #: the tracking modes a Terminal recognises and sends no reports for
 _MOUSE_UNREPORTED_TRACKING_MODES: typing.Final = frozenset((None, PrivateMode.MOUSE_HIGHLIGHT_TRACKING))
 #: the buttons X10 compatibility mode reports, those of the mice it was made for
@@ -330,6 +336,10 @@ class Terminal(Widget):
         self._pressed_button = 0
 
         self.response_buffer: list[str] = []
+        # the child's input the pty did not take yet, sent before anything later, see _send()
+        self._unsent = bytearray()
+        # the event loop and handle of the alarm that tries to write _unsent again, None without one
+        self._unsent_retry: tuple[event_loop.EventLoop, typing.Any] | None = None
 
         self.term_modes = TermModes()
 
@@ -422,6 +432,8 @@ class Terminal(Widget):
 
         self.terminated = True
         atexit.unregister(self.terminate)
+        self._cancel_unsent_retry()
+        self._unsent.clear()
 
         if self.pid is not None and self.pid > 0:
             self.remove_watch()
@@ -476,22 +488,67 @@ class Terminal(Widget):
         self.response_buffer.append(string)
 
     def flush_responses(self) -> None:
-        """Write every buffered response to the pty and clear the buffer."""
-        for string in self.response_buffer:
-            os.write(typing.cast("int", self.master), string.encode("ascii"))
+        """Send every buffered response to the child, see :meth:`_send`, and clear the buffer."""
+        if self.response_buffer:
+            self._send("".join(self.response_buffer).encode("ascii"))
         self.response_buffer = []
 
     def _write_report(self, data: bytes) -> None:
-        """Write *data* to the child's input when the pty can take it now, and drop it otherwise.
+        """Send *data* to the child when the pty can take input now and nothing is still unsent, and drop it otherwise.
 
-        It is for what the terminal sends without a key typed, such as a size or focus report:
-        the event loop must not block on a child that stopped reading its input.
+        It is for what the terminal sends without a key typed, such as a size or focus report, which a child that
+        stopped reading its input does not need later.
         """
-        master = typing.cast("int", self.master)
+        self._write_unsent()
+        if self._unsent:
+            return
         with selectors.DefaultSelector() as selector:
-            selector.register(master, selectors.EVENT_WRITE)
+            selector.register(typing.cast("int", self.master), selectors.EVENT_WRITE)
             if selector.select(0):
-                os.write(master, data)
+                self._send(data)
+
+    def _send(self, data: bytes) -> None:
+        """Write *data* to the child's input, after what the pty has not taken yet, without blocking the event loop.
+
+        What the pty does not take now is kept and written, in order, as the child reads its input: at the next render,
+        key, mouse report or reply, and every ``_UNSENT_RETRY_DELAY`` seconds on the event loop the pty is watched on,
+        when it is an urwid one. *data* that would make more than ``_UNSENT_INPUT_LIMIT`` bytes kept, after the pty
+        took what it can, is dropped.
+        """
+        if len(self._unsent) + len(data) > _UNSENT_INPUT_LIMIT:
+            self._write_unsent()
+        if len(self._unsent) + len(data) > _UNSENT_INPUT_LIMIT:
+            return
+        self._unsent += data
+        self._write_unsent()
+
+    def _write_unsent(self) -> None:
+        """Write as much of the input :meth:`_send` kept as the pty takes now, and try the rest again later."""
+        self._cancel_unsent_retry()
+        if not self._unsent or self.terminated:
+            return
+        master = typing.cast("int", self.master)
+        flags = fcntl.fcntl(master, fcntl.F_GETFL)
+        # non-blocking for this write only: the reads stay blocking, guarded by select()
+        fcntl.fcntl(master, fcntl.F_SETFL, flags | os.O_NONBLOCK)
+        try:
+            with suppress(BlockingIOError):
+                while self._unsent:
+                    del self._unsent[: os.write(master, self._unsent)]
+        finally:
+            fcntl.fcntl(master, fcntl.F_SETFL, flags)
+        if not self._unsent:
+            return
+        loop = self._watch_loop.event_loop if isinstance(self._watch_loop, event_loop.MainLoop) else self._watch_loop
+        if isinstance(loop, event_loop.EventLoop):
+            self._unsent_retry = (loop, loop.alarm(_UNSENT_RETRY_DELAY, self._write_unsent))
+
+    def _cancel_unsent_retry(self) -> None:
+        """Remove the alarm that tries to write the unsent input again, when one is set."""
+        if self._unsent_retry is not None:
+            loop, handle = self._unsent_retry
+            self._unsent_retry = None
+            loop.remove_alarm(handle)
 
     def set_termsize(self, width: int, height: int) -> None:
         """Tell the pty the terminal window is now *width* by *height* characters."""
@@ -581,6 +638,7 @@ class Terminal(Widget):
                 self.add_watch()
                 if self._watch_loop is None:
                     self.wait_and_feed(0)
+            self._write_unsent()
 
         return self.term  # type: ignore[return-value]
 
@@ -604,7 +662,11 @@ class Terminal(Widget):
         self._watch_loop = loop
 
     def remove_watch(self) -> None:
-        """Unregister the pty from the loop :meth:`add_watch` registered it on, when it did."""
+        """Unregister the pty from the loop :meth:`add_watch` registered it on, when it did.
+
+        The alarm that tries to write the unsent input again is removed from that loop too.
+        """
+        self._cancel_unsent_retry()
         if self._watch_loop is None:
             return
         self._watch_loop.remove_watch_file(self._watch_handle)
@@ -768,7 +830,7 @@ class Terminal(Widget):
 
         self.term.scroll_buffer(reset=True)  # type: ignore[union-attr]
 
-        os.write(typing.cast("int", self.master), sent.encode(self.encoding, "ignore"))
+        self._send(sent.encode(self.encoding, "ignore"))
 
         return None
 
@@ -857,7 +919,7 @@ class Terminal(Widget):
         else:
             return True
 
-        os.write(typing.cast("int", self.master), _mouse_report(code, col, row, release, modes.mouse_encoding))
+        self._send(_mouse_report(code, col, row, release, modes.mouse_encoding))
         return True
 
     def _key_sequence(self, key: str) -> str | None:
