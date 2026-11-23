@@ -49,7 +49,7 @@ from .abstract_loop import ExitMainLoop
 from .select_loop import SelectEventLoop
 
 if typing.TYPE_CHECKING:
-    from collections.abc import Callable, Generator, Iterable, Iterator
+    from collections.abc import Callable, Generator, Iterable
     from typing import Literal, ParamSpec, Self
 
     from urwid.display import BaseScreen
@@ -863,7 +863,7 @@ class MainLoop:
             self.screen.stop()
 
     @contextmanager
-    def paused(self) -> Iterator[None]:
+    def paused(self) -> Generator[None]:
         """Hand the terminal to another program for the duration of the block.
 
         The :attr:`screen` is stopped on entry, which gives the terminal back its normal mode and buffer

@@ -6,9 +6,9 @@ import warnings
 
 import urwid
 import urwid.testing
+from tests.util import FocusHeightWidget, assert_attribute_redraws
 from urwid.command_map import Command
 from urwid.widget import overlay as overlay_mod
-from tests.util import FocusHeightWidget, assert_attribute_redraws
 
 
 class NotAWidget:
@@ -76,7 +76,7 @@ class OverlayTest(unittest.TestCase):
                     overlay._command_map[menu_key] = Command.MENU
                 senders: list[urwid.Overlay] = []
                 if result is not None:
-                    urwid.connect_signal(overlay, "menu", lambda sender: senders.append(sender) or result)  # noqa: B023
+                    urwid.connect_signal(overlay, "menu", lambda sender: senders.append(sender) or result)
 
                 self.assertEqual(returned, overlay.keypress((6, 3), key))
                 self.assertEqual([overlay] * calls, senders)
@@ -86,7 +86,7 @@ class OverlayTest(unittest.TestCase):
                 inner = urwid.Overlay(urwid.SolidFill("x"), urwid.SolidFill("."), "left", 2, "top", 1)
                 outer = urwid.Overlay(inner, urwid.SolidFill(":"), "left", 4, "top", 2)
                 order: list[str] = []
-                urwid.connect_signal(inner, "menu", lambda _sender: order.append("inner") or inner_result)  # noqa: B023
+                urwid.connect_signal(inner, "menu", lambda _sender: order.append("inner") or inner_result)
                 urwid.connect_signal(outer, "menu", lambda _sender: order.append("outer") or True)
 
                 self.assertIsNone(outer.keypress((6, 3), "esc"))

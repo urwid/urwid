@@ -453,7 +453,7 @@ class _ScreenCanvas(Canvas):
                 if part not in _sgr.FLAG_NAMES
             )
             attrspec = attrspec.copy_modified(fg=colour or "default")
-        if attrspec.foreground == "default" and attrspec.background == "default":
+        if attrspec.foreground == "default" == attrspec.background:
             return (None, self.charset.current, char)
         return (attrspec, self.charset.current, char)
 
@@ -967,7 +967,7 @@ class _ScreenCanvas(Canvas):
                 yield line
                 continue
             # a copy, so the screen's own row is not changed
-            drawn = list(line)
+            drawn = line.copy()
             if not drawn[cursor_x][2] and cursor_x > 0:
                 # the second half of a wide character: its first half draws both
                 cursor_x -= 1

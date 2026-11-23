@@ -24,9 +24,9 @@ import urwid
 from tests.util import TtyRefusingSelector
 from urwid import signals
 from urwid.display import _raw_display_base, escape
+from urwid.display._raw_display_base import TermModes, detect_term_colors, detect_terminal_properties
 from urwid.display._raw_display_base import _detection as raw_detection
 from urwid.display._raw_display_base import _screen as raw_screen
-from urwid.display._raw_display_base import TermModes, detect_term_colors, detect_terminal_properties
 from urwid.display.common import INPUT_DESCRIPTORS_CHANGED, NO_HYPERLINK, AttrSpec
 from urwid.util import set_temporary_encoding
 

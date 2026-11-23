@@ -421,7 +421,7 @@ def sgi_params_to_attrspec(
     if attributes:
         decoded_fg = ",".join((decoded_fg, *sorted(attributes)))
 
-    if decoded_fg == decoded_bg == unset_color and hyperlink is None and underline_color is None:
+    if decoded_fg == decoded_bg == unset_color and hyperlink is None is underline_color:
         return None
 
     if colors:

@@ -4,8 +4,8 @@ import typing
 import unittest
 
 import urwid
-from urwid.util import get_encoding
 from tests.util import assert_attribute_redraws
+from urwid.util import get_encoding
 
 
 class DividerTest(unittest.TestCase):

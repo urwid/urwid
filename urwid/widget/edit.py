@@ -23,7 +23,7 @@ from .text import Text, TextError
 from .widget import WidgetWrap
 
 if typing.TYPE_CHECKING:
-    from collections.abc import Callable, Hashable, Iterator, Mapping, MutableSequence, Sequence
+    from collections.abc import Callable, Generator, Hashable, Mapping, MutableSequence, Sequence
     from typing import Literal
 
     from urwid.canvas import TextCanvas
@@ -457,7 +457,7 @@ class Edit(WidgetWrap[Text]):
         return self._edit_text != current[0]
 
     @contextlib.contextmanager
-    def _editing(self) -> Iterator[None]:
+    def _editing(self) -> Generator[None]:
         """Run the body as one editing transaction, which records one undo step when it changed the text.
 
         Transactions nest, and the outermost one records the step.

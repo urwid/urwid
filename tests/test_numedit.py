@@ -199,7 +199,7 @@ class FloatEditDefaultValidationTest(unittest.TestCase):
                 edit = FloatEdit(default=default)
 
                 self.assertEqual("100000", edit.edit_text)
-                self.assertEqual(Decimal("100000"), edit.value())
+                self.assertEqual(Decimal(100000), edit.value())
 
     def test_non_finite_defaults_are_rejected(self):
         for default in ("inf", "-inf", "nan", Decimal("Infinity"), Decimal("NaN")):

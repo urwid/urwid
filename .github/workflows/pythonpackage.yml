@@ -60,7 +60,7 @@ jobs:
         run: uv pip install -e ".[curses,serial,tornado,trio,twisted,zmq]"
       - name: Install dependencies
         run: uv pip install --upgrade -r pylint-requirements.txt
-      # tests are not checked, see [tool.ruff] extend-exclude in pyproject.toml
+      # tests are not checked, see [tool.ruff.lint] exclude in pyproject.toml
       - name: Lint with pylint
         run: uv run --no-project pylint --output-format=github urwid
 
@@ -77,7 +77,7 @@ jobs:
         run: uv pip install -e ".[curses,serial,tornado,trio,twisted,zmq]"
       - name: Install dependencies
         run: uv pip install --upgrade -r mypy-requirements.txt
-      # tests other than tests/type_checks are not checked, see [tool.ruff] extend-exclude in pyproject.toml
+      # tests other than tests/type_checks are not checked, see [tool.ruff.lint] exclude in pyproject.toml
       - name: Type check with mypy
         run: uv run --no-project mypy urwid examples tests/type_checks
 

@@ -492,8 +492,7 @@ class PortabilityTest(unittest.TestCase):
                 raise
 
             print(
-                f"Locale change impossible, probably locale not supported by system (libc ignores this error).\n"
-                f"{exc}"
+                f"Locale change impossible, probably locale not supported by system (libc ignores this error).\n{exc}"
             )
             return
 
@@ -507,6 +506,5 @@ class PortabilityTest(unittest.TestCase):
                 raise
 
             print(
-                f"Locale restore impossible, probably locale not supported by system (libc ignores this error).\n"
-                f"{exc}"
+                f"Locale restore impossible, probably locale not supported by system (libc ignores this error).\n{exc}"
             )

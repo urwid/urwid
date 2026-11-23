@@ -89,7 +89,7 @@ def _drawn_width(char: bytes) -> int:
 
     It is 2 for the first half of a wide character.
     """
-    return 1 if len(char) < 2 else _encoded_width(bytes(char), str_util.get_byte_encoding())
+    return 1 if len(char) < 2 else _encoded_width(char, str_util.get_byte_encoding())
 
 
 def _mend_wide(line: list[tuple[AttrSpec | None, Literal["0", "U"] | None, bytes]], x: int) -> None:

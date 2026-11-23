@@ -319,7 +319,6 @@ class TestScrollBarScrollable(unittest.TestCase):
 
         Unlike `Scrollable`, `ScrollBar` can be also scrolled with a mouse wheel.
         """
-
         long_content = urwid.Text(LGPL_HEADER)
         reduced_size = (40, 5)
         widget = urwid.ScrollBar(urwid.Scrollable(long_content))
@@ -1563,7 +1562,6 @@ class TestScrollBarAttrMap(unittest.TestCase):
 
         Unlike `Scrollable`, `ScrollBar` can be also scrolled with a mouse wheel.
         """
-
         long_content = urwid.Text(LGPL_HEADER)
         reduced_size = (40, 5)
         widget = urwid.ScrollBar(urwid.Scrollable(trivial_AttrMap(long_content)))

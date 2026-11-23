@@ -384,10 +384,9 @@ class TermTest(unittest.TestCase):
             content = list(rendered.content())
             lines = (tuple(dropwhile(is_empty, reversed(line))) for line in content)
             return [list(reversed(line)) for line in lines if line]
-        else:
-            content = rendered.text
-            lines = (line.rstrip() for line in content)
-            return b"\n".join(lines).rstrip()
+        content = rendered.text
+        lines = (line.rstrip() for line in content)
+        return b"\n".join(lines).rstrip()
 
     def expect(
         self,
@@ -1256,7 +1255,8 @@ class TermTest(unittest.TestCase):
 
     def test_synchronized_output_block_spanning_chunks_drains_in_one_feed(self):
         """A synchronized-output block bigger than one os.read() chunk (4096 bytes) is fully
-        drained within a single feed() call, so a render() in between never lands mid-block."""
+        drained within a single feed() call, so a render() in between never lands mid-block.
+        """
         self.write(r"\e[?2026h" + "a" * 5000 + r"\e[?2026l" + "B")
 
         got = self.read()

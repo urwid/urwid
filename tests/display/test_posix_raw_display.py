@@ -64,7 +64,7 @@ def _send_mode_queries(screen: Screen) -> None:
 @unittest.skipIf(IS_WINDOWS, "_posix_raw_display is not importable on Windows (no fcntl/termios/tty)")
 class TestStartStop(unittest.TestCase):
     def test_start_stop_not_a_tty(self):
-        """termios is left untouched when the input fd is not a tty (a pipe here)."""
+        """Termios is left untouched when the input fd is not a tty (a pipe here)."""
         read_fd, write_fd = os.pipe()
         self.addCleanup(os.close, write_fd)
         s = Screen(
@@ -239,7 +239,7 @@ class TestStartStop(unittest.TestCase):
         mock_tcgetattr,
         mock_tcsetattr,
     ):
-        """termios reports the signal keys as bytes, and `stop()` passes them back to `tty_signal_keys()`.
+        """Termios reports the signal keys as bytes, and `stop()` passes them back to `tty_signal_keys()`.
 
         Comparing them with the str "undefined" raises BytesWarning under `python -bb` (#512), so the keys
         here fail on any comparison with a str, which needs no interpreter flag.

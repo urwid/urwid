@@ -273,7 +273,7 @@ class _EditingCanvas(_ScreenCanvas):
         held = cell.decode("utf-8", "replace")
         if charset == "0" or not (width == 0 or _continues_cluster(held, text)):
             return width == 0
-        joined = bytes(cell) + char
+        joined = cell + char
         old_width, new_width = _drawn_width(cell), _drawn_width(joined)
         if len(held) + len(text) > _MAX_CLUSTER_LENGTH or new_width not in {old_width, 2}:
             return width == 0

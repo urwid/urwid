@@ -313,7 +313,7 @@ class LeafWidget(urwid.TreeWidget):
     def selectable(self) -> bool:
         return True
 
-    def mouse_event(self, size, event, button, col, row, focus) -> bool:  # noqa: ANN001
+    def mouse_event(self, size, event, button, col, row, focus) -> bool:
         if button == 3:
             self.request_focus()
             return True
