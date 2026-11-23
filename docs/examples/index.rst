@@ -134,7 +134,7 @@ thread_worker.py
 
 Source: :doc:`code/thread_worker`
 
-Run a slow computation on a worker thread and show its progress and result
+Run a slow computation on a worker thread and show its progress, its log and its result
 
 
 palette_test.py

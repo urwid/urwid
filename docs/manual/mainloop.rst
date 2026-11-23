@@ -192,6 +192,53 @@ It collects the lines and asks for one drain while none is pending::
 ``examples/thread_worker.py`` shows a worker reporting its progress and its result.
 
 
+Log Records From Any Thread
+---------------------------
+
+:mod:`urwid.log_handler` has two :class:`logging.Handler` classes that show log
+records in widgets and make that hand-over themselves.
+:class:`~urwid.log_handler.ListWalkerHandler` appends each record as a row to a
+list walker, and :class:`~urwid.log_handler.NotificationsHandler` posts it to
+:class:`Notifications` with the record's :class:`Severity`.
+A record is formatted on the thread that logs it and shown on the loop's thread::
+
+    walker = urwid.SimpleFocusDequeWalker([], maxlen=1000, follow_end=True)
+    loop = urwid.MainLoop(urwid.ListBox(walker))
+    handler = urwid.log_handler.ListWalkerHandler(walker, loop=loop)
+    logging.getLogger().addHandler(handler)
+
+    with loop.start():
+        handler.resume()
+        loop.event_loop.run()
+
+Records logged while the loop does not run are held, up to ``max_pending``, the
+oldest dropped first.
+They are shown after :meth:`~urwid.log_handler.ListWalkerHandler.resume`, which
+the application calls once at the start of each run: :meth:`MainLoop.stop`
+drops the call that would have shown them.
+``loop.set_alarm_in(0, lambda _loop, _data: handler.resume())`` before
+:meth:`MainLoop.run` does the same, but an error it raises is only logged.
+
+Both handlers need :meth:`MainLoop.call_from_thread`, so an event loop that can
+watch files.
+On one that cannot, such as :class:`AsyncioEventLoop` on asyncio's
+``ProactorEventLoop``, the default on Windows, ``resume()`` raises
+:exc:`RuntimeError` and the held records are never shown.
+
+``close()``, which :func:`logging.shutdown` also calls, drops the held records
+without touching the widget.
+
+Each handler rejects the records of the ``urwid`` logger and its children with
+its ``urwid_filter``.
+urwid logs at ``DEBUG`` on each redraw and each alarm it sets, so a handler that
+showed those records would log again on every record it shows, without end.
+To show urwid's own warnings, raise the handler's level and then remove the
+filter::
+
+    handler.setLevel(logging.INFO)
+    handler.removeFilter(handler.urwid_filter)
+
+
 .. _event-loops:
 
 Event Loops
