@@ -1074,13 +1074,25 @@ class UntrustedInputBoundsTest(unittest.TestCase):
         self.assertEqual(1500 + 1024 + 1, len(line.text))
 
     def test_repeat_is_bounded(self) -> None:
-        """Cap a REP at 1024 copies, and count the copies against the padding limit."""
+        """Cap a REP at 1024 copies, and cut the copies at the padding limit however the text is fed.
+
+        The limit is lowered, so the test reaches it without writing a million cells.
+        """
         self.assertEqual("a" * 1025, parse_ansi_line("a\x1b[100000b")[0].text)
-        unit = "a\x1b[1024b"
-        text = unit * 3000
-        line = parse_ansi_line(text)[0]
-        self.assertLessEqual(len(line.text), 1024 * 1024 + 8 * len(text) + 3000)
-        self.assertIn("\x1b[1024b", [op.raw for op in line.skipped if op.reason.startswith("padding limit")])
+        budget = 16384
+        text = "a\x1b[1024b" * 100
+        with mock.patch.object(_parser, "_PADDING_BUDGET", budget):
+            whole = AnsiParser()
+            whole.feed(text)
+            expected = whole.finalize()[0]
+            for size in (1, 7):
+                with self.subTest(size=size):
+                    parser = AnsiParser()
+                    for start in range(0, len(text), size):
+                        parser.feed(text[start : start + size])
+                    self.assertEqual(expected, parser.finalize()[0])
+        self.assertLessEqual(len(expected.text), budget + 8 * len(text) + 100)
+        self.assertIn("\x1b[1024b", [op.raw for op in expected.skipped if op.reason.startswith("padding limit")])
 
     def test_cursor_down_and_absolute_row_are_bounded(self) -> None:
         """Cap the CSI B and E steps and the CSI d and H rows and columns."""
@@ -1192,7 +1204,7 @@ class UntrustedInputBoundsTest(unittest.TestCase):
 
     def test_padding_budget_spans_feed_calls(self) -> None:
         """Cut the padding at the same place however the text is split into feed calls."""
-        for unit in ("\n\x1b[1024Gx", "\r\n\x1b[1024Gx", "\x1b[1024Cx", "\x1b[1024Bx", "a\x1b[1024b"):
+        for unit in ("\n\x1b[1024Gx", "\r\n\x1b[1024Gx", "\x1b[1024Cx", "\x1b[1024Bx"):
             text = unit * 3000
             whole = AnsiParser()
             whole.feed(text)
