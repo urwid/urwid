@@ -1315,6 +1315,710 @@ class TermTest(unittest.TestCase):
                 self.write(output)
                 self.expect(screen)
 
+    def test_left_and_right_margins(self) -> None:
+        """Keep the cursor, the editing functions and scrolling within the left and right margins, as xterm does.
+
+        Each case starts on a 12x6 screen filled with text and ends with a cursor position report.
+        The screens and the replies were taken from xterm 407 at its VT420 level.
+        The margins are columns 4 to 8 in every case that sets them.
+        """
+        fill = r"\e[H" + "abcdefghijkl\nABCDEFGHIJKL\nmnopqrstuvwx\nMNOPQRSTUVWX\n012345678901\n!#$%&*+-/=?^"
+        for label, data, screen, replies in (
+            (
+                "DECSLRM moves the cursor home",
+                "\\e[3;3H\\e[?69h\\e[4;8s",
+                "abcdefghijkl\nABCDEFGHIJKL\nmnopqrstuvwx\nMNOPQRSTUVWX\n012345678901\n!#$%&*+-/=?^",
+                b"\x1b[1;1R",
+            ),
+            (
+                "DECSLRM in origin mode moves the cursor to the top left of the margins",
+                "\\e[?6h\\e[?69h\\e[4;8s",
+                "abcdefghijkl\nABCDEFGHIJKL\nmnopqrstuvwx\nMNOPQRSTUVWX\n012345678901\n!#$%&*+-/=?^",
+                b"\x1b[1;1R",
+            ),
+            (
+                "DECRQM and DECRQSS report DECLRMM set and the margins",
+                "\\e[?69h\\e[4;8s\\e[?69$p\\eP$qs\\e\\",
+                "abcdefghijkl\nABCDEFGHIJKL\nmnopqrstuvwx\nMNOPQRSTUVWX\n012345678901\n!#$%&*+-/=?^",
+                b"\x1b[?69;1$y\x1bP1$r4;8s\x1b\\\x1b[1;1R",
+            ),
+            (
+                "DECRQM and DECRQSS report DECLRMM reset and the screen's edges",
+                "\\e[?69$p\\eP$qs\\e\\",
+                "abcdefghijkl\nABCDEFGHIJKL\nmnopqrstuvwx\nMNOPQRSTUVWX\n012345678901\n!#$%&*+-/=?^",
+                b"\x1b[?69;2$y\x1bP1$r1;12s\x1b\\\x1b[6;12R",
+            ),
+            (
+                "DECSLRM with the left margin right of the right one is ignored",
+                "\\e[?69h\\e[8;4s\\eP$qs\\e\\",
+                "abcdefghijkl\nABCDEFGHIJKL\nmnopqrstuvwx\nMNOPQRSTUVWX\n012345678901\n!#$%&*+-/=?^",
+                b"\x1bP1$r1;12s\x1b\\\x1b[6;12R",
+            ),
+            (
+                "DECSLRM with equal margins is ignored",
+                "\\e[?69h\\e[5;5s\\eP$qs\\e\\",
+                "abcdefghijkl\nABCDEFGHIJKL\nmnopqrstuvwx\nMNOPQRSTUVWX\n012345678901\n!#$%&*+-/=?^",
+                b"\x1bP1$r1;12s\x1b\\\x1b[6;12R",
+            ),
+            (
+                "DECSLRM without parameters selects the screen's edges",
+                "\\e[?69h\\e[3;3H\\e[s\\eP$qs\\e\\",
+                "abcdefghijkl\nABCDEFGHIJKL\nmnopqrstuvwx\nMNOPQRSTUVWX\n012345678901\n!#$%&*+-/=?^",
+                b"\x1bP1$r1;12s\x1b\\\x1b[1;1R",
+            ),
+            (
+                "DECSLRM with one parameter keeps the right edge",
+                "\\e[?69h\\e[3;3H\\e[5s\\eP$qs\\e\\",
+                "abcdefghijkl\nABCDEFGHIJKL\nmnopqrstuvwx\nMNOPQRSTUVWX\n012345678901\n!#$%&*+-/=?^",
+                b"\x1bP1$r5;12s\x1b\\\x1b[1;1R",
+            ),
+            (
+                "CSI s without DECLRMM saves the cursor",
+                "\\e[3;3H\\e[s\\e[1;1H\\e[u\\eP$qs\\e\\",
+                "abcdefghijkl\nABCDEFGHIJKL\nmnopqrstuvwx\nMNOPQRSTUVWX\n012345678901\n!#$%&*+-/=?^",
+                b"\x1bP1$r1;12s\x1b\\\x1b[3;3R",
+            ),
+            (
+                "resetting DECLRMM resets the margins",
+                "\\e[?69h\\e[4;8s\\e[?69l\\e[?69$p\\eP$qs\\e\\",
+                "abcdefghijkl\nABCDEFGHIJKL\nmnopqrstuvwx\nMNOPQRSTUVWX\n012345678901\n!#$%&*+-/=?^",
+                b"\x1b[?69;2$y\x1bP1$r1;12s\x1b\\\x1b[1;1R",
+            ),
+            (
+                "setting DECLRMM again keeps the screen's edges",
+                "\\e[?69h\\e[4;8s\\e[?69l\\e[?69h\\eP$qs\\e\\",
+                "abcdefghijkl\nABCDEFGHIJKL\nmnopqrstuvwx\nMNOPQRSTUVWX\n012345678901\n!#$%&*+-/=?^",
+                b"\x1bP1$r1;12s\x1b\\\x1b[1;1R",
+            ),
+            (
+                "DECSTR resets DECLRMM and the margins",
+                "\\e[?69h\\e[4;8s\\e[!p\\e[?69$p\\eP$qs\\e\\",
+                "abcdefghijkl\nABCDEFGHIJKL\nmnopqrstuvwx\nMNOPQRSTUVWX\n012345678901\n!#$%&*+-/=?^",
+                b"\x1b[?69;2$y\x1bP1$r1;12s\x1b\\\x1b[1;1R",
+            ),
+            (
+                "DECSCL to the VT300 level resets the margins, and DECLRMM is not recognised there",
+                '\\e[?69h\\e[4;8s\\e[63;1"p\\e[?69$p\\eP$qs\\e\\',
+                "abcdefghijkl\nABCDEFGHIJKL\nmnopqrstuvwx\nMNOPQRSTUVWX\n012345678901\n!#$%&*+-/=?^",
+                b"\x1b[?69;0$y\x1bP0$r\x1b\\\x1b[1;1R",
+            ),
+            (
+                "DECSCL back to the VT400 level allows the margins again",
+                '\\e[63;1"p\\e[64;1"p\\e[?69h\\e[4;8s\\e[?69$p\\eP$qs\\e\\',
+                "abcdefghijkl\nABCDEFGHIJKL\nmnopqrstuvwx\nMNOPQRSTUVWX\n012345678901\n!#$%&*+-/=?^",
+                b"\x1b[?69;1$y\x1bP1$r4;8s\x1b\\\x1b[1;1R",
+            ),
+            (
+                "DECRC does not restore the margins",
+                "\\e[?69h\\e[4;8s\\e7\\e[2;10s\\e8\\eP$qs\\e\\",
+                "abcdefghijkl\nABCDEFGHIJKL\nmnopqrstuvwx\nMNOPQRSTUVWX\n012345678901\n!#$%&*+-/=?^",
+                b"\x1bP1$r2;10s\x1b\\\x1b[1;1R",
+            ),
+            (
+                "text wraps at the right margin to the left margin",
+                "\\e[?69h\\e[4;8s\\e[2;7HXYZW",
+                "abcdefghijkl\nABCDEFXYIJKL\nmnoZWrstuvwx\nMNOPQRSTUVWX\n012345678901\n!#$%&*+-/=?^",
+                b"\x1b[3;6R",
+            ),
+            (
+                "text right of the right margin wraps at the screen's edge to the left margin",
+                "\\e[?69h\\e[4;8s\\e[2;10HXYZW",
+                "abcdefghijkl\nABCDEFGHIXYZ\nmnoWqrstuvwx\nMNOPQRSTUVWX\n012345678901\n!#$%&*+-/=?^",
+                b"\x1b[3;5R",
+            ),
+            (
+                "text left of the left margin stops at the right margin",
+                "\\e[?69h\\e[4;8s\\e[2;2HXYZWVUT",
+                "abcdefghijkl\nAXYZWVUTIJKL\nmnopqrstuvwx\nMNOPQRSTUVWX\n012345678901\n!#$%&*+-/=?^",
+                b"\x1b[2;8R",
+            ),
+            (
+                "without autowrap text stays at the right margin",
+                "\\e[?69h\\e[4;8s\\e[?7l\\e[2;7HXYZW",
+                "abcdefghijkl\nABCDEFXWIJKL\nmnopqrstuvwx\nMNOPQRSTUVWX\n012345678901\n!#$%&*+-/=?^",
+                b"\x1b[2;8R",
+            ),
+            (
+                "a wide character at the right margin wraps",
+                "\\e[?69h\\e[4;8s\\e[2;8H\u4e2d",
+                "abcdefghijkl\nABCDEFGHIJKL\nmno\u4e2drstuvwx\nMNOPQRSTUVWX\n012345678901\n!#$%&*+-/=?^",
+                b"\x1b[3;6R",
+            ),
+            (
+                "a wide character that does not fit before the right margin wraps",
+                "\\e[?69h\\e[4;8s\\e[2;7H\u4e2d\u4e2d",
+                "abcdefghijkl\nABCDEF\u4e2dIJKL\nmno\u4e2drstuvwx\nMNOPQRSTUVWX\n012345678901\n!#$%&*+-/=?^",
+                b"\x1b[3;6R",
+            ),
+            (
+                "a wrap on the bottom row scrolls between the margins",
+                "\\e[?69h\\e[4;8s\\e[6;7HXYZW",
+                "abcDEFGHijkl\nABCpqrstIJKL\nmnoPQRSTuvwx\nMNO34567UVWX\n012%&*XY8901\n!#$ZW   /=?^",
+                b"\x1b[6;6R",
+            ),
+            (
+                "insert mode pushes the text up to the right margin",
+                "\\e[?69h\\e[4;8s\\e[4h\\e[2;5HXY",
+                "abcdefghijkl\nABCDXYEFIJKL\nmnopqrstuvwx\nMNOPQRSTUVWX\n012345678901\n!#$%&*+-/=?^",
+                b"\x1b[2;7R",
+            ),
+            (
+                "REP wraps at the right margin",
+                "\\e[?69h\\e[4;8s\\e[2;7HX\\e[4b",
+                "abcdefghijkl\nABCDEFXXIJKL\nmnoXXXstuvwx\nMNOPQRSTUVWX\n012345678901\n!#$%&*+-/=?^",
+                b"\x1b[3;7R",
+            ),
+            (
+                "CR moves to the left margin",
+                "\\e[?69h\\e[4;8s\\e[2;6HX\rY",
+                "abcdefghijkl\nABCYEXGHIJKL\nmnopqrstuvwx\nMNOPQRSTUVWX\n012345678901\n!#$%&*+-/=?^",
+                b"\x1b[2;5R",
+            ),
+            (
+                "CR left of the left margin moves to the first column",
+                "\\e[?69h\\e[4;8s\\e[2;2HX\rY",
+                "abcdefghijkl\nYXCDEFGHIJKL\nmnopqrstuvwx\nMNOPQRSTUVWX\n012345678901\n!#$%&*+-/=?^",
+                b"\x1b[2;2R",
+            ),
+            (
+                "CR right of the right margin moves to the left margin",
+                "\\e[?69h\\e[4;8s\\e[2;10HX\rY",
+                "abcdefghijkl\nABCYEFGHIXKL\nmnopqrstuvwx\nMNOPQRSTUVWX\n012345678901\n!#$%&*+-/=?^",
+                b"\x1b[2;5R",
+            ),
+            (
+                "BS stops at the left margin",
+                "\\e[?69h\\e[4;8s\\e[2;4H\bX",
+                "abcdefghijkl\nABCXEFGHIJKL\nmnopqrstuvwx\nMNOPQRSTUVWX\n012345678901\n!#$%&*+-/=?^",
+                b"\x1b[2;5R",
+            ),
+            (
+                "a tab stops at the right margin",
+                "\\e[?69h\\e[4;8s\\e[2;5H\tX",
+                "abcdefghijkl\nABCDEFGXIJKL\nmnopqrstuvwx\nMNOPQRSTUVWX\n012345678901\n!#$%&*+-/=?^",
+                b"\x1b[2;8R",
+            ),
+            (
+                "CHT stops at the right margin",
+                "\\e[?69h\\e[4;8s\\e[2;5H\\e[3IX",
+                "abcdefghijkl\nABCDEFGXIJKL\nmnopqrstuvwx\nMNOPQRSTUVWX\n012345678901\n!#$%&*+-/=?^",
+                b"\x1b[2;8R",
+            ),
+            (
+                "CBT passes the left margin",
+                "\\e[?69h\\e[4;8s\\e[2;7H\\e[3ZX",
+                "abcdefghijkl\nXBCDEFGHIJKL\nmnopqrstuvwx\nMNOPQRSTUVWX\n012345678901\n!#$%&*+-/=?^",
+                b"\x1b[2;2R",
+            ),
+            (
+                "CUF stops at the right margin",
+                "\\e[?69h\\e[4;8s\\e[2;6H\\e[9CX",
+                "abcdefghijkl\nABCDEFGXIJKL\nmnopqrstuvwx\nMNOPQRSTUVWX\n012345678901\n!#$%&*+-/=?^",
+                b"\x1b[2;8R",
+            ),
+            (
+                "CUB stops at the left margin",
+                "\\e[?69h\\e[4;8s\\e[2;6H\\e[9DX",
+                "abcdefghijkl\nABCXEFGHIJKL\nmnopqrstuvwx\nMNOPQRSTUVWX\n012345678901\n!#$%&*+-/=?^",
+                b"\x1b[2;5R",
+            ),
+            (
+                "CUF right of the right margin stops at the screen's edge",
+                "\\e[?69h\\e[4;8s\\e[2;10H\\e[9CX",
+                "abcdefghijkl\nABCDEFGHIJKX\nmnopqrstuvwx\nMNOPQRSTUVWX\n012345678901\n!#$%&*+-/=?^",
+                b"\x1b[2;12R",
+            ),
+            (
+                "CUB right of the right margin stops at the left margin",
+                "\\e[?69h\\e[4;8s\\e[2;11H\\e[9DX",
+                "abcdefghijkl\nABCXEFGHIJKL\nmnopqrstuvwx\nMNOPQRSTUVWX\n012345678901\n!#$%&*+-/=?^",
+                b"\x1b[2;5R",
+            ),
+            (
+                "CUB left of the left margin stops at the first column",
+                "\\e[?69h\\e[4;8s\\e[2;2H\\e[9DX",
+                "abcdefghijkl\nXBCDEFGHIJKL\nmnopqrstuvwx\nMNOPQRSTUVWX\n012345678901\n!#$%&*+-/=?^",
+                b"\x1b[2;2R",
+            ),
+            (
+                "CUF left of the left margin stops at the right margin",
+                "\\e[?69h\\e[4;8s\\e[2;2H\\e[9CX",
+                "abcdefghijkl\nABCDEFGXIJKL\nmnopqrstuvwx\nMNOPQRSTUVWX\n012345678901\n!#$%&*+-/=?^",
+                b"\x1b[2;8R",
+            ),
+            (
+                "CUP is absolute outside origin mode",
+                "\\e[?69h\\e[4;8s\\e[2;2HX",
+                "abcdefghijkl\nAXCDEFGHIJKL\nmnopqrstuvwx\nMNOPQRSTUVWX\n012345678901\n!#$%&*+-/=?^",
+                b"\x1b[2;3R",
+            ),
+            (
+                "CUP in origin mode counts from the left margin",
+                "\\e[?6h\\e[?69h\\e[4;8s\\e[2;2HX",
+                "abcdefghijkl\nABCDXFGHIJKL\nmnopqrstuvwx\nMNOPQRSTUVWX\n012345678901\n!#$%&*+-/=?^",
+                b"\x1b[2;3R",
+            ),
+            (
+                "CUP in origin mode stops at the right margin",
+                "\\e[?6h\\e[?69h\\e[4;8s\\e[2;20HX",
+                "abcdefghijkl\nABCDEFGXIJKL\nmnopqrstuvwx\nMNOPQRSTUVWX\n012345678901\n!#$%&*+-/=?^",
+                b"\x1b[2;5R",
+            ),
+            (
+                "CHA in origin mode counts from the left margin",
+                "\\e[?6h\\e[?69h\\e[4;8s\\e[3;1H\\e[3GX",
+                "abcdefghijkl\nABCDEFGHIJKL\nmnopqXstuvwx\nMNOPQRSTUVWX\n012345678901\n!#$%&*+-/=?^",
+                b"\x1b[3;4R",
+            ),
+            (
+                "HPA in origin mode counts from the left margin",
+                "\\e[?6h\\e[?69h\\e[4;8s\\e[3;1H\\e[3`X",
+                "abcdefghijkl\nABCDEFGHIJKL\nmnopqXstuvwx\nMNOPQRSTUVWX\n012345678901\n!#$%&*+-/=?^",
+                b"\x1b[3;4R",
+            ),
+            (
+                "CHA is absolute outside origin mode",
+                "\\e[?69h\\e[4;8s\\e[3;1H\\e[2GX",
+                "abcdefghijkl\nABCDEFGHIJKL\nmXopqrstuvwx\nMNOPQRSTUVWX\n012345678901\n!#$%&*+-/=?^",
+                b"\x1b[3;3R",
+            ),
+            (
+                "LF at the bottom of the region scrolls between the margins",
+                "\\e[2;4r\\e[?69h\\e[4;8s\\e[4;5H\vX",
+                "abcdefghijkl\nABCpqrstIJKL\nmnoPQRSTuvwx\nMNO X   UVWX\n012345678901\n!#$%&*+-/=?^",
+                b"\x1b[4;6R",
+            ),
+            (
+                "LF at the bottom of the region left of the margins does not scroll",
+                "\\e[2;4r\\e[?69h\\e[4;8s\\e[4;2H\vX",
+                "abcdefghijkl\nABCDEFGHIJKL\nmnopqrstuvwx\nMXOPQRSTUVWX\n012345678901\n!#$%&*+-/=?^",
+                b"\x1b[4;3R",
+            ),
+            (
+                "IND at the bottom scrolls between the margins",
+                "\\e[?69h\\e[4;8s\\e[6;5H\\eDX",
+                "abcDEFGHijkl\nABCpqrstIJKL\nmnoPQRSTuvwx\nMNO34567UVWX\n012%&*+-8901\n!#$ X   /=?^",
+                b"\x1b[6;6R",
+            ),
+            (
+                "RI at the top scrolls between the margins",
+                "\\e[?69h\\e[4;8s\\e[1;5H\\eMX",
+                "abc X   ijkl\nABCdefghIJKL\nmnoDEFGHuvwx\nMNOpqrstUVWX\n012PQRST8901\n!#$34567/=?^",
+                b"\x1b[1;6R",
+            ),
+            (
+                "NEL at the bottom scrolls between the margins to the left margin",
+                "\\e[?69h\\e[4;8s\\e[6;6H\\eEX",
+                "abcDEFGHijkl\nABCpqrstIJKL\nmnoPQRSTuvwx\nMNO34567UVWX\n012%&*+-8901\n!#$X    /=?^",
+                b"\x1b[6;5R",
+            ),
+            (
+                "SU scrolls between the margins",
+                "\\e[?69h\\e[4;8s\\e[2S",
+                "abcpqrstijkl\nABCPQRSTIJKL\nmno34567uvwx\nMNO%&*+-UVWX\n012     8901\n!#$     /=?^",
+                b"\x1b[1;1R",
+            ),
+            (
+                "SD scrolls between the margins",
+                "\\e[?69h\\e[4;8s\\e[2T",
+                "abc     ijkl\nABC     IJKL\nmnodefghuvwx\nMNODEFGHUVWX\n012pqrst8901\n!#$PQRST/=?^",
+                b"\x1b[1;1R",
+            ),
+            (
+                "SU scrolls the region between the margins",
+                "\\e[2;4r\\e[?69h\\e[4;8s\\e[S",
+                "abcdefghijkl\nABCpqrstIJKL\nmnoPQRSTuvwx\nMNO     UVWX\n012345678901\n!#$%&*+-/=?^",
+                b"\x1b[1;1R",
+            ),
+            (
+                "IL inserts lines between the margins and moves to the left margin",
+                "\\e[?69h\\e[4;8s\\e[2;5H\\e[L",
+                "abcdefghijkl\nABC     IJKL\nmnoDEFGHuvwx\nMNOpqrstUVWX\n012PQRST8901\n!#$34567/=?^",
+                b"\x1b[2;4R",
+            ),
+            (
+                "DL deletes lines between the margins and moves to the left margin",
+                "\\e[?69h\\e[4;8s\\e[2;5H\\e[M",
+                "abcdefghijkl\nABCpqrstIJKL\nmnoPQRSTuvwx\nMNO34567UVWX\n012%&*+-8901\n!#$     /=?^",
+                b"\x1b[2;4R",
+            ),
+            (
+                "IL left of the margins does nothing",
+                "\\e[?69h\\e[4;8s\\e[2;2H\\e[L",
+                "abcdefghijkl\nABCDEFGHIJKL\nmnopqrstuvwx\nMNOPQRSTUVWX\n012345678901\n!#$%&*+-/=?^",
+                b"\x1b[2;2R",
+            ),
+            (
+                "DL right of the margins does nothing",
+                "\\e[?69h\\e[4;8s\\e[2;10H\\e[M",
+                "abcdefghijkl\nABCDEFGHIJKL\nmnopqrstuvwx\nMNOPQRSTUVWX\n012345678901\n!#$%&*+-/=?^",
+                b"\x1b[2;10R",
+            ),
+            (
+                "ICH pushes the text up to the right margin",
+                "\\e[?69h\\e[4;8s\\e[2;5H\\e[2@",
+                "abcdefghijkl\nABCD  EFIJKL\nmnopqrstuvwx\nMNOPQRSTUVWX\n012345678901\n!#$%&*+-/=?^",
+                b"\x1b[2;5R",
+            ),
+            (
+                "DCH pulls the text from the right margin",
+                "\\e[?69h\\e[4;8s\\e[2;5H\\e[2P",
+                "abcdefghijkl\nABCDGH  IJKL\nmnopqrstuvwx\nMNOPQRSTUVWX\n012345678901\n!#$%&*+-/=?^",
+                b"\x1b[2;5R",
+            ),
+            (
+                "ICH left of the margins does nothing",
+                "\\e[?69h\\e[4;8s\\e[2;2H\\e[2@",
+                "abcdefghijkl\nABCDEFGHIJKL\nmnopqrstuvwx\nMNOPQRSTUVWX\n012345678901\n!#$%&*+-/=?^",
+                b"\x1b[2;2R",
+            ),
+            (
+                "ICH right of the margins does nothing",
+                "\\e[?69h\\e[4;8s\\e[2;10H\\e[@",
+                "abcdefghijkl\nABCDEFGHIJKL\nmnopqrstuvwx\nMNOPQRSTUVWX\n012345678901\n!#$%&*+-/=?^",
+                b"\x1b[2;10R",
+            ),
+            (
+                "DCH left of the margins does nothing",
+                "\\e[?69h\\e[4;8s\\e[2;2H\\e[2P",
+                "abcdefghijkl\nABCDEFGHIJKL\nmnopqrstuvwx\nMNOPQRSTUVWX\n012345678901\n!#$%&*+-/=?^",
+                b"\x1b[2;2R",
+            ),
+            (
+                "ECH passes the right margin",
+                "\\e[?69h\\e[4;8s\\e[2;5H\\e[6X",
+                "abcdefghijkl\nABCD      KL\nmnopqrstuvwx\nMNOPQRSTUVWX\n012345678901\n!#$%&*+-/=?^",
+                b"\x1b[2;5R",
+            ),
+            (
+                "EL passes the right margin",
+                "\\e[?69h\\e[4;8s\\e[2;5H\\e[K",
+                "abcdefghijkl\nABCD\nmnopqrstuvwx\nMNOPQRSTUVWX\n012345678901\n!#$%&*+-/=?^",
+                b"\x1b[2;5R",
+            ),
+            (
+                "DECIC inserts columns up to the right margin",
+                "\\e[?69h\\e[4;8s\\e[2;5H\\e[2'}",
+                "abcd  efijkl\nABCD  EFIJKL\nmnop  qruvwx\nMNOP  QRUVWX\n0123  458901\n!#$%  &*/=?^",
+                b"\x1b[2;5R",
+            ),
+            (
+                "DECDC deletes columns up to the right margin",
+                "\\e[?69h\\e[4;8s\\e[2;5H\\e[2'~",
+                "abcdgh  ijkl\nABCDGH  IJKL\nmnopst  uvwx\nMNOPST  UVWX\n012367  8901\n!#$%+-  /=?^",
+                b"\x1b[2;5R",
+            ),
+            (
+                "DECIC left of the margins does nothing",
+                "\\e[?69h\\e[4;8s\\e[2;2H\\e['}",
+                "abcdefghijkl\nABCDEFGHIJKL\nmnopqrstuvwx\nMNOPQRSTUVWX\n012345678901\n!#$%&*+-/=?^",
+                b"\x1b[2;2R",
+            ),
+            (
+                "DECBI at the left margin inserts a column there",
+                "\\e[?69h\\e[4;8s\\e[2;4H\\e6",
+                "abc defgijkl\nABC DEFGIJKL\nmno pqrsuvwx\nMNO PQRSUVWX\n012 34568901\n!#$ %&*+/=?^",
+                b"\x1b[2;4R",
+            ),
+            (
+                "DECFI at the right margin deletes the column at the left margin",
+                "\\e[?69h\\e[4;8s\\e[2;8H\\e9",
+                "abcefgh ijkl\nABCEFGH IJKL\nmnoqrst uvwx\nMNOQRST UVWX\n0124567 8901\n!#$&*+- /=?^",
+                b"\x1b[2;8R",
+            ),
+            (
+                "DECBI between the margins moves the cursor left",
+                "\\e[?69h\\e[4;8s\\e[2;6H\\e6X",
+                "abcdefghijkl\nABCDXFGHIJKL\nmnopqrstuvwx\nMNOPQRSTUVWX\n012345678901\n!#$%&*+-/=?^",
+                b"\x1b[2;6R",
+            ),
+            (
+                "DECBI left of the margins moves the cursor left",
+                "\\e[?69h\\e[4;8s\\e[2;2H\\e6X",
+                "abcdefghijkl\nXBCDEFGHIJKL\nmnopqrstuvwx\nMNOPQRSTUVWX\n012345678901\n!#$%&*+-/=?^",
+                b"\x1b[2;2R",
+            ),
+            (
+                "DECFI right of the margins moves the cursor right",
+                "\\e[?69h\\e[4;8s\\e[2;10H\\e9X",
+                "abcdefghijkl\nABCDEFGHIJXL\nmnopqrstuvwx\nMNOPQRSTUVWX\n012345678901\n!#$%&*+-/=?^",
+                b"\x1b[2;12R",
+            ),
+            (
+                "SL shifts the columns between the margins",
+                "\\e[?69h\\e[4;8s\\e[2;5H\\e[1 @",
+                "abcefgh ijkl\nABCEFGH IJKL\nmnoqrst uvwx\nMNOQRST UVWX\n0124567 8901\n!#$&*+- /=?^",
+                b"\x1b[2;5R",
+            ),
+            (
+                "SR shifts the columns of the region between the margins",
+                "\\e[2;4r\\e[?69h\\e[4;8s\\e[2;5H\\e[1 A",
+                "abcdefghijkl\nABC DEFGIJKL\nmno pqrsuvwx\nMNO PQRSUVWX\n012345678901\n!#$%&*+-/=?^",
+                b"\x1b[2;5R",
+            ),
+            (
+                "DECFRA in origin mode counts from the left margin",
+                "\\e[?6h\\e[?69h\\e[4;8s\\e[42;1;1;2;2$x",
+                "abc**fghijkl\nABC**FGHIJKL\nmnopqrstuvwx\nMNOPQRSTUVWX\n012345678901\n!#$%&*+-/=?^",
+                b"\x1b[1;1R",
+            ),
+            (
+                "DECCRA in origin mode counts from the left margin",
+                "\\e[?6h\\e[?69h\\e[4;8s\\e[1;1;1;2;1;3;3;1$v",
+                "abcdefghijkl\nABCDEFGHIJKL\nmnopqdetuvwx\nMNOPQRSTUVWX\n012345678901\n!#$%&*+-/=?^",
+                b"\x1b[1;1R",
+            ),
+            (
+                "DECERA in origin mode stops at the right margin",
+                "\\e[?6h\\e[?69h\\e[4;8s\\e[1;1;2;20$z",
+                "abc     ijkl\nABC     IJKL\nmnopqrstuvwx\nMNOPQRSTUVWX\n012345678901\n!#$%&*+-/=?^",
+                b"\x1b[1;1R",
+            ),
+            (
+                "DECSLRM with the right margin past the edge selects the edge",
+                "\\e[?69h\\e[3;3H\\e[4;20s\\eP$qs\\e\\",
+                "abcdefghijkl\nABCDEFGHIJKL\nmnopqrstuvwx\nMNOPQRSTUVWX\n012345678901\n!#$%&*+-/=?^",
+                b"\x1bP1$r4;12s\x1b\\\x1b[1;1R",
+            ),
+            (
+                "RI at the top left of the margins does not scroll",
+                "\\e[?69h\\e[4;8s\\e[1;2H\\eMX",
+                "aXcdefghijkl\nABCDEFGHIJKL\nmnopqrstuvwx\nMNOPQRSTUVWX\n012345678901\n!#$%&*+-/=?^",
+                b"\x1b[1;3R",
+            ),
+            (
+                "IND at the bottom right of the margins does not scroll",
+                "\\e[?69h\\e[4;8s\\e[6;10H\\eDX",
+                "abcdefghijkl\nABCDEFGHIJKL\nmnopqrstuvwx\nMNOPQRSTUVWX\n012345678901\n!#$%&*+-/X?^",
+                b"\x1b[6;11R",
+            ),
+            (
+                "LF at the bottom right of the margins does not scroll",
+                "\\e[?69h\\e[4;8s\\e[6;10H\vX",
+                "abcdefghijkl\nABCDEFGHIJKL\nmnopqrstuvwx\nMNOPQRSTUVWX\n012345678901\n!#$%&*+-/X?^",
+                b"\x1b[6;11R",
+            ),
+            (
+                "CPR in origin mode counts from the top and left margins",
+                "\\e[2;4r\\e[?6h\\e[?69h\\e[4;8s\\e[2;3H",
+                "abcdefghijkl\nABCDEFGHIJKL\nmnopqrstuvwx\nMNOPQRSTUVWX\n012345678901\n!#$%&*+-/=?^",
+                b"\x1b[2;3R",
+            ),
+            (
+                "DECXCPR in origin mode counts from the top and left margins",
+                "\\e[2;4r\\e[?6h\\e[?69h\\e[4;8s\\e[2;3H\\e[?6n",
+                "abcdefghijkl\nABCDEFGHIJKL\nmnopqrstuvwx\nMNOPQRSTUVWX\n012345678901\n!#$%&*+-/=?^",
+                b"\x1b[?2;3;1R\x1b[2;3R",
+            ),
+            (
+                "VPA in origin mode keeps the column",
+                "\\e[?6h\\e[?69h\\e[4;8s\\e[3;3H\\e[2dX",
+                "abcdefghijkl\nABCDEXGHIJKL\nmnopqrstuvwx\nMNOPQRSTUVWX\n012345678901\n!#$%&*+-/=?^",
+                b"\x1b[2;4R",
+            ),
+            (
+                "BS right of the right margin moves the cursor left",
+                "\\e[?69h\\e[4;8s\\e[2;10H\b\bX",
+                "abcdefghijkl\nABCDEFGXIJKL\nmnopqrstuvwx\nMNOPQRSTUVWX\n012345678901\n!#$%&*+-/=?^",
+                b"\x1b[2;8R",
+            ),
+            (
+                "a tab right of the right margin moves to the right margin",
+                "\\e[?69h\\e[4;8s\\e[2;10H\tX",
+                "abcdefghijkl\nABCDEFGXIJKL\nmnopqrstuvwx\nMNOPQRSTUVWX\n012345678901\n!#$%&*+-/=?^",
+                b"\x1b[2;8R",
+            ),
+            (
+                "DCH at the right margin deletes the one character there",
+                "\\e[?69h\\e[4;8s\\e[2;8H\\e[3P",
+                "abcdefghijkl\nABCDEFG IJKL\nmnopqrstuvwx\nMNOPQRSTUVWX\n012345678901\n!#$%&*+-/=?^",
+                b"\x1b[2;8R",
+            ),
+            (
+                "ICH with a large count blanks up to the right margin",
+                "\\e[?69h\\e[4;8s\\e[2;7H\\e[9@",
+                "abcdefghijkl\nABCDEF  IJKL\nmnopqrstuvwx\nMNOPQRSTUVWX\n012345678901\n!#$%&*+-/=?^",
+                b"\x1b[2;7R",
+            ),
+            (
+                "DCH with a large count blanks up to the right margin",
+                "\\e[?69h\\e[4;8s\\e[2;6H\\e[9P",
+                "abcdefghijkl\nABCDE   IJKL\nmnopqrstuvwx\nMNOPQRSTUVWX\n012345678901\n!#$%&*+-/=?^",
+                b"\x1b[2;6R",
+            ),
+            (
+                "SL left of the margins does nothing",
+                "\\e[?69h\\e[4;8s\\e[2;2H\\e[1 @",
+                "abcdefghijkl\nABCDEFGHIJKL\nmnopqrstuvwx\nMNOPQRSTUVWX\n012345678901\n!#$%&*+-/=?^",
+                b"\x1b[2;2R",
+            ),
+            (
+                "SU with a large count blanks between the margins",
+                "\\e[?69h\\e[4;8s\\e[9S",
+                "abc     ijkl\nABC     IJKL\nmno     uvwx\nMNO     UVWX\n012     8901\n!#$     /=?^",
+                b"\x1b[1;1R",
+            ),
+            (
+                "a wrap on the bottom row right of the margins does not scroll",
+                "\\e[?69h\\e[4;8s\\e[6;11HXYZ",
+                "abcdefghijkl\nABCDEFGHIJKL\nmnopqrstuvwx\nMNOPQRSTUVWX\n012345678901\n!#$Z&*+-/=XY",
+                b"\x1b[6;5R",
+            ),
+            (
+                "DECALN resets the margins and moves the cursor home",
+                "\\e[?69h\\e[4;8s\\e#8\\eP$qs\\e\\",
+                "EEEEEEEEEEEE\nEEEEEEEEEEEE\nEEEEEEEEEEEE\nEEEEEEEEEEEE\nEEEEEEEEEEEE\nEEEEEEEEEEEE",
+                b"\x1bP1$r1;12s\x1b\\\x1b[1;1R",
+            ),
+            (
+                "DECSTBM in origin mode moves the cursor to the top left of the margins",
+                "\\e[?6h\\e[?69h\\e[4;8s\\e[2;4r",
+                "abcdefghijkl\nABCDEFGHIJKL\nmnopqrstuvwx\nMNOPQRSTUVWX\n012345678901\n!#$%&*+-/=?^",
+                b"\x1b[1;1R",
+            ),
+            ("ED passes the right margin", "\\e[?69h\\e[4;8s\\e[2;5H\\e[J", "abcdefghijkl\nABCD", b"\x1b[2;5R"),
+            (
+                "IL with a large count blanks the region between the margins",
+                "\\e[2;4r\\e[?69h\\e[4;8s\\e[3;5H\\e[9L",
+                "abcdefghijkl\nABCDEFGHIJKL\nmno     uvwx\nMNO     UVWX\n012345678901\n!#$%&*+-/=?^",
+                b"\x1b[3;4R",
+            ),
+            (
+                "DECIC with a large count blanks up to the right margin",
+                "\\e[?69h\\e[4;8s\\e[2;7H\\e[9'}",
+                "abcdef  ijkl\nABCDEF  IJKL\nmnopqr  uvwx\nMNOPQR  UVWX\n012345  8901\n!#$%&*  /=?^",
+                b"\x1b[2;7R",
+            ),
+            (
+                "SL with a large count blanks between the margins",
+                "\\e[?69h\\e[4;8s\\e[2;5H\\e[9 @",
+                "abc     ijkl\nABC     IJKL\nmno     uvwx\nMNO     UVWX\n012     8901\n!#$     /=?^",
+                b"\x1b[2;5R",
+            ),
+            (
+                "CUB at the left margin stays there",
+                "\\e[?69h\\e[4;8s\\e[2;4H\\e[DX",
+                "abcdefghijkl\nABCXEFGHIJKL\nmnopqrstuvwx\nMNOPQRSTUVWX\n012345678901\n!#$%&*+-/=?^",
+                b"\x1b[2;5R",
+            ),
+            (
+                "at the VT300 level DECLRMM is not recognised and CSI s saves the cursor",
+                '\\e[63;1"p\\e[?69h\\e[3;3H\\e[s\\e[1;1H\\e[u\\e[?69$p\\eP$qs\\e\\',
+                "abcdefghijkl\nABCDEFGHIJKL\nmnopqrstuvwx\nMNOPQRSTUVWX\n012345678901\n!#$%&*+-/=?^",
+                b"\x1b[?69;0$y\x1bP0$r\x1b\\\x1b[3;3R",
+            ),
+            (
+                "CNL moves to the left margin",
+                "\\e[?69h\\e[4;8s\\e[2;7H\\e[EX",
+                "abcdefghijkl\nABCDEFGHIJKL\nmnoXqrstuvwx\nMNOPQRSTUVWX\n012345678901\n!#$%&*+-/=?^",
+                b"\x1b[3;5R",
+            ),
+            (
+                "CPL moves to the left margin",
+                "\\e[?69h\\e[4;8s\\e[3;7H\\e[FX",
+                "abcdefghijkl\nABCXEFGHIJKL\nmnopqrstuvwx\nMNOPQRSTUVWX\n012345678901\n!#$%&*+-/=?^",
+                b"\x1b[2;5R",
+            ),
+            (
+                "CNL left of the left margin moves to the first column",
+                "\\e[?69h\\e[4;8s\\e[2;2H\\e[EX",
+                "abcdefghijkl\nABCDEFGHIJKL\nXnopqrstuvwx\nMNOPQRSTUVWX\n012345678901\n!#$%&*+-/=?^",
+                b"\x1b[3;2R",
+            ),
+            (
+                "CNL right of the right margin moves to the left margin",
+                "\\e[?69h\\e[4;8s\\e[2;10H\\e[EX",
+                "abcdefghijkl\nABCDEFGHIJKL\nmnoXqrstuvwx\nMNOPQRSTUVWX\n012345678901\n!#$%&*+-/=?^",
+                b"\x1b[3;5R",
+            ),
+            (
+                "CNL in origin mode moves to the left margin",
+                "\\e[?6h\\e[?69h\\e[4;8s\\e[2;3H\\e[EX",
+                "abcdefghijkl\nABCDEFGHIJKL\nmnoXqrstuvwx\nMNOPQRSTUVWX\n012345678901\n!#$%&*+-/=?^",
+                b"\x1b[3;2R",
+            ),
+            (
+                "REP wraps between the margins and scrolls them",
+                "\\e[?69h\\e[4;8s\\e[2;4HX\\e[20b",
+                "abcdefghijkl\nABCXXXXXIJKL\nmnoXXXXXuvwx\nMNOXXXXXUVWX\n012XXXXX8901\n!#$X&*+-/=?^",
+                b"\x1b[6;5R",
+            ),
+            (
+                "SU with a count scrolls the region between the margins",
+                "\\e[2;5r\\e[?69h\\e[4;8s\\e[3S",
+                "abcdefghijkl\nABC34567IJKL\nmno     uvwx\nMNO     UVWX\n012     8901\n!#$%&*+-/=?^",
+                b"\x1b[1;1R",
+            ),
+            (
+                "insert mode right of the margins overwrites",
+                "\\e[?69h\\e[4;8s\\e[4h\\e[2;10HXY",
+                "abcdefghijkl\nABCDEFGHIXYL\nmnopqrstuvwx\nMNOPQRSTUVWX\n012345678901\n!#$%&*+-/=?^",
+                b"\x1b[2;12R",
+            ),
+            (
+                "insert mode left of the margins overwrites",
+                "\\e[?69h\\e[4;8s\\e[4h\\e[2;2HXY",
+                "abcdefghijkl\nAXYDEFGHIJKL\nmnopqrstuvwx\nMNOPQRSTUVWX\n012345678901\n!#$%&*+-/=?^",
+                b"\x1b[2;4R",
+            ),
+            (
+                "SL below the scrolling region does nothing",
+                "\\e[2;4r\\e[?69h\\e[4;8s\\e[5;5H\\e[1 @",
+                "abcdefghijkl\nABCDEFGHIJKL\nmnopqrstuvwx\nMNOPQRSTUVWX\n012345678901\n!#$%&*+-/=?^",
+                b"\x1b[5;5R",
+            ),
+            (
+                "SR below the scrolling region does nothing",
+                "\\e[2;4r\\e[?69h\\e[4;8s\\e[5;5H\\e[1 A",
+                "abcdefghijkl\nABCDEFGHIJKL\nmnopqrstuvwx\nMNOPQRSTUVWX\n012345678901\n!#$%&*+-/=?^",
+                b"\x1b[5;5R",
+            ),
+            (
+                "HPR passes the right margin",
+                "\\e[?69h\\e[4;8s\\e[2;6H\\e[9aX",
+                "abcdefghijkl\nABCDEFGHIJKX\nmnopqrstuvwx\nMNOPQRSTUVWX\n012345678901\n!#$%&*+-/=?^",
+                b"\x1b[2;12R",
+            ),
+        ):
+            with self.subTest(label), set_temporary_encoding("utf-8"):
+                self.restart(12, 6)
+                self.write(f"{fill}{data}\\e[6n".encode().decode("iso8859-1"))
+                self.assertEqual(self.read(), screen.encode())
+                self.assertEqual(bytes(self.pty.from_widget), replies)
+
+    def test_left_and_right_margins_keep_cells_whole(self) -> None:
+        """Keep wide characters, wrapped clusters and repeated copies whole at the left and right margins."""
+        wide = "\u4e2d"
+        with set_temporary_encoding("utf-8"):
+            for label, data in (
+                ("DCH next to a wide character across the right margin", rf"AB{wide}\e[?69h\e[1;3s\e[1;1H\e[P"),
+                ("DECDC next to a wide character across the right margin", rf"AB{wide}\e[?69h\e[1;3s\e[1;1H\e['~"),
+                ("SL next to a wide character across the right margin", rf"AB{wide}\e[?69h\e[1;3s\e[1;1H\e[ @"),
+            ):
+                with self.subTest(label):
+                    self.restart(6, 1)
+                    self.write(data.encode().decode("iso8859-1"))
+                    self.read()
+                    line = self.term.term.term[0]
+                    self.assertEqual(6, len(line))
+                    self.assertEqual(b"B" + b" " * 5, b"".join(char for _attrspec, _charset, char in line))
+
+            # a cluster widened past the right margin moves to the left margin of the next line, as a wide one does
+            self.restart(4, 2)
+            self.write(f"\\e[?69h\\e[2;0s{wide}a{wide}\u2764\ufe0f".encode().decode("iso8859-1"))
+            self.read()
+            heart = "\u2764\ufe0f".encode()
+            self.assertEqual([heart, b""], [char for _attrspec, _charset, char in self.term.term.term[1][1:3]])
+            self.assertEqual((3, 1), self.term.term.term_cursor)
+
+        # REP reduced past a screen of copies between the margins ends as the copies written one by one do
+        self.restart(12, 6)
+        self.write(r"\e[?69h\e[3;9sx\e[999b")
+        repeated = (self.read(), self.term.term.term_cursor, self.term.term.is_rotten_cursor)
+        self.restart(12, 6)
+        self.write(r"\e[?69h\e[3;9s" + "x" * 1000)
+        self.assertEqual(repeated, (self.read(), self.term.term.term_cursor, self.term.term.is_rotten_cursor))
+
     def test_c1_csi(self) -> None:
         """Run byte 0x9B as CSI in an 8-bit encoding.
 
@@ -1435,13 +2139,22 @@ class TermTest(unittest.TestCase):
                 b"\x1b[?0n\x1b[?13n\x1b[?20n\x1b[?27;1;0;0n",
             ),
             ("the DEC DSR forms of the other reports are not answered", r"\e[?53n\e[15n\e[25n\e[26n", b""),
-            ("DA reports a VT320 with selective erase and ANSI colour", r"\e[c", b"\x1b[?63;6;22c"),
+            (
+                "DA reports a VT420 with selective erase, horizontal scrolling, ANSI colour and rectangular editing",
+                r"\e[c",
+                b"\x1b[?64;6;21;22;28c",
+            ),
+            (
+                "DA reports a VT420 at a lower conformance level too, as in xterm",
+                r'\e[62;1"p\e[c',
+                b"\x1b[?64;6;21;22;28c",
+            ),
             ("DA with a private marker is not answered", r"\e[?c", b""),
-            ("DECID reports a VT320", r"\eZ", b"\x1b[?63;6;22c"),
-            ("DECID after an unfinished ESC # reports a VT320", r"\e#\eZ", b"\x1b[?63;6;22c"),
+            ("DECID reports a VT420", r"\eZ", b"\x1b[?64;6;21;22;28c"),
+            ("DECID after an unfinished ESC # reports a VT420", r"\e#\eZ", b"\x1b[?64;6;21;22;28c"),
             ("ESC # Z is no DECID and is not answered", r"\e#Z", b""),
-            ("the kitty keyboard flags are answered before DA", r"\e[?u\e[c", b"\x1b[?0u\x1b[?63;6;22c"),
-            ("Secondary DA reports a VT320", r"\e[>c\e[>0c", b"\x1b[>24;10;0c" * 2),
+            ("the kitty keyboard flags are answered before DA", r"\e[?u\e[c", b"\x1b[?0u\x1b[?64;6;21;22;28c"),
+            ("Secondary DA reports a VT420", r"\e[>c\e[>0c", b"\x1b[>41;10;0c" * 2),
             ("Secondary DA with a parameter other than 0 is not answered", r"\e[>1c", b""),
             ("Tertiary DA reports unit ID zero", r"\e[=c\e[=0c", b"\x1bP!|00000000\x1b\\" * 2),
             ("Tertiary DA with a parameter other than 0 is not answered", r"\e[=1c", b""),
@@ -1681,9 +2394,9 @@ class TermTest(unittest.TestCase):
             ),
             ("DECRQDE reports the screen", r'\e["v', b'\x1b[24;80;1;1;1"w'),
             (
-                "DECRQM reports DECLRMM and DECKBUM permanently reset",
-                r"\e[?69h\e[?69$p\e[?68$p",
-                b"\x1b[?69;4$y\x1b[?68;4$y",
+                "DECRQM reports DECLRMM set and reset, and DECKBUM permanently reset",
+                r"\e[?69$p\e[?69h\e[?69$p\e[?68$p",
+                b"\x1b[?69;2$y\x1b[?69;1$y\x1b[?68;4$y",
             ),
             (
                 "DECRQSS reports the full-width margins and the lines per screen",
@@ -1768,12 +2481,12 @@ class TermTest(unittest.TestCase):
             ("DECRQSS leaves the hyperlink out of SGR", rf"\e]8;;http://x{_ST}\eP$qm{_ST}", b"\x1bP1$r0m\x1b\\"),
             ("DECRQSS reports the scrolling region", rf"\e[2;5r\eP$qr{_ST}", b"\x1bP1$r2;5r\x1b\\"),
             ("DECRQSS reports the whole screen as the region", rf"\eP$qr{_ST}", b"\x1bP1$r1;24r\x1b\\"),
-            ("DECRQSS reports the conformance level", rf'\eP$q"p{_ST}', b'\x1bP1$r63;1"p\x1b\\'),
+            ("DECRQSS reports the conformance level", rf'\eP$q"p{_ST}', b'\x1bP1$r64;1"p\x1b\\'),
             ("DECRQSS reports the columns per page", rf"\eP$q$|{_ST}", b"\x1bP1$r80$|\x1b\\"),
             (
                 "DECSCL sets the level DECRQSS reports, and ignores another level",
-                rf'\e[62;1"p\eP$q"p{_ST}\e[64"p\e[60"p\eP$q"p{_ST}\e[63"p\eP$q"p{_ST}',
-                b'\x1bP1$r62;1"p\x1b\\\x1bP1$r62;1"p\x1b\\\x1bP1$r63;1"p\x1b\\',
+                rf'\e[62;1"p\eP$q"p{_ST}\e[65"p\e[60"p\eP$q"p{_ST}\e[64"p\eP$q"p{_ST}',
+                b'\x1bP1$r62;1"p\x1b\\\x1bP1$r62;1"p\x1b\\\x1bP1$r64;1"p\x1b\\',
             ),
             (
                 "at the VT100 level DECRQPSR is not answered, DECRQM and DECRQSS still are, as in xterm",
@@ -2463,7 +3176,7 @@ class TermTest(unittest.TestCase):
 
         ECMA-48 5.4 defines them; SGR is the one sequence that reads sub-parameters.
         """
-        self.write(r"\e[2:1Ha\e[2 @b\e[>4;1mc\e[=5cd\e[1$te\e[>1cf\e[?1mg")
+        self.write(r"\e[2:1Ha\e[2 Bb\e[>4;1mc\e[=5cd\e[1$te\e[>1cf\e[?1mg")
         self.expect("abcdefg")
         self.assertIsNone(self.term.term.attrspec)
         self.assertEqual(bytes(self.pty.from_widget), b"")

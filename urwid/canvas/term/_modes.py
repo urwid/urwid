@@ -27,6 +27,7 @@ import types
 import typing
 
 from urwid.canvas.term._editing import _EditingCanvas
+from urwid.canvas.term._screen import _LEFT_RIGHT_MARGIN_LEVEL
 from urwid.canvas.term._state import TermCharset
 from urwid.display.escape import (
     CSI,
@@ -47,7 +48,7 @@ _CURSOR_STYLES: typing.Final = range(1, 7)
 #: the states the DEC private modes this canvas keeps no flag for are reported in, by DECRQM:
 #: permanently reset, as setting them has no effect: smooth scrolling (DECSCLM, 4) and autorepeat (DECARM, 8),
 #: which the display decides, printing (DECPFF 18, DECPEX 19), as no printer is attached, and the national replacement
-#: character sets (DECNRCM, 42), DECKBUM (68) and the margins (DECLRMM, 69), which are not implemented;
+#: character sets (DECNRCM, 42) and DECKBUM (68), which are not implemented;
 #: and so are cursor blinking (12), which the cursor drawn is never shown with, and the urxvt mouse encoding (1015),
 #: which is never used;
 #: permanently set, for ANSI mode (DECANM, 2), as VT52 mode is not implemented, and for Meta and Alt sending ESC
@@ -57,7 +58,7 @@ _FIXED_PRIVATE_MODE_STATES: typing.Final = types.MappingProxyType(
     {
         2: ModeReportState.PERMANENTLY_SET,
         3: ModeReportState.RESET,
-        **dict.fromkeys((4, 8, 12, 18, 19, 42, 68, 69, 1015), ModeReportState.PERMANENTLY_RESET),
+        **dict.fromkeys((4, 8, 12, 18, 19, 42, 68, 1015), ModeReportState.PERMANENTLY_RESET),
         **dict.fromkeys((1036, 1039), ModeReportState.PERMANENTLY_SET),
     },
 )
@@ -176,6 +177,12 @@ class _ModesCanvas(_EditingCanvas):
                     self.save_cursor(with_attrs=True)
                 else:
                     self.restore_cursor(with_attrs=True)
+            elif private_mode == PrivateMode.LEFT_RIGHT_MARGIN:
+                # a VT420 mode, as in xterm; resetting it returns the margins to the screen's edges
+                if self.conformance_level >= _LEFT_RIGHT_MARGIN_LEVEL:
+                    self.modes.left_right_margins = flag
+                    if not flag:
+                        self.reset_margins()
             elif private_mode == PrivateMode.NUMERIC_KEYPAD:
                 self.modes.keypad_application = flag
             elif private_mode == PrivateMode.BACKARROW_KEY:
@@ -224,6 +231,9 @@ class _ModesCanvas(_EditingCanvas):
                 return modes.autowrap
             case PrivateMode.CURSOR_VISIBLE:
                 return modes.visible_cursor
+            case PrivateMode.LEFT_RIGHT_MARGIN:
+                # below the VT400 level the mode is not recognised, as in xterm
+                return modes.left_right_margins if self.conformance_level >= _LEFT_RIGHT_MARGIN_LEVEL else None
             case PrivateMode.NUMERIC_KEYPAD:
                 return modes.keypad_application
             case PrivateMode.BACKARROW_KEY:
@@ -288,9 +298,9 @@ class _ModesCanvas(_EditingCanvas):
     def soft_reset(self) -> None:
         """Reset the modes, margins, attributes and character sets DECSTR resets, as xterm does.
 
-        The cursor is shown with the startup style, insert, origin, cursor key and keypad application modes are reset,
-        and autowrap is set.
-        The scrolling region is the whole screen again, without moving the cursor.
+        The cursor is shown with the startup style, insert, origin, cursor key, keypad application and left and right
+        margin modes are reset, and autowrap is set.
+        The scrolling region and the left and right margins are the whole screen again, without moving the cursor.
         The attributes are reset as by SGR 0, DECSCA and SPA stop protecting characters, ED, EL and ECH erase the
         protected ones again, and the character sets are the startup ones.
         The cursor saved by DECSC is the home position with these attributes and character sets, origin mode off and no
@@ -304,7 +314,9 @@ class _ModesCanvas(_EditingCanvas):
         modes.keys_decckm = False
         modes.keypad_application = False
         modes.cursor_style = None
+        modes.left_right_margins = False
         self.reset_scroll()
+        self.reset_margins()
         self.csi_set_attr([0])
         self.protected = False
         self.modes.iso_protection = False

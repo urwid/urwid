@@ -96,6 +96,8 @@ class TermModes:
     focus_reporting: bool = False
     # without mouse tracking, the child is sent the mouse wheel on the alternate screen as cursor up and down keys
     alternate_scroll: bool = False
+    # DECLRMM: CSI Pl ; Pr s sets the left and right margins (DECSLRM) rather than saving the cursor (SCOSC)
+    left_right_margins: bool = False
 
     def reset(self) -> None:
         """Reset every mode flag to its terminal-startup default."""
@@ -120,6 +122,7 @@ class TermModes:
         self.backarrow_sends_backspace = False
         self.cursor_style = None
         self.iso_protection = False
+        self.left_right_margins = False
 
         self.keyboard_flags = []
 

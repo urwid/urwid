@@ -104,6 +104,8 @@ class PrivateMode(enum.StrEnum):
     # Neither display controls cursor blinking; the mode is recognised and never turned on.
     CURSOR_BLINK = "12"
     CURSOR_VISIBLE = "25"  # DECTCEM
+    # The left and right margins DECSLRM sets apply while it is set; a Terminal sets it only at the VT400 level.
+    LEFT_RIGHT_MARGIN = "69"  # DECLRMM
 
     # Keyboard
     NUMERIC_KEYPAD = "66"  # DECNKM: the keypad in application mode when set
