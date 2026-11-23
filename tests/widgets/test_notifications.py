@@ -145,11 +145,20 @@ class NotificationsRenderTest(unittest.TestCase):
 
     def test_severity_attr(self) -> None:
         """A message takes its severity's attribute map, and a severity without an entry is left bare."""
-        widget = urwid.Notifications(timeout=None, severity_attr={WARNING: "warn", ERROR: {None: "err"}})
+        widget = urwid.Notifications(
+            timeout=None,
+            severity_attr={WARNING: "warn", ERROR: {None: "err"}, urwid.Severity.CRITICAL: "crit"},
+        )
+        widget.notify("d", severity=urwid.Severity.DEBUG)
         widget.notify("i")
         widget.notify("w", severity=WARNING)
         widget.notify("e", severity=ERROR)
-        self.assertEqual([[(None, "i")], [("warn", "w")], [("err", "e")]], render_runs(widget, (1,)))
+        widget.notify("c", severity=urwid.Severity.CRITICAL)
+        self.assertEqual(
+            [[(None, "d")], [(None, "i")], [("warn", "w")], [("err", "e")], [("crit", "c")]],
+            render_runs(widget, (1,)),
+        )
+        self.assertIs(urwid.Severity.DEBUG, widget.notifications[0].severity)
 
     def test_default_text(self) -> None:
         """The default text shows while no message is showing, with its attribute map."""

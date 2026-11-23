@@ -2,7 +2,8 @@
 
 """Example: messages of each severity in the footer of a window, each shown for five seconds.
 
-i, w and e post an info, a warning and an error message, s posts one that stays until it is dismissed,
+g, i, w, e and r post a debug, an info, a warning, an error and a critical message,
+s posts one that stays until it is dismissed,
 d dismisses the newest message, c clears them all, and q exits. The keys work in either case.
 """
 
@@ -18,15 +19,23 @@ def main() -> None:
     notifications = urwid.Notifications(
         max_count=5,
         severity_attr={
+            urwid.Severity.DEBUG: "debug",
             urwid.Severity.INFO: "info",
             urwid.Severity.WARNING: "warning",
             urwid.Severity.ERROR: "error",
+            urwid.Severity.CRITICAL: "critical",
         },
-        default="i: info  w: warning  e: error  s: sticky  d: dismiss  c: clear  q: quit",
+        default="g: debug  i: info  w: warning  e: error  r: critical  s: sticky  d: dismiss  c: clear  q: quit",
         default_attr="help",
     )
     numbers = itertools.count(1)
-    severities = {"i": urwid.Severity.INFO, "w": urwid.Severity.WARNING, "e": urwid.Severity.ERROR}
+    severities = {
+        "g": urwid.Severity.DEBUG,
+        "i": urwid.Severity.INFO,
+        "w": urwid.Severity.WARNING,
+        "e": urwid.Severity.ERROR,
+        "r": urwid.Severity.CRITICAL,
+    }
 
     def unhandled(key: str | tuple[str, int, int, int]) -> None:
         if not isinstance(key, str):
@@ -49,9 +58,11 @@ def main() -> None:
     frame: urwid.Frame[urwid.Filler[urwid.Text], None, urwid.Notifications] = urwid.Frame(body, footer=notifications)
     palette: list[tuple[str, str, str]] = [
         ("help", "black", "light gray"),
+        ("debug", "dark gray", "black"),
         ("info", "white", "dark blue"),
         ("warning", "black", "brown"),
         ("error", "white", "dark red"),
+        ("critical", "yellow", "dark red"),
     ]
     urwid.MainLoop(frame, palette, unhandled_input=unhandled).run()
 
