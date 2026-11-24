@@ -462,7 +462,8 @@ def _session_dir() -> str:
         or the group or other users have any access to it.
     """
     uid = os.geteuid()
-    path = os.path.join(_prefs.pipe_dir, f"urwid-web-{uid}")
+    # absolute, as the daemon reaches its session files after a chdir("/")
+    path = os.path.join(os.path.abspath(_prefs.pipe_dir), f"urwid-web-{uid}")
     with suppress(FileExistsError):
         pathlib.Path(path).mkdir(mode=0o700)
     # lstat: a symbolic link planted at the path is refused rather than followed

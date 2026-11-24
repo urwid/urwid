@@ -81,6 +81,16 @@ class SessionDirTest(unittest.TestCase):
         with mock.patch.object(web.os, "geteuid", return_value=other_uid), self.assertRaises(PermissionError):
             web._session_dir()
 
+    def test_relative_pipe_dir_gives_an_absolute_directory(self) -> None:
+        """A relative pipe_dir is resolved once, so the daemon's chdir("/") does not move its session files."""
+        cwd = os.getcwd()
+        self.addCleanup(os.chdir, cwd)
+        os.chdir(self.pipe_dir)
+
+        with mock.patch.object(web._prefs, "pipe_dir", "."):
+            self.assertEqual(os.path.realpath(self.expected), os.path.realpath(web._session_dir()))
+            self.assertTrue(os.path.isabs(web._session_dir()))
+
     def test_session_path_does_not_contain_the_session_id(self) -> None:
         """Session file names are a stable hash of the id, inside the session directory."""
         urwid_id = "8Hq3_secret-token-value"
