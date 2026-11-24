@@ -361,6 +361,25 @@ class CursesGetInputTest(unittest.TestCase):
                 self.assertEqual([None, 1], [call.args[0] for call in getch.call_args_list])
                 self.assertEqual([], screen._partial_keys)
 
+    def test_kept_sequence_waits_by_the_complete_wait_set_after_it_was_read(self) -> None:
+        """A complete_wait set while a sequence is kept counts from the read that kept it."""
+        screen = curses_display.Screen()
+        screen._started = True
+        # clock: the first call's start and its keeping of the sequence; the second call's start and its deadline check
+        with (
+            mock.patch("curses.doupdate"),
+            mock.patch.object(screen, "_getch", side_effect=[ord("a"), -1]) as getch,
+            mock.patch.object(screen, "_getch_nodelay", side_effect=[27, ord("["), -1, -1]),
+            mock.patch.object(curses_display.time, "monotonic", side_effect=[100.0, 100.0, 100.2, 100.2]),
+        ):
+            self.assertEqual(["a"], screen.get_input())
+            screen.set_input_timeouts(complete_wait=0.5)
+            self.assertEqual([], screen.get_input())
+
+        # the second call waits the three tenths left of the half second
+        self.assertEqual([None, 3], [call.args[0] for call in getch.call_args_list])
+        self.assertEqual([27, ord("[")], screen._partial_keys)
+
     def test_sequence_cut_short_after_new_input_gets_its_own_complete_wait(self) -> None:
         """Give an Esc read after a decoded key the whole complete_wait, also when an Esc was kept before.
 
