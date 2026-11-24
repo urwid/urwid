@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import select
 import socket
 import time
 import typing
@@ -9,6 +8,7 @@ import warnings
 from unittest import mock
 
 import urwid
+from urwid import _selectors
 from urwid.display import lcd
 
 if typing.TYPE_CHECKING:
@@ -196,8 +196,10 @@ class CF635ScreenTest(unittest.TestCase):
         device.setblocking(False)
         data = b""
         try:
-            while select.select([device], [], [], quiet)[0] and (chunk := device.recv(4096)):
-                data += chunk
+            # a selector, as select() refuses a descriptor of 1024 or more, which a long test run can reach
+            with _selectors.read_selector([(device, None)]) as selector:
+                while selector.select(quiet) and (chunk := device.recv(4096)):
+                    data += chunk
         finally:
             device.settimeout(1)
         packets = []

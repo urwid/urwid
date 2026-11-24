@@ -11,7 +11,6 @@ import inspect
 import io
 import math
 import os
-import select
 import socket
 import sys
 import threading
@@ -23,6 +22,7 @@ import weakref
 import urwid
 import urwid.testing
 from tests.util import NonExternalLoopScreen, external_loop
+from urwid import _selectors
 from urwid.display.common import INPUT_DESCRIPTORS_CHANGED
 from urwid.event_loop import main_loop as main_loop_module
 
@@ -1498,7 +1498,11 @@ class TestCallFromThread(unittest.TestCase):
     def _wake_up_pending(loop: urwid.MainLoop) -> bool:
         """Return whether the socket call_from_thread() wakes *loop* through is readable."""
         state = loop._thread_calls
-        return state is not None and bool(select.select([state.reader], [], [], 0)[0])
+        if state is None:
+            return False
+        # a selector, as select() refuses a descriptor of 1024 or more, which a long test run can reach
+        with _selectors.read_selector([(state.reader, None)]) as selector:
+            return bool(selector.select(0))
 
     def _step(self, loop: urwid.MainLoop, event_loop: urwid.SelectEventLoop) -> None:
         """Run one iteration of *event_loop*, failing instead of waiting when nothing is due or ready."""
