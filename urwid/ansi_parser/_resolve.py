@@ -24,6 +24,7 @@ from __future__ import annotations
 import typing
 
 from urwid.display import NO_HYPERLINK, AttrSpec, Hyperlink
+from urwid.display.common import _depth
 
 #: Recognised, ready-to-render values of :attr:`ParsedLine.leds`.
 LedsLiteral = "Literal['clear', 'scroll_lock', 'num_lock', 'caps_lock']"
@@ -150,7 +151,8 @@ def attrspec_with_hyperlink(
     return AttrSpec(
         attrspec.foreground,
         attrspec.background,
-        attrspec.colors,
+        # the mode the spec was made for, not the colors it needs, so a 24-bit spec stays equal to itself
+        _depth.declared_mode(attrspec),
         hyperlink=link,
         underline_color=attrspec.underline_color,
     )
