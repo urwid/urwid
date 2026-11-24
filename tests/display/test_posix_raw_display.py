@@ -1550,6 +1550,25 @@ class TestTerminalCapabilities(unittest.TestCase):
         s.parse_input(None, None, list(_capabilities_reply(("Smulx", ""))))
         self.assertFalse(s.underline_styles)
 
+    def test_a_reply_does_not_change_the_colors_the_environment_decided(self):
+        for environ, colors in (
+            ({"NO_COLOR": "1"}, 1),
+            ({"CLICOLOR": "0"}, 1),
+            ({"FORCE_COLOR": "1"}, 16),
+            ({"FORCE_COLOR": "2"}, 256),
+        ):
+            with self.subTest(environ=environ), mock.patch.dict(os.environ, environ):
+                for name in {"NO_COLOR", "CLICOLOR", "FORCE_COLOR", "CLICOLOR_FORCE"} - environ.keys():
+                    os.environ.pop(name, None)
+                s = _make_screen()
+                s.write = lambda data: None
+                s.flush = lambda: None
+                _send_mode_queries(s)
+
+                s.parse_input(None, None, list(_capabilities_reply(("RGB", ""), ("Smulx", ""))))
+
+                self.assertEqual((colors, True), (s.colors, s.underline_styles))
+
     def test_only_replies_before_primary_da_count(self):
         reply = list(_capabilities_reply(("RGB", "")))
         s = self._screen(query=False)

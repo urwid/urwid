@@ -35,6 +35,7 @@ from urwid.display import escape
 from urwid.display._raw_display_base._detection import (
     TerminalProperties,
     _ColorCount,
+    _environment_colors,
     detect_terminal_properties,
 )
 from urwid.display.common import (
@@ -183,6 +184,7 @@ class _ScreenBase(BaseScreen, RealTerminal):
         "_alternate_scroll_written",
         "_capabilities_answered",
         "_capability_query_pending",
+        "_colors_from_environment",
         "_cy",
         "_drawn_rows",
         "_hold_resize",
@@ -338,6 +340,8 @@ class _ScreenBase(BaseScreen, RealTerminal):
         signals.connect_signal(self, UPDATE_PALETTE_ENTRY, type(self)._on_update_palette_entry, weak_args=(self,))
         self.term = os.environ.get("TERM", "")
         self._terminal_properties = detect_terminal_properties(self.term, os.environ)
+        # NO_COLOR, FORCE_COLOR or CLICOLOR decided the colour count, which no terminal reply changes then
+        self._colors_from_environment = _environment_colors(os.environ) is not None
         if underline_styles is not None:
             self._terminal_properties = dataclasses.replace(
                 self._terminal_properties, underline_styles=underline_styles
@@ -550,12 +554,14 @@ class _ScreenBase(BaseScreen, RealTerminal):
         """Raise the properties the application left to detection to what a terminal reply shows the terminal draws.
 
         A reply only adds what the detection missed: a colour count above it, and the underline styles.
+        A colour count the application set, or one the environment decided, is never changed.
 
         :param colors: the colour count the terminal reported, None when it reported none.
         :param underline_styles: the terminal reported that it draws the underline styles and colours.
         """
         changes: dict[str, typing.Any] = {}
-        if colors is not None and "colors" not in self._properties_set and colors > self.colors:
+        colors_open = "colors" not in self._properties_set and not self._colors_from_environment
+        if colors is not None and colors_open and colors > self.colors:
             changes["colors"] = colors
         if underline_styles and "underline_styles" not in self._properties_set:
             changes["underline_styles"] = True

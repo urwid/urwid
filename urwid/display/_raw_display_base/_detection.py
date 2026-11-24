@@ -494,6 +494,23 @@ def _terminfo_colors(term: str, environ: Mapping[str, str]) -> _ColorCount | Non
     return next((count for minimum, count in _TERMINFO_COLOR_COUNTS if colors >= minimum), None)
 
 
+def _environment_colors(environ: Mapping[str, str]) -> _ColorCount | None:
+    """Return the colour count an explicit setting in *environ* decides, None when it decides none.
+
+    The settings are ``NO_COLOR``, then ``FORCE_COLOR`` / ``CLICOLOR_FORCE``, then ``CLICOLOR=0``.
+    A count they decide is the user's choice, which no terminal reply changes.
+
+    >>> _environment_colors({"NO_COLOR": "1"}), _environment_colors({"FORCE_COLOR": "2"}), _environment_colors({})
+    (1, 256, None)
+    """
+    force = environ.get("FORCE_COLOR") or environ.get("CLICOLOR_FORCE")
+    if environ.get("NO_COLOR") or (environ.get("CLICOLOR") == "0" and not force):
+        return 1
+    if force:
+        return _parse_force_color(force)
+    return None
+
+
 def detect_term_colors(
     term: str | None = None,
     environ: Mapping[str, str] | None = None,
@@ -528,11 +545,8 @@ def detect_term_colors(
     1
     """
     env = os.environ if environ is None else environ
-    force = env.get("FORCE_COLOR") or env.get("CLICOLOR_FORCE")
-    if env.get("NO_COLOR") or (env.get("CLICOLOR") == "0" and not force):
-        return 1
-    if force:
-        return _parse_force_color(force)
+    if (override := _environment_colors(env)) is not None:
+        return override
     term_value = env.get("TERM", "") if term is None else term
     term_colors = _colors_from_term(term_value, _term_families(term_value))
     # The name rules know hosts whose entries understate them, such as the truecolor families.
