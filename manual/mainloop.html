@@ -5,12 +5,12 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
 
-    <title>Main Loop &#8212; Urwid 5.1.3</title>
+    <title>Main Loop &#8212; Urwid 5.2.0</title>
     <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=03e43079" />
     <link rel="stylesheet" type="text/css" href="../_static/classic.css?v=65f223dd" />
     <link rel="stylesheet" type="text/css" href="../_static/urwid_theme.css?v=de5f08c4" />
     
-    <script src="../_static/documentation_options.js?v=88590691"></script>
+    <script src="../_static/documentation_options.js?v=2dde5210"></script>
     <script src="../_static/doctools.js?v=fd6eb6e6"></script>
     <script src="../_static/sphinx_highlight.js?v=6ffebe34"></script>
     
@@ -32,7 +32,7 @@
         <li class="right" >
           <a href="overview.html" title="Library Overview"
              accesskey="P">previous</a> |</li>
-        <li class="nav-item nav-item-0"><a href="../index.html">Urwid 5.1.3</a> &#187;</li>
+        <li class="nav-item nav-item-0"><a href="../index.html">Urwid 5.2.0</a> &#187;</li>
           <li class="nav-item nav-item-1"><a href="index.html" accesskey="U">Urwid Manual</a> &#187;</li>
         <li class="nav-item nav-item-this"><a href="">Main Loop</a></li> 
       </ul>
@@ -81,6 +81,31 @@ the widgets that are displayed with your application-specific input handling so
 that the application’s behaviour changes when the widgets change. If all your
 custom input handling is done from <a class="reference internal" href="../reference/main_loop.html#urwid.MainLoop.unhandled_input" title="urwid.MainLoop.unhandled_input"><code class="xref py py-meth docutils literal notranslate"><span class="pre">MainLoop.unhandled_input()</span></code></a>,
 it will be difficult to extend as your application gets more complicated.</p>
+</section>
+<section id="reacting-to-a-resize">
+<h2>Reacting to a Resize<a class="headerlink" href="#reacting-to-a-resize" title="Link to this heading">¶</a></h2>
+<p>The widgets render at the screen size by themselves, so most applications need
+nothing when the terminal is resized.
+An application that lays itself out by the size, such as one that chooses which
+columns to show by the width, passes <code class="docutils literal notranslate"><span class="pre">resized</span></code> and gets the new size:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="k">def</span><span class="w"> </span><span class="nf">choose_columns</span><span class="p">(</span><span class="n">size</span><span class="p">:</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="nb">int</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+    <span class="n">cols</span><span class="p">,</span> <span class="n">_rows</span> <span class="o">=</span> <span class="n">size</span>
+    <span class="n">table</span><span class="o">.</span><span class="n">set_columns</span><span class="p">(</span><span class="n">ALL_COLUMNS</span> <span class="k">if</span> <span class="n">cols</span> <span class="o">&gt;=</span> <span class="mi">100</span> <span class="k">else</span> <span class="n">NARROW_COLUMNS</span><span class="p">)</span>
+
+<span class="n">loop</span> <span class="o">=</span> <span class="n">urwid</span><span class="o">.</span><span class="n">MainLoop</span><span class="p">(</span><span class="n">table</span><span class="p">,</span> <span class="n">resized</span><span class="o">=</span><span class="n">choose_columns</span><span class="p">)</span>
+<span class="n">choose_columns</span><span class="p">(</span><span class="n">loop</span><span class="o">.</span><span class="n">screen</span><span class="o">.</span><span class="n">get_cols_rows</span><span class="p">())</span>  <span class="c1"># the size it starts at</span>
+</pre></div>
+</div>
+<p>Dragging the edge of a terminal window resizes it many times a second, so the
+function is called once the size stopped changing for <code class="docutils literal notranslate"><span class="pre">resize_delay</span></code> seconds,
+0.1 by default, with the size reached then.
+A size that changed while <a class="reference internal" href="../reference/main_loop.html#urwid.MainLoop.paused" title="urwid.MainLoop.paused"><code class="xref py py-meth docutils literal notranslate"><span class="pre">MainLoop.paused()</span></code></a> handed the terminal to another
+program is reported the same way, once the screen has been drawn before the pause.
+It runs on the loop’s thread like an alarm callback, and the loop handles no input
+while it runs: work that takes longer, such as asking another program for its
+size, goes to a thread that hands its result back with
+<a class="reference internal" href="../reference/main_loop.html#urwid.MainLoop.call_from_thread" title="urwid.MainLoop.call_from_thread"><code class="xref py py-meth docutils literal notranslate"><span class="pre">MainLoop.call_from_thread()</span></code></a>, described below.
+A subclass of <a class="reference internal" href="../reference/main_loop.html#urwid.MainLoop" title="urwid.MainLoop"><code class="xref py py-class docutils literal notranslate"><span class="pre">MainLoop</span></code></a> may override <a class="reference internal" href="../reference/main_loop.html#urwid.MainLoop.resized" title="urwid.MainLoop.resized"><code class="xref py py-meth docutils literal notranslate"><span class="pre">MainLoop.resized()</span></code></a> instead.</p>
 </section>
 <section id="running-another-program-in-the-terminal">
 <h2>Running Another Program in the Terminal<a class="headerlink" href="#running-another-program-in-the-terminal" title="Link to this heading">¶</a></h2>
@@ -184,6 +209,49 @@ It collects the lines and asks for one drain while none is pending:</p>
 </pre></div>
 </div>
 <p><code class="docutils literal notranslate"><span class="pre">examples/thread_worker.py</span></code> shows a worker reporting its progress and its result.</p>
+<section id="log-records-from-any-thread">
+<h3>Log Records From Any Thread<a class="headerlink" href="#log-records-from-any-thread" title="Link to this heading">¶</a></h3>
+<p><a class="reference internal" href="../reference/log_handler.html#module-urwid.log_handler" title="urwid.log_handler"><code class="xref py py-mod docutils literal notranslate"><span class="pre">urwid.log_handler</span></code></a> has two <code class="xref py py-class docutils literal notranslate"><span class="pre">logging.Handler</span></code> classes that show log
+records in widgets and make that hand-over themselves.
+<a class="reference internal" href="../reference/log_handler.html#urwid.log_handler.ListWalkerHandler" title="urwid.log_handler.ListWalkerHandler"><code class="xref py py-class docutils literal notranslate"><span class="pre">ListWalkerHandler</span></code></a> appends each record as a row to a
+list walker, and <a class="reference internal" href="../reference/log_handler.html#urwid.log_handler.NotificationsHandler" title="urwid.log_handler.NotificationsHandler"><code class="xref py py-class docutils literal notranslate"><span class="pre">NotificationsHandler</span></code></a> posts it to
+<a class="reference internal" href="../reference/widget.html#urwid.Notifications" title="urwid.Notifications"><code class="xref py py-class docutils literal notranslate"><span class="pre">Notifications</span></code></a> with the record’s <a class="reference internal" href="../reference/constants.html#urwid.Severity" title="urwid.Severity"><code class="xref py py-class docutils literal notranslate"><span class="pre">Severity</span></code></a>.
+A record is formatted on the thread that logs it and shown on the loop’s thread:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">walker</span> <span class="o">=</span> <span class="n">urwid</span><span class="o">.</span><span class="n">SimpleFocusDequeWalker</span><span class="p">([],</span> <span class="n">maxlen</span><span class="o">=</span><span class="mi">1000</span><span class="p">,</span> <span class="n">follow_end</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+<span class="n">loop</span> <span class="o">=</span> <span class="n">urwid</span><span class="o">.</span><span class="n">MainLoop</span><span class="p">(</span><span class="n">urwid</span><span class="o">.</span><span class="n">ListBox</span><span class="p">(</span><span class="n">walker</span><span class="p">))</span>
+<span class="n">handler</span> <span class="o">=</span> <span class="n">urwid</span><span class="o">.</span><span class="n">log_handler</span><span class="o">.</span><span class="n">ListWalkerHandler</span><span class="p">(</span><span class="n">walker</span><span class="p">,</span> <span class="n">loop</span><span class="o">=</span><span class="n">loop</span><span class="p">)</span>
+<span class="n">logging</span><span class="o">.</span><span class="n">getLogger</span><span class="p">()</span><span class="o">.</span><span class="n">addHandler</span><span class="p">(</span><span class="n">handler</span><span class="p">)</span>
+
+<span class="k">with</span> <span class="n">loop</span><span class="o">.</span><span class="n">start</span><span class="p">():</span>
+    <span class="n">handler</span><span class="o">.</span><span class="n">resume</span><span class="p">()</span>
+    <span class="n">loop</span><span class="o">.</span><span class="n">event_loop</span><span class="o">.</span><span class="n">run</span><span class="p">()</span>
+</pre></div>
+</div>
+<p>Records logged while the loop does not run are held, up to <code class="docutils literal notranslate"><span class="pre">max_pending</span></code>, the
+oldest dropped first.
+They are shown after <a class="reference internal" href="../reference/log_handler.html#urwid.log_handler.ListWalkerHandler.resume" title="urwid.log_handler.ListWalkerHandler.resume"><code class="xref py py-meth docutils literal notranslate"><span class="pre">resume()</span></code></a>, which
+the application calls once at the start of each run: <a class="reference internal" href="../reference/main_loop.html#urwid.MainLoop.stop" title="urwid.MainLoop.stop"><code class="xref py py-meth docutils literal notranslate"><span class="pre">MainLoop.stop()</span></code></a>
+drops the call that would have shown them.
+<code class="docutils literal notranslate"><span class="pre">loop.set_alarm_in(0,</span> <span class="pre">lambda</span> <span class="pre">_loop,</span> <span class="pre">_data:</span> <span class="pre">handler.resume())</span></code> before
+<a class="reference internal" href="../reference/main_loop.html#urwid.MainLoop.run" title="urwid.MainLoop.run"><code class="xref py py-meth docutils literal notranslate"><span class="pre">MainLoop.run()</span></code></a> does the same, but an error it raises is only logged.</p>
+<p>Both handlers need <a class="reference internal" href="../reference/main_loop.html#urwid.MainLoop.call_from_thread" title="urwid.MainLoop.call_from_thread"><code class="xref py py-meth docutils literal notranslate"><span class="pre">MainLoop.call_from_thread()</span></code></a>, so an event loop that can
+watch files.
+On one that cannot, such as <a class="reference internal" href="../reference/main_loop.html#urwid.AsyncioEventLoop" title="urwid.AsyncioEventLoop"><code class="xref py py-class docutils literal notranslate"><span class="pre">AsyncioEventLoop</span></code></a> on asyncio’s
+<code class="docutils literal notranslate"><span class="pre">ProactorEventLoop</span></code>, the default on Windows, <code class="docutils literal notranslate"><span class="pre">resume()</span></code> raises
+<code class="xref py py-exc docutils literal notranslate"><span class="pre">RuntimeError</span></code> and the held records are never shown.</p>
+<p><code class="docutils literal notranslate"><span class="pre">close()</span></code>, which <code class="xref py py-func docutils literal notranslate"><span class="pre">logging.shutdown()</span></code> also calls, drops the held records
+without touching the widget.</p>
+<p>Each handler rejects the records of the <code class="docutils literal notranslate"><span class="pre">urwid</span></code> logger and its children with
+its <code class="docutils literal notranslate"><span class="pre">urwid_filter</span></code>.
+urwid logs at <code class="docutils literal notranslate"><span class="pre">DEBUG</span></code> on each redraw and each alarm it sets, so a handler that
+showed those records would log again on every record it shows, without end.
+To show urwid’s own warnings, raise the handler’s level and then remove the
+filter:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">handler</span><span class="o">.</span><span class="n">setLevel</span><span class="p">(</span><span class="n">logging</span><span class="o">.</span><span class="n">INFO</span><span class="p">)</span>
+<span class="n">handler</span><span class="o">.</span><span class="n">removeFilter</span><span class="p">(</span><span class="n">handler</span><span class="o">.</span><span class="n">urwid_filter</span><span class="p">)</span>
+</pre></div>
+</div>
+</section>
 </section>
 <section id="event-loops">
 <span id="id2"></span><h2>Event Loops<a class="headerlink" href="#event-loops" title="Link to this heading">¶</a></h2>
@@ -354,9 +422,13 @@ A worker running there hands its results to the widgets with <a class="reference
     <ul><li><a href="index.html">Manual</a></li><ul>
 <li><a class="reference internal" href="#">Main Loop</a><ul>
 <li><a class="reference internal" href="#widgets-displayed">Widgets Displayed</a></li>
+<li><a class="reference internal" href="#reacting-to-a-resize">Reacting to a Resize</a></li>
 <li><a class="reference internal" href="#running-another-program-in-the-terminal">Running Another Program in the Terminal</a></li>
 <li><a class="reference internal" href="#reaching-the-running-loop">Reaching the Running Loop</a></li>
-<li><a class="reference internal" href="#work-from-another-thread">Work From Another Thread</a></li>
+<li><a class="reference internal" href="#work-from-another-thread">Work From Another Thread</a><ul>
+<li><a class="reference internal" href="#log-records-from-any-thread">Log Records From Any Thread</a></li>
+</ul>
+</li>
 <li><a class="reference internal" href="#event-loops">Event Loops</a><ul>
 <li><a class="reference internal" href="#selecteventloop"><code class="docutils literal notranslate"><span class="pre">SelectEventLoop</span></code></a></li>
 <li><a class="reference internal" href="#asyncioeventloop"><code class="docutils literal notranslate"><span class="pre">AsyncioEventLoop</span></code></a></li>
@@ -415,7 +487,7 @@ A worker running there hands its results to the widgets with <a class="reference
         <li class="right" >
           <a href="overview.html" title="Library Overview"
              >previous</a> |</li>
-        <li class="nav-item nav-item-0"><a href="../index.html">Urwid 5.1.3</a> &#187;</li>
+        <li class="nav-item nav-item-0"><a href="../index.html">Urwid 5.2.0</a> &#187;</li>
           <li class="nav-item nav-item-1"><a href="index.html" >Urwid Manual</a> &#187;</li>
         <li class="nav-item nav-item-this"><a href="">Main Loop</a></li> 
       </ul>

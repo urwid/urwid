@@ -15,6 +15,7 @@ Urwid Reference
    attrspec
    canvas
    testing
+   log_handler
    text_layout
    command_map
    constants

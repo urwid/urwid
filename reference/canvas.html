@@ -5,12 +5,12 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
 
-    <title>Canvas Classes and Functions &#8212; Urwid 5.1.3</title>
+    <title>Canvas Classes and Functions &#8212; Urwid 5.2.0</title>
     <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=03e43079" />
     <link rel="stylesheet" type="text/css" href="../_static/classic.css?v=65f223dd" />
     <link rel="stylesheet" type="text/css" href="../_static/urwid_theme.css?v=de5f08c4" />
     
-    <script src="../_static/documentation_options.js?v=88590691"></script>
+    <script src="../_static/documentation_options.js?v=2dde5210"></script>
     <script src="../_static/doctools.js?v=fd6eb6e6"></script>
     <script src="../_static/sphinx_highlight.js?v=6ffebe34"></script>
     
@@ -32,7 +32,7 @@
         <li class="right" >
           <a href="attrspec.html" title="Raw Display Attributes"
              accesskey="P">previous</a> |</li>
-        <li class="nav-item nav-item-0"><a href="../index.html">Urwid 5.1.3</a> &#187;</li>
+        <li class="nav-item nav-item-0"><a href="../index.html">Urwid 5.2.0</a> &#187;</li>
           <li class="nav-item nav-item-1"><a href="index.html" accesskey="U">Urwid Reference</a> &#187;</li>
         <li class="nav-item nav-item-this"><a href="">Canvas Classes and Functions</a></li> 
       </ul>
@@ -114,14 +114,38 @@
 
 <dl class="py method">
 <dt class="sig sig-object py" id="urwid.Canvas.get_pop_up">
-<span class="sig-name descname"><span class="pre">get_pop_up</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">int</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">int</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">AbstractWidget</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">int</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">int</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span></span><a class="headerlink" href="#urwid.Canvas.get_pop_up" title="Link to this definition">¶</a></dt>
+<span class="sig-name descname"><span class="pre">get_pop_up</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">int</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">int</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">AbstractWidget</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">PopUpSize</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">PopUpSize</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span></span><a class="headerlink" href="#urwid.Canvas.get_pop_up" title="Link to this definition">¶</a></dt>
 <dd><p>Return the pop-up info set on this canvas, or <code class="docutils literal notranslate"><span class="pre">None</span></code> if none was set.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="urwid.Canvas.get_pop_up_align">
+<span class="sig-name descname"><span class="pre">get_pop_up_align</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">str</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span><span class="p"><span class="pre">]</span></span></span></span><a class="headerlink" href="#urwid.Canvas.get_pop_up_align" title="Link to this definition">¶</a></dt>
+<dd><p>Return the horizontal and vertical alignments set with the pop-up on this canvas.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>the <code class="docutils literal notranslate"><span class="pre">left</span></code> and <code class="docutils literal notranslate"><span class="pre">top</span></code> alignments given to <code class="xref py py-meth docutils literal notranslate"><span class="pre">CompositeCanvas.set_pop_up()</span></code>, as strings;
+<code class="docutils literal notranslate"><span class="pre">None</span></code> for an axis given as an offset, and <code class="docutils literal notranslate"><span class="pre">(None,</span> <span class="pre">None)</span></code> when no pop-up was set.</p>
+</dd>
+</dl>
 </dd></dl>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="urwid.Canvas.get_pop_up_anchor_height">
 <span class="sig-name descname"><span class="pre">get_pop_up_anchor_height</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">int</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span></span><a class="headerlink" href="#urwid.Canvas.get_pop_up_anchor_height" title="Link to this definition">¶</a></dt>
 <dd><p>Return the anchor height set with the pop-up on this canvas, or <code class="docutils literal notranslate"><span class="pre">None</span></code> if none was set.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="urwid.Canvas.get_pop_up_anchor_width">
+<span class="sig-name descname"><span class="pre">get_pop_up_anchor_width</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">int</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">Literal</span><span class="p"><span class="pre">[</span></span><span class="s"><span class="pre">'left'</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="s"><span class="pre">'right'</span></span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span></span><a class="headerlink" href="#urwid.Canvas.get_pop_up_anchor_width" title="Link to this definition">¶</a></dt>
+<dd><p>Return the horizontal anchor set with the pop-up on this canvas.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p><code class="docutils literal notranslate"><span class="pre">(anchor_width,</span> <span class="pre">anchor_side)</span></code> as given to <code class="xref py py-meth docutils literal notranslate"><span class="pre">CompositeCanvas.set_pop_up()</span></code>,
+or <code class="docutils literal notranslate"><span class="pre">None</span></code> when the pop-up was set without <cite>anchor_width</cite> or no pop-up was set.</p>
+</dd>
+</dl>
 </dd></dl>
 
 <dl class="py method">
@@ -133,6 +157,36 @@
 <dd class="field-odd"><p>the callback, or <code class="docutils literal notranslate"><span class="pre">None</span></code> when none was set.</p>
 </dd>
 </dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="urwid.Canvas.get_pop_up_margin">
+<span class="sig-name descname"><span class="pre">get_pop_up_margin</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">int</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">int</span><span class="p"><span class="pre">]</span></span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span></span><a class="headerlink" href="#urwid.Canvas.get_pop_up_margin" title="Link to this definition">¶</a></dt>
+<dd><p>Return the margin set with the pop-up on this canvas.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>the <code class="docutils literal notranslate"><span class="pre">(columns,</span> <span class="pre">rows)</span></code> <cite>margin</cite> given to <code class="xref py py-meth docutils literal notranslate"><span class="pre">CompositeCanvas.set_pop_up()</span></code>,
+or <code class="docutils literal notranslate"><span class="pre">None</span></code> when the pop-up was set without a margin or no pop-up was set.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="urwid.Canvas.get_pop_up_on_anchor_side">
+<span class="sig-name descname"><span class="pre">get_pop_up_on_anchor_side</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Callable</span><span class="p"><span class="pre">[</span></span><span class="p"><span class="pre">[</span></span><span class="pre">Literal</span><span class="p"><span class="pre">[</span></span><span class="s"><span class="pre">'left'</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="s"><span class="pre">'right'</span></span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">None</span><span class="p"><span class="pre">]</span></span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span></span><a class="headerlink" href="#urwid.Canvas.get_pop_up_on_anchor_side" title="Link to this definition">¶</a></dt>
+<dd><p>Return the callback set with the pop-up on this canvas to learn which side of it the anchor ended up on.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>the <cite>on_anchor_side</cite> callback given to <code class="xref py py-meth docutils literal notranslate"><span class="pre">CompositeCanvas.set_pop_up()</span></code>,
+or <code class="docutils literal notranslate"><span class="pre">None</span></code> when none was set or no pop-up was set.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="urwid.Canvas.get_pop_up_pass_key_below">
+<span class="sig-name descname"><span class="pre">get_pop_up_pass_key_below</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">PopUpPassKey</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span></span><a class="headerlink" href="#urwid.Canvas.get_pop_up_pass_key_below" title="Link to this definition">¶</a></dt>
+<dd><p>Return the callback for keys passed below the pop-up set on this canvas, or <code class="docutils literal notranslate"><span class="pre">None</span></code> if none was set.</p>
 </dd></dl>
 
 <dl class="py method">
@@ -165,7 +219,7 @@
 
 <dl class="py method">
 <dt class="sig sig-object py" id="urwid.Canvas.set_pop_up">
-<span class="sig-name descname"><span class="pre">set_pop_up</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">w</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">AbstractWidget</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">left</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">top</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">overlay_width</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">overlay_height</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em>, <em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">anchor_height</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">on_unhandled_key</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Callable</span><span class="p"><span class="pre">[</span></span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">str</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span><span class="p"><span class="pre">]</span></span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">on_click_outside</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Callable</span><span class="p"><span class="pre">[</span></span><span class="p"><span class="pre">[</span></span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">None</span><span class="p"><span class="pre">]</span></span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="headerlink" href="#urwid.Canvas.set_pop_up" title="Link to this definition">¶</a></dt>
+<span class="sig-name descname"><span class="pre">set_pop_up</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">w</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">AbstractWidget</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">left</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">PopUpLeft</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">top</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">PopUpTop</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">overlay_width</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">PopUpSize</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">overlay_height</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">PopUpSize</span></span></em>, <em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">anchor_height</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">anchor_width</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">anchor_side</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Literal</span><span class="p"><span class="pre">[</span></span><span class="s"><span class="pre">'left'</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="s"><span class="pre">'right'</span></span><span class="p"><span class="pre">]</span></span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">'left'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">on_anchor_side</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Callable</span><span class="p"><span class="pre">[</span></span><span class="p"><span class="pre">[</span></span><span class="pre">Literal</span><span class="p"><span class="pre">[</span></span><span class="s"><span class="pre">'left'</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="s"><span class="pre">'right'</span></span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">None</span><span class="p"><span class="pre">]</span></span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">on_unhandled_key</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Callable</span><span class="p"><span class="pre">[</span></span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">str</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span><span class="p"><span class="pre">]</span></span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">pass_key_below</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">PopUpPassKey</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">on_click_outside</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Callable</span><span class="p"><span class="pre">[</span></span><span class="p"><span class="pre">[</span></span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">None</span><span class="p"><span class="pre">]</span></span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">margin</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">int</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">int</span><span class="p"><span class="pre">]</span></span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="headerlink" href="#urwid.Canvas.set_pop_up" title="Link to this definition">¶</a></dt>
 <dd><p>Add pop-up information to the canvas.</p>
 <p>This information is intercepted by a PopUpTarget widget higher in the chain to
 display a pop-up at the given (left, top) position relative to the
@@ -173,29 +227,76 @@ current canvas.</p>
 <p>A negative position opens the pop-up to the left of or above this canvas, for example over a launcher
 with the current item on the launcher’s row. A pop-up that would extend past an edge of the
 <a class="reference internal" href="widget.html#urwid.PopUpTarget" title="urwid.PopUpTarget"><code class="xref py py-class docutils literal notranslate"><span class="pre">PopUpTarget</span></code></a> is moved, and shrunk when it is larger, to fit inside it.</p>
+<p>An alignment instead of a number places the pop-up inside the whole <a class="reference internal" href="widget.html#urwid.PopUpTarget" title="urwid.PopUpTarget"><code class="xref py py-class docutils literal notranslate"><span class="pre">PopUpTarget</span></code></a>,
+wherever this canvas is: <code class="docutils literal notranslate"><span class="pre">left=&quot;center&quot;,</span> <span class="pre">top=&quot;middle&quot;</span></code> centres a dialog on the screen.
+It is applied after the size is known, so it also centres a <code class="docutils literal notranslate"><span class="pre">&quot;pack&quot;</span></code> sized pop-up.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>w</strong> – widget to use for the pop-up</p></li>
-<li><p><strong>left</strong> – x position for left edge of pop-up, may be negative</p></li>
-<li><p><strong>top</strong> – y position for top edge of pop-up, may be negative</p></li>
-<li><p><strong>overlay_width</strong> – width of overlay in screen columns &gt; 0</p></li>
-<li><p><strong>overlay_height</strong> – height of overlay in screen rows &gt; 0</p></li>
+<li><p><strong>left</strong> – x position for left edge of pop-up, may be negative,
+or <code class="docutils literal notranslate"><span class="pre">&quot;left&quot;</span></code>, <code class="docutils literal notranslate"><span class="pre">&quot;center&quot;</span></code> or <code class="docutils literal notranslate"><span class="pre">&quot;right&quot;</span></code> to align the pop-up inside the target</p></li>
+<li><p><strong>top</strong> – y position for top edge of pop-up, may be negative,
+or <code class="docutils literal notranslate"><span class="pre">&quot;top&quot;</span></code>, <code class="docutils literal notranslate"><span class="pre">&quot;middle&quot;</span></code> or <code class="docutils literal notranslate"><span class="pre">&quot;bottom&quot;</span></code> to align the pop-up inside the target</p></li>
+<li><p><strong>overlay_width</strong> – width of overlay in screen columns &gt; 0, <code class="docutils literal notranslate"><span class="pre">(&quot;relative&quot;,</span> <span class="pre">percentage)</span></code> of the columns
+from the pop-up’s left edge to the right edge of the <a class="reference internal" href="widget.html#urwid.PopUpTarget" title="urwid.PopUpTarget"><code class="xref py py-class docutils literal notranslate"><span class="pre">PopUpTarget</span></code></a>
+(of all its columns when <cite>left</cite> is an alignment), with a percentage &gt; 0,
+or <code class="docutils literal notranslate"><span class="pre">&quot;pack&quot;</span></code> for the width of <cite>w</cite> as a fixed widget</p></li>
+<li><p><strong>overlay_height</strong> – height of overlay in screen rows &gt; 0, <code class="docutils literal notranslate"><span class="pre">(&quot;relative&quot;,</span> <span class="pre">percentage)</span></code> of the rows
+from the pop-up’s top edge to the bottom edge of the <a class="reference internal" href="widget.html#urwid.PopUpTarget" title="urwid.PopUpTarget"><code class="xref py py-class docutils literal notranslate"><span class="pre">PopUpTarget</span></code></a>
+(of all its rows when <cite>top</cite> is an alignment), with a percentage &gt; 0,
+or <code class="docutils literal notranslate"><span class="pre">&quot;pack&quot;</span></code> for the rows of <cite>w</cite> as a flow widget at the pop-up width</p></li>
 <li><p><strong>anchor_height</strong> – rows of the launcher directly above the pop-up, &gt;= 0, or <code class="docutils literal notranslate"><span class="pre">None</span></code> to place the pop-up
 exactly as given. With an anchor, <a class="reference internal" href="widget.html#urwid.PopUpTarget" title="urwid.PopUpTarget"><code class="xref py py-class docutils literal notranslate"><span class="pre">PopUpTarget</span></code></a> keeps the pop-up off those
 rows: it goes below them when it fits there, above them when it fits there, and otherwise on the side
-with more rows, with its height clipped to that side.</p></li>
+with more rows, with its height clipped to that side. It needs <cite>top</cite> as a number of rows.</p></li>
+<li><p><strong>anchor_width</strong> – columns of the anchor beside the pop-up, &gt;= 0, such as a launcher or the menu that
+opened the pop-up, or <code class="docutils literal notranslate"><span class="pre">None</span></code> to place the pop-up exactly as given.
+With an anchor, <a class="reference internal" href="widget.html#urwid.PopUpTarget" title="urwid.PopUpTarget"><code class="xref py py-class docutils literal notranslate"><span class="pre">PopUpTarget</span></code></a> keeps the pop-up off those columns,
+by the same rule as for <cite>anchor_height</cite>, with the side <cite>anchor_side</cite> gives preferred.
+It needs <cite>left</cite> as a number of columns: the column of the anchor edge that the pop-up touches on its
+preferred side.
+A relative <cite>overlay_width</cite> is then a percentage of the columns on the preferred side.</p></li>
+<li><p><strong>anchor_side</strong> – the side of the pop-up the anchor is on.
+<code class="docutils literal notranslate"><span class="pre">&quot;left&quot;</span></code>: the anchor is the <cite>anchor_width</cite> columns before <cite>left</cite>, and the pop-up prefers to start at
+<cite>left</cite>, to the right of the anchor.
+<code class="docutils literal notranslate"><span class="pre">&quot;right&quot;</span></code>: the anchor is the <cite>anchor_width</cite> columns from <cite>left</cite> on, and the pop-up prefers to end
+just before <cite>left</cite>, to the left of the anchor. It needs <cite>anchor_width</cite>.</p></li>
+<li><p><strong>on_anchor_side</strong> – called by <a class="reference internal" href="widget.html#urwid.PopUpTarget" title="urwid.PopUpTarget"><code class="xref py py-class docutils literal notranslate"><span class="pre">PopUpTarget</span></code></a> each time it places the pop-up,
+with the side of the pop-up the anchor ended up on, in the terms of <cite>anchor_side</cite>.
+It differs from <cite>anchor_side</cite> when the pop-up moved to the other side of the anchor.
+A widget that opens a chain of pop-ups, such as submenus, uses it to know which way leads back.
+It needs <cite>anchor_width</cite>.</p></li>
 <li><p><strong>on_unhandled_key</strong> – called by <a class="reference internal" href="widget.html#urwid.PopUpTarget" title="urwid.PopUpTarget"><code class="xref py py-class docutils literal notranslate"><span class="pre">PopUpTarget</span></code></a> with a key that <cite>w</cite> returned
 unhandled while it is the topmost open pop-up; it returns <code class="docutils literal notranslate"><span class="pre">None</span></code> when it handled the key, or the key
 to pass on. <code class="docutils literal notranslate"><span class="pre">None</span></code> passes every unhandled key on.</p></li>
+<li><p><strong>pass_key_below</strong> – called by <a class="reference internal" href="widget.html#urwid.PopUpTarget" title="urwid.PopUpTarget"><code class="xref py py-class docutils literal notranslate"><span class="pre">PopUpTarget</span></code></a> with a key that <cite>w</cite> and
+<cite>on_unhandled_key</cite> left unhandled while <cite>w</cite> is the topmost open pop-up,
+and with a function that sends a key to the widgets <cite>w</cite> is drawn over.
+That function returns the key when those widgets leave it unhandled, and <code class="docutils literal notranslate"><span class="pre">None</span></code> when they handled it.
+The callback returns the key to pass on, or <code class="docutils literal notranslate"><span class="pre">None</span></code> when the key was handled.
+It belongs to the pop-up that was topmost when the key arrived, so it can run after that pop-up closed
+during the same keypress.
+<code class="docutils literal notranslate"><span class="pre">None</span></code> passes every such key on without offering it to the widgets under the pop-up.</p></li>
 <li><p><strong>on_click_outside</strong> – called by <a class="reference internal" href="widget.html#urwid.PopUpTarget" title="urwid.PopUpTarget"><code class="xref py py-class docutils literal notranslate"><span class="pre">PopUpTarget</span></code></a> instead of passing on a press of
 mouse button 1, 2 or 3 outside <cite>w</cite> while it is the topmost open pop-up.
 <code class="docutils literal notranslate"><span class="pre">None</span></code> leaves such a press unhandled.</p></li>
+<li><p><strong>margin</strong> – <code class="docutils literal notranslate"><span class="pre">(columns,</span> <span class="pre">rows)</span></code> of the <a class="reference internal" href="widget.html#urwid.PopUpTarget" title="urwid.PopUpTarget"><code class="xref py py-class docutils literal notranslate"><span class="pre">PopUpTarget</span></code></a> kept clear at each of its
+edges, each &gt;= 0, or <code class="docutils literal notranslate"><span class="pre">None</span></code> for no margin.
+The pop-up is at most as large as the target without the margins, whatever its size was given as.
+An alignment places it inside the margins, and a relative size on an aligned axis is a percentage of the
+cells inside them.
+A pop-up placed by a number is not moved; it is shifted only to fit inside the target.
+A margin that would leave no cell inside is reduced until at least one cell is left.</p></li>
 </ul>
 </dd>
 <dt class="field-even">Raises<span class="colon">:</span></dt>
-<dd class="field-even"><p><a class="reference internal" href="exceptions.html#urwid.CanvasError" title="urwid.CanvasError"><strong>CanvasError</strong></a> – the canvas is already finalised, the anchor height is negative
-or the overlay size is not positive</p>
+<dd class="field-even"><p><a class="reference internal" href="exceptions.html#urwid.CanvasError" title="urwid.CanvasError"><strong>CanvasError</strong></a> – the canvas is already finalised, the anchor height or width is negative,
+an anchor height is given with an aligned <cite>top</cite>, an anchor width with an aligned <cite>left</cite>,
+<cite>anchor_side</cite> is neither <code class="docutils literal notranslate"><span class="pre">&quot;left&quot;</span></code> nor <code class="docutils literal notranslate"><span class="pre">&quot;right&quot;</span></code>, <code class="docutils literal notranslate"><span class="pre">anchor_side=&quot;right&quot;</span></code> or <cite>on_anchor_side</cite> is given
+without an anchor width, a position is neither a number nor an alignment of its
+axis, an overlay dimension is not a positive integer, a positive finite percentage or <code class="docutils literal notranslate"><span class="pre">&quot;pack&quot;</span></code>,
+or <cite>margin</cite> is not a pair of integers &gt;= 0</p>
 </dd>
 </dl>
 </dd></dl>
@@ -369,7 +470,7 @@ canvas.</p>
 
 <dl class="py class">
 <dt class="sig sig-object py" id="urwid.CompositeCanvas">
-<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">urwid.</span></span><span class="sig-name descname"><span class="pre">CompositeCanvas</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">canv</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#urwid.Canvas" title="urwid.canvas.Canvas"><span class="pre">Canvas</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#urwid.CompositeCanvas" title="Link to this definition">¶</a></dt>
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">urwid.</span></span><span class="sig-name descname"><span class="pre">CompositeCanvas</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">canv</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#urwid.Canvas" title="urwid.canvas._base.Canvas"><span class="pre">Canvas</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#urwid.CompositeCanvas" title="Link to this definition">¶</a></dt>
 <dd><p>class for storing a combination of canvases.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
@@ -421,7 +522,7 @@ An attribute <em>mapping</em> sends to <code class="docutils literal notranslate
 
 <dl class="py method">
 <dt class="sig sig-object py" id="urwid.CompositeCanvas.overlay">
-<span class="sig-name descname"><span class="pre">overlay</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">other</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#urwid.CompositeCanvas" title="urwid.canvas.CompositeCanvas"><span class="pre">CompositeCanvas</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">left</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">top</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="headerlink" href="#urwid.CompositeCanvas.overlay" title="Link to this definition">¶</a></dt>
+<span class="sig-name descname"><span class="pre">overlay</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">other</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#urwid.CompositeCanvas" title="urwid.canvas._composite.CompositeCanvas"><span class="pre">CompositeCanvas</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">left</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">top</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="headerlink" href="#urwid.CompositeCanvas.overlay" title="Link to this definition">¶</a></dt>
 <dd><p>Overlay other onto this canvas.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Raises<span class="colon">:</span></dt>
@@ -564,7 +665,7 @@ will be padded on the right.</p>
 
 <dl class="py function">
 <dt class="sig sig-object py" id="urwid.CanvasOverlay">
-<span class="sig-prename descclassname"><span class="pre">urwid.</span></span><span class="sig-name descname"><span class="pre">CanvasOverlay</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">top_c</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#urwid.Canvas" title="urwid.canvas.Canvas"><span class="pre">Canvas</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">bottom_c</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#urwid.Canvas" title="urwid.canvas.Canvas"><span class="pre">Canvas</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">left</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">top</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference internal" href="#urwid.CompositeCanvas" title="urwid.canvas.CompositeCanvas"><span class="pre">CompositeCanvas</span></a></span></span><a class="headerlink" href="#urwid.CanvasOverlay" title="Link to this definition">¶</a></dt>
+<span class="sig-prename descclassname"><span class="pre">urwid.</span></span><span class="sig-name descname"><span class="pre">CanvasOverlay</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">top_c</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#urwid.Canvas" title="urwid.canvas._base.Canvas"><span class="pre">Canvas</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">bottom_c</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#urwid.Canvas" title="urwid.canvas._base.Canvas"><span class="pre">Canvas</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">left</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">top</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference internal" href="#urwid.CompositeCanvas" title="urwid.canvas._composite.CompositeCanvas"><span class="pre">CompositeCanvas</span></a></span></span><a class="headerlink" href="#urwid.CanvasOverlay" title="Link to this definition">¶</a></dt>
 <dd><p>Overlay canvas top_c onto bottom_c at position (left, top).</p>
 </dd></dl>
 
@@ -591,7 +692,7 @@ It removes a dependent widget from _deps once that widget has no cached canvas l
 Widgets are not guaranteed to be weak-referenceable, so neither index can use weak references.</p>
 <dl class="py method">
 <dt class="sig sig-object py" id="urwid.CanvasCache.cleanup">
-<span class="property"><span class="k"><span class="pre">classmethod</span></span><span class="w"> </span></span><span class="sig-name descname"><span class="pre">cleanup</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">ref</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">ReferenceType</span><span class="p"><span class="pre">[</span></span><a class="reference internal" href="#urwid.Canvas" title="urwid.canvas.Canvas"><span class="pre">Canvas</span></a><span class="p"><span class="pre">]</span></span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="headerlink" href="#urwid.CanvasCache.cleanup" title="Link to this definition">¶</a></dt>
+<span class="property"><span class="k"><span class="pre">classmethod</span></span><span class="w"> </span></span><span class="sig-name descname"><span class="pre">cleanup</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">ref</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">weakref.ReferenceType</span><span class="p"><span class="pre">[</span></span><a class="reference internal" href="#urwid.Canvas" title="urwid.Canvas"><span class="pre">Canvas</span></a><span class="p"><span class="pre">]</span></span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="headerlink" href="#urwid.CanvasCache.cleanup" title="Link to this definition">¶</a></dt>
 <dd><p>Drop the cache entry for a canvas weakref once the canvas it points to has been garbage collected.</p>
 </dd></dl>
 
@@ -666,8 +767,13 @@ Widgets are not guaranteed to be weak-referenceable, so neither index can use we
 <li><a class="reference internal" href="#urwid.Canvas.finalize"><code class="docutils literal notranslate"><span class="pre">Canvas.finalize()</span></code></a></li>
 <li><a class="reference internal" href="#urwid.Canvas.get_cursor"><code class="docutils literal notranslate"><span class="pre">Canvas.get_cursor()</span></code></a></li>
 <li><a class="reference internal" href="#urwid.Canvas.get_pop_up"><code class="docutils literal notranslate"><span class="pre">Canvas.get_pop_up()</span></code></a></li>
+<li><a class="reference internal" href="#urwid.Canvas.get_pop_up_align"><code class="docutils literal notranslate"><span class="pre">Canvas.get_pop_up_align()</span></code></a></li>
 <li><a class="reference internal" href="#urwid.Canvas.get_pop_up_anchor_height"><code class="docutils literal notranslate"><span class="pre">Canvas.get_pop_up_anchor_height()</span></code></a></li>
+<li><a class="reference internal" href="#urwid.Canvas.get_pop_up_anchor_width"><code class="docutils literal notranslate"><span class="pre">Canvas.get_pop_up_anchor_width()</span></code></a></li>
 <li><a class="reference internal" href="#urwid.Canvas.get_pop_up_click_outside"><code class="docutils literal notranslate"><span class="pre">Canvas.get_pop_up_click_outside()</span></code></a></li>
+<li><a class="reference internal" href="#urwid.Canvas.get_pop_up_margin"><code class="docutils literal notranslate"><span class="pre">Canvas.get_pop_up_margin()</span></code></a></li>
+<li><a class="reference internal" href="#urwid.Canvas.get_pop_up_on_anchor_side"><code class="docutils literal notranslate"><span class="pre">Canvas.get_pop_up_on_anchor_side()</span></code></a></li>
+<li><a class="reference internal" href="#urwid.Canvas.get_pop_up_pass_key_below"><code class="docutils literal notranslate"><span class="pre">Canvas.get_pop_up_pass_key_below()</span></code></a></li>
 <li><a class="reference internal" href="#urwid.Canvas.get_pop_up_unhandled_key"><code class="docutils literal notranslate"><span class="pre">Canvas.get_pop_up_unhandled_key()</span></code></a></li>
 <li><a class="reference internal" href="#urwid.Canvas.rows"><code class="docutils literal notranslate"><span class="pre">Canvas.rows()</span></code></a></li>
 <li><a class="reference internal" href="#urwid.Canvas.set_cursor"><code class="docutils literal notranslate"><span class="pre">Canvas.set_cursor()</span></code></a></li>
@@ -777,7 +883,7 @@ Widgets are not guaranteed to be weak-referenceable, so neither index can use we
         <li class="right" >
           <a href="attrspec.html" title="Raw Display Attributes"
              >previous</a> |</li>
-        <li class="nav-item nav-item-0"><a href="../index.html">Urwid 5.1.3</a> &#187;</li>
+        <li class="nav-item nav-item-0"><a href="../index.html">Urwid 5.2.0</a> &#187;</li>
           <li class="nav-item nav-item-1"><a href="index.html" >Urwid Reference</a> &#187;</li>
         <li class="nav-item nav-item-this"><a href="">Canvas Classes and Functions</a></li> 
       </ul>

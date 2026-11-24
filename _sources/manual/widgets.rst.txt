@@ -114,13 +114,16 @@ content.
        :class:`SelectableIcon`, :class:`Button`, :class:`CheckBox`,
        :class:`RadioButton`, :class:`DropDown`, :class:`Spinner`
      - ``'flow'`` and ``'fixed'``
+   * - :class:`ActionMenu`
+     - ``'flow'`` and ``'fixed'`` with its label; the modes of the launcher
+       widget when it is given one
    * - :class:`Edit` and its subclasses, :class:`Divider`,
        :class:`ProgressBar`, :class:`Notifications`
      - ``'flow'``
    * - :class:`BigText`
      - ``'fixed'``
    * - :class:`SolidFill`, :class:`BarGraph`, :class:`GraphVScale`,
-       :class:`Terminal`
+       :class:`Terminal`, :class:`TerminalOutput`
      - ``'box'``
    * - :class:`AttrMap`, :class:`LineBox`, :class:`PopUpLauncher`,
        :class:`WidgetDisable`, :class:`WidgetPlaceholder`
@@ -173,9 +176,150 @@ Included Widgets
 Basic widgets, controls and graphic widgets are the content with which users
 interact. They may also be used as part of custom widgets you create.
 Controls are the widgets a user operates to make a choice: :class:`Button`,
-:class:`CheckBox`, :class:`RadioButton` and :class:`DropDown`.
-The graphic widgets also include :class:`Terminal`, a box widget that runs a
-child process and shows its terminal output.
+:class:`CheckBox`, :class:`RadioButton`, :class:`DropDown` and
+:class:`ActionMenu`.
+The terminal widgets are box widgets that emulate a terminal.
+:class:`Terminal` runs a child process and shows its output.
+It emulates a VT420 as xterm does, and answers a device attributes query as
+one with selective erase, horizontal scrolling, ANSI colour and rectangular
+editing.  It starts at the VT420 level, and DECSCL selects the VT100, VT200,
+VT300 or VT420 level, which RIS and DECSTR keep.  A control function xterm
+takes only from some level on is taken from that level here too, except the
+rectangular area operations, DECIC, DECDC, DECBI and DECFI, which work at every
+level, and DECRQCRA and the tertiary device attributes query, which are
+answered from the VT200 level on.
+
+It differs from xterm, or adds to it, in these points:
+
+* VT52 mode, 132 columns, the status line and printing are not implemented,
+  and replies use 7-bit controls only.
+* The child is given the terminal type of the ``term`` keyword as ``TERM``,
+  ``linux`` by default.
+* With ``term="linux"``, where the Linux console and xterm differ, it follows
+  the Linux console, which ``TERM=linux`` describes:
+
+  * F1 to F5 are sent as ``CSI [ A`` to ``CSI [ E``, and Shift+Tab as
+    ``ESC Tab``, while cursor key mode (DECCKM) is reset.
+  * G1 starts as DEC Special Graphics.
+  * SGR 11 and 12 select the IBM PC character set (CP437) and display control
+    mode, SGR 10 ends both, and ``CSI 3 h`` turns display control mode on.
+    In that mode NUL, BS, LF, FF, CR, SO, SI and ESC are still executed and
+    the other C0 controls and DEL are drawn; inside an escape sequence a
+    control acts as with the mode off.
+  * SO turns display control mode on and SI turns it off.  Both, DECRC and
+    SCORC end the IBM PC character set of SGR 11 and 12.
+  * The palette sequence ``ESC ] P nrrggbb`` sets color ``n``, 0 to 15, and
+    ``ESC ] R`` sets them all back; RIS keeps them.  The cells in those colors,
+    and the underline colors of SGR 58, are drawn with the new values, the
+    ones written before included, and the default foreground and background
+    with colors 7 and 0, as 24-bit colors that the display converts to the
+    colors it draws.  A control inside the sequence is executed, BEL included,
+    and the sequence continues.
+  * The cursor style ``CSI ? Ps c`` is read and not answered as a device
+    attributes query.
+
+  It does not follow the Linux console in these points:
+
+  * While cursor key mode is set, F1 to F5 are sent as xterm sends them,
+    ``ESC O P`` to ``ESC O S`` and ``CSI 15 ~``.
+  * In display control mode the Linux console stops decoding UTF-8, runs an
+    8-bit CSI (0x9B), and gives no cell to a control its font has no glyph for.
+  * SGR 12 does not flip the high bit of each character as it does on the
+    Linux console.
+  * A bold color 0 to 7 given as ``38;5;n`` is drawn with palette color n,
+    where the Linux console draws it with the bright color, 8 to 15, as the
+    widget draws a bold color of SGR 30 to 37.
+* With ``term="xterm-256color"`` it follows xterm in those points:
+
+  * F1 to F4 are sent as ``ESC O P`` to ``ESC O S``, Home and End as
+    ``CSI H`` and ``CSI F``, or ``ESC O H`` and ``ESC O F`` while cursor key
+    mode is set, Shift+Tab as ``CSI Z``, and F13 to F24 as F1 to F12 with
+    shift.  A cursor, editing or function key with shift, meta or
+    ctrl is sent as ``CSI 1 ; m`` and its letter, or as ``CSI number ; m ~``,
+    m being 1 plus 1 for shift, 2 for meta and 4 for ctrl.
+  * G1 starts as ASCII.
+  * SGR 10, 11 and 12 and ``CSI 3 h`` are ignored, SO and SI only select G1
+    and G0, and ``ESC ] P`` and ``ESC ] R`` are read as any other OSC string,
+    up to BEL or ST, and ignored.
+  * OSC 4 sets palette colors 0 to 255, given in the ``rgb:r/g/b``,
+    ``rgbi:r/g/b`` or ``#rgb`` form, and answers a query (``?``) with the color
+    in xterm's reply, ended as the query was; OSC 104 sets the colors listed
+    back, or all of them.  The cells in those colors are drawn with the new
+    values as for the Linux palette sequence above, but the default foreground
+    and background are no palette colors.  RIS and DECSTR set the palette back.
+  * OSC 10, 11 and 12 set the default foreground, the default background and
+    the cursor color, each further item setting the next color, and answer a
+    query with the color set or, for the default colors, the outer terminal's
+    when the screen reports it; OSC 110, 111 and 112 set them back.  The cells
+    in the default colors are drawn with the colors set, and so is the cursor
+    the widget draws after a DECSCUSR: an underline in the cursor color, or for
+    a block or a bar the cell in the cursor color with its text in the color
+    the cell's background is shown in.  Where the color would be the only
+    difference from the cell, on a cell that is already underlined or for a
+    block in the color of the cell's background, the cursor is drawn as
+    without a color, since a display may not draw the color.  RIS and DECSTR
+    keep them.
+  * An ``rgb:`` or ``rgbi:`` color ignores anything after a ``/`` that follows
+    its third component, so ``rgb:1/2/3/4`` is ``rgb:1/2/3``.
+
+  It does not follow xterm in these points:
+
+  * OSC 4, 10, 11 and 12 do not read X11 color names, such as ``orange``;
+    such a color ends an OSC 4 sequence, as an invalid one does in xterm, and
+    is skipped in the others.
+  * An ``rgbi:`` intensity is encoded with the sRGB transfer function, where
+    xterm uses the X display's calibration, so the colors differ, most in dark
+    colors.  An intensity outside 0 to 1, an intensity written as a
+    hexadecimal number, ``inf`` or ``nan``, and one followed by other text are
+    not read.
+  * A query of a default color neither the child nor the screen gave, of the
+    cursor color before the child set it, and of the dynamic colors 13 to 19
+    is not answered.
+  * ``ESC ( U`` and ``ESC ( K`` still select the IBM PC character set and the
+    Linux console's user map; xterm has no ``U`` set and reads ``K`` as the
+    German national set.
+* SGR reads the colors and the underline style given with sub-parameters, such
+  as ``38:2::r:g:b`` and ``4:3``, SGR 21 as a double underline, and the
+  underline color of SGR 58 and 59, which the display draws as
+  :ref:`underline-styles` describes.
+* After the child sets a cursor style with DECSCUSR, the widget draws the
+  cursor cell itself, in reverse video for a block or a bar and underlined for
+  an underline, instead of the display's cursor; under ``xterm-256color`` a
+  cursor color set with OSC 12 is drawn as described above.
+* XTVERSION is answered with urwid and its version, the XTWINOPS size reports
+  in characters (18) and in pixels (14), the latter as unknown, and XTGETTCAP,
+  in xterm's form, for the 256 colors of the palette and RGB colors, which the
+  widget takes whatever the display draws.  xterm answers the last two only
+  when its window operations are allowed.
+* Every color the child gives is kept as it gave it, a palette entry beside a
+  24-bit color included, and the display converts it to the colors it draws,
+  as :ref:`color-conversion` describes.
+* DECRQM reports cursor blinking (12) and the urxvt mouse encoding (1015) as
+  permanently reset, and Meta and Alt sending ESC (1036, 1039) as permanently
+  set.
+* A grapheme cluster, such as a character with combining accents, an emoji
+  sequence or a flag, takes one cell, or two with an empty second half for a
+  wide one, as urwid's own width calculation, the one the display uses,
+  measures it.  A combining character joins the cell before the cursor also
+  after the cursor was moved there, as a text editor joins a character to the
+  text before it.  The widget does not report grapheme cluster mode (2027),
+  because of two rules of its `specification
+  <https://github.com/contour-terminal/terminal-unicode-core>`_ that it does
+  not follow:
+
+  * the mode joins only characters written one after another, not a character
+    written after a cursor move;
+  * the mode keeps a text variation selector (VS15) after a wide emoji in the
+    emoji's cell without changing its width, while urwid's width calculation
+    draws the pair one column wide, so the widget drops the selector to keep
+    the cell's width.
+
+:class:`TerminalOutput` shows output the application writes to it, such as
+captured output, with no process behind it, and also works on Windows.  It
+reads the output as :class:`Terminal` does, and takes the same ``term``
+keyword for the terminal type the output was written for.  It draws the
+palette colors the output redefines as 24-bit colors, which the screen it is
+drawn on converts to the colors it draws.
 
 The color of a widget's title in the figures shows the sizing modes it
 supports: blue for box, orange for flow and yellow for fixed.  A title in more
@@ -237,12 +381,25 @@ of all the options with the selected one in focus.  Activating an option in
 the list selects it and closes the list, and :kbd:`esc` closes the list
 without a change.  The list opens below the widget, or above it when it does
 not fit below, and it shows at most ``max_visible_items`` options at once and
-scrolls through the rest.  A drop-down with a single option has nothing to
-choose, so it is read-only: it is not selectable, opens no list, and leaves
-the key or the click to the widgets above it.
+scrolls through the rest.  ``None`` in the options draws a separator line, and
+the indexes given as ``disabled`` are options shown in the list, in the
+attribute of ``disabled_map``, that cannot be chosen.  :kbd:`up`, :kbd:`down`,
+:kbd:`home` and :kbd:`end` skip both, and :attr:`DropDown.selected` cannot
+name either; it starts on the first option that can be chosen unless
+``selected`` names another.  A drop-down with a single option that can be
+chosen has nothing to choose, so it is read-only: it is not selectable, is
+drawn in the attribute of ``disabled_map``, opens no list, and leaves the key
+or the click to the widgets above it.
+``DropDown(..., border=True)`` draws a box around the open list, in the
+attribute of ``attr_map``, with the scroll bar outside the box when the list
+scrolls; without it the list has no border.
+The ``scrollbar_`` keyword arguments, such as ``scrollbar_side``,
+``scrollbar_width``, ``scrollbar_thumb_char``, ``scrollbar_end_markers`` and
+``scrollbar_attr``, are passed to the :class:`ScrollBar` of the open list.
 
 The :attr:`DropDown.selected` property holds the index of the selected
-option, and :attr:`DropDown.options` holds the markup of every option.
+option, and :attr:`DropDown.options` holds the markup of every option,
+``None`` for a separator.
 The ``'change'`` signal is sent with the new index before
 :attr:`DropDown.selected` changes, so a callback still reads the previous
 value from the widget:
@@ -265,6 +422,82 @@ see :class:`DropDown` for the requirement.
 The tour.py_ example program shows two drop-down widgets.
 
 .. _tour.py: https://github.com/urwid/urwid/blob/master/examples/tour.py
+
+ActionMenu Widgets
+------------------
+
+:class:`ActionMenu` opens a list of actions, such as a context menu or the
+menu behind a button.  Each entry of its item list is a :class:`MenuItem`,
+markup for an item with that label, or ``None`` for a separator::
+
+    def on_action(menu: urwid.ActionMenu, item: urwid.MenuItem, path: str) -> None:
+        status.set_text(f"{item.value} {path}")
+
+    menu = urwid.ActionMenu(
+        "Actions",
+        [
+            urwid.MenuItem("(O)pen", "open", key="o"),
+            urwid.MenuItem("Re(n)ame", "rename", enabled=False, key="n"),
+            None,
+            urwid.MenuItem("(S)end to", submenu=["Mail", "Printer"], key="s"),
+        ],
+        on_action=on_action,
+        user_data="report.txt",
+    )
+
+The list opens below the launcher, or above it when it does not fit below.
+:kbd:`up`, :kbd:`down`, :kbd:`home` and :kbd:`end` skip separators and
+disabled items, and :kbd:`enter`, :kbd:`space`, a click or an item's ``key``
+chooses an item.
+The list then closes and the menu sends the ``'action'`` signal with the
+chosen :class:`MenuItem`, after its ``'close'`` signal.  :kbd:`esc` or a
+click outside closes the list without a choice.
+
+- ``show_keys=True`` draws the keys in a column before the labels; without
+  it the menu draws no key, and the label marks it, as ``"(O)pen"`` does.
+- An item with a ``submenu`` opens its child list beside the row on
+  :kbd:`enter`: a child of the top list on the side ``align`` prefers, a
+  deeper one in the direction its parent list went, and either on the other
+  side of its parent list near a screen edge.  The arrows follow where the child is
+  drawn: the arrow back towards the parent closes only the child, as
+  :kbd:`esc` does, and the other arrow on a submenu row opens a further
+  child.  In the top list either arrow opens a child.
+- ``pass_arrows_below=True`` is for a menu bar.  While the launcher has the
+  focus, :kbd:`left` and :kbd:`right` on a row of the top list with no
+  submenu then go to the widgets under the list.  When one of them takes
+  the arrow, as a :class:`Columns` of menu launchers does by moving the
+  focus, the list closes; otherwise it stays open and the arrow is returned
+  unhandled.  A lone menu leaves it ``False`` and keeps the arrow in its
+  list.
+- ``align="right"`` lines up the right edges of the list and the launcher,
+  for a menu at the right edge or a right-to-left interface.
+- ``placement="center"`` opens the list in the middle of the
+  :class:`PopUpTarget` rather than at the launcher's edge, for a chooser
+  that belongs to the whole screen rather than to the launcher.
+- ``border=False`` draws the list without its box.
+- The ``scrollbar_`` keyword arguments are passed to the :class:`ScrollBar`
+  of each list, as for :class:`DropDown`.
+
+The launcher is a label with :attr:`ActionMenu.menu_indicator` after it, or
+any widget given as ``launcher``, such as a row of a :class:`ListBox`.  The
+keys in ``open_keys`` and a press of a button in ``open_buttons`` open the
+list where ``placement`` says, and every other key and button goes to the
+launcher.  A mouse opening also gives the row the focus through
+:meth:`Widget.request_focus`.  :meth:`ActionMenu.open_at` opens the list
+below a cell of the launcher, whatever ``placement`` says, so an
+application's own mouse handler can open a context menu at the pointer.
+
+A menu with no item that can be chosen opens nothing.  Its label launcher is
+then not selectable and is drawn with ``disabled_map``; a launcher widget
+keeps all its keys and buttons.
+
+.. important::
+    The list is a pop-up, so :class:`ActionMenu` needs
+    ``MainLoop(..., pop_ups=True)`` or another :class:`PopUpTarget` above it.
+
+The tour.py_ example program shows an action menu with a submenu, and a
+context menu that a paragraph opens at the pointer through
+:meth:`ActionMenu.open_at`.
 
 Edit Widgets
 ------------
@@ -317,12 +550,18 @@ together to show it:
 * :class:`PopUpLauncher` wraps the widget that opens the pop-up.  A subclass
   implements :meth:`PopUpLauncher.create_pop_up`, which returns the pop-up
   widget, and :meth:`PopUpLauncher.get_pop_up_parameters`, which returns its
-  position relative to the launcher and its size.  Calling
-  :meth:`PopUpLauncher.open_pop_up` and :meth:`PopUpLauncher.close_pop_up`
+  position and its size.
+  Calling :meth:`PopUpLauncher.open_pop_up` and :meth:`PopUpLauncher.close_pop_up`
   opens and closes it, and ``PopUpLauncher(..., close_on_menu=True)`` also
   closes it when the pop-up leaves :kbd:`esc` unhandled.
   ``PopUpLauncher(..., close_on_click_outside=True)`` closes it on a mouse
   click outside the pop-up; that click does not reach the widget under it.
+  A ``pass_key_below`` callback among the parameters may offer a key the
+  pop-up leaves unhandled to the widgets under it, as :class:`ActionMenu`
+  does with an arrow its list has no use for.
+  ``PopUpLauncher(..., signal_open_close=True)`` sends the signals ``"open"``
+  and ``"close"`` when the pop-up opens and closes, with the launcher as the
+  only argument; repeated calls on an open or a closed launcher send nothing.
   :attr:`PopUpLauncher.pop_up_widget` is the open pop-up, and
   :attr:`PopUpLauncher.launcher_size` the size the launcher was last rendered
   at, which :meth:`PopUpLauncher.get_pop_up_parameters` can place the pop-up
@@ -333,14 +572,42 @@ together to show it:
   is shown only inside a :class:`PopUpTarget`.  ``MainLoop(..., pop_ups=True)``
   wraps the topmost widget in one, so a pop-up can use the whole screen.
 
+Each size in the parameters is one of:
+
+* a number of columns or rows;
+* ``("relative", percentage)`` of the space from the pop-up's edge to the far
+  edge of the :class:`PopUpTarget`;
+* ``"pack"``, the size of the pop-up widget itself: the columns a fixed widget
+  packs to, or the rows a flow widget takes at the pop-up width.  Such a
+  widget needs no :class:`Filler` around it: a :class:`Pile` of
+  :class:`Text` loses the rows that do not fit, and a ``ListBox(flow=True)``
+  scrolls instead.
+
+Each position is an offset from the launcher, or an alignment inside the whole
+:class:`PopUpTarget`: ``"left"``, ``"center"`` or ``"right"`` for ``left``, and
+``"top"``, ``"middle"`` or ``"bottom"`` for ``top``.  An alignment is applied
+once the size is known, so a dialog sized with ``"pack"`` is centred with
+``{"left": "center", "top": "middle", "overlay_width": 40,
+"overlay_height": "pack"}``.
+
 A pop-up that would extend past an edge of the :class:`PopUpTarget` is moved,
 and shrunk when it is larger, to fit inside it.  When the parameters include
 ``anchor_height``, the number of launcher rows directly above the pop-up, the
 pop-up is kept off those rows: it is placed below the launcher when it fits
 there, above the launcher when it fits there, and otherwise on the side with
-more rows, with its height clipped to that side.  A pop-up widget may itself be
-a :class:`PopUpLauncher` with its own pop-up open; that pop-up is placed
-relative to the pop-up that opened it.
+more rows, with its height clipped to that side.
+``anchor_height`` needs ``top`` as a number of rows.
+``anchor_width`` does the same for the columns of the launcher beside the
+pop-up, and needs ``left`` as a number of columns: the column of the
+launcher's edge that the pop-up touches.  With the default
+``anchor_side="left"`` the launcher is the ``anchor_width`` columns before
+``left`` and the pop-up opens to the right of it; with
+``anchor_side="right"`` the launcher is the ``anchor_width`` columns from
+``left`` on and the pop-up opens to the left of it.  Either way the pop-up
+moves to the other side when it does not fit, and a submenu placed this way
+next to its parent menu never covers it while one side has room.
+A pop-up widget may itself be a :class:`PopUpLauncher` with its own pop-up open;
+that pop-up is placed relative to the pop-up that opened it.
 
 The calc.py_ example program has a :guilabel:`Theme` button that opens a pop-up, and
 :class:`DropDown` (see :ref:`controls`) is a :class:`PopUpLauncher` whose
@@ -404,6 +671,7 @@ any object.
 as its body use integer positions.  :class:`Frame` uses ``'body'``, ``'header'``
 and ``'footer'``;  :class:`ListBox` with a custom list walker will use the
 positions the list walker returns.
+A :class:`Table` uses the index of a row, and a :class:`TableRow` the index of a cell.
 
 Reading this value on an empty container or on any non-container widgets
 (that inherit from Widget) raises an IndexError.  Writing to this property with
@@ -592,6 +860,44 @@ returned at its end.  Another list walker that repeats a position is treated
 as ending where the walk comes back to the focus: the search does not loop,
 but the key is returned only when no other selectable widget is left.
 
+.. _focus-request:
+
+Asking for the Focus from a Mouse Event
+---------------------------------------
+
+:class:`Pile`, :class:`Columns`, :class:`ListBox` and :class:`Frame` move
+their focus to the widget under the pointer on a press of mouse button 1
+only.  A widget that wants the focus on another event, such as a context menu
+opened by mouse button 3, calls :meth:`Widget.request_focus` inside its
+``mouse_event()``::
+
+    class Row(urwid.WidgetWrap):
+        def mouse_event(self, size, event, button, col, row, focus):
+            if button == urwid.MouseButton.RIGHT and urwid.util.is_mouse_press(event):
+                self.request_focus()
+                self.open_menu()
+                return True
+            return super().mouse_event(size, event, button, col, row, focus)
+
+When the widget's ``mouse_event()`` returns, each container on the path, from
+the innermost one out, moves its focus to the child the event went to and
+passes the request to the container above it, so the whole path ends up in
+focus.  :class:`Tabs` returns the focus from its bar to the body.  A container
+whose child is not selectable passes the request on without moving its focus.
+A handler that changed the container, so that the widget is no longer where it
+was called, cancels the request, and a focus the handler set itself is kept.
+The request is for the path of the current event, whichever widget makes the
+call.  A :class:`ListBox` whose list walker keeps its widgets, such as
+:class:`SimpleFocusListWalker`, checks that the same widget is still at its
+position, because an insertion or a removal can move another widget there.
+With a list walker that creates a new widget each time it is asked, it checks
+that the walker still has the position, so such a walker's positions have to
+keep naming the same rows: one that builds its widgets from an index into a
+list that the handler inserts into or removes from can have the focus moved to
+the row that took the index.
+The request is part of the event: one made outside ``mouse_event()``, or from
+a ``mouse_event()`` that raises an exception, has no effect.
+
 .. _focus-changed-signal:
 
 Reacting to Focus Changes
@@ -701,14 +1007,21 @@ user cannot see it.  A Columns wider than the screen therefore does not scroll t
 its hidden columns when the focus moves; it shows them again once it is wide
 enough.
 
+When the columns do not fit, the columns after the focus column are left out
+first, then the ones before it, starting from the left.  With
+``shrink_pack=True`` a ``PACK`` column whose widget can render at any width,
+such as a :class:`Text` label, narrows towards ``min_width`` before any column
+is left out, as the ``PACK`` columns of a :class:`Table` do.  A narrowed text
+wraps onto more rows.  See :attr:`Columns.shrink_pack`.
+
 
 GridFlow Widgets
 ----------------
 
 The :class:`GridFlow` widget is a fixed/flow widget designed for use
 with :class:`Button`, :class:`CheckBox` and :class:`RadioButton` widgets.
-It renders all the widgets it contains the same width
-and it arranges them from left to right and top to bottom.
+It renders the widgets it contains ``cell_width`` wide, unless a cell's options
+give it its own width, and it arranges them from left to right and top to bottom.
 
 The GridFlow widget uses Pile, Columns, Padding and Divider widgets to build a
 display widget that will handle the keyboard input and rendering. When the
@@ -759,8 +1072,52 @@ its own focus colour.
 
 When the columns do not fit, the weighted columns are at their minimum
 first, then the ``PACK`` columns shrink towards their ``min_width``, and as the
-last resort the rightmost column is hidden.  A given width never shrinks.
+last resort a column is hidden.  A given width never shrinks, and neither does
+a ``PACK`` column with ``min_width=urwid.PACK``: it stays as wide as its
+widest measured cell and its label, so a column of numbers is hidden rather
+than cut::
+
+    urwid.TableColumn("Size", align=urwid.RIGHT, min_width=urwid.PACK)
+
+The column hidden first is the one with the lowest ``priority``, the rightmost
+of equal priorities first, so with every column at the default of 0 the
+rightmost one goes first.
+A negative priority hides a column of details before the others::
+
+    urwid.TableColumn("Size", align=urwid.RIGHT, priority=-1)
+
+A hidden column stays hidden at that width even when hiding another one later
+leaves room for it.
 A hidden column is skipped by the keyboard.
+
+A column is named by its index in the list of columns, or by a ``key``.
+A ``key`` is any hashable value except a number, which would read as an index.
+A column without a ``key`` is also named by its label in lower case, while no
+other column has the same label; :meth:`TableLayout.column_index` resolves
+either form.  :attr:`TableLayout.column_order` shows, hides and reorders the
+columns of a built table: it is the shown columns from left to right, and a
+column left out is hidden, so a setting such as "the columns to show, in
+order" maps onto it directly::
+
+    table = urwid.Table(
+        [
+            urwid.TableColumn("Name"),
+            urwid.TableColumn("Size", align=urwid.RIGHT),
+            urwid.TableColumn("Last change", key="mtime"),
+        ],
+        rows,
+    )
+    table.layout.column_order = ("mtime", "name")  # Size hidden
+
+The order changes only what is drawn and what the keys and the mouse reach.
+The cells of a row, the cell positions, :meth:`TableLayout.widths`,
+:attr:`Table.sort_column`, :attr:`Table.header_column` and the
+``"header activated"`` signal keep using the index in the list of columns.
+The focused row, the focused cell of each row, the scroll position and the
+sort state are kept, and a hidden column can still be sorted by.
+A row whose focused cell the order hides passes the focus to the nearest
+shown cell by index, a selectable one first, so the keys keep reaching a cell
+the user can see.
 
 Cells are measured once, when their row is built.  A text cell the table
 made measures itself again when its text changes.  A widget passed as a cell
@@ -772,16 +1129,20 @@ The table sends ``"focus changed"`` like the other containers, and
 whose result is true consumes the key; otherwise the key is returned, as
 :class:`Overlay` does for ``"menu"``.  Every handler runs, whatever the earlier
 ones returned.  A mouse click moves the focus and reaches the cell, as in a
-:class:`ListBox`.  A ``row_attr(index, data)`` callable colours rows by their
-position or their data, for example in stripes; it runs each time a row is
-drawn.  The ``unfocused_focus_attr`` map is applied over the row's own map, so
-its keys are the attributes the row's map produces.
+:class:`ListBox`.  The table also passes on the ``"edge reached"`` signal of
+its rows, see :class:`ListBox`, so a table that loads its rows in batches adds
+the next batch when it is sent with ``"bottom"``.  In a sortable table,
+:kbd:`up` at the first row sends ``"top"`` before the header takes the focus.
+A ``row_attr(index, data)`` callable colours rows by their position or their
+data, for example in stripes; it runs each time a row is drawn.  The
+``unfocused_focus_attr`` map is applied over the row's own map, so its keys are
+the attributes the row's map produces.
 
 ``footer=`` takes the cells of a row drawn below the rows, such as totals.
 :attr:`Table.footer` can be set later to cells, to a :class:`TableRow` of
 :attr:`Table.layout` with its own maps (a span row for a one-line summary),
-or to ``None``.  Like the header, the footer shares the column widths and
-never takes the focus or a mouse click.
+or to ``None``.  The footer shares the column widths and never takes the
+focus or a mouse click; neither does the header, unless the table is sortable.
 
 A box size that does not fit the whole table can drop the header or the
 footer: ``header_drop=N`` drops the header while keeping it would leave the
@@ -805,6 +1166,30 @@ handling are passed with a ``scrollbar_`` prefix, such as
 ``scrollbar_thumb_char``, ``scrollbar_end_markers``, ``scrollbar_side`` and
 ``scrollbar_attr``, so a table's scrollbar can look like the other scrollbars
 of an application.
+
+:meth:`Table.sort` reorders the rows by the text of a column, given by its
+index or its key, or by a ``key`` that receives each :class:`TableRow`, and
+keeps the focus on the same row.  :attr:`Table.sort_column` and
+:attr:`Table.sort_reverse` record the last
+sort.  A table built with ``sortable=True`` also offers its header for sorting:
+
+* A click on a column label, or :kbd:`enter` on the focused label, sends
+  ``"header activated"`` with the column index.  The table does not sort by
+  itself; the handler calls :meth:`Table.sort`, and toggles the direction with::
+
+      table.sort(column, reverse=table.sort_column == column and not table.sort_reverse)
+
+* :kbd:`up` at the first row focuses the header, :kbd:`left` and
+  :kbd:`right` move over the labels, and :kbd:`down` goes back to the rows.
+  :attr:`Table.header_column` reads and sets the focused label.
+  The table remembers that label for the next :kbd:`up`;
+  :meth:`Table.forget_header_column` starts over at the first visible label.
+  ``header_focus_attr`` marks it while the table is in focus.
+* The label of the sorted column carries a mark, ``" ^"`` or ``" v"`` by
+  default; ``sort_marks=`` changes the two marks, and ``None`` draws none.
+
+A table built without ``sortable=True`` keeps its header out of the focus and
+returns :kbd:`up` at the first row to its parent, as other lists do.
 
 :class:`urwid.widget.TableLayout`, the part that shares the widths, also
 works without a table: rows built with :meth:`TableLayout.row` line up in a
@@ -1237,6 +1622,22 @@ above or below the list.  Created with ``edge="stop"`` it consumes those keys
 and the focus stays in the list; the attribute :attr:`ListBox.edge` can be
 changed later.  An empty ListBox returns the keys in both modes.
 
+:kbd:`home` and :kbd:`end` move the focus to the first and the last widget of
+the body, whether it is selectable or not.  Created with
+``home_end="selectable"`` they move it to the first and the last selectable
+widget instead, so a heading or a divider never takes the focus, and the
+widgets before or after it stay in view as far as there is room for them.
+A body without a selectable widget is handled as in the default mode, and the
+attribute :attr:`ListBox.home_end` can be changed later.
+:meth:`ListBox.scroll_to_selectable` does the same for a program, such as one
+that binds its own keys to those moves.
+
+A list that loads more rows on demand connects to the ``"edge reached"`` signal
+of the ListBox.  It is sent with ``"top"`` or ``"bottom"`` when :kbd:`up`,
+:kbd:`down`, :kbd:`page up`, :kbd:`page down` or a wheel notch asks the view to
+move past that end of the list and nothing moves, in both ``edge`` modes.  The
+end is already in view when it is sent, so a handler may extend the body.
+
 :meth:`ListBox.set_scrollpos` scrolls the view so that a given row of the body
 is its first row, as :meth:`Scrollable.set_scrollpos` does.  The view always
 contains the focus widget, so the focus stays only while one of its rows is in
@@ -1381,6 +1782,15 @@ above and below the focus widget.
 A :class:`SimpleFocusListWalker`
 is a list walker that behaves like a normal Python list. It may be used any
 time you will be displaying a moderate number of widgets.
+``SimpleFocusListWalker(widgets, focus=3)`` and
+:class:`SimpleFocusDequeWalker` with the same keyword start with the focus on
+that index instead of the first widget.  A :class:`ListBox` treats it as the
+initial focus of its body: its first render draws the focus widget on the top
+row, and moves the focus to the first selectable widget shown below it when the
+focus widget is not selectable.  Setting :attr:`ListBox.focus_position` after
+creating the ListBox does neither: the focus stays where it was set, below the
+widgets before it when they fit in the view, and in the middle of the view
+otherwise.
 
 A log or a progress view that grows at the end can be created with
 ``SimpleFocusListWalker(..., follow_end=True)``, or with a bounded

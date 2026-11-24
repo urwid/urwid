@@ -1,0 +1,314 @@
+<!DOCTYPE html>
+
+<html lang="en" data-content_root="../">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+    <title>Logging Handlers &#8212; Urwid 5.2.0</title>
+    <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=03e43079" />
+    <link rel="stylesheet" type="text/css" href="../_static/classic.css?v=65f223dd" />
+    <link rel="stylesheet" type="text/css" href="../_static/urwid_theme.css?v=de5f08c4" />
+    
+    <script src="../_static/documentation_options.js?v=2dde5210"></script>
+    <script src="../_static/doctools.js?v=fd6eb6e6"></script>
+    <script src="../_static/sphinx_highlight.js?v=6ffebe34"></script>
+    
+    <link rel="canonical" href="https://urwid.org/reference/log_handler.html" />
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="Text Layout Classes" href="text_layout.html" />
+    <link rel="prev" title="Testing Helpers" href="testing.html" /> 
+  </head><body>
+    <div class="related" role="navigation" aria-label="Related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="text_layout.html" title="Text Layout Classes"
+             accesskey="N">next</a> |</li>
+        <li class="right" >
+          <a href="testing.html" title="Testing Helpers"
+             accesskey="P">previous</a> |</li>
+        <li class="nav-item nav-item-0"><a href="../index.html">Urwid 5.2.0</a> &#187;</li>
+          <li class="nav-item nav-item-1"><a href="index.html" accesskey="U">Urwid Reference</a> &#187;</li>
+        <li class="nav-item nav-item-this"><a href="">Logging Handlers</a></li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <section id="module-urwid.log_handler">
+<span id="logging-handlers"></span><h1>Logging Handlers<a class="headerlink" href="#module-urwid.log_handler" title="Link to this heading">¶</a></h1>
+<dl class="py class">
+<dt class="sig sig-object py" id="urwid.log_handler.ListWalkerHandler">
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">urwid.log_handler.</span></span><span class="sig-name descname"><span class="pre">ListWalkerHandler</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">walker</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">_Appendable</span></span></em>, <em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">loop</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="main_loop.html#urwid.MainLoop" title="urwid.MainLoop"><span class="pre">MainLoop</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">level</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">str</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">severity_attr</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Mapping</span><span class="p"><span class="pre">[</span></span><a class="reference internal" href="constants.html#urwid.Severity" title="urwid.Severity"><span class="pre">Severity</span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">Hashable</span><span class="p"><span class="pre">]</span></span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">max_pending</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">1000</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#urwid.log_handler.ListWalkerHandler" title="Link to this definition">¶</a></dt>
+<dd><p>Append each log record as a <a class="reference internal" href="widget.html#urwid.Text" title="urwid.Text"><code class="xref py py-class docutils literal notranslate"><span class="pre">Text</span></code></a> row to a list walker, on the thread of the loop.</p>
+<p>Records may be logged from any thread.
+A <a class="reference internal" href="list_walkers.html#urwid.SimpleFocusDequeWalker" title="urwid.SimpleFocusDequeWalker"><code class="xref py py-class docutils literal notranslate"><span class="pre">SimpleFocusDequeWalker</span></code></a> with <code class="docutils literal notranslate"><span class="pre">maxlen</span></code> and <code class="docutils literal notranslate"><span class="pre">follow_end=True</span></code> keeps the newest rows
+and keeps the newest one in view in a <a class="reference internal" href="widget.html#urwid.ListBox" title="urwid.ListBox"><code class="xref py py-class docutils literal notranslate"><span class="pre">ListBox</span></code></a>.
+The handler needs <a class="reference internal" href="main_loop.html#urwid.MainLoop.call_from_thread" title="urwid.MainLoop.call_from_thread"><code class="xref py py-meth docutils literal notranslate"><span class="pre">call_from_thread()</span></code></a>, so an event loop that can watch files.
+Call <a class="reference internal" href="#urwid.log_handler.ListWalkerHandler.resume" title="urwid.log_handler.ListWalkerHandler.resume"><code class="xref py py-meth docutils literal notranslate"><span class="pre">resume()</span></code></a> once at the start of each run; <code class="docutils literal notranslate"><span class="pre">with</span> <span class="pre">loop.start():</span></code> lets its error reach the caller,
+while an alarm set before <a class="reference internal" href="main_loop.html#urwid.MainLoop.run" title="urwid.MainLoop.run"><code class="xref py py-meth docutils literal notranslate"><span class="pre">run()</span></code></a> only logs it.
+<a class="reference internal" href="#urwid.log_handler.ListWalkerHandler.urwid_filter" title="urwid.log_handler.ListWalkerHandler.urwid_filter"><code class="xref py py-attr docutils literal notranslate"><span class="pre">urwid_filter</span></code></a> rejects records of the <code class="docutils literal notranslate"><span class="pre">urwid</span></code> loggers.
+To show them, set the handler’s level to <code class="docutils literal notranslate"><span class="pre">INFO</span></code> or above and remove the filter:
+urwid logs at DEBUG on each redraw, and each shown record redraws.</p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="kn">import</span><span class="w"> </span><span class="nn">logging</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="kn">import</span><span class="w"> </span><span class="nn">urwid</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span><span class="w"> </span><span class="nn">urwid.testing</span><span class="w"> </span><span class="kn">import</span> <span class="n">ScriptedScreen</span><span class="p">,</span> <span class="n">VirtualClockEventLoop</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">walker</span> <span class="o">=</span> <span class="n">urwid</span><span class="o">.</span><span class="n">SimpleFocusDequeWalker</span><span class="p">([],</span> <span class="n">maxlen</span><span class="o">=</span><span class="mi">100</span><span class="p">,</span> <span class="n">follow_end</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">event_loop</span> <span class="o">=</span> <span class="n">VirtualClockEventLoop</span><span class="p">()</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">loop</span> <span class="o">=</span> <span class="n">urwid</span><span class="o">.</span><span class="n">MainLoop</span><span class="p">(</span><span class="n">urwid</span><span class="o">.</span><span class="n">ListBox</span><span class="p">(</span><span class="n">walker</span><span class="p">),</span> <span class="n">screen</span><span class="o">=</span><span class="n">ScriptedScreen</span><span class="p">(</span><span class="n">inputs</span><span class="o">=</span><span class="kc">None</span><span class="p">),</span> <span class="n">event_loop</span><span class="o">=</span><span class="n">event_loop</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">handler</span> <span class="o">=</span> <span class="n">ListWalkerHandler</span><span class="p">(</span><span class="n">walker</span><span class="p">,</span> <span class="n">loop</span><span class="o">=</span><span class="n">loop</span><span class="p">,</span> <span class="n">severity_attr</span><span class="o">=</span><span class="p">{</span><span class="n">urwid</span><span class="o">.</span><span class="n">Severity</span><span class="o">.</span><span class="n">WARNING</span><span class="p">:</span> <span class="s2">"warning"</span><span class="p">})</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">logger</span> <span class="o">=</span> <span class="n">logging</span><span class="o">.</span><span class="n">getLogger</span><span class="p">(</span><span class="s2">"example.walker"</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">logger</span><span class="o">.</span><span class="n">addHandler</span><span class="p">(</span><span class="n">handler</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s2">"disk almost full"</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="k">with</span> <span class="n">loop</span><span class="o">.</span><span class="n">start</span><span class="p">():</span>
+<span class="gp">... </span>    <span class="n">handler</span><span class="o">.</span><span class="n">resume</span><span class="p">()</span>
+<span class="gp">... </span>    <span class="n">event_loop</span><span class="o">.</span><span class="n">advance</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">walker</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">get_text</span><span class="p">()</span>
+<span class="go">('disk almost full', [('warning', 16)])</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">logger</span><span class="o">.</span><span class="n">removeHandler</span><span class="p">(</span><span class="n">handler</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>Create a handler that appends to <em>walker</em>.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>walker</strong> – list walker with an <code class="docutils literal notranslate"><span class="pre">append()</span></code> method.</p></li>
+<li><p><strong>loop</strong> – loop whose thread changes <em>walker</em>.</p></li>
+<li><p><strong>level</strong> – lowest level handled.</p></li>
+<li><p><strong>severity_attr</strong> – display attribute of a row for each <code class="xref py py-class docutils literal notranslate"><span class="pre">Severity</span></code>;
+a severity with no entry is not coloured.</p></li>
+<li><p><strong>max_pending</strong> – records held until the loop shows them; the oldest is dropped first.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Raises<span class="colon">:</span></dt>
+<dd class="field-even"><ul class="simple">
+<li><p><strong>ValueError</strong> – <em>max_pending</em> is below 1, or <em>level</em> is a name <code class="xref py py-mod docutils literal notranslate"><span class="pre">logging</span></code> does not know.</p></li>
+<li><p><strong>TypeError</strong> – <em>level</em> is neither an int nor a str, a key of <em>severity_attr</em> is not a <code class="xref py py-class docutils literal notranslate"><span class="pre">Severity</span></code>,
+or a value is not hashable.</p></li>
+</ul>
+</dd>
+</dl>
+<dl class="py method">
+<dt class="sig sig-object py" id="urwid.log_handler.ListWalkerHandler.close">
+<span class="sig-name descname"><span class="pre">close</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="headerlink" href="#urwid.log_handler.ListWalkerHandler.close" title="Link to this definition">¶</a></dt>
+<dd><p>Drop the queued records and ignore later ones, without touching the widget.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="urwid.log_handler.ListWalkerHandler.emit">
+<span class="sig-name descname"><span class="pre">emit</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">record</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">LogRecord</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="headerlink" href="#urwid.log_handler.ListWalkerHandler.emit" title="Link to this definition">¶</a></dt>
+<dd><p>Queue the formatted <em>record</em> and hand a call that shows it to the loop.</p>
+<p>A failure of the formatter goes to <code class="xref py py-meth docutils literal notranslate"><span class="pre">handleError()</span></code>.
+Records of this module’s own logger are ignored, so a failing widget cannot report its failures to itself.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="urwid.log_handler.ListWalkerHandler.resume">
+<span class="sig-name descname"><span class="pre">resume</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="headerlink" href="#urwid.log_handler.ListWalkerHandler.resume" title="Link to this definition">¶</a></dt>
+<dd><p>Hand a call that shows the queued records to the loop.</p>
+<p>Call it once at the start of each run of the loop, inside <code class="docutils literal notranslate"><span class="pre">with</span> <span class="pre">loop.start():</span></code>
+or from an alarm set before <a class="reference internal" href="main_loop.html#urwid.MainLoop.run" title="urwid.MainLoop.run"><code class="xref py py-meth docutils literal notranslate"><span class="pre">run()</span></code></a>.
+<a class="reference internal" href="main_loop.html#urwid.MainLoop.stop" title="urwid.MainLoop.stop"><code class="xref py py-meth docutils literal notranslate"><span class="pre">stop()</span></code></a> drops a queued call, and without <a class="reference internal" href="#urwid.log_handler.ListWalkerHandler.resume" title="urwid.log_handler.ListWalkerHandler.resume"><code class="xref py py-meth docutils literal notranslate"><span class="pre">resume()</span></code></a> the records held
+before <a class="reference internal" href="main_loop.html#urwid.MainLoop.start" title="urwid.MainLoop.start"><code class="xref py py-meth docutils literal notranslate"><span class="pre">start()</span></code></a> or after the drop stay queued, also when new records arrive.
+It is safe from any thread, and does nothing after <a class="reference internal" href="#urwid.log_handler.ListWalkerHandler.close" title="urwid.log_handler.ListWalkerHandler.close"><code class="xref py py-meth docutils literal notranslate"><span class="pre">close()</span></code></a>.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Raises<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>RuntimeError</strong> – the loop is not running, or its event loop cannot watch files,
+see <a class="reference internal" href="main_loop.html#urwid.MainLoop.call_from_thread" title="urwid.MainLoop.call_from_thread"><code class="xref py py-meth docutils literal notranslate"><span class="pre">call_from_thread()</span></code></a>.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="urwid.log_handler.ListWalkerHandler.urwid_filter">
+<span class="sig-name descname"><span class="pre">urwid_filter</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">Final</span></span><a class="headerlink" href="#urwid.log_handler.ListWalkerHandler.urwid_filter" title="Link to this definition">¶</a></dt>
+<dd><p>Filter rejecting records of the <code class="docutils literal notranslate"><span class="pre">urwid</span></code> logger and its children.
+urwid logs at DEBUG on each redraw and each alarm it sets, so showing those records logs again without end.</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="urwid.log_handler.NotificationsHandler">
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">urwid.log_handler.</span></span><span class="sig-name descname"><span class="pre">NotificationsHandler</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">notifications</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="widget.html#urwid.Notifications" title="urwid.Notifications"><span class="pre">Notifications</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">*</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">loop</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="main_loop.html#urwid.MainLoop" title="urwid.MainLoop"><span class="pre">MainLoop</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">level</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">str</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">timeout</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">Literal</span><span class="p"><span class="pre">[</span></span><span class="pre">_Unset.UNSET</span><span class="p"><span class="pre">]</span></span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">&lt;unset&gt;</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">max_pending</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">1000</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#urwid.log_handler.NotificationsHandler" title="Link to this definition">¶</a></dt>
+<dd><p>Post each log record as a message of <a class="reference internal" href="widget.html#urwid.Notifications" title="urwid.Notifications"><code class="xref py py-class docutils literal notranslate"><span class="pre">Notifications</span></code></a>, on the thread of the loop.</p>
+<p>Records may be logged from any thread.
+The message carries the record’s <code class="xref py py-class docutils literal notranslate"><span class="pre">Severity</span></code>.
+The handler needs <a class="reference internal" href="main_loop.html#urwid.MainLoop.call_from_thread" title="urwid.MainLoop.call_from_thread"><code class="xref py py-meth docutils literal notranslate"><span class="pre">call_from_thread()</span></code></a>, so an event loop that can watch files.
+Call <a class="reference internal" href="#urwid.log_handler.NotificationsHandler.resume" title="urwid.log_handler.NotificationsHandler.resume"><code class="xref py py-meth docutils literal notranslate"><span class="pre">resume()</span></code></a> once at the start of each run; <code class="docutils literal notranslate"><span class="pre">with</span> <span class="pre">loop.start():</span></code> lets its error reach the caller,
+while an alarm set before <a class="reference internal" href="main_loop.html#urwid.MainLoop.run" title="urwid.MainLoop.run"><code class="xref py py-meth docutils literal notranslate"><span class="pre">run()</span></code></a> only logs it.
+<a class="reference internal" href="#urwid.log_handler.NotificationsHandler.urwid_filter" title="urwid.log_handler.NotificationsHandler.urwid_filter"><code class="xref py py-attr docutils literal notranslate"><span class="pre">urwid_filter</span></code></a> rejects records of the <code class="docutils literal notranslate"><span class="pre">urwid</span></code> loggers.
+To show them, set the handler’s level to <code class="docutils literal notranslate"><span class="pre">INFO</span></code> or above and remove the filter:
+urwid logs at DEBUG on each alarm it sets, and each message sets one.</p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="kn">import</span><span class="w"> </span><span class="nn">logging</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="kn">import</span><span class="w"> </span><span class="nn">urwid</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span><span class="w"> </span><span class="nn">urwid.testing</span><span class="w"> </span><span class="kn">import</span> <span class="n">ScriptedScreen</span><span class="p">,</span> <span class="n">VirtualClockEventLoop</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">notifications</span> <span class="o">=</span> <span class="n">urwid</span><span class="o">.</span><span class="n">Notifications</span><span class="p">(</span><span class="n">timeout</span><span class="o">=</span><span class="mi">5</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">event_loop</span> <span class="o">=</span> <span class="n">VirtualClockEventLoop</span><span class="p">()</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">loop</span> <span class="o">=</span> <span class="n">urwid</span><span class="o">.</span><span class="n">MainLoop</span><span class="p">(</span><span class="n">urwid</span><span class="o">.</span><span class="n">Filler</span><span class="p">(</span><span class="n">notifications</span><span class="p">),</span> <span class="n">screen</span><span class="o">=</span><span class="n">ScriptedScreen</span><span class="p">(</span><span class="n">inputs</span><span class="o">=</span><span class="kc">None</span><span class="p">),</span> <span class="n">event_loop</span><span class="o">=</span><span class="n">event_loop</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">handler</span> <span class="o">=</span> <span class="n">NotificationsHandler</span><span class="p">(</span><span class="n">notifications</span><span class="p">,</span> <span class="n">loop</span><span class="o">=</span><span class="n">loop</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">logger</span> <span class="o">=</span> <span class="n">logging</span><span class="o">.</span><span class="n">getLogger</span><span class="p">(</span><span class="s2">"example.notifications"</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">logger</span><span class="o">.</span><span class="n">addHandler</span><span class="p">(</span><span class="n">handler</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">logger</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="s2">"upload failed"</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="k">with</span> <span class="n">loop</span><span class="o">.</span><span class="n">start</span><span class="p">():</span>
+<span class="gp">... </span>    <span class="n">handler</span><span class="o">.</span><span class="n">resume</span><span class="p">()</span>
+<span class="gp">... </span>    <span class="n">event_loop</span><span class="o">.</span><span class="n">advance</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
+<span class="gp">... </span>    <span class="n">notifications</span><span class="o">.</span><span class="n">notifications</span>
+<span class="go">(&lt;Notification 'upload failed' severity=ERROR&gt;,)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">logger</span><span class="o">.</span><span class="n">removeHandler</span><span class="p">(</span><span class="n">handler</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>Create a handler that posts to <em>notifications</em>.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>notifications</strong> – widget the messages are posted to.</p></li>
+<li><p><strong>loop</strong> – loop whose thread posts the messages; it also runs their alarms.</p></li>
+<li><p><strong>level</strong> – lowest level handled.</p></li>
+<li><p><strong>timeout</strong> – seconds a message stays, <code class="docutils literal notranslate"><span class="pre">None</span></code> to keep it, or left out to use the widget’s timeout.</p></li>
+<li><p><strong>max_pending</strong> – records held until the loop shows them; the oldest is dropped first.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Raises<span class="colon">:</span></dt>
+<dd class="field-even"><ul class="simple">
+<li><p><strong>ValueError</strong> – <em>notifications</em> is bound to another loop, <em>timeout</em> is not finite and &gt; 0,
+<em>max_pending</em> is below 1, or <em>level</em> is a name <code class="xref py py-mod docutils literal notranslate"><span class="pre">logging</span></code> does not know.</p></li>
+<li><p><strong>TypeError</strong> – <em>level</em> is neither an int nor a str, or <em>timeout</em> is not a number or <code class="docutils literal notranslate"><span class="pre">None</span></code>.</p></li>
+</ul>
+</dd>
+</dl>
+<dl class="py method">
+<dt class="sig sig-object py" id="urwid.log_handler.NotificationsHandler.close">
+<span class="sig-name descname"><span class="pre">close</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="headerlink" href="#urwid.log_handler.NotificationsHandler.close" title="Link to this definition">¶</a></dt>
+<dd><p>Drop the queued records and ignore later ones, without touching the widget.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="urwid.log_handler.NotificationsHandler.emit">
+<span class="sig-name descname"><span class="pre">emit</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">record</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">LogRecord</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="headerlink" href="#urwid.log_handler.NotificationsHandler.emit" title="Link to this definition">¶</a></dt>
+<dd><p>Queue the formatted <em>record</em> and hand a call that shows it to the loop.</p>
+<p>A failure of the formatter goes to <code class="xref py py-meth docutils literal notranslate"><span class="pre">handleError()</span></code>.
+Records of this module’s own logger are ignored, so a failing widget cannot report its failures to itself.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="urwid.log_handler.NotificationsHandler.resume">
+<span class="sig-name descname"><span class="pre">resume</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="headerlink" href="#urwid.log_handler.NotificationsHandler.resume" title="Link to this definition">¶</a></dt>
+<dd><p>Hand a call that shows the queued records to the loop.</p>
+<p>Call it once at the start of each run of the loop, inside <code class="docutils literal notranslate"><span class="pre">with</span> <span class="pre">loop.start():</span></code>
+or from an alarm set before <a class="reference internal" href="main_loop.html#urwid.MainLoop.run" title="urwid.MainLoop.run"><code class="xref py py-meth docutils literal notranslate"><span class="pre">run()</span></code></a>.
+<a class="reference internal" href="main_loop.html#urwid.MainLoop.stop" title="urwid.MainLoop.stop"><code class="xref py py-meth docutils literal notranslate"><span class="pre">stop()</span></code></a> drops a queued call, and without <a class="reference internal" href="#urwid.log_handler.NotificationsHandler.resume" title="urwid.log_handler.NotificationsHandler.resume"><code class="xref py py-meth docutils literal notranslate"><span class="pre">resume()</span></code></a> the records held
+before <a class="reference internal" href="main_loop.html#urwid.MainLoop.start" title="urwid.MainLoop.start"><code class="xref py py-meth docutils literal notranslate"><span class="pre">start()</span></code></a> or after the drop stay queued, also when new records arrive.
+It is safe from any thread, and does nothing after <a class="reference internal" href="#urwid.log_handler.NotificationsHandler.close" title="urwid.log_handler.NotificationsHandler.close"><code class="xref py py-meth docutils literal notranslate"><span class="pre">close()</span></code></a>.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Raises<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>RuntimeError</strong> – the loop is not running, or its event loop cannot watch files,
+see <a class="reference internal" href="main_loop.html#urwid.MainLoop.call_from_thread" title="urwid.MainLoop.call_from_thread"><code class="xref py py-meth docutils literal notranslate"><span class="pre">call_from_thread()</span></code></a>.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="urwid.log_handler.NotificationsHandler.urwid_filter">
+<span class="sig-name descname"><span class="pre">urwid_filter</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">Final</span></span><a class="headerlink" href="#urwid.log_handler.NotificationsHandler.urwid_filter" title="Link to this definition">¶</a></dt>
+<dd><p>Filter rejecting records of the <code class="docutils literal notranslate"><span class="pre">urwid</span></code> logger and its children.
+urwid logs at DEBUG on each redraw and each alarm it sets, so showing those records logs again without end.</p>
+</dd></dl>
+
+</dd></dl>
+
+</section>
+
+
+            <div class="clearer"></div>
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="Main">
+        <div class="sphinxsidebarwrapper">
+            <p class="logo"><a href="../index.html">
+              <img class="logo" src="../_static/urwid-logo.png" alt="Logo of Urwid"/>
+            </a></p><h3>Table of contents</h3>
+    <ul><li><a href="index.html">Reference</a></li><ul>
+<li><a class="reference internal" href="#">Logging Handlers</a><ul>
+<li><a class="reference internal" href="#urwid.log_handler.ListWalkerHandler"><code class="docutils literal notranslate"><span class="pre">ListWalkerHandler</span></code></a><ul>
+<li><a class="reference internal" href="#urwid.log_handler.ListWalkerHandler.close"><code class="docutils literal notranslate"><span class="pre">ListWalkerHandler.close()</span></code></a></li>
+<li><a class="reference internal" href="#urwid.log_handler.ListWalkerHandler.emit"><code class="docutils literal notranslate"><span class="pre">ListWalkerHandler.emit()</span></code></a></li>
+<li><a class="reference internal" href="#urwid.log_handler.ListWalkerHandler.resume"><code class="docutils literal notranslate"><span class="pre">ListWalkerHandler.resume()</span></code></a></li>
+<li><a class="reference internal" href="#urwid.log_handler.ListWalkerHandler.urwid_filter"><code class="docutils literal notranslate"><span class="pre">ListWalkerHandler.urwid_filter</span></code></a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#urwid.log_handler.NotificationsHandler"><code class="docutils literal notranslate"><span class="pre">NotificationsHandler</span></code></a><ul>
+<li><a class="reference internal" href="#urwid.log_handler.NotificationsHandler.close"><code class="docutils literal notranslate"><span class="pre">NotificationsHandler.close()</span></code></a></li>
+<li><a class="reference internal" href="#urwid.log_handler.NotificationsHandler.emit"><code class="docutils literal notranslate"><span class="pre">NotificationsHandler.emit()</span></code></a></li>
+<li><a class="reference internal" href="#urwid.log_handler.NotificationsHandler.resume"><code class="docutils literal notranslate"><span class="pre">NotificationsHandler.resume()</span></code></a></li>
+<li><a class="reference internal" href="#urwid.log_handler.NotificationsHandler.urwid_filter"><code class="docutils literal notranslate"><span class="pre">NotificationsHandler.urwid_filter</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+
+    </ul>
+  <div>
+    <h4>Previous topic</h4>
+    <p class="topless"><a href="testing.html"
+                          title="previous chapter">Testing Helpers</a></p>
+  </div>
+  <div>
+    <h4>Next topic</h4>
+    <p class="topless"><a href="text_layout.html"
+                          title="next chapter">Text Layout Classes</a></p>
+  </div>
+  <div role="note" aria-label="source link">
+    <h3>This Page</h3>
+    <ul class="this-page-menu">
+      <li><a href="../_sources/reference/log_handler.rst.txt"
+            rel="nofollow">Show Source</a></li>
+    </ul>
+   </div>
+<search id="searchbox" style="display: none" role="search">
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="../search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"/>
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</search>
+<script>document.getElementById('searchbox').style.display = "block"</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related" role="navigation" aria-label="Related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="text_layout.html" title="Text Layout Classes"
+             >next</a> |</li>
+        <li class="right" >
+          <a href="testing.html" title="Testing Helpers"
+             >previous</a> |</li>
+        <li class="nav-item nav-item-0"><a href="../index.html">Urwid 5.2.0</a> &#187;</li>
+          <li class="nav-item nav-item-1"><a href="index.html" >Urwid Reference</a> &#187;</li>
+        <li class="nav-item nav-item-this"><a href="">Logging Handlers</a></li> 
+      </ul>
+    </div>
+    <div class="footer" role="contentinfo">
+    &#169; Copyright 2014, Ian Ward et al.
+      Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 9.2.0.
+    </div>
+  </body>
+</html>

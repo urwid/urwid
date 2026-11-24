@@ -65,13 +65,38 @@ named arguments::
     >>> press(Edit("> "), (10,), "a", "b", "esc")
     ['esc']
 
+Pop-ups
+==========
+
+A pop-up is drawn, and receives keys and mouse events, only inside a :class:`~urwid.PopUpTarget`
+(see :ref:`pop-up-widgets`). A test wraps the widget in one itself and passes the wrapper to the helpers, so no main
+loop is needed.
+:attr:`~urwid.PopUpTarget.placements` then gives the position and size each open pop-up was drawn at::
+
+    >>> from urwid import Filler, PopUpLauncher, PopUpTarget
+    >>> class Launcher(PopUpLauncher):
+    ...     def create_pop_up(self):
+    ...         return Filler(Edit("> "))
+    ...
+    ...     def get_pop_up_parameters(self):
+    ...         return {"left": 0, "top": 1, "overlay_width": 10, "overlay_height": 1}
+    >>> launcher = Launcher(Text("launcher"))
+    >>> target = PopUpTarget(Filler(launcher, valign="top"))
+    >>> launcher.open_pop_up()
+    >>> press(target, (20, 3), "a", "b")
+    []
+    >>> render_text(target, (20, 3), focus=True, strip=True)
+    ['launcher', '> ab', '']
+    >>> [(left, top, width, height) for _widget, left, top, width, height in target.placements]
+    [(0, 1, 10, 1)]
+
 Whole applications
 ==================
 
 :class:`ScriptedScreen` stands in for the terminal of a :class:`~urwid.MainLoop`. It returns a fixed screen size,
 feeds scripted batches of input, stops the loop once they are used up, and records every distinct frame drawn::
 
-    >>> from urwid import Filler, MainLoop
+    >>> from urwid import MainLoop
     >>> screen = ScriptedScreen(size=(6, 1), inputs=[["a", "b"], ["backspace"]])
     >>> MainLoop(Filler(Edit("> ")), screen=screen).run()
     >>> screen.last_text

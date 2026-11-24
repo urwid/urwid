@@ -109,6 +109,16 @@ DropDown
 
 .. autoclass:: DropDown
 
+ActionMenu
+~~~~~~~~~~
+
+.. autoclass:: ActionMenu
+
+MenuItem
+~~~~~~~~
+
+.. autoclass:: MenuItem
+
 
 Special cases text widgets
 --------------------------
@@ -171,6 +181,11 @@ PopUpTarget
 ~~~~~~~~~~~
 
 .. autoclass:: PopUpTarget
+
+PopUpPlacement
+~~~~~~~~~~~~~~
+
+.. autoclass:: PopUpPlacement
 
 Special Widget Classes
 ----------------------
@@ -306,6 +321,8 @@ Terminal
 ~~~~~~~~
 
 .. autoclass:: Terminal
+
+.. autoclass:: TerminalOutput
 
 
 Scroll Widget Classes

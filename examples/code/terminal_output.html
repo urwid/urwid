@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+
+<html lang="en" data-content_root="../../">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+    <title>terminal_output.py &#8212; Urwid 5.2.0</title>
+    <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=03e43079" />
+    <link rel="stylesheet" type="text/css" href="../../_static/classic.css?v=65f223dd" />
+    <link rel="stylesheet" type="text/css" href="../../_static/urwid_theme.css?v=de5f08c4" />
+    
+    <script src="../../_static/documentation_options.js?v=2dde5210"></script>
+    <script src="../../_static/doctools.js?v=fd6eb6e6"></script>
+    <script src="../../_static/sphinx_highlight.js?v=6ffebe34"></script>
+    
+    <link rel="canonical" href="https://urwid.org/examples/code/terminal_output.html" />
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" />
+    <link rel="next" title="external_editor.py" href="external_editor.html" />
+    <link rel="prev" title="spinner.py" href="spinner.html" /> 
+  </head><body>
+    <div class="related" role="navigation" aria-label="Related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="external_editor.html" title="external_editor.py"
+             accesskey="N">next</a> |</li>
+        <li class="right" >
+          <a href="spinner.html" title="spinner.py"
+             accesskey="P">previous</a> |</li>
+        <li class="nav-item nav-item-0"><a href="../../index.html">Urwid 5.2.0</a> &#187;</li>
+          <li class="nav-item nav-item-1"><a href="../index.html" accesskey="U">Example Programs</a> &#187;</li>
+        <li class="nav-item nav-item-this"><a href="">terminal_output.py</a></li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <section id="terminal-output-py">
+<h1>terminal_output.py<a class="headerlink" href="#terminal-output-py" title="Link to this heading">¶</a></h1>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="linenos"> 1</span><span class="ch">#!/usr/bin/env python</span>
+<span class="linenos"> 2</span>
+<span class="linenos"> 3</span><span class="sd">"""Example: a chart drawn with terminal escape sequences, shown in a TerminalOutput widget.</span>
+<span class="linenos"> 4</span>
+<span class="linenos"> 5</span><span class="sd">The chart is drawn again for the new size whenever the window is resized, and the chart drawn before scrolls into</span>
+<span class="linenos"> 6</span><span class="sd">the scrollback: Page Up and Page Down, or the mouse wheel, scroll through it, and q exits.</span>
+<span class="linenos"> 7</span><span class="sd">"""</span>
+<span class="linenos"> 8</span>
+<span class="linenos"> 9</span><span class="kn">from</span><span class="w"> </span><span class="nn">__future__</span><span class="w"> </span><span class="kn">import</span> <span class="n">annotations</span>
+<span class="linenos">10</span>
+<span class="linenos">11</span><span class="kn">import</span><span class="w"> </span><span class="nn">math</span>
+<span class="linenos">12</span>
+<span class="linenos">13</span><span class="kn">import</span><span class="w"> </span><span class="nn">urwid</span>
+<span class="linenos">14</span>
+<span class="linenos">15</span><span class="c1"># A cell filled from the bottom in eighths, from empty to full.</span>
+<span class="linenos">16</span><span class="n">EIGHTHS</span> <span class="o">=</span> <span class="s2">" ▁▂▃▄▅▆▇█"</span>
+<span class="linenos">17</span>
+<span class="linenos">18</span>
+<span class="linenos">19</span><span class="k">def</span><span class="w"> </span><span class="nf">chart</span><span class="p">(</span><span class="n">columns</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">rows</span><span class="p">:</span> <span class="nb">int</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+<span class="linenos">20</span><span class="w">    </span><span class="sd">"""Return the escape sequences and text that draw the chart on a screen of *columns* by *rows*."""</span>
+<span class="linenos">21</span>    <span class="n">parts</span> <span class="o">=</span> <span class="p">[</span>
+<span class="linenos">22</span>        <span class="c1"># move the chart drawn before into the scrollback, then start again at the top-left corner</span>
+<span class="linenos">23</span>        <span class="sa">f</span><span class="s2">"</span><span class="se">\x1b</span><span class="s2">[</span><span class="si">{</span><span class="n">rows</span><span class="si">}</span><span class="s2">;1H"</span> <span class="o">+</span> <span class="s2">"</span><span class="se">\n</span><span class="s2">"</span> <span class="o">*</span> <span class="n">rows</span> <span class="o">+</span> <span class="s2">"</span><span class="se">\x1b</span><span class="s2">[H"</span><span class="p">,</span>
+<span class="linenos">24</span>        <span class="sa">f</span><span class="s2">"</span><span class="se">\x1b</span><span class="s2">[1mTerminalOutput </span><span class="si">{</span><span class="n">columns</span><span class="si">}</span><span class="s2">x</span><span class="si">{</span><span class="n">rows</span><span class="si">}</span><span class="se">\x1b</span><span class="s2">[0m"</span><span class="p">,</span>
+<span class="linenos">25</span>        <span class="c1"># a strip of the 216 colors of the 256-color cube</span>
+<span class="linenos">26</span>        <span class="s2">"</span><span class="se">\x1b</span><span class="s2">[2;1H"</span> <span class="o">+</span> <span class="s2">""</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="sa">f</span><span class="s2">"</span><span class="se">\x1b</span><span class="s2">[48;5;</span><span class="si">{</span><span class="mi">16</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="n">column</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="mi">216</span><span class="w"> </span><span class="o">//</span><span class="w"> </span><span class="n">columns</span><span class="si">}</span><span class="s2">m "</span> <span class="k">for</span> <span class="n">column</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">columns</span><span class="p">))</span> <span class="o">+</span> <span class="s2">"</span><span class="se">\x1b</span><span class="s2">[0m"</span><span class="p">,</span>
+<span class="linenos">27</span>    <span class="p">]</span>
+<span class="linenos">28</span>    <span class="n">height</span> <span class="o">=</span> <span class="n">rows</span> <span class="o">-</span> <span class="mi">2</span>
+<span class="linenos">29</span>    <span class="k">for</span> <span class="n">row</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">height</span><span class="p">):</span>
+<span class="linenos">30</span>        <span class="n">level</span> <span class="o">=</span> <span class="p">(</span><span class="n">height</span> <span class="o">-</span> <span class="mi">1</span> <span class="o">-</span> <span class="n">row</span><span class="p">)</span> <span class="o">*</span> <span class="mi">8</span>
+<span class="linenos">31</span>        <span class="n">line</span> <span class="o">=</span> <span class="p">[]</span>
+<span class="linenos">32</span>        <span class="k">for</span> <span class="n">column</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">columns</span><span class="p">):</span>
+<span class="linenos">33</span>            <span class="n">value</span> <span class="o">=</span> <span class="p">(</span><span class="n">math</span><span class="o">.</span><span class="n">sin</span><span class="p">(</span><span class="mi">4</span> <span class="o">*</span> <span class="n">math</span><span class="o">.</span><span class="n">pi</span> <span class="o">*</span> <span class="n">column</span> <span class="o">/</span> <span class="n">columns</span><span class="p">)</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span> <span class="o">/</span> <span class="mi">2</span> <span class="o">*</span> <span class="n">height</span> <span class="o">*</span> <span class="mi">8</span>
+<span class="linenos">34</span>            <span class="n">red</span><span class="p">,</span> <span class="n">blue</span> <span class="o">=</span> <span class="mi">255</span> <span class="o">*</span> <span class="n">column</span> <span class="o">//</span> <span class="n">columns</span><span class="p">,</span> <span class="mi">255</span> <span class="o">-</span> <span class="mi">255</span> <span class="o">*</span> <span class="n">column</span> <span class="o">//</span> <span class="n">columns</span>
+<span class="linenos">35</span>            <span class="n">line</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="sa">f</span><span class="s2">"</span><span class="se">\x1b</span><span class="s2">[38;2;</span><span class="si">{</span><span class="n">red</span><span class="si">}</span><span class="s2">;96;</span><span class="si">{</span><span class="n">blue</span><span class="si">}</span><span class="s2">m</span><span class="si">{</span><span class="n">EIGHTHS</span><span class="p">[</span><span class="nb">min</span><span class="p">(</span><span class="mi">8</span><span class="p">,</span><span class="w"> </span><span class="nb">max</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span><span class="w"> </span><span class="nb">round</span><span class="p">(</span><span class="n">value</span><span class="p">)</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="n">level</span><span class="p">))]</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
+<span class="linenos">36</span>        <span class="n">parts</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="sa">f</span><span class="s2">"</span><span class="se">\x1b</span><span class="s2">[</span><span class="si">{</span><span class="n">row</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="mi">3</span><span class="si">}</span><span class="s2">;1H"</span> <span class="o">+</span> <span class="s2">""</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">line</span><span class="p">)</span> <span class="o">+</span> <span class="s2">"</span><span class="se">\x1b</span><span class="s2">[0m"</span><span class="p">)</span>
+<span class="linenos">37</span>    <span class="k">return</span> <span class="s2">""</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">parts</span><span class="p">)</span>
+<span class="linenos">38</span>
+<span class="linenos">39</span>
+<span class="linenos">40</span><span class="k">def</span><span class="w"> </span><span class="nf">main</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="linenos">41</span><span class="w">    </span><span class="sd">"""Show the chart, drawn again on each resize, with the key handling."""</span>
+<span class="linenos">42</span>    <span class="c1"># a size no window has, so the first render resizes and draws the chart for the real size</span>
+<span class="linenos">43</span>    <span class="n">output</span> <span class="o">=</span> <span class="n">urwid</span><span class="o">.</span><span class="n">TerminalOutput</span><span class="p">(</span><span class="n">size</span><span class="o">=</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">))</span>
+<span class="linenos">44</span>
+<span class="linenos">45</span>    <span class="k">def</span><span class="w"> </span><span class="nf">draw_for</span><span class="p">(</span><span class="n">widget</span><span class="p">:</span> <span class="n">urwid</span><span class="o">.</span><span class="n">TerminalOutput</span><span class="p">,</span> <span class="n">size</span><span class="p">:</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="nb">int</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="linenos">46</span>        <span class="n">widget</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">chart</span><span class="p">(</span><span class="o">*</span><span class="n">size</span><span class="p">))</span>
+<span class="linenos">47</span>
+<span class="linenos">48</span>    <span class="n">urwid</span><span class="o">.</span><span class="n">connect_signal</span><span class="p">(</span><span class="n">output</span><span class="p">,</span> <span class="s2">"resize"</span><span class="p">,</span> <span class="n">draw_for</span><span class="p">)</span>
+<span class="linenos">49</span>
+<span class="linenos">50</span>    <span class="k">def</span><span class="w"> </span><span class="nf">unhandled</span><span class="p">(</span><span class="n">key</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">int</span><span class="p">,</span> <span class="nb">int</span><span class="p">,</span> <span class="nb">int</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="linenos">51</span>        <span class="k">if</span> <span class="n">key</span> <span class="o">==</span> <span class="s2">"q"</span><span class="p">:</span>
+<span class="linenos">52</span>            <span class="k">raise</span> <span class="n">urwid</span><span class="o">.</span><span class="n">ExitMainLoop</span>
+<span class="linenos">53</span>
+<span class="linenos">54</span>    <span class="n">frame</span><span class="p">:</span> <span class="n">urwid</span><span class="o">.</span><span class="n">Frame</span><span class="p">[</span><span class="n">urwid</span><span class="o">.</span><span class="n">TerminalOutput</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="n">urwid</span><span class="o">.</span><span class="n">Text</span><span class="p">]</span> <span class="o">=</span> <span class="n">urwid</span><span class="o">.</span><span class="n">Frame</span><span class="p">(</span>
+<span class="linenos">55</span>        <span class="n">output</span><span class="p">,</span>
+<span class="linenos">56</span>        <span class="n">footer</span><span class="o">=</span><span class="n">urwid</span><span class="o">.</span><span class="n">Text</span><span class="p">(</span><span class="s2">"Page Up/Page Down or the mouse wheel: scroll back  q: quit"</span><span class="p">),</span>
+<span class="linenos">57</span>    <span class="p">)</span>
+<span class="linenos">58</span>    <span class="n">urwid</span><span class="o">.</span><span class="n">MainLoop</span><span class="p">(</span><span class="n">frame</span><span class="p">,</span> <span class="n">unhandled_input</span><span class="o">=</span><span class="n">unhandled</span><span class="p">)</span><span class="o">.</span><span class="n">run</span><span class="p">()</span>
+<span class="linenos">59</span>
+<span class="linenos">60</span>
+<span class="linenos">61</span><span class="k">if</span> <span class="vm">__name__</span> <span class="o">==</span> <span class="s2">"__main__"</span><span class="p">:</span>
+<span class="linenos">62</span>    <span class="n">main</span><span class="p">()</span>
+</pre></div>
+</div>
+</section>
+
+
+            <div class="clearer"></div>
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="Main">
+        <div class="sphinxsidebarwrapper">
+            <p class="logo"><a href="../../index.html">
+              <img class="logo" src="../../_static/urwid-logo.png" alt="Logo of Urwid"/>
+            </a></p>
+  <div>
+    <h4>Previous topic</h4>
+    <p class="topless"><a href="spinner.html"
+                          title="previous chapter">spinner.py</a></p>
+  </div>
+  <div>
+    <h4>Next topic</h4>
+    <p class="topless"><a href="external_editor.html"
+                          title="next chapter">external_editor.py</a></p>
+  </div>
+  <div role="note" aria-label="source link">
+    <h3>This Page</h3>
+    <ul class="this-page-menu">
+      <li><a href="../../_sources/examples/code/terminal_output.rst.txt"
+            rel="nofollow">Show Source</a></li>
+    </ul>
+   </div>
+<search id="searchbox" style="display: none" role="search">
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="../../search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"/>
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</search>
+<script>document.getElementById('searchbox').style.display = "block"</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related" role="navigation" aria-label="Related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="external_editor.html" title="external_editor.py"
+             >next</a> |</li>
+        <li class="right" >
+          <a href="spinner.html" title="spinner.py"
+             >previous</a> |</li>
+        <li class="nav-item nav-item-0"><a href="../../index.html">Urwid 5.2.0</a> &#187;</li>
+          <li class="nav-item nav-item-1"><a href="../index.html" >Example Programs</a> &#187;</li>
+        <li class="nav-item nav-item-this"><a href="">terminal_output.py</a></li> 
+      </ul>
+    </div>
+    <div class="footer" role="contentinfo">
+    &#169; Copyright 2014, Ian Ward et al.
+      Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 9.2.0.
+    </div>
+  </body>
+</html>

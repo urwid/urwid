@@ -5,12 +5,12 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
 
-    <title>Urwid Reference &#8212; Urwid 5.1.3</title>
+    <title>Urwid Reference &#8212; Urwid 5.2.0</title>
     <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=03e43079" />
     <link rel="stylesheet" type="text/css" href="../_static/classic.css?v=65f223dd" />
     <link rel="stylesheet" type="text/css" href="../_static/urwid_theme.css?v=de5f08c4" />
     
-    <script src="../_static/documentation_options.js?v=88590691"></script>
+    <script src="../_static/documentation_options.js?v=2dde5210"></script>
     <script src="../_static/doctools.js?v=fd6eb6e6"></script>
     <script src="../_static/sphinx_highlight.js?v=6ffebe34"></script>
     
@@ -32,7 +32,7 @@
         <li class="right" >
           <a href="../manual/testing.html" title="Testing Widgets"
              accesskey="P">previous</a> |</li>
-        <li class="nav-item nav-item-0"><a href="../index.html">Urwid 5.1.3</a> &#187;</li>
+        <li class="nav-item nav-item-0"><a href="../index.html">Urwid 5.2.0</a> &#187;</li>
         <li class="nav-item nav-item-this"><a href="">Urwid Reference</a></li> 
       </ul>
     </div>  
@@ -62,6 +62,7 @@
 <li class="toctree-l4"><a class="reference internal" href="main_loop.html#urwid.MainLoop.remove_alarm"><code class="docutils literal notranslate"><span class="pre">MainLoop.remove_alarm()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="main_loop.html#urwid.MainLoop.remove_watch_file"><code class="docutils literal notranslate"><span class="pre">MainLoop.remove_watch_file()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="main_loop.html#urwid.MainLoop.remove_watch_pipe"><code class="docutils literal notranslate"><span class="pre">MainLoop.remove_watch_pipe()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="main_loop.html#urwid.MainLoop.resized"><code class="docutils literal notranslate"><span class="pre">MainLoop.resized()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="main_loop.html#urwid.MainLoop.run"><code class="docutils literal notranslate"><span class="pre">MainLoop.run()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="main_loop.html#urwid.MainLoop.set_alarm_at"><code class="docutils literal notranslate"><span class="pre">MainLoop.set_alarm_at()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="main_loop.html#urwid.MainLoop.set_alarm_in"><code class="docutils literal notranslate"><span class="pre">MainLoop.set_alarm_in()</span></code></a></li>
@@ -205,6 +206,7 @@
 <li class="toctree-l5"><a class="reference internal" href="widget.html#urwid.Widget.mouse_event"><code class="docutils literal notranslate"><span class="pre">Widget.mouse_event()</span></code></a></li>
 <li class="toctree-l5"><a class="reference internal" href="widget.html#urwid.Widget.pack"><code class="docutils literal notranslate"><span class="pre">Widget.pack()</span></code></a></li>
 <li class="toctree-l5"><a class="reference internal" href="widget.html#urwid.Widget.render"><code class="docutils literal notranslate"><span class="pre">Widget.render()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="widget.html#urwid.Widget.request_focus"><code class="docutils literal notranslate"><span class="pre">Widget.request_focus()</span></code></a></li>
 <li class="toctree-l5"><a class="reference internal" href="widget.html#urwid.Widget.selectable"><code class="docutils literal notranslate"><span class="pre">Widget.selectable()</span></code></a></li>
 <li class="toctree-l5"><a class="reference internal" href="widget.html#urwid.Widget.sizing"><code class="docutils literal notranslate"><span class="pre">Widget.sizing()</span></code></a></li>
 </ul>
@@ -462,6 +464,7 @@
 <li class="toctree-l3"><a class="reference internal" href="widget.html#dropdown">DropDown</a><ul>
 <li class="toctree-l4"><a class="reference internal" href="widget.html#urwid.DropDown"><code class="docutils literal notranslate"><span class="pre">DropDown</span></code></a><ul>
 <li class="toctree-l5"><a class="reference internal" href="widget.html#urwid.DropDown.create_pop_up"><code class="docutils literal notranslate"><span class="pre">DropDown.create_pop_up()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="widget.html#urwid.DropDown.disabled"><code class="docutils literal notranslate"><span class="pre">DropDown.disabled</span></code></a></li>
 <li class="toctree-l5"><a class="reference internal" href="widget.html#urwid.DropDown.drop_down_indicator"><code class="docutils literal notranslate"><span class="pre">DropDown.drop_down_indicator</span></code></a></li>
 <li class="toctree-l5"><a class="reference internal" href="widget.html#urwid.DropDown.get_pop_up_parameters"><code class="docutils literal notranslate"><span class="pre">DropDown.get_pop_up_parameters()</span></code></a></li>
 <li class="toctree-l5"><a class="reference internal" href="widget.html#urwid.DropDown.keypress"><code class="docutils literal notranslate"><span class="pre">DropDown.keypress()</span></code></a></li>
@@ -471,6 +474,35 @@
 <li class="toctree-l5"><a class="reference internal" href="widget.html#urwid.DropDown.render"><code class="docutils literal notranslate"><span class="pre">DropDown.render()</span></code></a></li>
 <li class="toctree-l5"><a class="reference internal" href="widget.html#urwid.DropDown.selectable"><code class="docutils literal notranslate"><span class="pre">DropDown.selectable()</span></code></a></li>
 <li class="toctree-l5"><a class="reference internal" href="widget.html#urwid.DropDown.selected"><code class="docutils literal notranslate"><span class="pre">DropDown.selected</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="widget.html#urwid.DropDown.separator"><code class="docutils literal notranslate"><span class="pre">DropDown.separator</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="widget.html#actionmenu">ActionMenu</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="widget.html#urwid.ActionMenu"><code class="docutils literal notranslate"><span class="pre">ActionMenu</span></code></a><ul>
+<li class="toctree-l5"><a class="reference internal" href="widget.html#urwid.ActionMenu.get_pop_up_parameters"><code class="docutils literal notranslate"><span class="pre">ActionMenu.get_pop_up_parameters()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="widget.html#urwid.ActionMenu.items"><code class="docutils literal notranslate"><span class="pre">ActionMenu.items</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="widget.html#urwid.ActionMenu.keypress"><code class="docutils literal notranslate"><span class="pre">ActionMenu.keypress()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="widget.html#urwid.ActionMenu.menu_indicator"><code class="docutils literal notranslate"><span class="pre">ActionMenu.menu_indicator</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="widget.html#urwid.ActionMenu.mouse_event"><code class="docutils literal notranslate"><span class="pre">ActionMenu.mouse_event()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="widget.html#urwid.ActionMenu.open_at"><code class="docutils literal notranslate"><span class="pre">ActionMenu.open_at()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="widget.html#urwid.ActionMenu.open_pop_up"><code class="docutils literal notranslate"><span class="pre">ActionMenu.open_pop_up()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="widget.html#urwid.ActionMenu.pack"><code class="docutils literal notranslate"><span class="pre">ActionMenu.pack()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="widget.html#urwid.ActionMenu.render"><code class="docutils literal notranslate"><span class="pre">ActionMenu.render()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="widget.html#urwid.ActionMenu.selectable"><code class="docutils literal notranslate"><span class="pre">ActionMenu.selectable()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="widget.html#urwid.ActionMenu.separator"><code class="docutils literal notranslate"><span class="pre">ActionMenu.separator</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="widget.html#menuitem">MenuItem</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="widget.html#urwid.MenuItem"><code class="docutils literal notranslate"><span class="pre">MenuItem</span></code></a><ul>
+<li class="toctree-l5"><a class="reference internal" href="widget.html#urwid.MenuItem.enabled"><code class="docutils literal notranslate"><span class="pre">MenuItem.enabled</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="widget.html#urwid.MenuItem.key"><code class="docutils literal notranslate"><span class="pre">MenuItem.key</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="widget.html#urwid.MenuItem.label"><code class="docutils literal notranslate"><span class="pre">MenuItem.label</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="widget.html#urwid.MenuItem.submenu"><code class="docutils literal notranslate"><span class="pre">MenuItem.submenu</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="widget.html#urwid.MenuItem.value"><code class="docutils literal notranslate"><span class="pre">MenuItem.value</span></code></a></li>
 </ul>
 </li>
 </ul>
@@ -614,7 +646,19 @@
 <li class="toctree-l5"><a class="reference internal" href="widget.html#urwid.PopUpTarget.mouse_event"><code class="docutils literal notranslate"><span class="pre">PopUpTarget.mouse_event()</span></code></a></li>
 <li class="toctree-l5"><a class="reference internal" href="widget.html#urwid.PopUpTarget.move_cursor_to_coords"><code class="docutils literal notranslate"><span class="pre">PopUpTarget.move_cursor_to_coords()</span></code></a></li>
 <li class="toctree-l5"><a class="reference internal" href="widget.html#urwid.PopUpTarget.pack"><code class="docutils literal notranslate"><span class="pre">PopUpTarget.pack()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="widget.html#urwid.PopUpTarget.placements"><code class="docutils literal notranslate"><span class="pre">PopUpTarget.placements</span></code></a></li>
 <li class="toctree-l5"><a class="reference internal" href="widget.html#urwid.PopUpTarget.render"><code class="docutils literal notranslate"><span class="pre">PopUpTarget.render()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="widget.html#popupplacement">PopUpPlacement</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="widget.html#urwid.PopUpPlacement"><code class="docutils literal notranslate"><span class="pre">PopUpPlacement</span></code></a><ul>
+<li class="toctree-l5"><a class="reference internal" href="widget.html#urwid.PopUpPlacement.height"><code class="docutils literal notranslate"><span class="pre">PopUpPlacement.height</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="widget.html#urwid.PopUpPlacement.left"><code class="docutils literal notranslate"><span class="pre">PopUpPlacement.left</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="widget.html#urwid.PopUpPlacement.top"><code class="docutils literal notranslate"><span class="pre">PopUpPlacement.top</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="widget.html#urwid.PopUpPlacement.widget"><code class="docutils literal notranslate"><span class="pre">PopUpPlacement.widget</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="widget.html#urwid.PopUpPlacement.width"><code class="docutils literal notranslate"><span class="pre">PopUpPlacement.width</span></code></a></li>
 </ul>
 </li>
 </ul>
@@ -714,6 +758,7 @@
 <li class="toctree-l5"><a class="reference internal" href="widget.html#urwid.ListBox.get_focus_offset_inset"><code class="docutils literal notranslate"><span class="pre">ListBox.get_focus_offset_inset()</span></code></a></li>
 <li class="toctree-l5"><a class="reference internal" href="widget.html#urwid.ListBox.get_scrollpos"><code class="docutils literal notranslate"><span class="pre">ListBox.get_scrollpos()</span></code></a></li>
 <li class="toctree-l5"><a class="reference internal" href="widget.html#urwid.ListBox.get_visible_amount"><code class="docutils literal notranslate"><span class="pre">ListBox.get_visible_amount()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="widget.html#urwid.ListBox.home_end"><code class="docutils literal notranslate"><span class="pre">ListBox.home_end</span></code></a></li>
 <li class="toctree-l5"><a class="reference internal" href="widget.html#urwid.ListBox.keypress"><code class="docutils literal notranslate"><span class="pre">ListBox.keypress()</span></code></a></li>
 <li class="toctree-l5"><a class="reference internal" href="widget.html#urwid.ListBox.make_cursor_visible"><code class="docutils literal notranslate"><span class="pre">ListBox.make_cursor_visible()</span></code></a></li>
 <li class="toctree-l5"><a class="reference internal" href="widget.html#urwid.ListBox.mouse_event"><code class="docutils literal notranslate"><span class="pre">ListBox.mouse_event()</span></code></a></li>
@@ -723,6 +768,7 @@
 <li class="toctree-l5"><a class="reference internal" href="widget.html#urwid.ListBox.rows"><code class="docutils literal notranslate"><span class="pre">ListBox.rows()</span></code></a></li>
 <li class="toctree-l5"><a class="reference internal" href="widget.html#urwid.ListBox.rows_max"><code class="docutils literal notranslate"><span class="pre">ListBox.rows_max()</span></code></a></li>
 <li class="toctree-l5"><a class="reference internal" href="widget.html#urwid.ListBox.scroll_to_bottom"><code class="docutils literal notranslate"><span class="pre">ListBox.scroll_to_bottom()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="widget.html#urwid.ListBox.scroll_to_selectable"><code class="docutils literal notranslate"><span class="pre">ListBox.scroll_to_selectable()</span></code></a></li>
 <li class="toctree-l5"><a class="reference internal" href="widget.html#urwid.ListBox.scroll_to_top"><code class="docutils literal notranslate"><span class="pre">ListBox.scroll_to_top()</span></code></a></li>
 <li class="toctree-l5"><a class="reference internal" href="widget.html#urwid.ListBox.selectable"><code class="docutils literal notranslate"><span class="pre">ListBox.selectable()</span></code></a></li>
 <li class="toctree-l5"><a class="reference internal" href="widget.html#urwid.ListBox.set_focus"><code class="docutils literal notranslate"><span class="pre">ListBox.set_focus()</span></code></a></li>
@@ -771,6 +817,7 @@
 <li class="toctree-l5"><a class="reference internal" href="widget.html#urwid.Columns.render"><code class="docutils literal notranslate"><span class="pre">Columns.render()</span></code></a></li>
 <li class="toctree-l5"><a class="reference internal" href="widget.html#urwid.Columns.rows"><code class="docutils literal notranslate"><span class="pre">Columns.rows()</span></code></a></li>
 <li class="toctree-l5"><a class="reference internal" href="widget.html#urwid.Columns.selectable"><code class="docutils literal notranslate"><span class="pre">Columns.selectable()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="widget.html#urwid.Columns.shrink_pack"><code class="docutils literal notranslate"><span class="pre">Columns.shrink_pack</span></code></a></li>
 <li class="toctree-l5"><a class="reference internal" href="widget.html#urwid.Columns.sizing"><code class="docutils literal notranslate"><span class="pre">Columns.sizing()</span></code></a></li>
 </ul>
 </li>
@@ -830,14 +877,20 @@
 <li class="toctree-l3"><a class="reference internal" href="widget.html#table">Table</a><ul>
 <li class="toctree-l4"><a class="reference internal" href="widget.html#urwid.Table"><code class="docutils literal notranslate"><span class="pre">Table</span></code></a><ul>
 <li class="toctree-l5"><a class="reference internal" href="widget.html#urwid.Table.body"><code class="docutils literal notranslate"><span class="pre">Table.body</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="widget.html#urwid.Table.contents"><code class="docutils literal notranslate"><span class="pre">Table.contents</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="widget.html#urwid.Table.enter_selectable"><code class="docutils literal notranslate"><span class="pre">Table.enter_selectable()</span></code></a></li>
 <li class="toctree-l5"><a class="reference internal" href="widget.html#urwid.Table.focus"><code class="docutils literal notranslate"><span class="pre">Table.focus</span></code></a></li>
 <li class="toctree-l5"><a class="reference internal" href="widget.html#urwid.Table.focus_position"><code class="docutils literal notranslate"><span class="pre">Table.focus_position</span></code></a></li>
 <li class="toctree-l5"><a class="reference internal" href="widget.html#urwid.Table.footer"><code class="docutils literal notranslate"><span class="pre">Table.footer</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="widget.html#urwid.Table.forget_header_column"><code class="docutils literal notranslate"><span class="pre">Table.forget_header_column()</span></code></a></li>
 <li class="toctree-l5"><a class="reference internal" href="widget.html#urwid.Table.get_cursor_coords"><code class="docutils literal notranslate"><span class="pre">Table.get_cursor_coords()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="widget.html#urwid.Table.header_column"><code class="docutils literal notranslate"><span class="pre">Table.header_column</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="widget.html#urwid.Table.home_end"><code class="docutils literal notranslate"><span class="pre">Table.home_end</span></code></a></li>
 <li class="toctree-l5"><a class="reference internal" href="widget.html#urwid.Table.keypress"><code class="docutils literal notranslate"><span class="pre">Table.keypress()</span></code></a></li>
 <li class="toctree-l5"><a class="reference internal" href="widget.html#urwid.Table.layout"><code class="docutils literal notranslate"><span class="pre">Table.layout</span></code></a></li>
 <li class="toctree-l5"><a class="reference internal" href="widget.html#urwid.Table.max_rows"><code class="docutils literal notranslate"><span class="pre">Table.max_rows</span></code></a></li>
 <li class="toctree-l5"><a class="reference internal" href="widget.html#urwid.Table.mouse_event"><code class="docutils literal notranslate"><span class="pre">Table.mouse_event()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="widget.html#urwid.Table.options"><code class="docutils literal notranslate"><span class="pre">Table.options()</span></code></a></li>
 <li class="toctree-l5"><a class="reference internal" href="widget.html#urwid.Table.pack"><code class="docutils literal notranslate"><span class="pre">Table.pack()</span></code></a></li>
 <li class="toctree-l5"><a class="reference internal" href="widget.html#urwid.Table.render"><code class="docutils literal notranslate"><span class="pre">Table.render()</span></code></a></li>
 <li class="toctree-l5"><a class="reference internal" href="widget.html#urwid.Table.row_attr"><code class="docutils literal notranslate"><span class="pre">Table.row_attr</span></code></a></li>
@@ -845,6 +898,10 @@
 <li class="toctree-l5"><a class="reference internal" href="widget.html#urwid.Table.selectable"><code class="docutils literal notranslate"><span class="pre">Table.selectable()</span></code></a></li>
 <li class="toctree-l5"><a class="reference internal" href="widget.html#urwid.Table.set_focus"><code class="docutils literal notranslate"><span class="pre">Table.set_focus()</span></code></a></li>
 <li class="toctree-l5"><a class="reference internal" href="widget.html#urwid.Table.sizing"><code class="docutils literal notranslate"><span class="pre">Table.sizing()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="widget.html#urwid.Table.sort"><code class="docutils literal notranslate"><span class="pre">Table.sort()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="widget.html#urwid.Table.sort_column"><code class="docutils literal notranslate"><span class="pre">Table.sort_column</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="widget.html#urwid.Table.sort_reverse"><code class="docutils literal notranslate"><span class="pre">Table.sort_reverse</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="widget.html#urwid.Table.sortable"><code class="docutils literal notranslate"><span class="pre">Table.sortable</span></code></a></li>
 <li class="toctree-l5"><a class="reference internal" href="widget.html#urwid.Table.unfocused_focus_attr"><code class="docutils literal notranslate"><span class="pre">Table.unfocused_focus_attr</span></code></a></li>
 <li class="toctree-l5"><a class="reference internal" href="widget.html#urwid.Table.unfocused_focus_attr_func"><code class="docutils literal notranslate"><span class="pre">Table.unfocused_focus_attr_func</span></code></a></li>
 <li class="toctree-l5"><a class="reference internal" href="widget.html#urwid.Table.wheel"><code class="docutils literal notranslate"><span class="pre">Table.wheel</span></code></a></li>
@@ -856,9 +913,13 @@
 <li class="toctree-l4"><a class="reference internal" href="widget.html#urwid.TableRow"><code class="docutils literal notranslate"><span class="pre">TableRow</span></code></a><ul>
 <li class="toctree-l5"><a class="reference internal" href="widget.html#urwid.TableRow.attr"><code class="docutils literal notranslate"><span class="pre">TableRow.attr</span></code></a></li>
 <li class="toctree-l5"><a class="reference internal" href="widget.html#urwid.TableRow.cells"><code class="docutils literal notranslate"><span class="pre">TableRow.cells</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="widget.html#urwid.TableRow.contents"><code class="docutils literal notranslate"><span class="pre">TableRow.contents</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="widget.html#urwid.TableRow.focus"><code class="docutils literal notranslate"><span class="pre">TableRow.focus</span></code></a></li>
 <li class="toctree-l5"><a class="reference internal" href="widget.html#urwid.TableRow.focus_attr"><code class="docutils literal notranslate"><span class="pre">TableRow.focus_attr</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="widget.html#urwid.TableRow.focus_position"><code class="docutils literal notranslate"><span class="pre">TableRow.focus_position</span></code></a></li>
 <li class="toctree-l5"><a class="reference internal" href="widget.html#urwid.TableRow.index"><code class="docutils literal notranslate"><span class="pre">TableRow.index</span></code></a></li>
 <li class="toctree-l5"><a class="reference internal" href="widget.html#urwid.TableRow.layout"><code class="docutils literal notranslate"><span class="pre">TableRow.layout</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="widget.html#urwid.TableRow.options"><code class="docutils literal notranslate"><span class="pre">TableRow.options()</span></code></a></li>
 <li class="toctree-l5"><a class="reference internal" href="widget.html#urwid.TableRow.render"><code class="docutils literal notranslate"><span class="pre">TableRow.render()</span></code></a></li>
 <li class="toctree-l5"><a class="reference internal" href="widget.html#urwid.TableRow.selectable"><code class="docutils literal notranslate"><span class="pre">TableRow.selectable()</span></code></a></li>
 <li class="toctree-l5"><a class="reference internal" href="widget.html#urwid.TableRow.set_selectable"><code class="docutils literal notranslate"><span class="pre">TableRow.set_selectable()</span></code></a></li>
@@ -872,8 +933,10 @@
 <li class="toctree-l4"><a class="reference internal" href="widget.html#urwid.TableColumn"><code class="docutils literal notranslate"><span class="pre">TableColumn</span></code></a><ul>
 <li class="toctree-l5"><a class="reference internal" href="widget.html#urwid.TableColumn.align"><code class="docutils literal notranslate"><span class="pre">TableColumn.align</span></code></a></li>
 <li class="toctree-l5"><a class="reference internal" href="widget.html#urwid.TableColumn.attr"><code class="docutils literal notranslate"><span class="pre">TableColumn.attr</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="widget.html#urwid.TableColumn.key"><code class="docutils literal notranslate"><span class="pre">TableColumn.key</span></code></a></li>
 <li class="toctree-l5"><a class="reference internal" href="widget.html#urwid.TableColumn.label"><code class="docutils literal notranslate"><span class="pre">TableColumn.label</span></code></a></li>
 <li class="toctree-l5"><a class="reference internal" href="widget.html#urwid.TableColumn.min_width"><code class="docutils literal notranslate"><span class="pre">TableColumn.min_width</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="widget.html#urwid.TableColumn.priority"><code class="docutils literal notranslate"><span class="pre">TableColumn.priority</span></code></a></li>
 <li class="toctree-l5"><a class="reference internal" href="widget.html#urwid.TableColumn.width"><code class="docutils literal notranslate"><span class="pre">TableColumn.width</span></code></a></li>
 <li class="toctree-l5"><a class="reference internal" href="widget.html#urwid.TableColumn.wrap"><code class="docutils literal notranslate"><span class="pre">TableColumn.wrap</span></code></a></li>
 </ul>
@@ -882,6 +945,8 @@
 </li>
 <li class="toctree-l3"><a class="reference internal" href="widget.html#tablelayout">TableLayout</a><ul>
 <li class="toctree-l4"><a class="reference internal" href="widget.html#urwid.widget.TableLayout"><code class="docutils literal notranslate"><span class="pre">TableLayout</span></code></a><ul>
+<li class="toctree-l5"><a class="reference internal" href="widget.html#urwid.widget.TableLayout.column_index"><code class="docutils literal notranslate"><span class="pre">TableLayout.column_index()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="widget.html#urwid.widget.TableLayout.column_order"><code class="docutils literal notranslate"><span class="pre">TableLayout.column_order</span></code></a></li>
 <li class="toctree-l5"><a class="reference internal" href="widget.html#urwid.widget.TableLayout.columns"><code class="docutils literal notranslate"><span class="pre">TableLayout.columns</span></code></a></li>
 <li class="toctree-l5"><a class="reference internal" href="widget.html#urwid.widget.TableLayout.dividechars"><code class="docutils literal notranslate"><span class="pre">TableLayout.dividechars</span></code></a></li>
 <li class="toctree-l5"><a class="reference internal" href="widget.html#urwid.widget.TableLayout.invalidate_widths"><code class="docutils literal notranslate"><span class="pre">TableLayout.invalidate_widths()</span></code></a></li>
@@ -991,6 +1056,7 @@
 <li class="toctree-l5"><a class="reference internal" href="widget.html#urwid.BarGraph.calculate_bar_widths"><code class="docutils literal notranslate"><span class="pre">BarGraph.calculate_bar_widths()</span></code></a></li>
 <li class="toctree-l5"><a class="reference internal" href="widget.html#urwid.BarGraph.calculate_display"><code class="docutils literal notranslate"><span class="pre">BarGraph.calculate_display()</span></code></a></li>
 <li class="toctree-l5"><a class="reference internal" href="widget.html#urwid.BarGraph.hlines_display"><code class="docutils literal notranslate"><span class="pre">BarGraph.hlines_display()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="widget.html#urwid.BarGraph.keep"><code class="docutils literal notranslate"><span class="pre">BarGraph.keep</span></code></a></li>
 <li class="toctree-l5"><a class="reference internal" href="widget.html#urwid.BarGraph.render"><code class="docutils literal notranslate"><span class="pre">BarGraph.render()</span></code></a></li>
 <li class="toctree-l5"><a class="reference internal" href="widget.html#urwid.BarGraph.selectable"><code class="docutils literal notranslate"><span class="pre">BarGraph.selectable()</span></code></a></li>
 <li class="toctree-l5"><a class="reference internal" href="widget.html#urwid.BarGraph.set_bar_width"><code class="docutils literal notranslate"><span class="pre">BarGraph.set_bar_width()</span></code></a></li>
@@ -1067,9 +1133,24 @@
 <li class="toctree-l5"><a class="reference internal" href="widget.html#urwid.Terminal.set_termsize"><code class="docutils literal notranslate"><span class="pre">Terminal.set_termsize()</span></code></a></li>
 <li class="toctree-l5"><a class="reference internal" href="widget.html#urwid.Terminal.set_title"><code class="docutils literal notranslate"><span class="pre">Terminal.set_title()</span></code></a></li>
 <li class="toctree-l5"><a class="reference internal" href="widget.html#urwid.Terminal.spawn"><code class="docutils literal notranslate"><span class="pre">Terminal.spawn()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="widget.html#urwid.Terminal.term_type"><code class="docutils literal notranslate"><span class="pre">Terminal.term_type</span></code></a></li>
 <li class="toctree-l5"><a class="reference internal" href="widget.html#urwid.Terminal.terminate"><code class="docutils literal notranslate"><span class="pre">Terminal.terminate()</span></code></a></li>
 <li class="toctree-l5"><a class="reference internal" href="widget.html#urwid.Terminal.touch_term"><code class="docutils literal notranslate"><span class="pre">Terminal.touch_term()</span></code></a></li>
 <li class="toctree-l5"><a class="reference internal" href="widget.html#urwid.Terminal.wait_and_feed"><code class="docutils literal notranslate"><span class="pre">Terminal.wait_and_feed()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l4"><a class="reference internal" href="widget.html#urwid.TerminalOutput"><code class="docutils literal notranslate"><span class="pre">TerminalOutput</span></code></a><ul>
+<li class="toctree-l5"><a class="reference internal" href="widget.html#urwid.TerminalOutput.beep"><code class="docutils literal notranslate"><span class="pre">TerminalOutput.beep()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="widget.html#urwid.TerminalOutput.get_cursor_coords"><code class="docutils literal notranslate"><span class="pre">TerminalOutput.get_cursor_coords()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="widget.html#urwid.TerminalOutput.keypress"><code class="docutils literal notranslate"><span class="pre">TerminalOutput.keypress()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="widget.html#urwid.TerminalOutput.leds"><code class="docutils literal notranslate"><span class="pre">TerminalOutput.leds()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="widget.html#urwid.TerminalOutput.lf_to_crlf"><code class="docutils literal notranslate"><span class="pre">TerminalOutput.lf_to_crlf</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="widget.html#urwid.TerminalOutput.mouse_event"><code class="docutils literal notranslate"><span class="pre">TerminalOutput.mouse_event()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="widget.html#urwid.TerminalOutput.render"><code class="docutils literal notranslate"><span class="pre">TerminalOutput.render()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="widget.html#urwid.TerminalOutput.respond"><code class="docutils literal notranslate"><span class="pre">TerminalOutput.respond()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="widget.html#urwid.TerminalOutput.set_title"><code class="docutils literal notranslate"><span class="pre">TerminalOutput.set_title()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="widget.html#urwid.TerminalOutput.term_modes"><code class="docutils literal notranslate"><span class="pre">TerminalOutput.term_modes</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="widget.html#urwid.TerminalOutput.write"><code class="docutils literal notranslate"><span class="pre">TerminalOutput.write()</span></code></a></li>
 </ul>
 </li>
 </ul>
@@ -1464,6 +1545,9 @@
 <li class="toctree-l3"><a class="reference internal" href="attrspec.html#urwid.AttrSpec.strikethrough"><code class="docutils literal notranslate"><span class="pre">AttrSpec.strikethrough</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="attrspec.html#urwid.AttrSpec.style_only"><code class="docutils literal notranslate"><span class="pre">AttrSpec.style_only()</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="attrspec.html#urwid.AttrSpec.underline"><code class="docutils literal notranslate"><span class="pre">AttrSpec.underline</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="attrspec.html#urwid.AttrSpec.underline_color"><code class="docutils literal notranslate"><span class="pre">AttrSpec.underline_color</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="attrspec.html#urwid.AttrSpec.underline_rgb_values"><code class="docutils literal notranslate"><span class="pre">AttrSpec.underline_rgb_values()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="attrspec.html#urwid.AttrSpec.underline_style"><code class="docutils literal notranslate"><span class="pre">AttrSpec.underline_style</span></code></a></li>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="attrspec.html#urwid.Hyperlink"><code class="docutils literal notranslate"><span class="pre">Hyperlink</span></code></a></li>
@@ -1485,8 +1569,13 @@
 <li class="toctree-l4"><a class="reference internal" href="canvas.html#urwid.Canvas.finalize"><code class="docutils literal notranslate"><span class="pre">Canvas.finalize()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="canvas.html#urwid.Canvas.get_cursor"><code class="docutils literal notranslate"><span class="pre">Canvas.get_cursor()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="canvas.html#urwid.Canvas.get_pop_up"><code class="docutils literal notranslate"><span class="pre">Canvas.get_pop_up()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="canvas.html#urwid.Canvas.get_pop_up_align"><code class="docutils literal notranslate"><span class="pre">Canvas.get_pop_up_align()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="canvas.html#urwid.Canvas.get_pop_up_anchor_height"><code class="docutils literal notranslate"><span class="pre">Canvas.get_pop_up_anchor_height()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="canvas.html#urwid.Canvas.get_pop_up_anchor_width"><code class="docutils literal notranslate"><span class="pre">Canvas.get_pop_up_anchor_width()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="canvas.html#urwid.Canvas.get_pop_up_click_outside"><code class="docutils literal notranslate"><span class="pre">Canvas.get_pop_up_click_outside()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="canvas.html#urwid.Canvas.get_pop_up_margin"><code class="docutils literal notranslate"><span class="pre">Canvas.get_pop_up_margin()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="canvas.html#urwid.Canvas.get_pop_up_on_anchor_side"><code class="docutils literal notranslate"><span class="pre">Canvas.get_pop_up_on_anchor_side()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="canvas.html#urwid.Canvas.get_pop_up_pass_key_below"><code class="docutils literal notranslate"><span class="pre">Canvas.get_pop_up_pass_key_below()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="canvas.html#urwid.Canvas.get_pop_up_unhandled_key"><code class="docutils literal notranslate"><span class="pre">Canvas.get_pop_up_unhandled_key()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="canvas.html#urwid.Canvas.rows"><code class="docutils literal notranslate"><span class="pre">Canvas.rows()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="canvas.html#urwid.Canvas.set_cursor"><code class="docutils literal notranslate"><span class="pre">Canvas.set_cursor()</span></code></a></li>
@@ -1594,6 +1683,23 @@
 <li class="toctree-l4"><a class="reference internal" href="testing.html#urwid.testing.VirtualClockEventLoop.run_until_idle"><code class="docutils literal notranslate"><span class="pre">VirtualClockEventLoop.run_until_idle()</span></code></a></li>
 </ul>
 </li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="log_handler.html">Logging Handlers</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="log_handler.html#urwid.log_handler.ListWalkerHandler"><code class="docutils literal notranslate"><span class="pre">ListWalkerHandler</span></code></a><ul>
+<li class="toctree-l3"><a class="reference internal" href="log_handler.html#urwid.log_handler.ListWalkerHandler.close"><code class="docutils literal notranslate"><span class="pre">ListWalkerHandler.close()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="log_handler.html#urwid.log_handler.ListWalkerHandler.emit"><code class="docutils literal notranslate"><span class="pre">ListWalkerHandler.emit()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="log_handler.html#urwid.log_handler.ListWalkerHandler.resume"><code class="docutils literal notranslate"><span class="pre">ListWalkerHandler.resume()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="log_handler.html#urwid.log_handler.ListWalkerHandler.urwid_filter"><code class="docutils literal notranslate"><span class="pre">ListWalkerHandler.urwid_filter</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="log_handler.html#urwid.log_handler.NotificationsHandler"><code class="docutils literal notranslate"><span class="pre">NotificationsHandler</span></code></a><ul>
+<li class="toctree-l3"><a class="reference internal" href="log_handler.html#urwid.log_handler.NotificationsHandler.close"><code class="docutils literal notranslate"><span class="pre">NotificationsHandler.close()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="log_handler.html#urwid.log_handler.NotificationsHandler.emit"><code class="docutils literal notranslate"><span class="pre">NotificationsHandler.emit()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="log_handler.html#urwid.log_handler.NotificationsHandler.resume"><code class="docutils literal notranslate"><span class="pre">NotificationsHandler.resume()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="log_handler.html#urwid.log_handler.NotificationsHandler.urwid_filter"><code class="docutils literal notranslate"><span class="pre">NotificationsHandler.urwid_filter</span></code></a></li>
 </ul>
 </li>
 </ul>
@@ -1847,7 +1953,7 @@
         <li class="right" >
           <a href="../manual/testing.html" title="Testing Widgets"
              >previous</a> |</li>
-        <li class="nav-item nav-item-0"><a href="../index.html">Urwid 5.1.3</a> &#187;</li>
+        <li class="nav-item nav-item-0"><a href="../index.html">Urwid 5.2.0</a> &#187;</li>
         <li class="nav-item nav-item-this"><a href="">Urwid Reference</a></li> 
       </ul>
     </div>

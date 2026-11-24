@@ -5,12 +5,12 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
 
-    <title>User Input &#8212; Urwid 5.1.3</title>
+    <title>User Input &#8212; Urwid 5.2.0</title>
     <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=03e43079" />
     <link rel="stylesheet" type="text/css" href="../_static/classic.css?v=65f223dd" />
     <link rel="stylesheet" type="text/css" href="../_static/urwid_theme.css?v=de5f08c4" />
     
-    <script src="../_static/documentation_options.js?v=88590691"></script>
+    <script src="../_static/documentation_options.js?v=2dde5210"></script>
     <script src="../_static/doctools.js?v=fd6eb6e6"></script>
     <script src="../_static/sphinx_highlight.js?v=6ffebe34"></script>
     
@@ -32,7 +32,7 @@
         <li class="right" >
           <a href="widgets.html" title="Widgets"
              accesskey="P">previous</a> |</li>
-        <li class="nav-item nav-item-0"><a href="../index.html">Urwid 5.1.3</a> &#187;</li>
+        <li class="nav-item nav-item-0"><a href="../index.html">Urwid 5.2.0</a> &#187;</li>
           <li class="nav-item nav-item-1"><a href="index.html" accesskey="U">Urwid Manual</a> &#187;</li>
         <li class="nav-item nav-item-this"><a href="">User Input</a></li> 
       </ul>
@@ -116,7 +116,8 @@ as typed text: <code class="docutils literal notranslate"><span class="pre">ESC<
 decoded with that encoding. A byte that is not a character of a non-UTF-8
 encoding is returned as the Latin-1 character with the same value. A byte that
 is not valid UTF-8 is returned as its value in angle brackets, such as
-<code class="docutils literal notranslate"><span class="pre">'&lt;255&gt;'</span></code>.</p>
+<code class="docutils literal notranslate"><span class="pre">'&lt;255&gt;'</span></code>, and so is a C1 control character, U+0080 to U+009F, in any
+encoding, such as <code class="docutils literal notranslate"><span class="pre">'&lt;155&gt;'</span></code>, so that it is not received as typed text.</p>
 <table class="docutils align-default">
 <thead>
 <tr class="row-odd"><th class="head"><p>Key pressed</p></th>
@@ -217,7 +218,8 @@ keypad keys are sent as the main keys, which urwid names them as, and pasted
 text is sent as text.</p>
 <p>Without these flags, the Terminal passes ENTER, TAB, BACKSPACE and ESC with
 modifiers, and CTRL with SPACE, /, ? or ~, to its child as a legacy terminal
-sends them under the <code class="docutils literal notranslate"><span class="pre">linux</span></code> terminal type, so <code class="docutils literal notranslate"><span class="pre">'ctrl</span> <span class="pre">enter'</span></code> arrives as
+sends them under the <code class="docutils literal notranslate"><span class="pre">linux</span></code> terminal type, also for <code class="docutils literal notranslate"><span class="pre">xterm-256color</span></code>
+except for Shift+TAB, which is sent as <code class="docutils literal notranslate"><span class="pre">CSI</span> <span class="pre">Z</span></code>, so <code class="docutils literal notranslate"><span class="pre">'ctrl</span> <span class="pre">enter'</span></code> arrives as
 ENTER. It returns the other new keys, such as <code class="docutils literal notranslate"><span class="pre">'super</span> <span class="pre">a'</span></code>.</p>
 </section>
 <section id="flow-control-keys">
@@ -400,6 +402,16 @@ browser reports.</p></li>
 <p>A terminal reports buttons 4 to 7 by adding 64 to the code of buttons 1 to 4,
 and buttons 8 to 11 by adding 128, as described in the “Mouse Tracking”
 section of <a class="reference external" href="https://invisible-island.net/xterm/ctlseqs/ctlseqs.html">XTerm Control Sequences</a>.</p>
+<p>Without mouse tracking, as with <code class="docutils literal notranslate"><span class="pre">handle_mouse=False</span></code>, a terminal in
+alternate scroll mode (DEC private mode 1007) sends the wheel on the
+alternate screen as <code class="docutils literal notranslate"><span class="pre">'up'</span></code> and <code class="docutils literal notranslate"><span class="pre">'down'</span></code> keys, so a list box still scrolls
+with it. Many terminals turn the mode on themselves, and the raw screen leaves
+it as it is. To choose it, pass <code class="docutils literal notranslate"><span class="pre">alternate_scroll</span></code>; the screen sets the mode
+when it starts and sets back the state the terminal reported when it stops, or
+leaves it as set when the terminal reported none:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">screen</span> <span class="o">=</span> <span class="n">urwid</span><span class="o">.</span><span class="n">display</span><span class="o">.</span><span class="n">raw</span><span class="o">.</span><span class="n">Screen</span><span class="p">(</span><span class="n">alternate_scroll</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+</pre></div>
+</div>
 <aside class="footnote-list brackets">
 <aside class="footnote brackets" id="wheel" role="doc-footnote">
 <span class="label"><span class="fn-bracket">[</span>1<span class="fn-bracket">]</span></span>
@@ -506,7 +518,7 @@ one position off the screen if the user drags their mouse to the edge.</p>
         <li class="right" >
           <a href="widgets.html" title="Widgets"
              >previous</a> |</li>
-        <li class="nav-item nav-item-0"><a href="../index.html">Urwid 5.1.3</a> &#187;</li>
+        <li class="nav-item nav-item-0"><a href="../index.html">Urwid 5.2.0</a> &#187;</li>
           <li class="nav-item nav-item-1"><a href="index.html" >Urwid Manual</a> &#187;</li>
         <li class="nav-item nav-item-this"><a href="">User Input</a></li> 
       </ul>
