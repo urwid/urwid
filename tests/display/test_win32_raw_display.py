@@ -307,6 +307,7 @@ class TestScreenInput(unittest.TestCase):
                 side_effect=lambda *_a, **_kw: readers.append(mock.Mock(should_exit=False)) or readers[-1],
             ),
             mock.patch.object(s, "_started", True),
+            mock.patch.object(s, "_console_window_size", return_value=None),  # no real console handle in the test
         ):
             s.hook_event_loop(event_loop, mock.Mock())
             s.stop()
