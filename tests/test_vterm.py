@@ -1107,6 +1107,16 @@ class TermTest(unittest.TestCase):
                 "\\e]4;1; rgb:11/22/33\x07\\e]4;1;?\x07",
                 b"\x1b]4;1;rgb:cdcd/0000/0000\x07",
             ),
+            (
+                "rgb: ignores what follows a slash after the third component",
+                "\\e]4;1;rgb:11/22/33/44\x07\\e]4;1;?\x07\\e]4;2;rgb:11/22/33//x\x07\\e]4;2;?\x07",
+                b"\x1b]4;1;rgb:1111/2222/3333\x07\x1b]4;2;rgb:1111/2222/3333\x07",
+            ),
+            (
+                "rgb: with text after the third component is not read",
+                "\\e]4;1;rgb:11/22/33x\x07\\e]4;1;?\x07",
+                b"\x1b]4;1;rgb:cdcd/0000/0000\x07",
+            ),
             ("a string that is not valid UTF-8 is ignored", "\\e]4;1;?\xff\x07", b""),
             ("a string with a control character is ignored", "\\e]4;1;\t?\x07", b""),
             ("a query before a NUL is answered", "\\e]4;1;?\x00\x07", b"\x1b]4;1;rgb:cdcd/0000/0000\x07"),

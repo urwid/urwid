@@ -253,6 +253,8 @@ It differs from xterm, or adds to it, in these points:
     when the screen reports it; OSC 110, 111 and 112 set them back.  The cells
     in the default colors are drawn with the colors set, on a display of 88 or
     more colors.  RIS and DECSTR keep them.
+  * An ``rgb:`` color ignores anything after a ``/`` that follows its third
+    component, so ``rgb:1/2/3/4`` is ``rgb:1/2/3``.
 
   It does not follow xterm in these points:
 

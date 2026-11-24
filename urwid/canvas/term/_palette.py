@@ -107,19 +107,22 @@ def _x11_rgb(spec: str) -> tuple[int, int, int] | None:
 
     The forms read are xterm's numeric ones, whose prefix is case-insensitive:
 
-    - ``rgb:r/g/b``, each component 1 to 4 hex digits, scaled to the full range;
+    - ``rgb:r/g/b``, each component 1 to 4 hex digits, scaled to the full range; as in xterm, anything after a ``/``
+      that follows the third component is ignored;
     - ``#rgb``, the components with the same number of hex digits, 1 to 4, as the high bits.
 
     Color names and the other X11 forms, such as ``rgbi:``, are not read.
 
     >>> _x11_rgb("rgb:f/8/0"), _x11_rgb("RGB:123/456/789"), _x11_rgb("#f80"), _x11_rgb("#123456789abc")
     ((255, 136, 0), (18, 69, 120), (240, 128, 0), (18, 86, 154))
+    >>> _x11_rgb("rgb:1/2/3/4"), _x11_rgb("rgb:1/2/3junk")
+    ((17, 34, 51), None)
     >>> _x11_rgb("rgb:12/34"), _x11_rgb("#12345"), _x11_rgb("orange")
     (None, None, None)
     """
     lower = spec.lower()
     if lower.startswith("rgb:"):
-        components = lower.removeprefix("rgb:").split("/")
+        components = lower.removeprefix("rgb:").split("/", 3)[:3]
         if len(components) != 3 or not all(
             0 < len(component) <= _MAX_SPEC_DIGITS and _SPEC_HEX_DIGITS.issuperset(component)
             for component in components
