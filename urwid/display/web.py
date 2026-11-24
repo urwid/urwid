@@ -30,6 +30,7 @@ import html
 import os
 import pathlib
 import secrets
+import select
 import selectors
 import signal
 import socket
@@ -548,10 +549,19 @@ def handle_short_request() -> bool:
         return True
 
     # this is a keyboard input request
+    _send_keys(pipe_name)
+    return True
+
+
+def _send_keys(pipe_name: str) -> None:
+    """Write the keys in the request body to the input pipe of the screen, and write the response.
+
+    :param pipe_name: the path prefix of the session files, see :func:`_session_path`.
+    """
     keydata = _read_request_body(MAX_READ)
     if keydata is None:
         sys.stdout.write("Status: 400 Bad Request\r\n\r\n")
-        return True
+        return
 
     try:
         # Non-blocking: with no screen reading the pipe, as after the screen process was killed,
@@ -559,27 +569,35 @@ def handle_short_request() -> bool:
         fd = os.open(f"{pipe_name}.in", os.O_WRONLY | os.O_NONBLOCK)
     except OSError:
         sys.stdout.write("Status: 404 Not Found\r\n\r\n")
-        return True
+        return
 
     try:
-        os.set_blocking(fd, True)
         try:
             encoded_keydata = keydata.decode(_request_charset()).encode(_PIPE_ENCODING)
         except (LookupError, UnicodeError):
             sys.stdout.write("Status: 400 Bad Request\r\n\r\n")
-            return True
+            return
+        if len(encoded_keydata) > select.PIPE_BUF:
+            # A longer write can be split, with the keys of another request between its parts; the page keeps its
+            # requests within send_body_max.
+            sys.stdout.write("Status: 413 Content Too Large\r\n\r\n")
+            return
         try:
+            # Non-blocking and at most PIPE_BUF bytes: the keys are written whole or not at all.
             os.write(fd, encoded_keydata)
+        except BlockingIOError:
+            # The application reads no input now and the pipe is full; the page sends the keys again,
+            # waiting longer each time up to this Retry-After.
+            sys.stdout.write("Status: 429 Too Many Requests\r\nRetry-After: 1\r\n\r\n")
+            return
         except BrokenPipeError:
             # the screen exited after the open
             sys.stdout.write("Status: 404 Not Found\r\n\r\n")
-            return True
+            return
     finally:
         with suppress(OSError):
             os.close(fd)
     sys.stdout.write("Content-type: text/plain\r\n\r\n")
-
-    return True
 
 
 @dataclasses.dataclass(slots=True, weakref_slot=True)

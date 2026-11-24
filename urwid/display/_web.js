@@ -25,6 +25,11 @@ const boundary = "ZZ";
 const check_font_delay = 1000;
 const poll_again_delay = 500;
 const send_queue_max = 32;
+// The largest request body: the least write to a pipe POSIX keeps whole, so the server writes the keys at once.
+const send_body_max = 512;
+// Waits before sending keys a full pipe refused again: doubled on each refusal in a row, up to the server's Retry-After.
+const send_again_delay_min = 100;
+const send_again_delay_max = 1000;
 
 const request_url = document.URL;
 
@@ -286,9 +291,21 @@ async function flush_send_queue() {
 
     sending = true;
     try {
+        const encoder = new TextEncoder();
+        let send_again_delay = send_again_delay_min;
         while (send_queue.length > 0 && update_method) {
-            const keys = send_queue;
-            send_queue = [];
+            // the first key is always sent; each key ends with a line feed
+            let count = 1;
+            let size = encoder.encode(send_queue[0] + "\n").length;
+            while (count < send_queue.length) {
+                const next = encoder.encode(send_queue[count] + "\n").length;
+                if (size + next > send_body_max) {
+                    break;
+                }
+                size += next;
+                count += 1;
+            }
+            const keys = send_queue.splice(0, count);
 
             const response = await fetch(request_url, {
                 method: "POST",
@@ -298,9 +315,17 @@ async function flush_send_queue() {
                 },
                 body: keys.join("\n") + "\n"
             });
+            if (response.status === 429) {
+                // the application reads no input now: send the same keys again, ahead of the newer ones
+                send_queue = keys.concat(send_queue);
+                await new Promise((resolve) => setTimeout(resolve, send_again_delay));
+                send_again_delay = Math.min(send_again_delay * 2, send_again_delay_max);
+                continue;
+            }
             if (!check_response(response)) {
                 return;
             }
+            send_again_delay = send_again_delay_min;
         }
     } catch (e) {
         connection_failed(e);

@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import contextlib
 import io
 import itertools
 import os
@@ -134,7 +135,7 @@ class HandleShortRequestTest(unittest.TestCase):
                 os.O_WRONLY | os.O_NONBLOCK,
             )
 
-        set_blocking.assert_called_once_with(42, True)
+        set_blocking.assert_not_called()  # a full pipe is answered, not waited for
         write.assert_called_once_with(42, b"\xc3\xa9\n")
         close.assert_called_once_with(42)
         self.assertEqual("Content-type: text/plain\r\n\r\n", stdout.getvalue())
@@ -254,6 +255,68 @@ class HandleShortRequestTest(unittest.TestCase):
             self.assertTrue(web.handle_short_request())
 
         self.assertEqual("Status: 404 Not Found\r\n\r\n", stdout.getvalue())
+
+    def _post_keys(self, body: bytes) -> str:
+        """Send *body* as a latin-1 keystroke request, and return the response."""
+        stdin = io.TextIOWrapper(io.BytesIO(body), encoding="ascii")
+        stdout = io.StringIO()
+        environ = {**self.environ, "CONTENT_TYPE": "text/plain; charset=latin-1", "CONTENT_LENGTH": str(len(body))}
+        with (
+            mock.patch.dict(os.environ, environ, clear=True),
+            mock.patch.object(web.sys, "stdin", stdin),
+            mock.patch.object(web.sys, "stdout", stdout),
+        ):
+            self.assertTrue(web.handle_short_request())
+        return stdout.getvalue()
+
+    def _open_screen_pipe(self) -> int:
+        """Create the screen's input FIFO and return the screen's reading end."""
+        pipe = f"{web._session_path('valid-id')}.in"
+        os.mkfifo(pipe, 0o600)
+        reader = os.open(pipe, os.O_RDONLY | os.O_NONBLOCK)
+        self.addCleanup(os.close, reader)
+        return reader
+
+    @unittest.skipIf(IS_WINDOWS, "The client pipe is a POSIX-only os.mkfifo FIFO")
+    def test_keyboard_input_longer_than_pipe_buf_is_refused(self) -> None:
+        """Refuse keys longer than PIPE_BUF once encoded, and write none of them.
+
+        The pipe could split a longer write, with the keys of another request between its parts.
+        """
+        reader = self._open_screen_pipe()
+        # latin-1 "\xe9" becomes two bytes of UTF-8, so a body within MAX_READ grows past PIPE_BUF
+        body = b"\xe9" * (web.MAX_READ - 1) + b"\n"
+
+        self.assertEqual("Status: 413 Content Too Large\r\n\r\n", self._post_keys(body))
+        # the request closed its end, so an empty pipe reads as end of file
+        self.assertEqual(b"", os.read(reader, 1))
+
+    @unittest.skipIf(IS_WINDOWS, "The client pipe is a POSIX-only os.mkfifo FIFO")
+    def test_keyboard_input_to_a_full_pipe_is_sent_again(self) -> None:
+        """Answer 429 for keys a full pipe has no room for, at once and without writing any of them."""
+        reader = self._open_screen_pipe()
+        filler = os.open(f"{web._session_path('valid-id')}.in", os.O_WRONLY | os.O_NONBLOCK)
+        self.addCleanup(os.close, filler)
+        filled = 0
+        with contextlib.suppress(BlockingIOError):
+            while True:
+                filled += os.write(filler, b"x" * 512)
+
+        def blocked(_sig: int, _frame: object) -> None:
+            self.fail("writing to a full pipe blocked")
+
+        # an AssertionError is not an OSError, so the handler's except clauses cannot turn a hang into an answer
+        previous = signal.signal(signal.SIGALRM, blocked)
+        self.addCleanup(signal.signal, signal.SIGALRM, previous)
+        self.addCleanup(signal.alarm, 0)
+        signal.alarm(5)
+
+        self.assertEqual("Status: 429 Too Many Requests\r\nRetry-After: 1\r\n\r\n", self._post_keys(b"a\n"))
+        received = 0
+        with contextlib.suppress(BlockingIOError):
+            while chunk := os.read(reader, 65536):
+                received += len(chunk)
+        self.assertEqual(filled, received)
 
     @unittest.skipIf(IS_WINDOWS, "The polling update channel is a POSIX-only socket.AF_UNIX socket")
     def test_polling_decodes_after_receiving_complete_utf8_payload(self) -> None:
