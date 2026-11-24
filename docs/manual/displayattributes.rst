@@ -341,6 +341,9 @@ Code written for earlier releases sees these differences, also with palettes tha
 * An attribute an :class:`AttrMap` maps to ``None`` shows the map's ``None`` attribute.
 * :meth:`AttrSpec.copy_modified` without ``colors`` keeps the 88-color or true-color mode of the
   specification, and uses 256 colors otherwise, instead of the fewest colors it needs.
+  A color it is not given keeps its kind and number.
+* ``repr()`` of a true color :class:`AttrSpec` names ``colors=16777216``.
+* :class:`ANSIText` and the :class:`Terminal` widget keep a palette entry beside a 24-bit color as an entry.
 
 .. _bold-underline-standout:
 
@@ -485,6 +488,10 @@ specify a precise RGB value for foreground and background colors.  Support for
 24-bit color mode varies widely among terminal programs.  Furthermore, terminal
 multiplexers such as tmux and screen can sometimes interfere with the operation
 of 24-bit color mode unless properly configured.
+
+In 24-bit mode, ``'h0'`` to ``'h255'`` are entries of the 256-color palette, kept as entries: the raw display
+writes ``38;5;n`` for them, so a terminal whose theme redefines an entry draws the redefined color.
+A cube or gray shortcut such as ``'#f00'`` or ``'g50'`` is a 24-bit color in this mode.
 
 .. seealso::
    The palette_test.py_ example program

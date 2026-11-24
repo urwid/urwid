@@ -100,6 +100,21 @@ _FG_MASK = (
 )
 _BG_MASK = _BG_COLOR_MASK | _BG_BASIC_COLOR | _BG_HIGH_COLOR | _BG_INHERIT
 _INHERIT_MASK = _FG_INHERIT | _BG_INHERIT
+# the flags that give the kind of the foreground color and of the background color
+_FG_KIND_MASK = _FG_BASIC_COLOR | _FG_HIGH_COLOR | _FG_TRUE_COLOR | _FG_INHERIT
+_BG_KIND_MASK = _BG_BASIC_COLOR | _BG_HIGH_COLOR | _BG_TRUE_COLOR | _BG_INHERIT
+# the settings of an attribute: everything but its colors and its color mode
+_SETTINGS_MASK = (
+    _STANDOUT
+    | _UNDERLINE
+    | _BOLD
+    | _BLINK
+    | _ITALICS
+    | _STRIKETHROUGH
+    | _FAINT
+    | _SETTINGS_OFF_MASK
+    | _UNDERLINE_STYLE_MASK
+)
 
 
 _ATTRIBUTES = {
@@ -233,7 +248,8 @@ class AttrSpec:
               'g40' (40% gray, decimal), 'g#cc' (80% gray, hex),
               '#000', 'g0', 'g#00' (black),
               '#fff', 'g100', 'g#ff' (white)
-              'h8' (color number 8), 'h255' (color number 255)
+              'h8' (color number 8), 'h255' (color number 255);
+              with 2**24 colors 'hN' is kept as palette entry N, and the cube and gray forms are 24-bit colors
 
               Setting:
               'bold', 'italics', 'underline', 'blink', 'standout', 'strikethrough', 'faint';
@@ -323,6 +339,10 @@ class AttrSpec:
 
         Without *colors*, the result uses 88 colors or true color when this specification was made for them,
         else 256 colors, so a color can be added to a specification that has none.
+        A given color is parsed in the color mode of the result.
+        A color that is not given keeps its kind and number, a palette entry included.
+        Only when *colors* names a mode that cannot hold it, it is converted as that mode parses its description:
+        approximated at 256 and 88 colors, and an 88-color entry above 15 becomes its RGB value at true color.
         The hyperlink and the underline color are kept unless given; ``None`` makes the result take the enclosing one.
 
         The result is built with this object's class.
@@ -331,6 +351,7 @@ class AttrSpec:
 
         :raises AttrSpecError: *colors* is not a supported palette size, or *fg*, *bg* or *underline_color* is invalid
             or needs more colors than the result has.
+            A kept color that *colors* cannot hold, such as a palette entry with 16 colors, raises as well.
         :raises ValueError: *hyperlink* is a string that is not a valid :class:`Hyperlink` URI.
         :raises TypeError: the result has a link or an underline color, and the constructor of this object's class does
             not accept it.
@@ -340,23 +361,67 @@ class AttrSpec:
         >>> AttrSpec(hyperlink="https://urwid.org").copy_modified(hyperlink=None)
         AttrSpec('inherit', 'inherit')
         """
+        new_colors = self.__color_mode() if colors is None else colors
         if fg is None:
-            foreground = self.foreground
+            foreground = (
+                self.__kept_color(self.__value & _FG_KIND_MASK, self.foreground_number, new_colors)
+                + self.foreground[len(self._foreground_color()) :]
+            )
         else:
             foreground = fg
 
         if bg is None:
-            background = self.background
+            background = self.__kept_color(self.__value & _BG_KIND_MASK, self.background_number, new_colors)
         else:
             background = bg
 
-        new_colors = self.__color_mode() if colors is None else colors
         extra: dict[str, typing.Any] = {}
         if (link := self.__hyperlink if hyperlink is _Keep.KEEP else hyperlink) is not None:
             extra["hyperlink"] = link
-        if (line := self.underline_color if underline_color is _Keep.KEEP else underline_color) is not None:
+        if underline_color is _Keep.KEEP:
+            line = None if self.__underline_color is None else self.__kept_underline_color(new_colors)
+        else:
+            line = underline_color
+        if line is not None:
             extra["underline_color"] = line
         return self.__class__(foreground, background, new_colors, **extra)
+
+    def __kept_color(self, bits: int, number: int, colors: int) -> str:
+        """Return the description of a kept foreground or background color for a result in color mode *colors*.
+
+        :param bits: this specification's value masked to the kind flags of the foreground or the background.
+        :param number: the color number of that field.
+        """
+        if bits & _INHERIT_MASK:
+            return INHERIT
+        if bits & (_FG_BASIC_COLOR | _BG_BASIC_COLOR):
+            return _BASIC_COLORS[number]
+        if bits & (_FG_HIGH_COLOR | _BG_HIGH_COLOR):
+            return self.__kept_high_color(number, colors)
+        if bits & (_FG_TRUE_COLOR | _BG_TRUE_COLOR):
+            return _color_desc_true(number)
+        return DEFAULT
+
+    def __kept_underline_color(self, colors: int) -> str:
+        """Return the description of the kept underline color for a result in color mode *colors*."""
+        line = typing.cast("int", self.__underline_color)
+        if line >> _COLOR_KIND_SHIFT == _COLOR_HIGH:
+            return self.__kept_high_color(line & _FG_COLOR_MASK, colors)
+        return typing.cast("str", self.underline_color)
+
+    def __kept_high_color(self, number: int, colors: int) -> str:
+        """Return the description of palette entry *number* that a result in color mode *colors* parses.
+
+        A true color result keeps the entry, and an 88-color entry above 15 becomes its RGB value.
+        Any other mode parses the description of the entry in this specification's palette, as an approximation
+        where that mode has another palette.
+        """
+        if colors != 2**24:
+            return _color_desc_88(number) if self.__value & _HIGH_88_COLOR else _color_desc_256(number)
+        if self.__value & _HIGH_88_COLOR and number >= 16:
+            red, green, blue = _COLOR_VALUES_88[number]
+            return _color_desc_true((red << 16) + (green << 8) + blue)
+        return f"h{number:d}"
 
     def __color_mode(self) -> Literal[88, 256, 16777216]:
         """Return the color mode this specification was made for: 88 colors, true color, or else 256 colors."""
@@ -374,6 +439,24 @@ class AttrSpec:
     def _value(self) -> int:
         """Read-only value access."""
         return self.__value
+
+    @property
+    def _underline_value(self) -> int | None:
+        """Return the stored underline color: its kind above its 24-bit number, ``None`` for the enclosing one."""
+        return self.__underline_color
+
+    @classmethod
+    def _from_value(cls, value: int, underline_color: int | None, hyperlink: Hyperlink | None) -> AttrSpec:
+        """Return a plain :class:`AttrSpec` holding the stored *value*, *underline_color* and *hyperlink* as they are.
+
+        The caller builds valid values: no description is parsed, so no color mode can change a color.
+        """
+        spec = object.__new__(AttrSpec)
+        spec.__value = value
+        spec.__underline_color = underline_color
+        spec.__hyperlink = hyperlink
+        spec.__hash_value = hash((AttrSpec, value, hyperlink))
+        return spec
 
     @property
     def hyperlink(self) -> Hyperlink | None:
@@ -478,7 +561,7 @@ class AttrSpec:
             case 1:
                 return _BASIC_COLORS[number]
             case 2:
-                return _color_desc_88(number) if self.__value & _HIGH_88_COLOR else _color_desc_256(number)
+                return self.__high_color_desc(number)
             case 3:
                 return _color_desc_true(number)
             case _:
@@ -534,10 +617,10 @@ class AttrSpec:
         line_kind = (self.__underline_color or 0) >> _COLOR_KIND_SHIFT
         if self.__value & _HIGH_88_COLOR:
             return 88
-        if self.__value & (_BG_HIGH_COLOR | _FG_HIGH_COLOR) or line_kind == _COLOR_HIGH:
-            return 256
         if self.__value & (_BG_TRUE_COLOR | _FG_TRUE_COLOR) or line_kind == _COLOR_TRUE:
             return 16777216  # we have to return explicit 2**24 instead of inline calculation
+        if self.__value & (_BG_HIGH_COLOR | _FG_HIGH_COLOR) or line_kind == _COLOR_HIGH:
+            return 256
         if self.__value & (_BG_BASIC_COLOR | _FG_BASIC_COLOR) or line_kind == _COLOR_BASIC:
             return 16
         return 1
@@ -545,9 +628,9 @@ class AttrSpec:
     def __repr__(self) -> str:
         """Return an executable python representation of the AttrSpec object."""
         args = f"{self.foreground!r}, {self.background!r}"
-        if self.colors == 88:
-            # 88-color mode is the only one that is handled differently
-            args = f"{args}, colors=88"
+        if (mode := self.__color_mode()) != 256:
+            # the descriptions of the getters are parsed back in the mode the specification was made for
+            args = f"{args}, colors={mode:d}"
         if self.__hyperlink is not None:
             args = f"{args}, hyperlink={self.__hyperlink!r}"
         if self.__underline_color is not None:
@@ -562,11 +645,20 @@ class AttrSpec:
             return "default"
         if self.foreground_basic:
             return _BASIC_COLORS[self.foreground_number]
-        if self.colors == 88:
-            return _color_desc_88(self.foreground_number)
-        if self.colors == 2**24:
+        if self.foreground_true:
             return _color_desc_true(self.foreground_number)
-        return _color_desc_256(self.foreground_number)
+        return self.__high_color_desc(self.foreground_number)
+
+    def __high_color_desc(self, number: int) -> str:
+        """Return the description of palette entry *number*, which parses back to it in this specification's mode.
+
+        In true color mode it is ``hN``, since a cube or gray description would parse as a 24-bit color there.
+        """
+        if self.__value & _HIGH_88_COLOR:
+            return _color_desc_88(number)
+        if self.__value & _HIGH_TRUE_COLOR:
+            return f"h{number:d}"
+        return _color_desc_256(number)
 
     @property
     def foreground(self) -> str:
@@ -644,11 +736,9 @@ class AttrSpec:
             return "default"
         if self.background_basic:
             return _BASIC_COLORS[self.background_number]
-        if self.__value & _HIGH_88_COLOR:
-            return _color_desc_88(self.background_number)
-        if self.colors == 2**24:
+        if self.background_true:
             return _color_desc_true(self.background_number)
-        return _color_desc_256(self.background_number)
+        return self.__high_color_desc(self.background_number)
 
     def __set_background(self, background: str) -> None:
         """
@@ -678,6 +768,9 @@ class AttrSpec:
         if self.__value & _HIGH_88_COLOR:
             return _parse_color_88(color), _COLOR_HIGH
         if self.__value & _HIGH_TRUE_COLOR:
+            # a palette entry keeps its slot, which the terminal may have redefined
+            if color.startswith("h") and (index := _parse_color_256(color)) is not None:
+                return index, _COLOR_HIGH
             return _parse_color_true(color), _COLOR_TRUE
         return _parse_color_256(_true_to_256(color) or color), _COLOR_HIGH
 
@@ -696,41 +789,41 @@ class AttrSpec:
 
         :raises ValueError: this AttrSpec holds a colour number outside the 88-colour range.
         """
-        vals: tuple[int | None, int | None, int | None]
-        if not (self.foreground_basic or self.foreground_high or self.foreground_true):
-            vals = (None, None, None)
-        elif self.colors == 88:
-            if self.foreground_number >= 88:
-                raise ValueError(f"Invalid AttrSpec _value: {self.foreground_number!r}")
-            vals = _COLOR_VALUES_88[self.foreground_number]
-        elif self.foreground_true:
-            h = f"{self.foreground_number:06x}"
-            vals = typing.cast(
-                "tuple[int, int, int]",
-                tuple(int(x, 16) for x in (h[0:2], h[2:4], h[4:6])),
-            )
-        else:
-            vals = _COLOR_VALUES_256[self.foreground_number]
-
-        bg_vals: tuple[int | None, int | None, int | None]
-        if not (self.background_basic or self.background_high or self.background_true):
-            bg_vals = (None, None, None)
-        elif self.colors == 88:
-            if self.background_number >= 88:
-                raise ValueError(f"Invalid AttrSpec _value: {self.background_number!r}")
-            bg_vals = _COLOR_VALUES_88[self.background_number]
-        elif self.background_true:
-            h = f"{self.background_number:06x}"
-            bg_vals = typing.cast(
-                "tuple[int, int, int]",
-                tuple(int(x, 16) for x in (h[0:2], h[2:4], h[4:6])),
-            )
-        else:
-            bg_vals = _COLOR_VALUES_256[self.background_number]
-
-        fg_red, fg_green, fg_blue = vals
-        bg_red, bg_green, bg_blue = bg_vals
+        fg_red, fg_green, fg_blue = self.__rgb_values(
+            self.foreground_number,
+            basic=self.foreground_basic,
+            high=self.foreground_high,
+            true=self.foreground_true,
+        )
+        bg_red, bg_green, bg_blue = self.__rgb_values(
+            self.background_number,
+            basic=self.background_basic,
+            high=self.background_high,
+            true=self.background_true,
+        )
         return (fg_red, fg_green, fg_blue, bg_red, bg_green, bg_blue)
+
+    def __rgb_values(
+        self,
+        number: int,
+        *,
+        basic: bool,
+        high: bool,
+        true: bool,
+    ) -> tuple[int, int, int] | tuple[None, None, None]:
+        """Return the components of one color of the given kind, ``None`` for each of a default or inherited one.
+
+        :raises ValueError: an 88-color specification holds a number outside the 88-color range.
+        """
+        if true:
+            return (number >> 16, number >> 8 & 0xFF, number & 0xFF)
+        if not (basic or high):
+            return (None, None, None)
+        if self.__value & _HIGH_88_COLOR:
+            if number >= 88:
+                raise ValueError(f"Invalid AttrSpec _value: {number!r}")
+            return _COLOR_VALUES_88[number]
+        return _COLOR_VALUES_256[number]
 
     def layered_over(
         self,

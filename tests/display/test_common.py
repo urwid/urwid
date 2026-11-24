@@ -5,7 +5,15 @@ import unittest
 
 from urwid import LayeredAttr, signals
 from urwid.display import common
-from urwid.display.common import NO_HYPERLINK, AttrSpec, AttrSpecError, Hyperlink, _browser_href, attr_spec_to_css
+from urwid.display.common import (
+    NO_HYPERLINK,
+    AttrSpec,
+    AttrSpecError,
+    Hyperlink,
+    _browser_href,
+    _depth,
+    attr_spec_to_css,
+)
 from urwid.testing import ScriptedScreen
 
 if typing.TYPE_CHECKING:
@@ -360,6 +368,121 @@ class AttrSpecHighColorTest(unittest.TestCase):
                 self.assertEqual(("h0", "h0"), (aspec.foreground, aspec.background))
                 self.assertEqual(0, aspec.foreground_number)
                 self.assertIsNotNone(aspec.underline_color)
+
+
+class AttrSpecChannelTest(unittest.TestCase):
+    """Each color channel keeps its kind: a basic color, a palette entry or an RGB value."""
+
+    def test_true_color_mode_keeps_palette_entries(self) -> None:
+        """Keep ``hN`` as entry N in true color mode, and name the mode in ``repr``, which parses back equal."""
+        for spec, text in (
+            (AttrSpec("h1", "default", 2**24), "AttrSpec('h1', 'default', colors=16777216)"),
+            (AttrSpec("dark red", "dark blue", 2**24), "AttrSpec('dark red', 'dark blue', colors=16777216)"),
+            (AttrSpec("default", "default", 2**24), "AttrSpec('default', 'default', colors=16777216)"),
+            (
+                AttrSpec("h196", "default", 2**24, underline_color="h46"),
+                "AttrSpec('h196', 'default', colors=16777216, underline_color='h46')",
+            ),
+            (
+                AttrSpec("h196,bold", "#102030", 2**24, underline_color="h46"),
+                "AttrSpec('h196,bold', '#102030', colors=16777216, underline_color='h46')",
+            ),
+            (AttrSpec("#102030", "default", 2**24), "AttrSpec('#102030', 'default', colors=16777216)"),
+        ):
+            with self.subTest(text):
+                self.assertEqual(text, repr(spec))
+                self.assertEqual(spec, eval(repr(spec)))  # noqa: S307  # the repr of an AttrSpec this test built
+        mixed = AttrSpec("h196", "#102030", 2**24, underline_color="h46")
+        self.assertEqual((True, 196), (mixed.foreground_high, mixed.foreground_number))
+        self.assertEqual((255, 0, 0, 16, 32, 48), mixed.get_rgb_values())
+        self.assertEqual((0, 255, 0), mixed.underline_rgb_values())
+        self.assertEqual(256, AttrSpec("h1", "default", 2**24).colors)
+        self.assertEqual(2**24, mixed.colors)
+
+    def test_descriptions_of_one_mode_are_unchanged(self) -> None:
+        for spec, foreground, background, line in (
+            (AttrSpec("h196", "g40", underline_color="h46"), "#f00", "g38", "#0f0"),
+            (AttrSpec("h22", "#ccf", 88, underline_color="h3"), "#08c", "#ccf", "h3"),
+            (AttrSpec("dark red", "light gray", 16, underline_color="yellow"), "dark red", "light gray", "yellow"),
+        ):
+            with self.subTest(repr(spec)):
+                self.assertEqual(
+                    (foreground, background, line), (spec.foreground, spec.background, spec.underline_color)
+                )
+                self.assertEqual(spec, eval(repr(spec)))  # noqa: S307  # the repr of an AttrSpec this test built
+
+    def test_copy_modified_keeps_the_colors_not_given(self) -> None:
+        for name, spec, changes, foreground, line in (
+            (
+                "true color background",
+                AttrSpec("h1", "default", 2**24, underline_color="h2"),
+                {"bg": "#102030"},
+                (True, 1),
+                "h2",
+            ),
+            (
+                "true color background with the mode",
+                AttrSpec("h1", "default", 2**24, underline_color="h2"),
+                {"bg": "#102030", "colors": 2**24},
+                (True, 1),
+                "h2",
+            ),
+            (
+                "256 colors into true color",
+                AttrSpec("h196", "g40", underline_color="h46"),
+                {"bg": "#010203", "colors": 2**24},
+                (True, 196),
+                "h46",
+            ),
+            (
+                "256-color background",
+                AttrSpec("h196", "g40", underline_color="h46"),
+                {"bg": "#010203"},
+                (True, 196),
+                "#0f0",
+            ),
+        ):
+            with self.subTest(name):
+                changed = spec.copy_modified(**changes)
+                self.assertEqual(foreground, (changed.foreground_high, changed.foreground_number))
+                self.assertEqual(line, changed.underline_color)
+        # a description is parsed in the mode of the result, as it always was
+        self.assertEqual((0, 0, 0), AttrSpec("h196", "g40").copy_modified(bg="#010203").get_rgb_values()[3:])
+        # an 88-color entry leaving 88 colors is its RGB value, and an entry 0-15 keeps its number
+        promoted = AttrSpec("h22", "h3", 88).copy_modified(fg="inherit", colors=2**24)
+        self.assertEqual("AttrSpec('inherit', 'h3', colors=16777216)", repr(promoted))
+        self.assertEqual((0, 139, 205), AttrSpec("h22", "h3", 88).copy_modified(colors=2**24).get_rgb_values()[:3])
+        # a mode that cannot hold a color approximates it, or refuses it, as before
+        self.assertEqual(
+            "AttrSpec('#f00', 'default')", repr(AttrSpec("#ff0000", "default", 2**24).copy_modified(colors=256))
+        )
+        with self.assertRaises(AttrSpecError):
+            AttrSpec("h196", "default").copy_modified(colors=16)
+
+    def test_replace_channels(self) -> None:
+        line = _depth.Channel(_depth.Kind.INDEX_256, 2)
+        for colors in (16, 88, 256):
+            with self.subTest(colors=colors):
+                spec = AttrSpec("dark red,bold", "dark blue", colors, hyperlink="https://urwid.org")
+                changed = _depth.replace_channels(spec, background=_depth.rgb(1, 2, 3), underline=line)
+                self.assertEqual((1, 2, 3), changed.get_rgb_values()[3:])
+                self.assertEqual("h2", changed.underline_color)
+                self.assertEqual(("dark red,bold", True), (changed.foreground, changed.foreground_basic))
+                self.assertEqual(spec.hyperlink, changed.hyperlink)
+        self.assertEqual(
+            AttrSpec("default", "#010203", 2**24), _depth.replace_channels(None, background=_depth.rgb(1, 2, 3))
+        )
+        # the 88-color entries left beside the RGB channel are promoted
+        spec = AttrSpec("h22", "h3", 88, underline_color="h50")
+        changed = _depth.replace_channels(spec, underline=_depth.rgb(1, 2, 3))
+        self.assertEqual((0, 139, 205), changed.get_rgb_values()[:3])
+        self.assertEqual((True, 3), (changed.background_high, changed.background_number))
+        self.assertEqual(
+            (_depth.Channel(_depth.Kind.RGB, 0x008BCD), _depth.Channel(_depth.Kind.INDEX_256, 3)),
+            _depth.channels(changed)[:2],
+        )
+        with self.assertRaises(ValueError):
+            _depth.replace_channels(None, foreground=_depth.Channel(_depth.Kind.INDEX_256, 256))
 
 
 class AttrSpecUnderlineTest(unittest.TestCase):

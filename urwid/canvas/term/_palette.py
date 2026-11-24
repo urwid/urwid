@@ -27,7 +27,10 @@ import re
 import string
 import typing
 
-from urwid.display.common import AttrSpec
+from urwid.display.common import _depth
+
+if typing.TYPE_CHECKING:
+    from urwid.display.common import AttrSpec
 
 #: the Linux console's palette entries its default foreground and background are drawn with
 _DEFAULT_FOREGROUND_ENTRY: typing.Final = 7
@@ -82,19 +85,15 @@ def _palette_entry(
     return default_entry
 
 
-def _underline_palette_entry(attr: AttrSpec) -> int | str | None:
+def _underline_palette_entry(attr: AttrSpec) -> int | None:
     """Return the palette entry the underline color of *attr* is drawn with, None for a color outside the palette.
 
     An underline without a color of its own, drawn in the text color, is outside it.
     """
-    underline = attr.underline_color
-    if underline is None or underline == "default":
-        return None
-    # the underline color is described as a background color is, and read with every color it can name
-    line = AttrSpec("default", underline, _TRUE_COLORS)
-    return _palette_entry(
-        line.background_basic, line.background_high, line.background_true, line.background_number, None
-    )
+    line = _depth.channels(attr)[2]
+    if line.kind in {_depth.Kind.BASIC, _depth.Kind.INDEX_88, _depth.Kind.INDEX_256}:
+        return line.number
+    return None
 
 
 def _rgb_color(rgb: tuple[int, int, int], colors: int) -> str:
