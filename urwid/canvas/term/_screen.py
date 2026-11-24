@@ -47,6 +47,7 @@ from urwid.canvas.term._palette import (
     _DEFAULT_BACKGROUND_ENTRY,
     _DEFAULT_FOREGROUND_ENTRY,
     _DYNAMIC_BACKGROUND,
+    _DYNAMIC_CURSOR,
     _DYNAMIC_FOREGROUND,
     _FEWEST_PALETTE_COLORS,
     _FOREGROUND_KEY,
@@ -99,6 +100,32 @@ _CONFORMANCE_LEVELS: typing.Final = range(61, 65)
 
 #: the conformance level from which DECLRMM sets the left and right margins: VT400, as in xterm
 _LEFT_RIGHT_MARGIN_LEVEL: typing.Final = 64
+
+
+def _colored_cursor(
+    attr: AttrSpec | None,
+    *,
+    underline: bool,
+    color: str,
+    colors: Literal[1, 16, 88, 256, 16777216],
+) -> AttrSpec:
+    """Return the attribute of the cell *attr* under a cursor of the color *color*, as xterm draws it.
+
+    An underline cursor is an underline in *color*.
+    A block cursor fills the cell with *color* and draws the text in the color the cell's background is shown in.
+    The cell's other settings, such as bold, are kept.
+    """
+    if underline:
+        return _with_flag(attr, "underline").copy_modified(colors=colors, underline_color=color)
+    if attr is None:
+        attr = AttrSpec("default", "default")
+    foreground, _, settings = attr.foreground.partition(",")
+    flags = [flag for flag in settings.split(",") if flag and flag != "standout"]
+    if attr.standout:
+        # the cell shows its foreground color as the background
+        return attr.copy_modified(fg=",".join((foreground, *flags)), bg=color, colors=colors)
+    # standout shows the cell's background color, the default one included, as the text color
+    return attr.copy_modified(fg=",".join((color, *flags, "standout")), colors=colors)
 
 
 @dataclass(slots=True, weakref_slot=True)
@@ -1008,6 +1035,9 @@ class _ScreenCanvas(Canvas):
         After a DECSCUSR the shown cursor cell is drawn in reverse video for a block or a bar, or underlined for an
         underline, and the blinking styles are drawn steady.
         A cell that is already in reverse video, or already underlined for an underline, is drawn without it.
+        On a display of 88 or more colors, a cursor color set with xterm's OSC 12 is drawn as xterm draws it instead:
+        the underline in that color, or for a block or a bar the cell in that color with its text in the color the
+        cell's background is shown in.
 
         All parameters are ignored.
         """
@@ -1020,6 +1050,7 @@ class _ScreenCanvas(Canvas):
             yield from lines
             return
         cursor_x, cursor_y = shown
+        cursor_color = self._dynamic_colors.get(_DYNAMIC_CURSOR)
         for row, line in enumerate(lines):
             if row != cursor_y or cursor_x >= len(line):
                 yield line
@@ -1030,9 +1061,17 @@ class _ScreenCanvas(Canvas):
                 # the second half of a wide character: its first half draws both
                 cursor_x -= 1
             cell_attr, charset, text = drawn[cursor_x]
-            # the flag is turned off on a cell that already has it, so the cursor stays visible there
-            flag = "underline" if style in _UNDERLINE_CURSOR_STYLES else "standout"
-            cell_attr = _with_flag(cell_attr, flag, remove=cell_attr is not None and getattr(cell_attr, flag))
+            if cursor_color is not None and colors is not None and colors >= _FEWEST_PALETTE_COLORS:
+                cell_attr = _colored_cursor(
+                    cell_attr,
+                    underline=style in _UNDERLINE_CURSOR_STYLES,
+                    color=_rgb_color(cursor_color, colors),
+                    colors=colors,
+                )
+            else:
+                # the flag is turned off on a cell that already has it, so the cursor stays visible there
+                flag = "underline" if style in _UNDERLINE_CURSOR_STYLES else "standout"
+                cell_attr = _with_flag(cell_attr, flag, remove=cell_attr is not None and getattr(cell_attr, flag))
             drawn[cursor_x] = (cell_attr, charset, text)
             yield drawn
 

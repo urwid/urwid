@@ -23,6 +23,7 @@
 from __future__ import annotations
 
 import itertools
+import re
 import string
 import typing
 
@@ -50,6 +51,11 @@ _FEWEST_PALETTE_COLORS: typing.Final = 88
 #: the most hex digits an X11 color spec gives a component
 _MAX_SPEC_DIGITS: typing.Final = 4
 _SPEC_HEX_DIGITS: typing.Final = frozenset(string.hexdigits)
+#: a component of an ``rgbi:`` color: a decimal number after optional white space, as C's strtod reads one, but
+#: without the hexadecimal, infinity and NaN forms
+_INTENSITY: typing.Final = re.compile(r"\s*[+-]?(?:[0-9]+(?:\.[0-9]*)?|\.[0-9]+)(?:e[+-]?[0-9]+)?", re.ASCII)
+#: the linear intensity below which the sRGB transfer function is linear
+_SRGB_LINEAR_LIMIT: typing.Final = 0.0031308
 #: the white space C's atoi skips before a number
 _C_WHITE_SPACE: typing.Final = " \t\n\v\f\r"
 
@@ -108,24 +114,46 @@ def _x11_rgb(spec: str) -> tuple[int, int, int] | None:
     The forms read are xterm's numeric ones, whose prefix is case-insensitive:
 
     - ``rgb:r/g/b``, each component 1 to 4 hex digits, scaled to the full range;
-    - ``#rgb``, the components with the same number of hex digits, 1 to 4, as the high bits.
+    - ``#rgb``, the components with the same number of hex digits, 1 to 4, as the high bits;
+    - ``rgbi:r/g/b``, each component a linear intensity from 0 to 1, encoded with the sRGB transfer function.
+      A component outside 0 to 1 is not read.
 
-    Color names and the other X11 forms, such as ``rgbi:``, are not read.
+    In the ``rgb:`` and ``rgbi:`` forms, anything after a ``/`` that follows the third component is ignored, as in
+    xterm.
+    Color names and the other X11 forms, such as ``CIEXYZ:``, are not read.
 
     >>> _x11_rgb("rgb:f/8/0"), _x11_rgb("RGB:123/456/789"), _x11_rgb("#f80"), _x11_rgb("#123456789abc")
     ((255, 136, 0), (18, 69, 120), (240, 128, 0), (18, 86, 154))
+    >>> _x11_rgb("rgb:1/2/3/4"), _x11_rgb("rgb:1/2/3junk")
+    ((17, 34, 51), None)
+    >>> _x11_rgb("rgbi:0/0.5/1"), _x11_rgb("RGBI:1e-1/ .25/0.003"), _x11_rgb("rgbi:1.5/0/0")
+    ((0, 188, 255), (89, 137, 10), None)
     >>> _x11_rgb("rgb:12/34"), _x11_rgb("#12345"), _x11_rgb("orange")
     (None, None, None)
     """
     lower = spec.lower()
     if lower.startswith("rgb:"):
-        components = lower.removeprefix("rgb:").split("/")
+        components = lower.removeprefix("rgb:").split("/", 3)[:3]
         if len(components) != 3 or not all(
             0 < len(component) <= _MAX_SPEC_DIGITS and _SPEC_HEX_DIGITS.issuperset(component)
             for component in components
         ):
             return None
         red, green, blue = (int(component, 16) * 0xFFFF // (16 ** len(component) - 1) >> 8 for component in components)
+        return red, green, blue
+    if lower.startswith("rgbi:"):
+        parts = lower.removeprefix("rgbi:").split("/", 3)[:3]
+        if len(parts) != 3 or not all(_INTENSITY.fullmatch(part) for part in parts):
+            return None
+        intensities = [float(part) for part in parts]
+        if not all(0 <= intensity <= 1 for intensity in intensities):
+            return None
+        red, green, blue = (
+            round(
+                255 * (12.92 * intensity if intensity <= _SRGB_LINEAR_LIMIT else 1.055 * intensity ** (1 / 2.4) - 0.055)
+            )
+            for intensity in intensities
+        )
         return red, green, blue
     if lower.startswith("#"):
         digits = lower.removeprefix("#")

@@ -1107,6 +1107,28 @@ class TermTest(unittest.TestCase):
                 "\\e]4;1; rgb:11/22/33\x07\\e]4;1;?\x07",
                 b"\x1b]4;1;rgb:cdcd/0000/0000\x07",
             ),
+            (
+                "rgb: ignores what follows a slash after the third component",
+                "\\e]4;1;rgb:11/22/33/44\x07\\e]4;1;?\x07\\e]4;2;rgb:11/22/33//x\x07\\e]4;2;?\x07",
+                b"\x1b]4;1;rgb:1111/2222/3333\x07\x1b]4;2;rgb:1111/2222/3333\x07",
+            ),
+            (
+                "rgb: with text after the third component is not read",
+                "\\e]4;1;rgb:11/22/33x\x07\\e]4;1;?\x07",
+                b"\x1b]4;1;rgb:cdcd/0000/0000\x07",
+            ),
+            (
+                "rgbi: encodes each linear intensity with the sRGB curve, after optional spaces",
+                "\\e]4;1;rgbi:0/0.5/1\x07\\e]4;1;?\x07\\e]4;2;RGBI:1e-1/ .25/0.003/x\x07\\e]4;2;?\x07",
+                b"\x1b]4;1;rgb:0000/bcbc/ffff\x07\x1b]4;2;rgb:5959/8989/0a0a\x07",
+            ),
+            (
+                "rgbi: outside 0 to 1, in hexadecimal or with text after a number is not read",
+                "\\e]4;1;rgbi:1.5/0/0\x07\\e]4;2;rgbi:-0.1/0/0\x07\\e]4;3;rgbi:0x1/0/0\x07"
+                "\\e]4;4;rgbi:0.5/0.5/0.5x\x07\\e]4;5;rgbi:inf/0/0\x07\\e]4;1;?;2;?;3;?;4;?;5;?\x07",
+                b"\x1b]4;1;rgb:cdcd/0000/0000\x07\x1b]4;2;rgb:0000/cdcd/0000\x07\x1b]4;3;rgb:cdcd/cdcd/0000\x07"
+                b"\x1b]4;4;rgb:0000/0000/eeee\x07\x1b]4;5;rgb:cdcd/0000/cdcd\x07",
+            ),
             ("a string that is not valid UTF-8 is ignored", "\\e]4;1;?\xff\x07", b""),
             ("a string with a control character is ignored", "\\e]4;1;\t?\x07", b""),
             ("a query before a NUL is answered", "\\e]4;1;?\x00\x07", b"\x1b]4;1;rgb:cdcd/0000/0000\x07"),
@@ -3259,6 +3281,50 @@ class TermTest(unittest.TestCase):
         self.write(r"AB\e[1;1H\e[2 q")
         self.term.wait_and_feed()
         self.assertEqual(next(iter(self.term.render(self.termsize, focus=False).content()))[0], (None, None, b"A"))
+
+    def test_cursor_style_is_drawn_in_the_cursor_color(self) -> None:
+        """Draw the cursor DECSCUSR set in the color OSC 12 set, as xterm 407 draws it, under xterm-256color."""
+        true_colors = 2**24
+        green = "\\e]12;rgb:00/ff/00\x07"
+        block = urwid.AttrSpec("#00ff00,standout", "default", true_colors)
+        for label, data, colors, attr in (
+            ("a block: the cell in the color, the text in the cell's background", "AB", true_colors, block),
+            ("a bar is drawn as a block", "AB\\e[6 q", true_colors, block),
+            (
+                "a block keeps the cell's settings and takes its background color",
+                "\\e[1;31;44mA\\e[0mB",
+                true_colors,
+                urwid.AttrSpec("#00ff00,bold,standout", "dark blue", true_colors),
+            ),
+            (
+                "a block on a reverse cell: the text in the cell's foreground",
+                "\\e[7mA\\e[0mB",
+                true_colors,
+                urwid.AttrSpec("default", "#00ff00", true_colors),
+            ),
+            (
+                "an underline in the color",
+                "AB\\e[4 q",
+                true_colors,
+                urwid.AttrSpec("default,underline", "default", true_colors, underline_color="#00ff00"),
+            ),
+            ("the closest color of a 256-color display", "AB", 256, urwid.AttrSpec("#0f0,standout", "default", 256)),
+            ("reverse video on a 16-color display", "AB", 16, urwid.AttrSpec("default,standout", "default")),
+            (
+                "reverse video after OSC 112",
+                "AB\\e]112\x07",
+                true_colors,
+                urwid.AttrSpec("default,standout", "default"),
+            ),
+        ):
+            with self.subTest(label):
+                self.restart(10, 3, term="xterm-256color")
+                self.term.term.display_colors = colors
+                # the block is set first, so a later DECSCUSR in data replaces it
+                self.write(f"\\e[2 q{green}{data}\\e[1;1H")
+                self.term.wait_and_feed()
+                canvas = self.term.render(self.termsize, focus=True)
+                self.assertEqual(next(iter(canvas.content()))[0], (attr, None, b"A"))
 
     def test_wide_and_combining_characters(self) -> None:
         """Give a wide character two cells and a combining character the cell before it.
