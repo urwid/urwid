@@ -252,7 +252,10 @@ It differs from xterm, or adds to it, in these points:
     query with the color set or, for the default colors, the outer terminal's
     when the screen reports it; OSC 110, 111 and 112 set them back.  The cells
     in the default colors are drawn with the colors set, on a display of 88 or
-    more colors.  RIS and DECSTR keep them.
+    more colors, and so is the cursor the widget draws after a DECSCUSR: an
+    underline in the cursor color, or for a block or a bar the cell in the
+    cursor color with its text in the color the cell's background is shown in.
+    RIS and DECSTR keep them.
   * An ``rgb:`` color ignores anything after a ``/`` that follows its third
     component, so ``rgb:1/2/3/4`` is ``rgb:1/2/3``.
 
@@ -263,8 +266,7 @@ It differs from xterm, or adds to it, in these points:
     does in xterm, and is skipped in the others.
   * A query of a default color neither the child nor the screen gave, of the
     cursor color before the child set it, and of the dynamic colors 13 to 19
-    is not answered, and the widget does not draw its cursor in the cursor
-    color.
+    is not answered.
   * ``ESC ( U`` and ``ESC ( K`` still select the IBM PC character set and the
     Linux console's user map; xterm has no ``U`` set and reads ``K`` as the
     German national set.
@@ -274,7 +276,8 @@ It differs from xterm, or adds to it, in these points:
   :ref:`underline-styles` describes.
 * After the child sets a cursor style with DECSCUSR, the widget draws the
   cursor cell itself, in reverse video for a block or a bar and underlined for
-  an underline, instead of the display's cursor.
+  an underline, instead of the display's cursor; under ``xterm-256color`` a
+  cursor color set with OSC 12 is drawn as described above.
 * XTVERSION is answered with urwid and its version, the XTWINOPS size reports
   in characters (18) and in pixels (14), the latter as unknown, and XTGETTCAP,
   in xterm's form, for the color count and RGB colors the display draws.  xterm
