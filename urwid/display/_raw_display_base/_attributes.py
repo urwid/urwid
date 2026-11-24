@@ -55,12 +55,21 @@ class _AttributesScreen(_ScreenBase):  # pylint: disable=abstract-method  # a pl
 
         With :attr:`hyperlinks` on, the escape of an attribute with a hyperlink ends with the OSC 8 sequence opening it.
         """
+        rendition, link = self._attr_escape_parts(a)
+        return rendition + link
+
+    def _attr_escape_parts(self, a: Hashable) -> tuple[str, str]:
+        """Return the escape of canvas run attribute *a* in two parts: its SGR sequence, and its OSC 8 hyperlink.
+
+        The hyperlink part is empty without :attr:`hyperlinks` or without a link.
+        """
         if found := self._pal_escape.get(a):
             return found
         spec = self._drawn_spec(a)
-        found = self._attrspec_to_escape(spec)
+        link = ""
         if self._terminal_properties.hyperlinks and spec.hyperlink is not None and spec.hyperlink.uri:
-            found += escape.hyperlink_open(spec.hyperlink)
+            link = escape.hyperlink_open(spec.hyperlink)
+        found = (self._attrspec_to_escape(spec), link)
         if len(self._pal_escape) >= _RESOLVED_ATTRS_LIMIT:
             self._pal_escape.clear()
         self._pal_escape[a] = found

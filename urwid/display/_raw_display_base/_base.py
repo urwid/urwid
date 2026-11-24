@@ -25,6 +25,7 @@ from __future__ import annotations
 import abc
 import contextlib
 import dataclasses
+import enum
 import os
 import signal
 import socket
@@ -104,6 +105,17 @@ class _TerminalProperty(typing.Generic[_T]):
         raise AttributeError(message)
 
 
+class _ColorProbe(enum.Enum):
+    """The state of the rendition probe in one run of the screen; it is sent at most once per run."""
+
+    #: not sent yet
+    UNSENT = enum.auto()
+    #: sent, and its Primary DA reply not read yet
+    PENDING = enum.auto()
+    #: answered, not needed, or ended by a stop
+    FINISHED = enum.auto()
+
+
 @dataclasses.dataclass(slots=True, weakref_slot=True)
 class TermModes:
     """Terminal modes negotiated with the real host terminal (counterpart to `canvas.term.TermModes`).
@@ -180,10 +192,13 @@ class _ScreenBase(BaseScreen, RealTerminal):
 
     __slots__ = (
         "_alternate_buffer",
+        "_alternate_buffer_reported",
         "_alternate_scroll_reported",
         "_alternate_scroll_written",
         "_capabilities_answered",
         "_capability_query_pending",
+        "_color_probe",
+        "_colors_confirmed",
         "_colors_from_environment",
         "_cy",
         "_drawn_rows",
@@ -200,6 +215,7 @@ class _ScreenBase(BaseScreen, RealTerminal):
         "_partial_codes",
         "_partial_deadline",
         "_properties_set",
+        "_rendition",
         "_reported_cols_rows",
         "_resize_held_passes",
         "_resize_pipe_rd",
@@ -332,8 +348,8 @@ class _ScreenBase(BaseScreen, RealTerminal):
         # the modifyOtherKeys value the terminal reported, written back when the screen stops
         self._modify_other_keys_reported: int | None = None
         self._keyboard_protocol_enabled: Literal["kitty", "modify other keys"] | None = None
-        # escape sequence per canvas run attribute, filled as attributes are drawn
-        self._pal_escape: dict[Hashable, str] = {}
+        # SGR and OSC 8 escape sequences per canvas run attribute, filled as attributes are drawn
+        self._pal_escape: dict[Hashable, tuple[str, str]] = {}
         self._modified_palette_entries: set[int] = set()
         # Connected through a weak reference: a bound method would be a reference cycle back to this screen,
         # keeping its sockets open until the cyclic garbage collector happened to run.
@@ -342,6 +358,13 @@ class _ScreenBase(BaseScreen, RealTerminal):
         self._terminal_properties = detect_terminal_properties(self.term, os.environ)
         # NO_COLOR, FORCE_COLOR or CLICOLOR decided the colour count, which no terminal reply changes then
         self._colors_from_environment = _environment_colors(os.environ) is not None
+        # a reply to the rendition probe confirmed the colour count, which later guesses no longer change
+        self._colors_confirmed = False
+        self._color_probe = _ColorProbe.FINISHED
+        # the terminal reported, in this run, that the alternate screen the screen switched to is set
+        self._alternate_buffer_reported = False
+        # the SGR sequence the last frame of this run left the terminal in, None while it is unknown
+        self._rendition: str | None = None
         if underline_styles is not None:
             self._terminal_properties = dataclasses.replace(
                 self._terminal_properties, underline_styles=underline_styles
@@ -550,19 +573,36 @@ class _ScreenBase(BaseScreen, RealTerminal):
         self.clear()
         self._pal_escape.clear()
 
-    def _raise_terminal_properties(self, colors: _ColorCount | None, underline_styles: bool) -> None:
-        """Raise the properties the application left to detection to what a terminal reply shows the terminal draws.
+    def _raise_terminal_properties(
+        self,
+        colors: _ColorCount | None,
+        underline_styles: bool,
+        *,
+        confirmed: bool = False,
+    ) -> None:
+        """Change the properties the application left to detection to what a terminal reply shows the terminal draws.
 
-        A reply only adds what the detection missed: a colour count above it, and the underline styles.
-        A colour count the application set, or one the environment decided, is never changed.
+        The colour count is decided by the first of these that gives one:
+
+        1. the application, through :meth:`set_terminal_properties` or by assigning :attr:`colors`;
+        2. ``NO_COLOR``, ``CLICOLOR``, ``FORCE_COLOR`` or ``CLICOLOR_FORCE`` in the environment;
+        3. a reply to the rendition probe, which shows what the terminal stores, and replaces 4 and 5 either way;
+        4. a capability or version reply, which only raises the count;
+        5. the detection from the environment and terminfo.
+
+        A reply turns the underline styles on unless the application set them.
 
         :param colors: the colour count the terminal reported, None when it reported none.
         :param underline_styles: the terminal reported that it draws the underline styles and colours.
+        :param confirmed: *colors* comes from a reply to the rendition probe.
         """
         changes: dict[str, typing.Any] = {}
-        colors_open = "colors" not in self._properties_set and not self._colors_from_environment
-        if colors is not None and colors_open and colors > self.colors:
-            changes["colors"] = colors
+        if colors is not None and "colors" not in self._properties_set and not self._colors_from_environment:
+            if confirmed:
+                self._colors_confirmed = True
+                changes["colors"] = colors
+            elif not self._colors_confirmed and colors > self.colors:
+                changes["colors"] = colors
         if underline_styles and "underline_styles" not in self._properties_set:
             changes["underline_styles"] = True
         self._replace_terminal_properties(changes)

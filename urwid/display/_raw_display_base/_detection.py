@@ -32,6 +32,9 @@ import struct
 import sys
 import typing
 
+from urwid.display import _sgr
+from urwid.display.common import _depth
+
 if typing.TYPE_CHECKING:
     from collections.abc import Iterable, Mapping, Sequence
 
@@ -117,9 +120,22 @@ _VERSION_NUMBERS = re.compile(r"v?(\d{1,9}(?:[.-]\d{1,9}){0,7})")
 _PRERELEASE = re.compile(r"alpha|beta|canary|dev|insider|nightly|pre|rc", re.IGNORECASE)
 # an XTVERSION reply's terminal name and its version, as in "XTerm(390)" or "WezTerm 20240203-110809-5046fc22"
 _XTVERSION_TEXT = re.compile(r"([A-Za-z][\w.+-]*?)[ (](.*)")
-#: the terminfo capabilities asked of the terminal with XTGETTCAP: the colour count, 24-bit colour,
-#: and the underline style and colour strings
-_QUERIED_CAPABILITIES: typing.Final = ("colors", "RGB", "Smulx", "Setulc")
+#: the terminfo capabilities asked of the terminal with XTGETTCAP: the colour count, 24-bit colour in the ncurses and
+#: in the tmux form, and the underline style and colour strings
+_QUERIED_CAPABILITIES: typing.Final = ("colors", "RGB", "Tc", "Smulx", "Setulc")
+# an RGB value that names the bits per component, as ncurses gives it: one number, or one per component
+_RGB_BITS: typing.Final = re.compile(r"[1-9][0-9]?(?:/[1-9][0-9]?/[1-9][0-9]?)?", re.ASCII)
+# the terminals that draw 24-bit colours and answer neither the rendition probe nor XTGETTCAP, by the lower-case
+# name of their XTVERSION reply
+_XTVERSION_TRUE_COLOR_TERMINALS: typing.Final = frozenset({"konsole"})
+# the background the rendition probe sets, a 256-colour cube entry the 88-colour palette does not have, as an RGB
+# value and as that entry
+_PROBE_RGB: typing.Final = (135, 175, 215)
+_PROBE_ENTRY: typing.Final = 110
+# a DECRPSS reply to the rendition request: SGR parameters, and the final byte
+_RENDITION_SETTING: typing.Final = re.compile(r"[0-9:;]*m", re.ASCII)
+# the decimal number of a colour component or a palette entry
+_BYTE: typing.Final = re.compile(r"[0-9]{1,3}", re.ASCII)
 
 
 # Windows 10 TH2 (1511) gained 256-color VT; 1703-era build 14931 gained 24-bit color.
@@ -461,19 +477,107 @@ def _underline_styles_from_version(text: str) -> bool:
     return _version_reaches(match.group(2), _XTVERSION_UNDERLINE_STYLE_FLOORS.get(match.group(1).lower()))
 
 
+def _colors_from_version(text: str) -> _ColorCount | None:
+    """Return the colour count of the terminal an XTVERSION reply names, None when the reply does not show one.
+
+    >>> _colors_from_version("Konsole 25.12.3"), _colors_from_version("XTerm(407)")
+    (16777216, None)
+
+    :param text: the reply's text, a terminal name and its version.
+    """
+    if (match := _XTVERSION_TEXT.match(text)) is None or match.group(1).lower() not in _XTVERSION_TRUE_COLOR_TERMINALS:
+        return None
+    return 16777216
+
+
+def _valid_background_groups(groups: Sequence[str]) -> bool:
+    """Return whether every background colour among the SGR parameter *groups* is complete and in range.
+
+    A background is ``48:2:r:g:b``, ``48:2::r:g:b``, ``48;2;r;g;b``, ``48:5:n`` or ``48;5;n``,
+    each component a decimal number from 0 to 255.
+    The arguments of a semicolon-form foreground or underline colour are passed over, not read as codes.
+    """
+    index = 0
+    while index < len(groups):
+        code, *subparameters = groups[index].split(":")
+        # the decoder reads a code as a number, so a code with leading zeros is the same code
+        code = code.lstrip("0") or "0"
+        if code in {"38", "48", "58"} and not subparameters:
+            count = {"5": 1, "2": 3}.get(groups[index + 1] if index + 1 < len(groups) else "")
+            if count is None:
+                if code == "48":
+                    return False
+                index += 1
+                continue
+            arguments = groups[index + 2 : index + 2 + count]
+            if code == "48" and not (
+                len(arguments) == count and all(_BYTE.fullmatch(value) and int(value) <= 0xFF for value in arguments)
+            ):
+                return False
+            index += 2 + count
+            continue
+        if code == "48":
+            model, *components = subparameters or [""]
+            if model == "2" and len(components) == 4 and not components[0]:
+                components = components[1:]
+            if not (
+                {"2": 3, "5": 1}.get(model) == len(components)
+                and all(_BYTE.fullmatch(value) and int(value) <= 0xFF for value in components)
+            ):
+                return False
+        index += 1
+    return True
+
+
+def _colors_from_rendition(setting: str) -> _ColorCount | None:
+    """Return the colour count a DECRPSS reply to the rendition probe confirms, None when it confirms none.
+
+    The terminal stores the probe's background as it draws it: the RGB value means 24-bit colour, and the probe's
+    256-colour entry means a 256-colour palette.
+    Any other entry is a palette both colour counts have, and any other background is no evidence.
+    A reply with a malformed background is ignored whole: the decoder that reads it for drawing accepts a background
+    cut short, and would leave the probe's entry active.
+
+    >>> _colors_from_rendition("0;1;4;33;48;2;135;175;215m")
+    16777216
+    >>> _colors_from_rendition("0;22;1;33;48:2:135:175:215;4m")
+    16777216
+    >>> _colors_from_rendition("0;1;4;93;48:5:110m"), _colors_from_rendition("0;48:5:110;48:2:1:2m")
+    (256, None)
+    >>> _colors_from_rendition("0;048;5;110;048;5m")
+
+    :param setting: the setting of the DECRPSS reply: SGR parameters, and ``m``.
+    """
+    if not _RENDITION_SETTING.fullmatch(setting):
+        return None
+    parameters = setting.removesuffix("m")
+    if not _valid_background_groups(parameters.split(";")):
+        return None
+    spec = _sgr.sgi_params_to_attrspec(_sgr.parse_sgr_parameters(parameters), None)
+    background = _depth.DEFAULT_CHANNEL if spec is None else _depth.channels(spec)[1]
+    if background == _depth.rgb(*_PROBE_RGB):
+        return 16777216
+    if background == _depth.Channel(_depth.Kind.INDEX_256, _PROBE_ENTRY):
+        return 256
+    return None
+
+
 def _properties_from_capabilities(capabilities: Iterable[tuple[str, str | None]]) -> tuple[_ColorCount | None, bool]:
     """Return what the capabilities of an XTGETTCAP reply show the terminal draws.
 
     :param capabilities: ``(name, value)`` pairs, the value None for a capability the terminal lacks.
-    :returns: the colour count ``colors`` and ``RGB`` allow, None when they allow fewer than 8 colours or are not given;
+    :returns: the colour count ``colors``, ``RGB`` and ``Tc`` allow,
+        None when they allow fewer than 8 colours or are not given;
         and whether ``Smulx`` or ``Setulc`` is there.
+        ``RGB`` counts only without a value or with one that names the bits per component, such as ``8`` or
+        ``8/8/8``: xterm answers ``-1`` when it stores colours in its palette.
     """
     colors: int | None = None
     underline_styles = False
     for name, value in capabilities:
         if value is None:
             continue
-        if name == "RGB":
+        if (name == "RGB" and (not value or _RGB_BITS.fullmatch(value))) or name == "Tc":
             colors = 16777216
         elif name == "colors" and value.isascii() and value.isdigit() and len(value) <= 9 and colors is None:
             colors = int(value)

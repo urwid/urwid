@@ -23,7 +23,23 @@ The same method turns on terminal hyperlinks with ``hyperlinks=True`` (see :ref:
 The raw display starts with the number of colors that ``TERM``, its terminfo entry and the environment give.
 As it starts, it asks the terminal for its own capabilities (XTGETTCAP) and its version (XTVERSION).
 A reply can raise the number of colors and turn on the underline styles, and the screen is then drawn again.
-A reply never lowers them, and never changes a property the application set.
+``RGB`` counts when it has no value or one that names the bits per component, as ``8``; xterm answers ``-1`` when it
+keeps colors in its palette.
+
+Once the terminal reported that it switched to the alternate screen and answered those queries, and a frame was drawn,
+the screen asks once how the terminal stores a 24-bit background: it sets one, asks for the rendition (DECRQSS),
+and writes the rendition of its last frame again.
+A terminal that keeps the 24-bit value draws 24-bit colors, and one that keeps a 256-color palette entry draws 256
+colors; any other answer is no evidence.
+The number of colors is decided by the first of these that gives one:
+
+#. the application, with :meth:`screen.set_terminal_properties() <display.raw.Screen.set_terminal_properties>` or by
+   assigning ``screen.colors``;
+#. ``NO_COLOR``, ``CLICOLOR=0``, ``FORCE_COLOR`` or ``CLICOLOR_FORCE`` in the environment;
+#. the answer to the rendition question, which may also lower a number of colors the guesses below gave;
+#. the capability and version replies, which only raise it;
+#. ``COLORTERM``, ``TERM`` and its terminfo entry.
+
 With those queries it also asks for the terminal's default foreground and background colors (OSC 10 and OSC 11),
 which :attr:`display.raw.Screen.terminal_default_colors` then holds, and with which the :class:`Terminal` widget
 answers its child's queries of the same colors. Like the other queries, they are not sent on the Linux console, nor

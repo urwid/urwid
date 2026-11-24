@@ -1054,7 +1054,7 @@ class TestRawDisplay(unittest.TestCase):
         s = urwid.display.raw.Screen()
         s.set_terminal_properties(colors=256)
         a = s.AttrSpec("brown", "dark green")
-        s._pal_escape[a] = "sentinel escape"
+        s._pal_escape[a] = ("sentinel escape", "")
 
         self.assertEqual("sentinel escape", s._attr_to_escape(a))
         self.assertEqual("sentinel escape", s._attr_to_escape(s.AttrSpec("brown", "dark green")))

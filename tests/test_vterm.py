@@ -26,6 +26,7 @@ import gc
 import itertools
 import os
 import pty
+import re
 import selectors
 import signal
 import struct
@@ -41,6 +42,7 @@ import urwid
 import urwid.ansi_parser
 import urwid.vterm
 from tests.util import NonExternalLoopScreen, external_loop, pipe_terminal
+from urwid.display._raw_display_base import _detection as raw_detection
 from urwid.util import set_temporary_encoding
 
 if typing.TYPE_CHECKING:
@@ -1640,6 +1642,20 @@ class TermTest(unittest.TestCase):
                 self.write(output)
                 self.expect(screen)
 
+    def test_color_probe_keeps_the_saved_cursor_and_the_rendition(self) -> None:
+        """The raw display's rendition probe, ended by the SGR sequence of its last frame, changes neither."""
+        frame = "\x1b[0;33;1;4;44m"
+        probe = "\x1b[48:2::135:175:215m\x1bP$qm\x1b\\\x1b[49m\x1b[c" + frame
+        request = "\x1bP$qm\x1b\\"
+        self.write(f"\x1b[3;5H\x1b7\x1b[1;1H{frame}{request}{probe}{request}\x1b8\x1b[6n")
+        self.drain()
+
+        replies = bytes(self.pty.from_widget)
+        before, probed, after = re.findall(rb"\x1bP1\$r([0-9;:]*m)\x1b\\", replies)
+        self.assertEqual(b"0;1;4;33;48;2;135;175;215m", probed)
+        self.assertEqual(before, after)
+        self.assertTrue(replies.endswith(b"\x1b[3;5R"), replies)
+
     def test_left_and_right_margins_and_pending_wraps(self) -> None:
         """Match xterm for the left and right margins and for pending wraps.
 
@@ -3057,7 +3073,7 @@ class TermTest(unittest.TestCase):
     def test_raw_display_reads_the_answers_to_its_own_queries(self) -> None:
         """Decode what the widget answers to the queries a raw display sends as it starts, as replies and no keys."""
         queries = urwid.display.escape.REPORT_TERMINAL_VERSION + "".join(
-            urwid.display.escape.request_capability(name) for name in ("colors", "RGB", "Smulx", "Setulc")
+            urwid.display.escape.request_capability(name) for name in raw_detection._QUERIED_CAPABILITIES
         )
         self.term.term.display_colors = 2**24
         self.write(queries.replace("\x1b", r"\e") + r"\e[c")

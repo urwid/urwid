@@ -52,6 +52,7 @@ if typing.TYPE_CHECKING:
     _TerminalVersionReport = tuple[typing.Literal["terminal version"], str]
     _TerminalCapabilitiesReport = tuple[typing.Literal["terminal capabilities"], tuple[tuple[str, str | None], ...]]
     _DefaultColorReport = tuple[typing.Literal["default color"], int, str]
+    _SettingReport = tuple[typing.Literal["setting report"], bool, str]
     _TerminalReport = (
         _PrivateModeReport
         | _KeyboardProtocolReport
@@ -61,6 +62,7 @@ if typing.TYPE_CHECKING:
         | _TerminalVersionReport
         | _TerminalCapabilitiesReport
         | _DefaultColorReport
+        | _SettingReport
     )
     _DecodedInput = list[str | _MouseInput | _CursorPosition]
 
@@ -380,6 +382,7 @@ class Screen(BaseScreen, RealTerminal):
                     | "device attributes"
                     | "terminal version"
                     | "terminal capabilities"
+                    | "setting report"
                     | "default color",
                     *_,
                 ):
