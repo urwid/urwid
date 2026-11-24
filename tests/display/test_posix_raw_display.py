@@ -1665,6 +1665,19 @@ class TestColorProbe(unittest.TestCase):
         self.assertEqual(2**24, self.screen.colors)
         self.assertIs(raw_base._ColorProbe.FINISHED, self.screen._color_probe)
 
+    def test_kitty_primary_da_reply_ends_the_startup_queries(self):
+        """Read kitty's Primary DA reply, which ends its parameters with an empty one, as a reply.
+
+        kitty 0.45 answers ``CSI ? 62;52;c``; the reply is not passed on as a key.
+        """
+        self.start()
+        self.frame()
+
+        self.assertEqual(["a"], self.feed(self.ALTERNATE_SET + b"\x1b[?62;52;ca"))
+
+        self.assertFalse(self.screen._capability_query_pending)
+        self.assertEqual(self.PROBE + self.RENDITION, self.written[-1])
+
     def test_report_and_startup_reply_in_separate_batches(self):
         self.start()
         self.frame()

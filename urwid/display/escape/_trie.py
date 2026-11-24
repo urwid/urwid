@@ -643,6 +643,12 @@ class KeyqueueTrie:
     ) -> tuple[_KeyboardProtocolReport | _DeviceAttributesReport, list[int]] | None:
         """Interpret a kitty keyboard protocol flags reply (CSI ? flags u) or a Primary DA reply (CSI ? Ps ; ... c).
 
+        An empty parameter of a Primary DA reply, which ECMA-48 allows, is left out of its parameters.
+
+        >>> from urwid.display.escape import input_trie
+        >>> input_trie.read_private_report(list(b"[?62;52;c"), more_available=False)
+        (('device attributes', (62, 52)), [])
+
         :returns: ``('keyboard protocol report', flags)`` or ``('device attributes', parameters)``.
         :raises MoreInputRequired: the codes end in the middle of a sequence and *more_available* is set.
         """
@@ -664,14 +670,15 @@ class KeyqueueTrie:
         if (split := self._split_csi_at(codes, start, more_available, b"[?", (ord("u"), ord("c")))) is None:
             return None
         fields, final, end = split
-        if any(len(field) != 1 or not field[0] for field in fields):
+        if any(len(field) != 1 for field in fields):
             return None
-        values = tuple(int(field[0]) for field in fields)
         if final == ord("c"):
-            return ("device attributes", values), end
-        if len(values) != 1:
+            # an empty parameter names no attribute, as in kitty's CSI ? 62;52;c
+            values = tuple(int(field[0]) for field in fields if field[0])
+            return (("device attributes", values), end) if values else None
+        if len(fields) != 1 or not fields[0][0]:
             return None
-        return ("keyboard protocol report", values[0]), end
+        return ("keyboard protocol report", int(fields[0][0])), end
 
     def read_modify_keys_report(
         self,
