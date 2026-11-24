@@ -51,6 +51,29 @@ class CursesSetAttrTest(unittest.TestCase):
             with self.subTest(label):
                 self.assertEqual(pair << 8, self.attr_of(attr))
 
+    def test_colors_are_drawn_with_the_initialised_pairs(self) -> None:
+        # pair number is bg * 8 + 7 - fg; only basic colors 0-7 have pairs
+        for label, attr, pair in (
+            ("bright background folded", urwid.AttrSpec("dark red", "light blue", 16), 4 * 8 + 6),
+            ("bright foreground folded", urwid.AttrSpec("light red", "default", 16), 6),
+            ("palette entry by its nearest", urwid.AttrSpec("h196", "h21"), 4 * 8 + 6),
+            # the nearest of all 16 is dark gray, which would fold to black
+            ("RGB by its nearest of 8", urwid.AttrSpec("default", "#a0a0a0", 2**24), 7 * 8),
+        ):
+            with self.subTest(label):
+                self.assertEqual(pair << 8, self.attr_of(attr))
+
+    def test_palette_changes_are_drawn(self) -> None:
+        self.screen.register_palette([("entry", "dark red", "inherit"), ("alias", "entry")])
+        self.assertEqual(6 << 8, self.attr_of("alias"))
+
+        self.screen.register_palette_entry("entry", "dark green", "inherit")
+        self.assertEqual(5 << 8, self.attr_of("entry"))
+        self.screen.register_palette_entry(None, "default", "dark blue")
+        self.assertEqual((4 * 8 + 5) << 8, self.attr_of("entry"))
+        self.screen.register_palette([("alias", "default", "inherit")])
+        self.assertEqual(4 * 8 << 8, self.attr_of("alias"))
+
     def test_hyperlink_is_ignored(self) -> None:
         linked = urwid.AttrSpec("dark red,bold", "dark blue", hyperlink="https://urwid.org")
 

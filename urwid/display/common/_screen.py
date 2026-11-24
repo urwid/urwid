@@ -30,6 +30,7 @@ import types
 import typing
 
 from urwid import signals
+from urwid.display.common import _depth
 from urwid.display.common._attr_spec import (
     _RESOLVED_ATTRS_LIMIT,
     AttrSpec,
@@ -232,7 +233,8 @@ class BaseScreen(abc.ABC, metaclass=signals.MetaSignals):
         self.logger = logging.getLogger(f"{self.__class__.__module__}.{self.__class__.__name__}")
 
         self._palette: dict[Hashable, PaletteEntrySpecs] = {}
-        self._resolved_attrs: dict[tuple[Hashable, int], AttrSpec] = {}
+        # resolve_attr() results by (attr, index), and _drawn_attr() results by (attr, index, draws)
+        self._resolved_attrs: dict[tuple[Hashable, ...], AttrSpec] = {}
         self._started: bool = False
 
     @property
@@ -512,6 +514,8 @@ class BaseScreen(abc.ABC, metaclass=signals.MetaSignals):
         or a :class:`LayeredAttr`), outermost first, is placed over the result so far with
         :meth:`AttrSpec.layered_over`. A name missing from the palette is drawn with 'default' colors,
         hiding the layers under it.
+        At index 2 the layers are placed in 88-color mode; at any other index each color keeps its kind,
+        so layers of different color modes give a palette entry beside a 24-bit color.
 
         :param attr: display attribute of a canvas run
         :param index: position in the palette entry tuple: 0 for 16 colors, 1 for monochrome,
@@ -521,6 +525,34 @@ class BaseScreen(abc.ABC, metaclass=signals.MetaSignals):
         key = (attr, index)
         if (found := self._resolved_attrs.get(key)) is not None:
             return found
+        # 88-color numbers differ from 256-color ones, so an 88-color screen keeps its own encoding
+        return self.__remember(key, self.__layered(attr, index, colors=88 if index == 2 else None))
+
+    def _drawn_attr(self, attr: Hashable, index: int, draws: _depth.Draws) -> AttrSpec:
+        """Return the :class:`AttrSpec` a display that draws *draws* colors draws a canvas run with *attr* in.
+
+        The layers of *attr* are placed as :meth:`resolve_attr` places them, with the palette entries of *index*,
+        but each color keeps its kind at every index.
+        The result is then converted once to the colors the display draws: a color it has is kept, and any other is
+        approximated by the nearest one it has.
+        When a subclass overrides :meth:`resolve_attr`, its result is the one converted.
+
+        :param attr: display attribute of a canvas run
+        :param index: position in the palette entry tuple, as for :meth:`resolve_attr`
+        :param draws: the colors the display draws: 1, 8 (the curses color pairs), 16, 88, 256 or 2**24
+        :raises IndexError: *index* is outside 0-4 and a layer is a palette name.
+        """
+        key = (attr, index, draws)
+        if (found := self._resolved_attrs.get(key)) is not None:
+            return found
+        if type(self).resolve_attr is not BaseScreen.resolve_attr:
+            spec = self.resolve_attr(attr, index)
+        else:
+            spec = self.__layered(attr, index, colors=None)
+        return self.__remember(key, _depth.convert(spec, draws))
+
+    def __layered(self, attr: Hashable, index: int, *, colors: Literal[88] | None) -> AttrSpec:
+        """Return the layers of *attr* placed over each other with :meth:`AttrSpec.layered_over` in *colors*."""
         if isinstance(attr, LayeredAttr):
             layers: tuple[Hashable, ...] = (*attr.layers, None)
         elif attr is None:
@@ -538,10 +570,11 @@ class BaseScreen(abc.ABC, metaclass=signals.MetaSignals):
             else:
                 self.logger.debug(f"Undefined attribute: {layer!r}")
                 spec = AttrSpec(DEFAULT, DEFAULT)
-            # 88-color numbers differ from 256-color ones, so an 88-color screen keeps its own encoding
-            result = spec if result is None else spec.layered_over(result, colors=88 if index == 2 else None)
-        if result is None:
-            result = AttrSpec(DEFAULT, DEFAULT)
+            result = spec if result is None else spec.layered_over(result, colors=colors)
+        return AttrSpec(DEFAULT, DEFAULT) if result is None else result
+
+    def __remember(self, key: tuple[Hashable, ...], result: AttrSpec) -> AttrSpec:
+        """Keep *result* in the bounded cache of resolved attributes under *key*, and return it."""
         if len(self._resolved_attrs) >= _RESOLVED_ATTRS_LIMIT:
             self._resolved_attrs.clear()
         self._resolved_attrs[key] = result

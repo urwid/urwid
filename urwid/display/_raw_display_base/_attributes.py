@@ -57,7 +57,7 @@ class _AttributesScreen(_ScreenBase):  # pylint: disable=abstract-method  # a pl
         """
         if found := self._pal_escape.get(a):
             return found
-        spec = self.resolve_attr(a, _ATTRSPEC_INDEX_BY_COLORS[self._terminal_properties.colors])
+        spec = self._drawn_spec(a)
         found = self._attrspec_to_escape(spec)
         if self._terminal_properties.hyperlinks and spec.hyperlink is not None and spec.hyperlink.uri:
             found += escape.hyperlink_open(spec.hyperlink)
@@ -65,6 +65,14 @@ class _AttributesScreen(_ScreenBase):  # pylint: disable=abstract-method  # a pl
             self._pal_escape.clear()
         self._pal_escape[a] = found
         return found
+
+    def _drawn_spec(self, a: Hashable) -> AttrSpec:
+        """Return the :class:`AttrSpec` canvas run attribute *a* is drawn with, in the colors the terminal draws."""
+        colors = self._terminal_properties.colors
+        if self.term.lower() == "fbterm" and colors == 16777216:
+            # fbterm's own color sequences take palette entries only
+            colors = 256
+        return self._drawn_attr(a, _ATTRSPEC_INDEX_BY_COLORS[colors], colors)
 
     def _attrspec_to_escape(self, a: AttrSpec) -> str:
         r"""Convert AttrSpec instance a to an escape sequence for the terminal.

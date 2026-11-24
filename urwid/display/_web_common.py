@@ -192,7 +192,8 @@ class BrowserScreen(BaseScreen):  # pylint: disable=abstract-method  # the subcl
             y += 1
             # resolved, so a row is sent again when a palette change gives it other colors
             l_row = tuple(
-                (self.resolve_attr(attr_, self._colour_index), line.decode(encoding, "replace"))
+                # the browser draws any RGB color, so every color is kept as it is
+                (self._drawn_attr(attr_, self._colour_index, 16777216), line.decode(encoding, "replace"))
                 for attr_, _, line in row
             )
 

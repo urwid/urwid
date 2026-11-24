@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import dataclasses
 import errno
 import gc
 import io
@@ -1504,6 +1505,69 @@ class TestInheritedColors(unittest.TestCase):
         for attr in ("opaque", urwid.LayeredAttr("opaque", "panel_bg")):
             with self.subTest(attr=attr):
                 self.assertEqual(expected, self.screen._attr_to_escape(attr))
+
+
+class TestDrawnColors(unittest.TestCase):
+    """Draw each color as the terminal's color count allows: kept where it has the color, else approximated."""
+
+    INNER = AttrSpec("h196,underline", "inherit", 256)
+    OPAQUE = AttrSpec("h196,underline", "default", 256)
+    OUTER = AttrSpec("default", "#87afd7", 2**24, underline_color="#010203")
+
+    def setUp(self) -> None:
+        self.screen = urwid.display.raw.Screen()
+        self.screen.set_terminal_properties(bright_is_bold=False, underline_styles=True)
+
+    def test_layers_of_different_modes_at_each_depth(self) -> None:
+        for colors, inner, opaque, entry_88 in (
+            (1, "39;4;49", "39;4;49", "39;49"),
+            (16, "91;4;58:5:0;100", "91;4;58:5:0;49", "36;49"),
+            (88, "38;5;64;4;58:5:16;48;5;42", "38;5;64;4;58:5:16;49", "38;5;22;49"),
+            (256, "38;5;196;4;58:5:16;48;5;110", "38;5;196;4;58:5:16;49", "38;5;32;49"),
+            (2**24, "38;5;196;4;58:2::1:2:3;48;2;135;175;215", "38;5;196;4;58:2::1:2:3;49", "38;2;0;139;205;49"),
+        ):
+            canvas = runs_canvas(
+                [
+                    [
+                        (urwid.LayeredAttr(self.INNER, self.OUTER), None, b"a"),
+                        (urwid.LayeredAttr(self.OPAQUE, self.OUTER), None, b"b"),
+                        (AttrSpec("h22", "default", 88), None, b"c"),
+                    ],
+                    [(None, None, b"   ")],
+                ],
+                3,
+            )
+            with self.subTest(colors=colors):
+                self.screen.set_terminal_properties(colors=colors)
+                output = draw(self.screen, canvas)
+                self.assertIn(f"\x1b[0;{inner}ma\x1b[0;{opaque}mb\x1b[0;{entry_88}mc", output)
+
+    def test_fbterm_draws_palette_entries(self) -> None:
+        self.screen.term = "fbterm"
+        self.screen.colors = 2**24
+        canvas = runs_canvas([[(AttrSpec("#87afd7", "#010203", 2**24), None, b"a")]], 1)
+
+        self.assertIn("\x1b[0;39;49m\x1b[1;110}\x1b[2;16}a", draw(self.screen, canvas))
+
+    def test_palette_changes_draw_the_same_canvas_again(self) -> None:
+        self.screen.colors = 256
+        self.screen.register_palette([("entry", "inherit", "inherit", None, "#87afd7", "inherit"), ("alias", "entry")])
+        canvas = runs_canvas([[("entry", None, b"a"), ("alias", None, b"b")], [(None, None, b"  ")]], 2)
+        draw(self.screen, canvas)
+
+        for name, change, expected in (
+            (
+                "entry",
+                lambda: self.screen.register_palette_entry("entry", "inherit", "inherit", None, "h1"),
+                "38;5;1;49ma",
+            ),
+            ("default entry", lambda: self.screen.register_palette_entry(None, "default", "dark blue"), "38;5;1;44ma"),
+            ("alias", lambda: self.screen.register_palette([("alias", "entry2")]), "39;44mb"),
+        ):
+            with self.subTest(name):
+                self.screen.register_palette_entry("entry2", "default", "inherit")
+                change()
+                self.assertIn(expected, draw(self.screen, canvas))
 
 
 class CopyCountingList(list[int]):

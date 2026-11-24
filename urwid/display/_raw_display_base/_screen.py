@@ -28,7 +28,6 @@ import typing
 
 from urwid import str_util, util
 from urwid.display import escape
-from urwid.display._raw_display_base._attributes import _ATTRSPEC_INDEX_BY_COLORS
 from urwid.display._raw_display_base._detection import IS_WINDOWS
 from urwid.display._raw_display_base._input import _InputScreen
 from urwid.display.common import (
@@ -244,7 +243,7 @@ class Screen(_InputScreen):  # pylint: disable=abstract-method  # a platform scr
                     run[-1:] == b" "
                     and properties.back_color_erase
                     and not (
-                        (pal_a := self.resolve_attr(a, _ATTRSPEC_INDEX_BY_COLORS[properties.colors])).standout
+                        (pal_a := self._drawn_spec(a)).standout
                         or pal_a.underline
                         or (properties.hyperlinks and pal_a.hyperlink is not None and pal_a.hyperlink.uri)
                     )

@@ -121,7 +121,8 @@ class HtmlGenerator(BaseScreen):
 
             for a, _cs, run in row:
                 t_run = run.decode(get_encoding(), "replace").translate(_trans_table)
-                aspec = self.resolve_attr(a, {1: 1, 16: 0, 88: 2, 256: 3, 2**24: 4}[self.colors])
+                # the page draws any RGB color, so every color is kept as it is
+                aspec = self._drawn_attr(a, {1: 1, 16: 0, 88: 2, 256: 3, 2**24: 4}[self.colors], 16777216)
 
                 if y == cy and col <= cx:
                     run_width = str_util.calc_width(t_run, 0, len(t_run))

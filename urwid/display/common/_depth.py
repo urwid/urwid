@@ -51,7 +51,13 @@ from urwid.display.common._attr_spec import (
     _SETTINGS_MASK,
     AttrSpec,
 )
-from urwid.display.common._colors import _COLOR_VALUES_88, DEFAULT
+from urwid.display.common._colors import (
+    _BASIC_COLOR_VALUES,
+    _COLOR_VALUES_88,
+    _COLOR_VALUES_256,
+    DEFAULT,
+    _nearest_color,
+)
 
 if typing.TYPE_CHECKING:
     from typing import Literal
@@ -59,6 +65,8 @@ if typing.TYPE_CHECKING:
     from urwid.display.common._attr_spec import Hyperlink
 
     _Mode = Literal[88, 256, 16777216]
+    #: the colors a display draws: none, the 8 colors of curses pairs, the 16 basic colors, a palette, or any RGB color
+    Draws = Literal[1, 8, 16, 88, 256, 16777216]
 
 # this module reads and builds the stored values of AttrSpec, the class it is the color counterpart of
 # pylint: disable=protected-access
@@ -95,6 +103,8 @@ INHERIT_CHANNEL: typing.Final = Channel(Kind.INHERIT)
 _PALETTE_START: typing.Final = 16
 # the 24-bit value of a channel is three bytes
 _RGB_MAX: typing.Final = 0xFFFFFF
+# the basic colors 8-15 are the bright versions of 0-7
+_BRIGHT_START: typing.Final = 8
 
 
 def rgb(red: int, green: int, blue: int) -> Channel:
@@ -332,3 +342,101 @@ def replace_channels(
         hyperlink=spec.hyperlink,
         mode=declared_mode(spec),
     )
+
+
+def compose(inner: AttrSpec, outer: AttrSpec, *, settings: AttrSpec) -> AttrSpec:
+    """Return *inner* with its inherited channels taken from *outer*, each channel keeping its kind.
+
+    The result is declared in the larger color mode the two attributes need, as :meth:`AttrSpec.colors` gives it,
+    and an 88-color entry that leaves 88-color mode is promoted as :func:`promote` does.
+
+    :param inner: the attribute placed over *outer*.
+    :param outer: the enclosing attribute.
+    :param settings: a specification holding the settings and the hyperlink of the result; its colors are not read.
+    """
+    inner_foreground, inner_background, inner_underline = channels(inner)
+    outer_foreground, outer_background, outer_underline = channels(outer)
+    colors = max(inner.colors, outer.colors)
+    return build(
+        outer_foreground if inner_foreground.kind is Kind.INHERIT else inner_foreground,
+        outer_background if inner_background.kind is Kind.INHERIT else inner_background,
+        outer_underline if inner_underline.kind is Kind.INHERIT else inner_underline,
+        settings=settings._value,
+        hyperlink=settings.hyperlink,
+        mode=88 if colors == 88 else 16777216 if colors == 16777216 else 256,
+    )
+
+
+def _rgb_values(channel: Channel) -> tuple[int, int, int]:
+    """Return the red, green and blue of a color channel, as xterm's default palettes give them."""
+    match channel.kind:
+        case Kind.BASIC:
+            return _BASIC_COLOR_VALUES[channel.number]
+        case Kind.INDEX_88:
+            return _COLOR_VALUES_88[channel.number]
+        case Kind.INDEX_256:
+            return _COLOR_VALUES_256[channel.number]
+        case Kind.RGB:
+            return rgb_components(channel.number)
+        case Kind.DEFAULT | Kind.INHERIT:
+            message = f"{channel.kind} has no RGB value"
+            raise ValueError(message)
+        case _:
+            typing.assert_never(channel.kind)
+
+
+def _converted(channel: Channel, draws: Draws) -> Channel:
+    """Return *channel* as a display that draws *draws* colors draws it.
+
+    A basic color or a palette entry 0-15 keeps its number wherever the display has it, since the terminal theme
+    defines those, and is folded to 0-7 for 8 colors.
+    Any other color is approximated by the nearest color the display has, past the 16 basic colors where it has a
+    palette.
+    """
+    if channel.kind in {Kind.DEFAULT, Kind.INHERIT}:
+        return channel
+    if draws == 1:
+        return DEFAULT_CHANNEL
+    if channel.kind is Kind.BASIC or (channel.kind is not Kind.RGB and channel.number < _PALETTE_START):
+        if draws == 8:
+            return Channel(Kind.BASIC, channel.number % _BRIGHT_START)
+        if draws == 16 or channel.kind is Kind.BASIC:
+            return Channel(Kind.BASIC, channel.number) if draws == 16 else channel
+        return Channel(Kind.INDEX_88 if draws == 88 else Kind.INDEX_256, channel.number)
+    match draws:
+        case 8 | 16:
+            return Channel(Kind.BASIC, _nearest_color(_rgb_values(channel), draws))
+        case 88:
+            if channel.kind is Kind.INDEX_88:
+                return channel
+            return Channel(Kind.INDEX_88, _nearest_color(_rgb_values(channel), 88))
+        case 256:
+            if channel.kind is Kind.INDEX_256:
+                return channel
+            return Channel(Kind.INDEX_256, _nearest_color(_rgb_values(channel), 256))
+        case 16777216:
+            return promote(channel)
+        case _:
+            typing.assert_never(draws)
+
+
+def convert(spec: AttrSpec, draws: Draws) -> AttrSpec:
+    """Return *spec* with each color channel converted to what a display drawing *draws* colors draws.
+
+    The settings and the hyperlink are kept.
+    *spec* itself is returned when no channel changes.
+
+    >>> convert(AttrSpec("#87afd7", "h22", 2**24), 256)
+    AttrSpec('#8ad', '#060')
+    >>> convert(AttrSpec("h22", "light red", 88), 2**24)
+    AttrSpec('#008bcd', 'light red', colors=16777216)
+    >>> convert(AttrSpec("#c80000", "light blue", 2**24), 8)
+    AttrSpec('dark red', 'dark blue')
+    """
+    old = channels(spec)
+    new = tuple(_converted(channel, draws) for channel in old)
+    mode: _Mode = 88 if draws == 88 else 16777216 if draws == 16777216 else 256
+    if new == old and (mode == declared_mode(spec) or draws in {1, 8, 16}):
+        return spec
+    foreground, background, underline = new
+    return build(foreground, background, underline, settings=spec._value, hyperlink=spec.hyperlink, mode=mode)

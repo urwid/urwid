@@ -280,6 +280,7 @@ class AttrSpec:
                    Valid values include: 1, 16, 88, 256, and 2**24.  High-color
                    values are only usable with 88, 256, or 2**24 colors.  With
                    1 color only the foreground settings may be used.
+                   Any display draws the result: a color it does not have is drawn as the nearest one it has.
 
         :param hyperlink: the terminal hyperlink of the text, a string being its URI;
             ``None`` takes the link of the enclosing attribute, and :data:`NO_HYPERLINK` hides it.
@@ -833,18 +834,37 @@ class AttrSpec:
     ) -> AttrSpec:
         """Return this attribute with its 'inherit' colors and its missing hyperlink taken from *outer*.
 
-        An attribute with no 'inherit' color is opaque: its colors, settings and color mode are kept unchanged,
-        and an underline color taken from *outer* is converted to that mode.
+        An attribute with no 'inherit' color is opaque: its colors and settings are kept,
+        and only an underline color or a hyperlink it lacks is taken from *outer*.
+        With *colors* given, an opaque attribute also keeps its color mode, and the underline color it takes is
+        parsed in that mode; *colors* is not used.
         Otherwise, each setting this attribute turns on ('bold') or off ('no-bold') is kept,
         and a setting it does not mention is taken from *outer*.
         The result may still inherit a color, when *outer* inherits it too.
         The hyperlink is resolved on its own: without one, this attribute takes the hyperlink of *outer*.
         The result is a plain :class:`AttrSpec` whenever it differs from this attribute.
 
+        Without *colors*, every color keeps its kind, so a palette entry stays one beside a 24-bit color,
+        and the result is declared in the mode its colors need.
+        An 88-color entry above 15 that ends up beside a color of another mode becomes its RGB value.
+        With *colors*, an attribute that is not opaque has each color described as its own color mode names it and
+        parsed in *colors*, which approximates a color that mode does not have.
+
+        Paths::
+
+            no 'inherit' color (opaque)
+              +- nothing to take from *outer* ------------> this attribute
+              +- *colors* None ---------------------------> colors kept by kind, *outer*'s underline color
+              +- *colors* given --------------------------> own mode, *outer*'s underline color parsed in it
+            'inherit' color
+              +- *colors* None ---------------------------> channels of both by kind, larger mode
+              +- *colors* given --------------------------> descriptions of both parsed in *colors*
+
         :param outer: the enclosing attribute
-        :param colors: the color mode of the result, normally the terminal's;
-            ``None`` uses the larger color mode of the two attributes
-        :raises AttrSpecError: a color of either attribute needs more colors than *colors*.
+        :param colors: the color mode of a result that is not opaque;
+            ``None`` keeps each color as it is, in the larger color mode of the two attributes
+        :raises AttrSpecError: with *colors*, a color of an attribute that is not opaque, or the underline color an
+            opaque one takes, needs more colors than that result has.
 
         >>> AttrSpec("dark red,bold", "inherit").layered_over(AttrSpec("inherit,underline", "dark blue"))
         AttrSpec('dark red,bold,underline', 'dark blue')
@@ -854,22 +874,37 @@ class AttrSpec:
         AttrSpec('yellow,underline,no-bold', 'dark blue')
         >>> AttrSpec("dark red", "default").layered_over(AttrSpec("yellow,bold", "dark blue", hyperlink="https://a.b"))
         AttrSpec('dark red', 'default', hyperlink=Hyperlink(uri='https://a.b', id=''))
+        >>> AttrSpec("h196", "inherit").layered_over(AttrSpec("default", "#102030", 2**24))
+        AttrSpec('h196', '#102030', colors=16777216)
         """
+        # _depth builds on this module, so it is imported where it is used
+        from urwid.display.common import _depth  # pylint: disable=import-outside-toplevel
+
         link = self.__hyperlink if self.__hyperlink is not None else outer.hyperlink
-        line = self.underline_color if self.__underline_color is not None else outer.underline_color
         if not self.__value & _INHERIT_MASK:
-            if link is self.__hyperlink and line == self.underline_color:
+            if link is self.__hyperlink and (self.__underline_color is not None or outer.underline_color is None):
                 return self
-            # underline_color has a form in each color mode an AttrSpec is made in
+            if colors is None:
+                foreground, background, line = _depth.channels(self)
+                if line.kind is _depth.Kind.INHERIT:
+                    line = _depth.channels(outer)[2]
+                return _depth.build(
+                    foreground,
+                    background,
+                    line,
+                    settings=self.__value,
+                    hyperlink=link,
+                    mode=self.__color_mode(),
+                )
             return AttrSpec(
                 self.foreground,
                 self.background,
                 self.__color_mode(),
                 hyperlink=link,
-                underline_color=line,
+                underline_color=self.underline_color
+                if self.__underline_color is not None
+                else outer.__released_colors()[2],  # pylint: disable=protected-access  # the same class
             )
-        fg = (outer if self.foreground_inherit else self).foreground.partition(",")[0]
-        bg = outer.background if self.background_inherit else self.background
         own_settings = self.foreground.split(",")[1:]
         outer_settings = outer.foreground.split(",")[1:]
         settings = ""
@@ -880,12 +915,28 @@ class AttrSpec:
                 if (form := next((form for form in forms if form in state), None)) is not None:
                     settings += f",{form}"
                     break
+        if colors is None:
+            return _depth.compose(self, outer, settings=AttrSpec(DEFAULT + settings, hyperlink=link))
+        own = self.__released_colors()
+        enclosing = outer.__released_colors()  # pylint: disable=protected-access  # the same class
         return AttrSpec(
-            fg + settings,
-            bg,
-            max(self.colors, outer.colors) if colors is None else colors,
+            (enclosing if self.foreground_inherit else own)[0] + settings,
+            (enclosing if self.background_inherit else own)[1],
+            colors,
             hyperlink=link,
-            underline_color=line,
+            underline_color=own[2] if self.__underline_color is not None else enclosing[2],
+        )
+
+    def __released_colors(self) -> tuple[str, str, str | None]:
+        """Return the foreground, background and underline colors as a specification of one color mode names them.
+
+        A palette entry is named in the cube or gray form of its palette, also in a true color specification.
+        The underline color is ``None`` when it is taken from the enclosing attribute.
+        """
+        return (
+            self.__kept_color(self.__value & _FG_KIND_MASK, self.foreground_number, 256),
+            self.__kept_color(self.__value & _BG_KIND_MASK, self.background_number, 256),
+            None if self.__underline_color is None else self.__kept_underline_color(256),
         )
 
     def __eq__(self, other: object) -> bool:

@@ -46,8 +46,8 @@ background colors.
 
 You can also specify an exact foreground and background using an
 :class:`AttrSpec` instance instead of a display attribute name.
-Using :class:`AttrSpec` instances in your code may be trickier than using your
-screen's palette because you must know which mode (number of colors) the screen is in.
+Every display urwid provides draws any :class:`AttrSpec`: a color it does not have is drawn as the nearest one it
+has, as :ref:`color-conversion` describes, so a 24-bit :class:`AttrSpec` can be used on any of them.
 
 .. _text-markup:
 
@@ -342,6 +342,9 @@ Code written for earlier releases sees these differences, also with palettes tha
 * :meth:`AttrSpec.copy_modified` without ``colors`` keeps the 88-color or true-color mode of the
   specification, and uses 256 colors otherwise, instead of the fewest colors it needs.
   A color it is not given keeps its kind and number.
+* :meth:`AttrSpec.layered_over` without ``colors``, and :meth:`BaseScreen.resolve_attr` at every index but 2, keep
+  the kind of each color for layers of different color modes, where they used to convert every color to the larger
+  mode.
 * ``repr()`` of a true color :class:`AttrSpec` names ``colors=16777216``.
 * :class:`ANSIText` and the :class:`Terminal` widget keep a palette entry beside a 24-bit color as an entry.
 
@@ -497,6 +500,32 @@ A cube or gray shortcut such as ``'#f00'`` or ``'g50'`` is a 24-bit color in thi
    The palette_test.py_ example program
 
 .. _palette_test.py: https://github.com/urwid/urwid/blob/master/examples/palette_test.py
+
+.. _color-conversion:
+
+Colors the Display Does Not Have
+--------------------------------
+
+An :class:`AttrSpec` keeps the kind of each of its colors, the foreground, the background and the underline color:
+a basic color, an entry of the 88- or the 256-color palette, or a 24-bit color.
+One specification may hold several kinds, such as a palette entry beside a 24-bit background, and combining display
+attributes (see :ref:`inherit-foreground-background`) keeps each color's kind.
+An 88-color entry above 15 that is combined with a color of another mode becomes its RGB value.
+
+Each display converts the colors once, as it draws them:
+
+* A display without colors draws the default colors.
+* The basic colors, and the palette entries 0 to 15, which the terminal theme defines, keep their number wherever the
+  display has them; the curses display, which draws 8 colors, draws 8 to 15 as 0 to 7.
+* A palette entry above 15 that the display has is kept.
+  An 88-color entry on a display of 256 or 24-bit colors is drawn as its own color: the nearest 256-color entry, or
+  its RGB value.
+* Any other color is drawn as the nearest color the display has, by the distance of the red, green and blue values:
+  among the basic colors on a display of 16 colors, among the first 8 on curses, and among the entries above 15 of the
+  palette of an 88- or 256-color display.
+* The web and HTML displays draw every color as it is.
+
+The settings and the hyperlink are never changed.
 
 .. _256-foreground-background:
 

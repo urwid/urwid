@@ -176,6 +176,18 @@ class HtmlGeneratorTest(unittest.TestCase):
             HtmlGenerator.fragments,
         )
 
+    def test_draw_screen_keeps_every_color_exact(self) -> None:
+        self.screen.set_terminal_properties(colors=88)
+        attr = urwid.LayeredAttr(urwid.AttrSpec("h22", "inherit", 88), urwid.AttrSpec("default", "#102030", 2**24))
+        canvas = urwid.Text((attr, "a")).render((1,))
+
+        self.screen.draw_screen((1, canvas.rows()), canvas)
+
+        self.assertEqual(
+            ['<pre><span style="color:#008bcd;background:#102030">a</span>\n</pre>'],
+            HtmlGenerator.fragments,
+        )
+
     def test_draw_screen_in_true_color(self) -> None:
         self.screen.set_terminal_properties(colors=2**24)
         self.screen.register_palette_entry("green", "dark green", "black", foreground_high="#76b900")
