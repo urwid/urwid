@@ -106,13 +106,15 @@ class _InputScreen(_ModesScreen):
             raise RuntimeError
 
         now = time.monotonic()
+        # counted with the complete_wait in effect now, which set_input_timeouts() may have changed since the read
+        partial_deadline = self._partial_read_time + self.complete_wait
         # The waits for more input after a resize end by the time max_wait would have ended.
         deadline = None if self.max_wait is None else now + self.max_wait
         partial: list[int] = self._partial_codes
         keys: _DecodedInput = []
         raw: list[int] = []
         wait = self.max_wait
-        if partial and now >= self._partial_deadline:
+        if partial and now >= partial_deadline:
             # Its deadline passed before this call: it is decoded alone, ahead of the input that came since.
             # A pending resize is left to the parse after the read, which knows whether input came before it.
             self._partial_codes = []
@@ -122,13 +124,13 @@ class _InputScreen(_ModesScreen):
             wait = 0.0
         elif partial:
             # the rest of a sequence cut short is waited for only until its deadline
-            left = max(0.0, self._partial_deadline - now)
+            left = max(0.0, partial_deadline - now)
             wait = left if wait is None else min(wait, left)
         self._wait_for_input_ready(wait)
         codes = self.get_available_raw_input()
         read_new = len(codes) > len(partial)
         # a sequence cut short, with no more of it by its deadline, is decoded as it is
-        expired = bool(partial) and not read_new and time.monotonic() >= self._partial_deadline
+        expired = bool(partial) and not read_new and time.monotonic() >= partial_deadline
         new_keys, new_raw = self.parse_input(None, None, codes, wait_for_more=not expired)
         keys = [*keys, *new_keys]
         raw = [*raw, *new_raw]
@@ -161,7 +163,7 @@ class _InputScreen(_ModesScreen):
 
         # each read that leaves a sequence cut short gives it complete_wait to arrive whole
         if self._partial_codes and read_new:
-            self._partial_deadline = time.monotonic() + self.complete_wait
+            self._partial_read_time = time.monotonic()
 
         if raw_keys:
             return keys, raw

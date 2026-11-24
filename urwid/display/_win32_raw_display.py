@@ -184,6 +184,7 @@ class Screen(_raw_display_base.Screen):
         :raises TypeError: unexpected positional or keyword arguments were given.
         :raises RuntimeError: the console mode could not be set.
         """
+        self._start_complete = False
         handle_out = _win32.GetStdHandle(_win32.STD_OUTPUT_HANDLE)
         handle_in = _win32.GetStdHandle(_win32.STD_INPUT_HANDLE)
         original_out_mode = DWORD(0)
@@ -212,13 +213,13 @@ class Screen(_raw_display_base.Screen):
             if not (ok := _win32.SetConsoleMode(handle_out, dword_out_mode)):
                 raise RuntimeError(f"ConsoleMode set failed for output. Err: {ok!r}")
 
-            if not (ok := _win32.SetConsoleMode(handle_in, dword_in_mode)):
-                _win32.SetConsoleMode(handle_out, original_out_mode)
-                raise RuntimeError(f"ConsoleMode set failed for input. Err: {ok!r}")
-
+            # Saved before the input mode is set: undoing a failed start sets the output mode back and checks it.
             self._dwOriginalOutMode = original_out_mode
             self._dwOriginalInMode = original_in_mode
             self._console_mode_active = True
+
+            if not (ok := _win32.SetConsoleMode(handle_in, dword_in_mode)):
+                raise RuntimeError(f"ConsoleMode set failed for input. Err: {ok!r}")
 
         # from the first escape sequence written on, a stop writes the ones that undo it
         self._console_without_vt = False
@@ -251,6 +252,12 @@ class Screen(_raw_display_base.Screen):
         signals.emit_signal(self, INPUT_DESCRIPTORS_CHANGED)
         # restore mouse tracking to previous state
         self._mouse_tracking(self._mouse_tracking_enabled)
+
+        # The bottom row of an earlier run follows a resize made while the screen was stopped.
+        # A subclass with its own get_cols_rows() sets it there, as the size this screen reads may not be its size.
+        if self.maxrow is not None and type(self).get_cols_rows is Screen.get_cols_rows:
+            self.maxrow = self._read_cols_rows()[1]
+        self._start_complete = True
 
         super()._start()  # type: ignore[safe-super]
 
@@ -448,9 +455,13 @@ class Screen(_raw_display_base.Screen):
 
     def get_cols_rows(self) -> tuple[int, int]:
         """Return the terminal dimensions (num columns, num rows)."""
-        x, y = self._last_cols_rows = self._console_window_size() or super().get_cols_rows()
+        x, y = self._last_cols_rows = self._read_cols_rows()
         self.maxrow = y
         return x, y
+
+    def _read_cols_rows(self) -> tuple[int, int]:
+        """Return the size :meth:`get_cols_rows` returns, without recording it as the size the application read."""
+        return self._console_window_size() or super().get_cols_rows()
 
 
 class ReadInputThread(threading.Thread):

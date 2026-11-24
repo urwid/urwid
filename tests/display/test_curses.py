@@ -338,12 +338,28 @@ class CursesGetInputTest(unittest.TestCase):
         """Keep a sequence cut short for the next call, and decode it alone once none of it came by complete_wait.
 
         The next call waits only for the time left until then, so a caller waiting for input forever still gets it.
+        The raw codes of the sequence come with the call that decodes it.
         """
         # clock: time.monotonic() at the start of each call and when the first call keeps the sequence;
         # one more read in the second call checks whether its deadline passed
-        for label, later, clock, expected in (
-            ("completed by the keys that follow", ord("B"), [100.0, 100.0, 100.0], ["down"]),
-            ("decoded as it is when none follow", -1, [100.0, 100.0, 100.0, 100.2], ["meta ["]),
+        for label, later, clock, expected, expected_raw, waits in (
+            (
+                "completed by the keys that follow",
+                ord("B"),
+                [100.0, 100.0, 100.0],
+                ["down"],
+                [27, ord("["), ord("B")],
+                [None, 1],
+            ),
+            (
+                "decoded as it is when none follow",
+                -1,
+                [100.0, 100.0, 100.0, 100.2],
+                ["meta ["],
+                [27, ord("[")],
+                [None, 1],
+            ),
+            ("decoded as the next call starts", -1, [100.0, 100.0, 100.2], ["meta ["], [27, ord("[")], [None, 0]),
         ):
             with self.subTest(label):
                 screen = curses_display.Screen()
@@ -354,12 +370,63 @@ class CursesGetInputTest(unittest.TestCase):
                     mock.patch.object(screen, "_getch_nodelay", side_effect=[27, ord("["), -1, -1]),
                     mock.patch.object(curses_display.time, "monotonic", side_effect=clock),
                 ):
-                    self.assertEqual(["a"], screen.get_input())
-                    self.assertEqual(expected, screen.get_input())
+                    self.assertEqual((["a"], [ord("a")]), screen.get_input(raw_keys=True))
+                    self.assertEqual((expected, expected_raw), screen.get_input(raw_keys=True))
 
-                # no max_wait: the first call waits forever, the second until complete_wait, one tenth, is over
-                self.assertEqual([None, 1], [call.args[0] for call in getch.call_args_list])
+                # no max_wait: the first call waits forever; the second until complete_wait, one tenth, is over,
+                # or not at all once it is
+                self.assertEqual(waits, [call.args[0] for call in getch.call_args_list])
                 self.assertEqual([], screen._partial_keys)
+
+    def test_raw_codes_that_are_no_key_come_with_the_call_that_read_them(self) -> None:
+        """Report a resize and an empty mouse report at once, while the Esc read with them waits for its rest."""
+        screen = curses_display.Screen()
+        screen._started = True
+        resize, mouse = curses_display.KEY_RESIZE, curses_display.KEY_MOUSE
+        # clock: the first call's start and its keeping of the Esc; the second call's start
+        with (
+            mock.patch("curses.doupdate"),
+            mock.patch.object(screen, "_getch", side_effect=[27, ord("x")]),
+            mock.patch.object(screen, "_getch_nodelay", side_effect=[resize, mouse, -1, -1]),
+            mock.patch.object(screen, "_encode_mouse_event", return_value=[]),
+            mock.patch.object(curses_display.time, "monotonic", side_effect=[100.0, 100.0, 100.05]),
+        ):
+            self.assertEqual(([], [resize, mouse]), screen.get_input(raw_keys=True))
+            self.assertEqual((["meta x", "window resize"], [27, ord("x")]), screen.get_input(raw_keys=True))
+
+    def test_mouse_report_raw_code_comes_with_its_keys(self) -> None:
+        """Report the KEY_MOUSE code once with the keys of the report it was encoded as."""
+        screen = curses_display.Screen()
+        screen._started = True
+        with (
+            mock.patch("curses.doupdate"),
+            mock.patch.object(screen, "_getch", return_value=curses_display.KEY_MOUSE),
+            mock.patch.object(screen, "_getch_nodelay", return_value=-1),
+            mock.patch.object(screen, "_encode_mouse_event", return_value=[27, ord("["), ord("M"), 32, 33, 33]),
+        ):
+            keys, raw = screen.get_input(raw_keys=True)
+
+        self.assertEqual([("mouse press", 1, 0, 0)], keys)
+        self.assertEqual([curses_display.KEY_MOUSE], raw)
+
+    def test_kept_sequence_waits_by_the_complete_wait_set_after_it_was_read(self) -> None:
+        """A complete_wait set while a sequence is kept counts from the read that kept it."""
+        screen = curses_display.Screen()
+        screen._started = True
+        # clock: the first call's start and its keeping of the sequence; the second call's start and its deadline check
+        with (
+            mock.patch("curses.doupdate"),
+            mock.patch.object(screen, "_getch", side_effect=[ord("a"), -1]) as getch,
+            mock.patch.object(screen, "_getch_nodelay", side_effect=[27, ord("["), -1, -1]),
+            mock.patch.object(curses_display.time, "monotonic", side_effect=[100.0, 100.0, 100.2, 100.2]),
+        ):
+            self.assertEqual(["a"], screen.get_input())
+            screen.set_input_timeouts(complete_wait=0.5)
+            self.assertEqual([], screen.get_input())
+
+        # the second call waits the three tenths left of the half second
+        self.assertEqual([None, 3], [call.args[0] for call in getch.call_args_list])
+        self.assertEqual([27, ord("[")], screen._partial_keys)
 
     def test_sequence_cut_short_after_new_input_gets_its_own_complete_wait(self) -> None:
         """Give an Esc read after a decoded key the whole complete_wait, also when an Esc was kept before.

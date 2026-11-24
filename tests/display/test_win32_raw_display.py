@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import contextlib
 import dataclasses
 import socket
 import sys
@@ -15,6 +16,7 @@ from urwid.display import escape
 from urwid.display.common import INPUT_DESCRIPTORS_CHANGED, AttrSpec, InputClosedError
 
 if typing.TYPE_CHECKING:
+    import collections.abc
     import ctypes
 
 IS_WINDOWS = sys.platform == "win32"
@@ -39,6 +41,37 @@ def _resize_record() -> typing.Any:
     record = _win32.INPUT_RECORD()
     record.EventType = _win32.EventType.WINDOW_BUFFER_SIZE_EVENT
     return record
+
+
+@contextlib.contextmanager
+def _console_with_redirected_input(
+    screen: _win32_raw_display.Screen,
+    window_size: tuple[int, int] | None,
+) -> collections.abc.Iterator[mock.Mock]:
+    """Stand in for a console whose input is redirected, so a start sets no console mode.
+
+    :returns: the mock of SetConsoleMode.
+    """
+
+    def get_mode(handle: str, mode: typing.Any) -> int:
+        mode._obj.value = 0
+        return int(handle == "out")  # the input is no console
+
+    with (
+        mock.patch.object(
+            _win32,
+            "GetStdHandle",
+            side_effect=lambda handle: {
+                _win32.STD_OUTPUT_HANDLE: "out",
+                _win32.STD_INPUT_HANDLE: "in",
+            }[handle],
+        ),
+        mock.patch.object(_win32, "GetConsoleMode", side_effect=get_mode),
+        mock.patch.object(_win32, "SetConsoleMode") as set_mode,
+        mock.patch.object(_win32_raw_display, "ReadInputThread"),
+        mock.patch.object(screen, "_console_window_size", return_value=window_size),
+    ):
+        yield set_mode
 
 
 @unittest.skipUnless(IS_WINDOWS, "_win32_raw_display needs the Windows console API")
@@ -215,7 +248,15 @@ class TestScreenInput(unittest.TestCase):
         vt = _win32.ENABLE_VIRTUAL_TERMINAL_PROCESSING
         for failure, original_mode, mode_results, restored, writes, kwargs, error in (
             ("output mode", 0, [0], [], False, {}, RuntimeError),
-            ("input mode", 0, [1, 0, 1], [mock.call("out", mock.ANY)], False, {}, RuntimeError),
+            (
+                "input mode",
+                0,
+                [1, 0, 1, 1],
+                [mock.call("out", mock.ANY), mock.call("in", mock.ANY)],
+                False,
+                {},
+                RuntimeError,
+            ),
             ("output mode with VT before", vt, [0], [], True, {}, RuntimeError),
             ("unexpected argument", 0, [], [], False, {"unexpected": True}, TypeError),
         ):
@@ -254,6 +295,27 @@ class TestScreenInput(unittest.TestCase):
                 self.assertEqual([], written)
                 set_title.assert_not_called()
 
+    def test_start_reports_an_output_mode_it_cannot_set_back(self) -> None:
+        """When the input mode fails and the output mode cannot be set back either, the output failure is raised."""
+        s = _win32_raw_display.Screen()
+        s.write = lambda _data: None
+        s.flush = lambda: None
+
+        def get_mode(_handle: str, mode: typing.Any) -> int:
+            mode._obj.value = 0
+            return 1
+
+        with (
+            mock.patch.object(_win32, "GetStdHandle", side_effect=lambda handle: handle),
+            mock.patch.object(_win32, "GetConsoleMode", side_effect=get_mode),
+            mock.patch.object(_win32, "SetConsoleMode", side_effect=[1, 0, 0, 1]),
+            self.assertRaisesRegex(RuntimeError, "for output") as raised,
+        ):
+            s.start()
+
+        self.assertFalse(s.started)
+        self.assertRegex(str(raised.exception.__context__), "for input")
+
     def test_stop_after_a_start_with_redirected_input_restores_the_screen(self) -> None:
         """A start that wrote to a console without VT processing, its input redirected, is fully undone by stop()."""
         s = _win32_raw_display.Screen()
@@ -261,24 +323,7 @@ class TestScreenInput(unittest.TestCase):
         s.write = written.append
         s.flush = lambda: None
 
-        def get_mode(handle: str, mode: typing.Any) -> int:
-            mode._obj.value = 0
-            return int(handle == "out")  # the input is no console
-
-        with (
-            mock.patch.object(
-                _win32,
-                "GetStdHandle",
-                side_effect=lambda handle: {
-                    _win32.STD_OUTPUT_HANDLE: "out",
-                    _win32.STD_INPUT_HANDLE: "in",
-                }[handle],
-            ),
-            mock.patch.object(_win32, "GetConsoleMode", side_effect=get_mode),
-            mock.patch.object(_win32, "SetConsoleMode") as set_mode,
-            mock.patch.object(_win32_raw_display, "ReadInputThread"),
-            mock.patch.object(s, "_console_window_size", return_value=None),  # the handles above are no real ones
-        ):
+        with _console_with_redirected_input(s, None) as set_mode:  # the handles are no real ones
             s.start()
             written.clear()
             s.stop()
@@ -286,6 +331,43 @@ class TestScreenInput(unittest.TestCase):
         set_mode.assert_not_called()
         self.assertIn(escape.PrivateMode.ALTERNATE_SCREEN_BUFFER.disable_seq, "".join(written))
         self.assertFalse(s._alternate_buffer)
+
+    def test_start_takes_the_bottom_row_and_a_failed_restart_moves_no_cursor(self) -> None:
+        """Take the window's rows at a restart, without recording the size the application read.
+
+        Undoing a failed restart moves no cursor, and the bottom row is kept.
+        A subclass with its own get_cols_rows() keeps the bottom row it set.
+        """
+
+        class OwnSize(_win32_raw_display.Screen):
+            """A screen whose size comes from elsewhere than its console."""
+
+            def get_cols_rows(self) -> tuple[int, int]:
+                return 80, 50
+
+        for label, screen_class, last_row in (
+            ("this screen's size", _win32_raw_display.Screen, 30),
+            ("a subclass's own size", OwnSize, 12),
+        ):
+            with self.subTest(label):
+                s = screen_class()
+                written: list[str] = []
+                s.write = written.append
+                s.flush = lambda: None
+                s.maxrow = 12  # as get_cols_rows() of an earlier run leaves it
+                with _console_with_redirected_input(s, (100, 30)):
+                    s.start()
+                    self.assertEqual(last_row, s.maxrow)
+                    self.assertIsNone(s._last_cols_rows)
+                    s.stop()
+                    self.assertIn(escape.set_cursor_position(0, last_row), "".join(written))
+                    written.clear()
+
+                    with self.assertRaises(TypeError):
+                        s.start(unexpected=True)
+
+                self.assertNotIn(escape.set_cursor_position(0, last_row), "".join(written))
+                self.assertEqual(last_row, s.maxrow)  # kept for the next run that starts
 
     def test_no_reader_outlives_a_stop_that_re_hooks_the_screen(self):
         """A main loop re-hooking the screen while it stops does not leave a reader running."""
@@ -307,6 +389,7 @@ class TestScreenInput(unittest.TestCase):
                 side_effect=lambda *_a, **_kw: readers.append(mock.Mock(should_exit=False)) or readers[-1],
             ),
             mock.patch.object(s, "_started", True),
+            mock.patch.object(s, "_console_window_size", return_value=None),  # no real console handle in the test
         ):
             s.hook_event_loop(event_loop, mock.Mock())
             s.stop()

@@ -8,6 +8,7 @@ import stat
 import struct
 import subprocess
 import sys
+import typing
 import unittest
 from unittest import mock
 
@@ -45,12 +46,17 @@ class _StrictBytes(bytes):
         return super().__eq__(other)
 
 
-def _make_screen(input_fd: int | None = None) -> Screen:
-    """Build a Screen over a pipe (or /dev/null) so tests never touch a real tty."""
+def _make_screen(input_fd: int | None = None, *, screen_class: type[Screen] | None = None) -> Screen:
+    """Build a Screen, or a *screen_class*, over a pipe (or /dev/null) so tests never touch a real tty.
+
+    *screen_class* defaults to None rather than Screen, which does not exist where this module is imported on Windows.
+    """
     if input_fd is None:
         input_fd, write_fd = os.pipe()
         os.close(write_fd)
-    return Screen(input=os.fdopen(input_fd, "rb", buffering=0), output=open(os.devnull, "w"))
+    if screen_class is None:
+        screen_class = Screen
+    return screen_class(input=os.fdopen(input_fd, "rb", buffering=0), output=open(os.devnull, "w"))
 
 
 def _device_stat(major: int, minor: int, *, file_type: int = stat.S_IFCHR) -> os.stat_result:
@@ -409,6 +415,47 @@ class TestStartStop(unittest.TestCase):
         # SIGCONT belongs to the application: neither start() nor stop() replaces it.
         self.assertEqual(signal.SIG_IGN, signal.getsignal(signal.SIGCONT))
 
+    def test_subclass_start_failing_before_the_screen_starts_moves_no_cursor(self) -> None:
+        """A restart a subclass fails before its super()._start() undoes nothing a stop already undid."""
+
+        class FailingRestart(Screen):
+            """A screen whose second start fails in its own setup."""
+
+            def _start(self, *args: typing.Any, **kwargs: typing.Any) -> None:
+                if self.maxrow is not None:
+                    raise RuntimeError("setup failed")
+                super()._start(*args, **kwargs)
+
+        s = _make_screen(screen_class=FailingRestart)
+        written: list[str] = []
+        s.write = written.append
+        s.flush = lambda: None
+        s.start(alternate_buffer=False)
+        s.maxrow = 23  # as get_cols_rows() of the first run leaves it
+        s.stop()
+        written.clear()
+
+        with self.assertRaisesRegex(RuntimeError, "setup failed"):
+            s.start(alternate_buffer=False)
+
+        self.assertNotIn(escape.set_cursor_position(0, 23), "".join(written))
+
+    def test_signal_init_failing_after_its_first_handler_restores_that_handler(self) -> None:
+        """The handler set before the failure is set back, since the undo of the failed start restores none."""
+        s = _make_screen()
+        s.write = lambda *_a: None
+        s.flush = lambda: None
+        previous_handler = mock.Mock()
+        s.signal_handler_setter = setter = mock.Mock(
+            side_effect=[previous_handler, ValueError("SIGTSTP refused"), None]
+        )
+
+        with self.assertRaisesRegex(ValueError, "SIGTSTP refused"):
+            s.start()
+
+        self.assertFalse(s.started)
+        self.assertEqual(mock.call(signal.SIGWINCH, previous_handler), setter.call_args_list[-1])
+
     @mock.patch("os.kill")  # guard: the gpm helper must be stopped through its Popen object only
     @mock.patch("termios.tcsetattr")
     @mock.patch("termios.tcgetattr", return_value=[0, 0, 0, 0, 0, 0, [b"\0"] * 32])
@@ -436,7 +483,10 @@ class TestStartStop(unittest.TestCase):
             s.flush = lambda: None
             s.signal_handler_setter = setter = mock.Mock(return_value=None)
             s.start()
+            s.maxrow = 23  # as get_cols_rows() of the first run leaves it
             s.stop()
+            move_to_last_row = escape.set_cursor_position(0, 23)
+            self.assertIn(move_to_last_row, "".join(written))
             written.clear()
             setter.reset_mock()
             mock_tcsetattr.reset_mock()
@@ -449,6 +499,8 @@ class TestStartStop(unittest.TestCase):
             # the signal keys saved by the first start are set back at every stop, so only the settings are checked
             self.assertNotIn(termios.TCSAFLUSH, [call.args[1] for call in mock_tcsetattr.mock_calls])
             self.assertNotIn(disable_alternate, "".join(written))
+            self.assertNotIn(move_to_last_row, "".join(written))
+            self.assertEqual(23, s.maxrow)  # kept for the next run that starts
 
         with self.subTest("start fails after signal_init()"):
             s = _make_screen()
@@ -524,6 +576,8 @@ class TestStartStop(unittest.TestCase):
                 mock_tcsetattr.assert_any_call(s._input_fileno(), termios.TCSAFLUSH, mock_tcgetattr.return_value)
                 gpm_mev.send_signal.assert_called_once_with(signal.SIGINT)
                 self.assertIsNone(s.gpm_mev)
+                # undoing a later start that fails moves no cursor below frames it never drew
+                self.assertFalse(s._start_complete)
 
     @mock.patch.dict(os.environ, {"TERM": "xterm"})  # fbterm has no palette reset to flush
     @mock.patch("termios.tcsetattr")
@@ -1138,19 +1192,31 @@ class TestReadRawInput(unittest.TestCase):
         self.assertEqual(bytearray(), result)
 
     def test_raises_input_closed_error_on_eof(self):
-        """End of file raises InputClosedError, which a RuntimeError handler still catches."""
-        read_fd, write_fd = os.pipe()
-        s = Screen(input=os.fdopen(read_fd, "rb", buffering=0), output=open(os.devnull, "w"))  # noqa: SIM115
-        s.write = lambda *_a: None
-        s.flush = lambda: None
-        s.start()
-        self.addCleanup(s.stop)
+        """Raise InputClosedError at end of file, from the raw read and from get_input().
 
-        os.close(write_fd)  # EOF with nothing ever written
+        It is a RuntimeError, so a handler for that still catches it.
+        """
+        for label, read in (
+            ("raw read", lambda screen: screen._read_raw_input(1)),
+            ("get_input()", lambda screen: screen.get_input()),
+        ):
+            with self.subTest(label):
+                read_fd, write_fd = os.pipe()
+                input_file = os.fdopen(read_fd, "rb", buffering=0)
+                self.addCleanup(input_file.close)
+                output_file = open(os.devnull, "w")  # noqa: SIM115  # closed by the cleanup
+                self.addCleanup(output_file.close)
+                s = Screen(input=input_file, output=output_file)
+                s.write = lambda *_a: None
+                s.flush = lambda: None
+                s.start()
+                self.addCleanup(s.stop)
 
-        with self.assertRaises(urwid.InputClosedError) as ctx:
-            s._read_raw_input(1)
-        self.assertIsInstance(ctx.exception, RuntimeError)
+                os.close(write_fd)  # EOF with nothing ever written
+
+                with self.assertRaises(urwid.InputClosedError) as ctx:
+                    read(s)
+                self.assertIsInstance(ctx.exception, RuntimeError)
 
 
 @unittest.skipIf(IS_WINDOWS, "_posix_raw_display is not importable on Windows (no fcntl/termios/tty)")
@@ -2171,6 +2237,78 @@ class TestGetColsRows(unittest.TestCase):
 
         self.assertEqual(["window resize", "x"], keys)
         self.assertEqual((100, 30), s.get_cols_rows())
+
+    @mock.patch("fcntl.ioctl")
+    def test_start_reads_the_bottom_row_without_recording_the_size(self, mock_ioctl):
+        """Take the rows the terminal has now when a run that had a bottom row starts again.
+
+        No get_cols_rows() call is needed for the stop to leave below them.
+        The size the application read stays as it was, so a report of the new size is still a resize.
+        """
+        mock_ioctl.return_value = struct.pack("HHHH", 24, 80, 0, 0)
+        s = _make_screen()
+        written: list[str] = []
+        s.write = written.append
+        s.flush = lambda: None
+        self.assertEqual((80, 24), s.get_cols_rows())
+        s.start()
+        s.stop()
+        mock_ioctl.return_value = struct.pack("HHHH", 30, 100, 0, 0)  # resized while stopped
+        written.clear()
+
+        s.start()
+        s.stop()
+
+        self.assertEqual(30, s.maxrow)
+        self.assertIn(escape.set_cursor_position(0, 30), "".join(written))
+        self.assertEqual((80, 24), s._last_cols_rows)
+
+    @mock.patch("fcntl.ioctl")
+    def test_run_that_never_read_the_size_moves_no_cursor(self, mock_ioctl):
+        """A run that only reads keys has no bottom row, so its stop leaves the cursor where it is."""
+        mock_ioctl.return_value = struct.pack("HHHH", 24, 80, 0, 0)
+        s = _make_screen()
+        written: list[str] = []
+        s.write = written.append
+        s.flush = lambda: None
+
+        s.start(alternate_buffer=False)
+        s.stop()
+
+        self.assertIsNone(s.maxrow)
+        self.assertNotIn(escape.set_cursor_position(0, 24), "".join(written))
+
+    @mock.patch("fcntl.ioctl", side_effect=OSError)  # as on a socket
+    def test_start_keeps_the_bottom_row_of_a_subclass_with_its_own_size(self, mock_ioctl):
+        """A subclass with its own get_cols_rows() keeps the bottom row it set, not the 24 rows this screen reads."""
+
+        class OwnSize(Screen):
+            """A screen whose size comes from elsewhere than its terminal, as on a socket."""
+
+            def get_cols_rows(self) -> tuple[int, int]:
+                return 80, 50
+
+        # moved_to: which of the candidate rows (12 from the earlier run, 24 from this screen's size,
+        # 50 from the subclass's size) the stop moves the cursor to
+        for label, earlier_row, moved_to in (
+            ("no row set", None, []),
+            ("row set by an earlier run", 12, [12]),
+        ):
+            with self.subTest(label):
+                s = _make_screen(screen_class=OwnSize)
+                written: list[str] = []
+                s.write = written.append
+                s.flush = lambda: None
+                s.maxrow = earlier_row
+
+                s.start()
+                s.stop()
+
+                self.assertEqual(earlier_row, s.maxrow)
+                output = "".join(written)
+                self.assertEqual(
+                    moved_to, [row for row in (12, 24, 50) if escape.set_cursor_position(0, row) in output]
+                )
 
     @mock.patch("fcntl.ioctl", side_effect=OSError)
     def test_falls_back_to_80x24_when_ioctl_fails(self, mock_ioctl):

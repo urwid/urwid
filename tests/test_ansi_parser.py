@@ -645,6 +645,20 @@ class HyperlinkTest(unittest.TestCase):
             attrspec_with_hyperlink(colored, None, unset_color="default"),
         )
 
+    def test_attrspec_with_hyperlink_keeps_the_color_mode(self) -> None:
+        """Keep the color mode the attribute was made for, also when its colors need fewer."""
+        for label, spec in (
+            ("24-bit with palette entries only", AttrSpec("h1", "default", 2**24)),
+            ("24-bit with an RGB color", AttrSpec("#102030", "h5", 2**24)),
+            ("88 colors", AttrSpec("h20", "h3", 88)),
+            ("16 colors", AttrSpec("dark red", "default", 16)),
+        ):
+            with self.subTest(label):
+                self.assertEqual(
+                    spec.copy_modified(hyperlink=self.LINK),
+                    attrspec_with_hyperlink(spec, self.LINK, unset_color="default"),
+                )
+
 
 class SgiParamsToAttrspecTest(unittest.TestCase):
     def test_basic_foreground(self) -> None:

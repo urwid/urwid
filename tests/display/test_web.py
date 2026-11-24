@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import contextlib
 import io
 import itertools
 import os
@@ -81,6 +82,16 @@ class SessionDirTest(unittest.TestCase):
         with mock.patch.object(web.os, "geteuid", return_value=other_uid), self.assertRaises(PermissionError):
             web._session_dir()
 
+    def test_relative_pipe_dir_gives_an_absolute_directory(self) -> None:
+        """A relative pipe_dir is resolved once, so the daemon's chdir("/") does not move its session files."""
+        cwd = os.getcwd()
+        self.addCleanup(os.chdir, cwd)
+        os.chdir(self.pipe_dir)
+
+        with mock.patch.object(web._prefs, "pipe_dir", "."):
+            self.assertEqual(os.path.realpath(self.expected), os.path.realpath(web._session_dir()))
+            self.assertTrue(os.path.isabs(web._session_dir()))
+
     def test_session_path_does_not_contain_the_session_id(self) -> None:
         """Session file names are a stable hash of the id, inside the session directory."""
         urwid_id = "8Hq3_secret-token-value"
@@ -124,7 +135,7 @@ class HandleShortRequestTest(unittest.TestCase):
                 os.O_WRONLY | os.O_NONBLOCK,
             )
 
-        set_blocking.assert_called_once_with(42, True)
+        set_blocking.assert_not_called()  # a full pipe is answered, not waited for
         write.assert_called_once_with(42, b"\xc3\xa9\n")
         close.assert_called_once_with(42)
         self.assertEqual("Content-type: text/plain\r\n\r\n", stdout.getvalue())
@@ -218,6 +229,95 @@ class HandleShortRequestTest(unittest.TestCase):
         self.assertEqual(b"a\n", os.read(reader, 16))
         self.assertEqual("Content-type: text/plain\r\n\r\n", stdout.getvalue())
 
+    @unittest.skipIf(IS_WINDOWS, "The client pipe is a POSIX-only os.mkfifo FIFO")
+    def test_keyboard_input_to_a_screen_that_exits_after_the_open_is_not_found(self) -> None:
+        """A reader that closes between the open and the write is answered with 404, not an exception."""
+        pipe = f"{web._session_path('valid-id')}.in"
+        os.mkfifo(pipe, 0o600)
+        reader = os.open(pipe, os.O_RDONLY | os.O_NONBLOCK)
+        reader_open = [True]
+        self.addCleanup(lambda: reader_open[0] and os.close(reader))
+        stdin = io.TextIOWrapper(io.BytesIO(b"a\n"), encoding="ascii")
+        stdout = io.StringIO()
+        write = os.write
+
+        def screen_exits(fd: int, data: bytes) -> int:
+            os.close(reader)
+            reader_open[0] = False
+            return write(fd, data)
+
+        with (
+            mock.patch.dict(os.environ, {**self.environ, "CONTENT_LENGTH": "2"}, clear=True),
+            mock.patch.object(web.sys, "stdin", stdin),
+            mock.patch.object(web.sys, "stdout", stdout),
+            mock.patch.object(web.os, "write", screen_exits),
+        ):
+            self.assertTrue(web.handle_short_request())
+
+        self.assertEqual("Status: 404 Not Found\r\n\r\n", stdout.getvalue())
+
+    def _post_keys(self, body: bytes) -> str:
+        """Send *body* as a latin-1 keystroke request, and return the response."""
+        stdin = io.TextIOWrapper(io.BytesIO(body), encoding="ascii")
+        stdout = io.StringIO()
+        environ = {**self.environ, "CONTENT_TYPE": "text/plain; charset=latin-1", "CONTENT_LENGTH": str(len(body))}
+        with (
+            mock.patch.dict(os.environ, environ, clear=True),
+            mock.patch.object(web.sys, "stdin", stdin),
+            mock.patch.object(web.sys, "stdout", stdout),
+        ):
+            self.assertTrue(web.handle_short_request())
+        return stdout.getvalue()
+
+    def _open_screen_pipe(self) -> int:
+        """Create the screen's input FIFO and return the screen's reading end."""
+        pipe = f"{web._session_path('valid-id')}.in"
+        os.mkfifo(pipe, 0o600)
+        reader = os.open(pipe, os.O_RDONLY | os.O_NONBLOCK)
+        self.addCleanup(os.close, reader)
+        return reader
+
+    @unittest.skipIf(IS_WINDOWS, "The client pipe is a POSIX-only os.mkfifo FIFO")
+    def test_keyboard_input_longer_than_pipe_buf_is_refused(self) -> None:
+        """Refuse keys longer than PIPE_BUF once encoded, and write none of them.
+
+        The pipe could split a longer write, with the keys of another request between its parts.
+        """
+        reader = self._open_screen_pipe()
+        # latin-1 "\xe9" becomes two bytes of UTF-8, so a body within MAX_READ grows past PIPE_BUF
+        body = b"\xe9" * (web.MAX_READ - 1) + b"\n"
+
+        self.assertEqual("Status: 413 Content Too Large\r\n\r\n", self._post_keys(body))
+        # the request closed its end, so an empty pipe reads as end of file
+        self.assertEqual(b"", os.read(reader, 1))
+
+    @unittest.skipIf(IS_WINDOWS, "The client pipe is a POSIX-only os.mkfifo FIFO")
+    def test_keyboard_input_to_a_full_pipe_is_sent_again(self) -> None:
+        """Answer 429 for keys a full pipe has no room for, at once and without writing any of them."""
+        reader = self._open_screen_pipe()
+        filler = os.open(f"{web._session_path('valid-id')}.in", os.O_WRONLY | os.O_NONBLOCK)
+        self.addCleanup(os.close, filler)
+        filled = 0
+        with contextlib.suppress(BlockingIOError):
+            while True:
+                filled += os.write(filler, b"x" * 512)
+
+        def blocked(_sig: int, _frame: object) -> None:
+            self.fail("writing to a full pipe blocked")
+
+        # an AssertionError is not an OSError, so the handler's except clauses cannot turn a hang into an answer
+        previous = signal.signal(signal.SIGALRM, blocked)
+        self.addCleanup(signal.signal, signal.SIGALRM, previous)
+        self.addCleanup(signal.alarm, 0)
+        signal.alarm(5)
+
+        self.assertEqual("Status: 429 Too Many Requests\r\nRetry-After: 1\r\n\r\n", self._post_keys(b"a\n"))
+        received = 0
+        with contextlib.suppress(BlockingIOError):
+            while chunk := os.read(reader, 65536):
+                received += len(chunk)
+        self.assertEqual(filled, received)
+
     @unittest.skipIf(IS_WINDOWS, "The polling update channel is a POSIX-only socket.AF_UNIX socket")
     def test_polling_decodes_after_receiving_complete_utf8_payload(self) -> None:
         stdout = io.StringIO()
@@ -269,6 +369,9 @@ class DaemonizeTest(unittest.TestCase):
             mock.patch.object(web.os, "umask"),
             mock.patch.object(web.os, "chdir"),
             mock.patch.object(web.os, "close") as close,
+            mock.patch.object(web.os, "open", side_effect=[2, 0]),
+            mock.patch.object(web.os, "dup2"),
+            mock.patch.object(web.os, "set_inheritable"),
             mock.patch.object(web, "open", create=True),
             mock.patch.object(web.sys, "stdin"),
             mock.patch.object(web.sys, "stdout"),
@@ -277,6 +380,43 @@ class DaemonizeTest(unittest.TestCase):
             web.daemonize("errfile", keep_fds=(3, 7))
 
         self.assertEqual([mock.call(fd) for fd in range(20) if fd not in {3, 7}], close.call_args_list)
+
+    def test_daemonize_takes_descriptors_0_to_2_for_child_processes(self) -> None:
+        """Descriptor 2 is the error log and 0 and 1 are /dev/null, all inherited; a kept descriptor is left alone.
+
+        Each open takes the lowest free descriptor, closed on exec until dup2() or set_inheritable() changes that.
+        """
+        error_log = mock.call("errfile", os.O_WRONLY | os.O_CREAT | os.O_APPEND, 0o600)
+        null = mock.call(os.devnull, os.O_RDWR)
+        # opened: the descriptors the opens return; closed: those closed after the loop over 0-19
+        for label, keep_fds, opened, expected_opens, expected_dup2, expected_inheritable, expected_closed in (
+            ("none kept", (), [0, 0], [error_log, null], [(0, 2), (0, 1)], [(0, True)], [0]),
+            ("0 kept", (0,), [1, 1], [error_log, null], [(1, 2)], [(1, True)], [1]),
+            ("0 and 1 kept", (0, 1), [2, 3], [error_log, null], [], [(2, True)], [3]),
+            ("2 kept", (2,), [0], [null], [(0, 1)], [(0, True)], []),
+        ):
+            with (
+                self.subTest(label),
+                mock.patch.object(web.os, "fork", return_value=0),
+                mock.patch.object(web.os, "setsid"),
+                mock.patch.object(web.signal, "signal"),
+                mock.patch.object(web.os, "umask"),
+                mock.patch.object(web.os, "chdir"),
+                mock.patch.object(web.os, "close") as close,
+                mock.patch.object(web.os, "open", side_effect=opened) as os_open,
+                mock.patch.object(web.os, "dup2") as dup2,
+                mock.patch.object(web.os, "set_inheritable") as set_inheritable,
+                mock.patch.object(web, "open", create=True),
+                mock.patch.object(web.sys, "stdin"),
+                mock.patch.object(web.sys, "stdout"),
+                mock.patch.object(web.sys, "stderr"),
+            ):
+                web.daemonize("errfile", keep_fds=keep_fds)
+
+                self.assertEqual(expected_opens, os_open.call_args_list)
+                self.assertEqual(expected_dup2, [call.args for call in dup2.call_args_list])
+                self.assertEqual(expected_inheritable, [call.args for call in set_inheritable.call_args_list])
+                self.assertEqual(expected_closed, [call.args[0] for call in close.call_args_list[20 - len(keep_fds) :]])
 
     def test_fork_child_keeps_the_client_pipe_reader(self) -> None:
         """The reader stays open through the forks, so the pipe never lacks one while the screen runs."""

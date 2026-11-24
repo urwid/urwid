@@ -232,7 +232,12 @@ class Screen(_raw_display_base.Screen):
         applications.
         """
         self._prev_sigwinch_handler = self.signal_handler_setter(signal.SIGWINCH, self._sigwinch_handler)
-        self._prev_sigtstp_handler = self.signal_handler_setter(signal.SIGTSTP, self._sigtstp_handler)
+        try:
+            self._prev_sigtstp_handler = self.signal_handler_setter(signal.SIGTSTP, self._sigtstp_handler)
+        except BaseException:
+            # the start fails, and its undo restores only handlers that signal_init() set completely
+            self.signal_handler_setter(signal.SIGWINCH, self._prev_sigwinch_handler or signal.SIG_DFL)
+            raise
 
     def signal_restore(self) -> None:
         """Restore the SIGTSTP and SIGWINCH signal handlers, called in the finally block of run wrapper.
@@ -331,6 +336,8 @@ class Screen(_raw_display_base.Screen):
         :param kwargs: not supported; any value raises :exc:`TypeError`.
         :raises TypeError: unexpected positional or keyword arguments were given.
         """
+        self._start_complete = False
+
         if args or kwargs:
             raise TypeError(f"start() got unexpected arguments: {args=!r}, {kwargs=!r}")
 
@@ -385,6 +392,12 @@ class Screen(_raw_display_base.Screen):
         # restore mouse tracking to previous state
         self._mouse_tracking(self._mouse_tracking_enabled)
 
+        # The bottom row of an earlier run follows a resize made while the screen was stopped.
+        # A subclass with its own get_cols_rows() sets it there, as the size this screen reads may not be its size.
+        if self.maxrow is not None and type(self).get_cols_rows is Screen.get_cols_rows:
+            self.maxrow = self._read_cols_rows()[1]
+        self._start_complete = True
+
         super()._start(*args, **kwargs)  # type: ignore[safe-super]
 
     def _stop(self) -> None:
@@ -420,6 +433,9 @@ class Screen(_raw_display_base.Screen):
                 # and raising here would hide the error that ended the run, such as the closed input.
                 if exc.errno not in {errno.EIO, errno.ENXIO, errno.EPIPE}:
                     raise
+                # _stop_mouse_restore_buffer() did not clear the flag; a later start that fails before clearing it
+                # draws nothing either
+                self._start_complete = False
             finally:
                 # a failed write skips the step of _mouse_tracking() that stops the helper
                 self._stop_gpm_tracking()
@@ -650,10 +666,14 @@ class Screen(_raw_display_base.Screen):
         The size the terminal last reported in the input is returned while it is newer than the last ``SIGWINCH``,
         see :ref:`in-band-resize`; otherwise the size is read from the terminal device.
         """
+        x, y = self._last_cols_rows = self._read_cols_rows()
+        self.maxrow = y
+        return x, y
+
+    def _read_cols_rows(self) -> tuple[int, int]:
+        """Return the size :meth:`get_cols_rows` returns, without recording it as the size the application read."""
         if self._reported_cols_rows is not None:
-            x, y = self._last_cols_rows = self._reported_cols_rows
-            self.maxrow = y
-            return x, y
+            return self._reported_cols_rows
         x, y = super().get_cols_rows()
         with contextlib.suppress(OSError):  # Term size could not be determined
             if isinstance(self._term_output_file, _raw_display_base.SupportsFileno):
@@ -665,8 +685,6 @@ class Screen(_raw_display_base.Screen):
         # give sane answers
         if (x <= 0 or y <= 0) and self.term.lower() in {"ansi", "vt100"}:
             y, x = 24, 80
-        self.maxrow = y
-        self._last_cols_rows = x, y
         return x, y
 
 

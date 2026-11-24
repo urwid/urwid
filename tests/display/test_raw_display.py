@@ -1722,6 +1722,23 @@ class TestParseInput(unittest.TestCase):
                 self.assertEqual([None, 0.125], [call.args[0] for call in wait.call_args_list])
                 self.assertEqual([], s._partial_codes)
 
+    def test_kept_sequence_waits_by_the_complete_wait_set_after_it_was_read(self) -> None:
+        """A complete_wait set while a sequence is kept counts from the read that kept it."""
+        s = urwid.display.raw.Screen()
+        s._started = True
+        # clock: the first call's start and its keeping of the Esc; the second call's start and its deadline check
+        with (
+            mock.patch.object(s, "_wait_for_input_ready", return_value=[]) as wait,
+            mock.patch.object(s, "_get_input_codes", side_effect=[[27], []]),
+            mock.patch.object(time, "monotonic", side_effect=[100.0, 100.0, 100.2, 100.2]),
+        ):
+            self.assertEqual([], s.get_input())
+            s.set_input_timeouts(complete_wait=0.5)
+            self.assertEqual([], s.get_input())
+
+        self.assertAlmostEqual(0.3, wait.call_args_list[1].args[0])
+        self.assertEqual([27], s._partial_codes)
+
     def test_sequence_cut_short_after_new_input_gets_its_own_complete_wait(self) -> None:
         """Give an Esc read after a decoded key the whole complete_wait, also when an Esc was kept before."""
         s = urwid.display.raw.Screen()
@@ -1760,7 +1777,7 @@ class TestParseInput(unittest.TestCase):
         s._started = True
         s.prev_input_resize = 2
         s._partial_codes = [27]
-        s._partial_deadline = time.monotonic() + 60
+        s._partial_read_time = time.monotonic() + 60
         with (
             mock.patch.object(s, "_wait_for_input_ready", return_value=[]) as wait,
             mock.patch.object(s, "get_available_raw_input", return_value=[27]),
@@ -1791,7 +1808,7 @@ class TestParseInput(unittest.TestCase):
         s = urwid.display.raw.Screen()
         s._started = True
         s._partial_codes = [27]
-        s._partial_deadline = 0.0
+        s._partial_read_time = 0.0
         s._resized = True
         s._hold_resize = False  # left by the previous call's read
         with (

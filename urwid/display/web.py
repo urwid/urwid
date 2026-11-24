@@ -30,6 +30,7 @@ import html
 import os
 import pathlib
 import secrets
+import select
 import selectors
 import signal
 import socket
@@ -462,7 +463,8 @@ def _session_dir() -> str:
         or the group or other users have any access to it.
     """
     uid = os.geteuid()
-    path = os.path.join(_prefs.pipe_dir, f"urwid-web-{uid}")
+    # absolute, as the daemon reaches its session files after a chdir("/")
+    path = os.path.join(os.path.abspath(_prefs.pipe_dir), f"urwid-web-{uid}")
     with suppress(FileExistsError):
         pathlib.Path(path).mkdir(mode=0o700)
     # lstat: a symbolic link planted at the path is refused rather than followed
@@ -547,10 +549,19 @@ def handle_short_request() -> bool:
         return True
 
     # this is a keyboard input request
+    _send_keys(pipe_name)
+    return True
+
+
+def _send_keys(pipe_name: str) -> None:
+    """Write the keys in the request body to the input pipe of the screen, and write the response.
+
+    :param pipe_name: the path prefix of the session files, see :func:`_session_path`.
+    """
     keydata = _read_request_body(MAX_READ)
     if keydata is None:
         sys.stdout.write("Status: 400 Bad Request\r\n\r\n")
-        return True
+        return
 
     try:
         # Non-blocking: with no screen reading the pipe, as after the screen process was killed,
@@ -558,22 +569,35 @@ def handle_short_request() -> bool:
         fd = os.open(f"{pipe_name}.in", os.O_WRONLY | os.O_NONBLOCK)
     except OSError:
         sys.stdout.write("Status: 404 Not Found\r\n\r\n")
-        return True
+        return
 
     try:
-        os.set_blocking(fd, True)
         try:
             encoded_keydata = keydata.decode(_request_charset()).encode(_PIPE_ENCODING)
         except (LookupError, UnicodeError):
             sys.stdout.write("Status: 400 Bad Request\r\n\r\n")
-            return True
-        os.write(fd, encoded_keydata)
+            return
+        if len(encoded_keydata) > select.PIPE_BUF:
+            # A longer write can be split, with the keys of another request between its parts; the page keeps its
+            # requests within send_body_max.
+            sys.stdout.write("Status: 413 Content Too Large\r\n\r\n")
+            return
+        try:
+            # Non-blocking and at most PIPE_BUF bytes: the keys are written whole or not at all.
+            os.write(fd, encoded_keydata)
+        except BlockingIOError:
+            # The application reads no input now and the pipe is full; the page sends the keys again,
+            # waiting longer each time up to this Retry-After.
+            sys.stdout.write("Status: 429 Too Many Requests\r\nRetry-After: 1\r\n\r\n")
+            return
+        except BrokenPipeError:
+            # the screen exited after the open
+            sys.stdout.write("Status: 404 Not Found\r\n\r\n")
+            return
     finally:
         with suppress(OSError):
             os.close(fd)
     sys.stdout.write("Content-type: text/plain\r\n\r\n")
-
-    return True
 
 
 @dataclasses.dataclass(slots=True, weakref_slot=True)
@@ -626,7 +650,9 @@ class ErrorLog:
 def daemonize(errfile: str, *, keep_fds: Collection[int] = ()) -> None:
     """Detach process and become a daemon.
 
-    :param errfile: path of the file that receives what is written to :data:`sys.stderr`.
+    :param errfile: path of the file that receives what is written to :data:`sys.stderr`,
+        and to descriptor 2 unless *keep_fds* keeps it.
+        Descriptors 0 and 1 not kept read from and write to :file:`/dev/null`.
     :param keep_fds: descriptors below 20 to leave open. Every other descriptor below 20 is closed.
     """
     if os.fork():
@@ -646,6 +672,26 @@ def daemonize(errfile: str, *, keep_fds: Collection[int] = ()) -> None:
             continue
         with suppress(OSError):
             os.close(fd)
+
+    # Descriptors 0 to 2 are taken, so no later open becomes one of them, and child processes inherit them.
+    # os.open() returns a descriptor closed on exec; dup2() and set_inheritable() make one inheritable.
+    stdin_fd, stdout_fd, stderr_fd = 0, 1, 2
+    if stderr_fd not in keep_fds:
+        # Output of C code and child processes goes to the error log as well.
+        err_fd = os.open(errfile, os.O_WRONLY | os.O_CREAT | os.O_APPEND, 0o600)
+        if err_fd == stderr_fd:
+            os.set_inheritable(stderr_fd, True)
+        else:
+            os.dup2(err_fd, stderr_fd)
+            os.close(err_fd)
+    null_fd = os.open(os.devnull, os.O_RDWR)
+    for fd in (stdin_fd, stdout_fd):
+        if fd == null_fd:
+            os.set_inheritable(fd, True)
+        elif fd not in keep_fds:
+            os.dup2(null_fd, fd)
+    if null_fd > stderr_fd:
+        os.close(null_fd)
 
     sys.stdin = open("/dev/null", encoding="utf-8")  # noqa: SIM115  # pylint: disable=consider-using-with
     sys.stdout = open("/dev/null", "w", encoding="utf-8")  # noqa: SIM115  # pylint: disable=consider-using-with

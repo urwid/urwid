@@ -167,8 +167,11 @@ class Screen(BaseScreen, RealTerminal):
         self.prev_input_resize = 0
         # keys of a sequence cut short, kept for the next get_input()
         self._partial_keys: list[int] = []
-        # get_input() decodes them as they are once no more of the sequence arrived by this time.monotonic() value
-        self._partial_deadline = 0.0
+        # per kept key, the raw codes it was read as, reported with the call that decodes it
+        self._partial_raw: list[tuple[int, ...]] = []
+        # time.monotonic() of the read that left them: get_input() decodes them as they are once no more of the sequence
+        # arrived for complete_wait after it
+        self._partial_read_time = 0.0
         # a resize read while keys were kept, reported after them once they are decoded
         self._resize_held = False
         self.set_input_timeouts()
@@ -532,27 +535,35 @@ class Screen(BaseScreen, RealTerminal):
             raise RuntimeError
 
         now = time.monotonic()
+        # counted with the complete_wait in effect now, which set_input_timeouts() may have changed since the read;
+        # None waits forever
+        complete_wait = math.inf if self.complete_tenths is None else self.complete_tenths / 10
+        partial_deadline = self._partial_read_time + complete_wait
         # The waits for more input after a resize end by the time max_wait would have ended.
         deadline = None if self.max_tenths is None else now + self.max_tenths / 10
         partial = self._partial_keys
         expired_keys: _DecodedInput = []
+        expired_raw: list[int] = []
         wait_tenths = self.max_tenths
-        if partial and now >= self._partial_deadline:
+        if partial and now >= partial_deadline:
             # Its deadline passed before this call: it is decoded alone, ahead of the keys that came since.
             self._partial_keys = []
+            expired_raw = [code for codes in self._partial_raw for code in codes]
+            self._partial_raw = []
             decoded = escape.decode_input(partial, more_available=False)[0]
             expired_keys, held = self._apply_terminal_reports(decoded, self._resize_held)
             self._resize_held = False
             if held:
                 expired_keys.append("window resize")
             wait_tenths = 0
-        elif partial and math.isfinite(self._partial_deadline):
+        elif partial and math.isfinite(partial_deadline):
             # The rest of a sequence cut short is waited for only until its deadline.
             # Rounded up, as a wait of 0 tenths would return before it and the caller would poll until then.
-            left_tenths = max(0, math.ceil((self._partial_deadline - now) * 10))
+            left_tenths = max(0, math.ceil((partial_deadline - now) * 10))
             wait_tenths = left_tenths if wait_tenths is None else min(wait_tenths, left_tenths)
         keys, raw = self._get_input(wait_tenths)
         keys = [*expired_keys, *keys]
+        raw = [*expired_raw, *raw]
 
         # Avoid pegging CPU at 100% when slowly resizing, and work
         # around a bug with some braindead curses implementations that
@@ -593,34 +604,45 @@ class Screen(BaseScreen, RealTerminal):
 
         key = self._getch(wait_tenths)
         resize = False
-        raw = []
         partial = self._partial_keys
         keys = [*partial]
+        # per key, the raw codes it was read as: a mouse report's code goes with its first key
+        keys_raw = [*self._partial_raw]
+        # raw codes that are no key, such as a resize, are reported with this call
+        other_raw: list[int] = []
 
         while key >= 0:
-            raw.append(key)
             if key == KEY_RESIZE:
                 resize = True
+                other_raw.append(key)
             elif key == KEY_MOUSE:
-                keys += self._encode_mouse_event()
+                if mouse_keys := self._encode_mouse_event():
+                    keys += mouse_keys
+                    keys_raw += [(key,), *[()] * (len(mouse_keys) - 1)]
+                else:
+                    other_raw.append(key)
             else:
                 keys.append(key)
+                keys_raw.append((key,))
             key = self._getch_nodelay()
 
         read_new = len(keys) > len(partial)
         # a sequence cut short, with no more of it by its deadline, is decoded as it is
-        expired = bool(partial) and not read_new and time.monotonic() >= self._partial_deadline
+        complete_wait = math.inf if self.complete_tenths is None else self.complete_tenths / 10
+        expired = bool(partial) and not read_new and time.monotonic() >= self._partial_read_time + complete_wait
         processed, consumed = escape.decode_input(keys, more_available=not expired)
         self._partial_keys = keys[consumed:]
-        # each read that leaves a sequence cut short gives it complete_wait to arrive whole; None waits forever
+        # each read that leaves a sequence cut short gives it complete_wait to arrive whole
         if self._partial_keys and read_new:
-            complete_wait = math.inf if self.complete_tenths is None else self.complete_tenths / 10
-            self._partial_deadline = time.monotonic() + complete_wait
+            self._partial_read_time = time.monotonic()
 
         if self._partial_keys and (resize or self._resize_held) and self.complete_tenths is None:
             # With no deadline for the rest of the sequence, a resize ends the wait, so it is not held for good.
             processed += escape.decode_input(self._partial_keys, more_available=False)[0]
             self._partial_keys = []
+            consumed = len(keys)
+        self._partial_raw = keys_raw[consumed:]
+        raw = [*(code for codes in keys_raw[:consumed] for code in codes), *other_raw]
 
         if self._partial_keys:
             # a resize read after keys still kept is reported once they are decoded, after them

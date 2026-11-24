@@ -213,7 +213,7 @@ class _ScreenBase(BaseScreen, RealTerminal):
         "_mouse_tracking_enabled",
         "_pal_escape",
         "_partial_codes",
-        "_partial_deadline",
+        "_partial_read_time",
         "_properties_set",
         "_rendition",
         "_reported_cols_rows",
@@ -224,6 +224,7 @@ class _ScreenBase(BaseScreen, RealTerminal):
         "_rows_used",
         "_screen_buf_canvas",
         "_setup_G1_done",
+        "_start_complete",
         "_term_input_file",
         "_term_output_file",
         "_terminal_default_colors",
@@ -320,8 +321,9 @@ class _ScreenBase(BaseScreen, RealTerminal):
         super().__init__()
 
         self._partial_codes: list[int] = []
-        # get_input() decodes a sequence cut short as it is once no more of it arrived by this time.monotonic() value
-        self._partial_deadline = 0.0
+        # time.monotonic() of the read that left a sequence cut short:
+        # get_input() decodes it as it is once no more of it arrived for complete_wait after that read
+        self._partial_read_time = 0.0
         self.modes = TermModes(
             bracketed_paste=bracketed_paste_mode,
             focus_reporting=focus_reporting,
@@ -393,6 +395,8 @@ class _ScreenBase(BaseScreen, RealTerminal):
         self._last_cols_rows: tuple[int, int] | None = None
         self._resize_held_passes = 0
         self.maxrow: int | None = None
+        # the last _start() finished, so a stop moves the cursor below the frames to maxrow
+        self._start_complete = False
         self._alternate_buffer = False
         self._mouse_tracking_enabled = False
         self.last_bstate = 0
