@@ -13,7 +13,8 @@ from unittest import mock
 
 import urwid
 from urwid import signals
-from urwid.display import escape
+from urwid.display import AttrSpec, escape
+from urwid.display._raw_display_base import _base as raw_base
 from urwid.display._raw_display_base import _detection as raw_detection
 from urwid.display.common import INPUT_DESCRIPTORS_CHANGED
 
@@ -1457,7 +1458,7 @@ class TestTerminalCapabilities(unittest.TestCase):
 
         output = "".join(written)
         capability_queries = escape.REPORT_TERMINAL_VERSION + "".join(
-            escape.request_capability(name) for name in ("colors", "RGB", "Smulx", "Setulc")
+            escape.request_capability(name) for name in ("colors", "RGB", "Tc", "Smulx", "Setulc")
         )
         self.assertIn(escape.REPORT_DEFAULT_COLORS + capability_queries + escape.REPORT_DEVICE_ATTRIBUTES, output)
         # sent once while the answer is pending
@@ -1491,6 +1492,10 @@ class TestTerminalCapabilities(unittest.TestCase):
         for label, reply, colors, underline_styles in (
             ("colors", _capabilities_reply(("colors", "256")), 256, False),
             ("RGB", _capabilities_reply(("RGB", "")), 2**24, False),
+            ("RGB bits", _capabilities_reply(("RGB", "8")), 2**24, False),
+            ("RGB bits per component", _capabilities_reply(("RGB", "8/8/8")), 2**24, False),
+            ("RGB of a palette", _capabilities_reply(("RGB", "-1"), ("colors", "256")), 256, False),
+            ("Tc", _capabilities_reply(("Tc", "")), 2**24, False),
             ("Smulx", _capabilities_reply(("Smulx", "\x1b[4:%p1%dm")), 16, True),
             ("Setulc", _capabilities_reply(("Setulc", "\x1b[58:2::%p1%dm")), 16, True),
             ("unknown capabilities", _capabilities_reply(("RGB", None), ("Smulx", None)), 16, False),
@@ -1526,6 +1531,15 @@ class TestTerminalCapabilities(unittest.TestCase):
             s.parse_input(None, None, list(b"\x1bP>|Term(1.2.3)\x1b\\"))
         self.assertTrue(s.underline_styles)
 
+    def test_terminal_version_of_a_true_color_terminal(self):
+        s = self._screen(colors=256)
+        s.parse_input(None, None, list(b"\x1bP>|Konsole 25.12.3\x1b\\"))
+        self.assertEqual(2**24, s.colors)
+
+        s = self._screen(colors=256)
+        s.parse_input(None, None, list(b"\x1bP>|XTerm(407)\x1b\\"))
+        self.assertEqual(256, s.colors)
+
     def test_a_reply_does_not_lower_or_override(self):
         s = self._screen(colors=256)
         s.parse_input(None, None, list(_capabilities_reply(("colors", "88"))))
@@ -1549,6 +1563,26 @@ class TestTerminalCapabilities(unittest.TestCase):
         _send_mode_queries(s)
         s.parse_input(None, None, list(_capabilities_reply(("Smulx", ""))))
         self.assertFalse(s.underline_styles)
+
+    def test_a_reply_does_not_change_the_colors_the_environment_decided(self):
+        for environ, colors in (
+            ({"NO_COLOR": "1"}, 1),
+            ({"CLICOLOR": "0"}, 1),
+            ({"FORCE_COLOR": "1"}, 16),
+            ({"FORCE_COLOR": "2"}, 256),
+        ):
+            with self.subTest(environ=environ), mock.patch.dict(os.environ, environ):
+                for name in {"NO_COLOR", "CLICOLOR", "FORCE_COLOR", "CLICOLOR_FORCE"} - environ.keys():
+                    os.environ.pop(name, None)
+                s = _make_screen()
+                s.write = lambda data: None
+                s.flush = lambda: None
+                _send_mode_queries(s)
+
+                s.parse_input(None, None, list(_capabilities_reply(("RGB", ""), ("Tc", ""), ("Smulx", ""))))
+                s.parse_input(None, None, list(b"\x1bP>|Konsole 25.12.3\x1b\\"))
+
+                self.assertEqual((colors, True), (s.colors, s.underline_styles))
 
     def test_only_replies_before_primary_da_count(self):
         reply = list(_capabilities_reply(("RGB", "")))
@@ -1574,6 +1608,264 @@ class TestTerminalCapabilities(unittest.TestCase):
         _send_mode_queries(s)
 
         self.assertIn(escape.REPORT_TERMINAL_VERSION, "".join(written))
+
+
+@unittest.skipIf(IS_WINDOWS, "_posix_raw_display is not importable on Windows (no fcntl/termios/tty)")
+class TestColorProbe(unittest.TestCase):
+    """The rendition probe: sent once per run on the alternate screen, and its reply confirms the colour count."""
+
+    PROBE = "\x1b[48:2::135:175:215m\x1bP$qm\x1b\\\x1b[49m\x1b[c"
+    ALTERNATE_SET = b"\x1b[?1049;1$y"
+    DEVICE_ATTRIBUTES = b"\x1b[?62;22c"
+    ATTR = AttrSpec("light red,bold", "dark blue")
+    # the SGR sequence ATTR is drawn with on a 16-colour xterm
+    RENDITION = "\x1b[0;91;1;44m"
+
+    def setUp(self):
+        patcher = mock.patch.dict(os.environ, {"TERM": "xterm"})
+        patcher.start()
+        self.addCleanup(patcher.stop)
+        for name in ("NO_COLOR", "CLICOLOR", "FORCE_COLOR", "CLICOLOR_FORCE", "COLORTERM"):
+            os.environ.pop(name, None)
+        self.screen = _make_screen()
+        self.screen._terminal_properties = dataclasses.replace(self.screen._terminal_properties, colors=16)
+        self.written: list[str] = []
+        self.screen.write = self.written.append
+        self.screen.flush = lambda: None
+
+    def start(self, *, alternate_buffer: bool = True) -> None:
+        """Start a run as `_start()` does: switch screens, then send the queries."""
+        self.screen._started = True
+        self.screen._alternate_buffer = alternate_buffer
+        _send_mode_queries(self.screen)
+
+    def frame(self, attr: object = None, text: bytes = b"ab") -> str:
+        """Draw a one-row frame of *text* in *attr*, ATTR by default, and return what it wrote."""
+        canvas = urwid.TextCanvas([text], [[(self.ATTR if attr is None else attr, len(text))]], maxcol=len(text))
+        start = len(self.written)
+        self.screen.draw_screen((len(text), 1), canvas)
+        return "".join(self.written[start:])
+
+    def feed(self, data: bytes) -> list:
+        return self.screen.parse_input(None, None, list(data))[0]
+
+    def probes(self) -> int:
+        return "".join(self.written).count(self.PROBE)
+
+    def test_sent_after_the_alternate_screen_report_and_the_startup_reply(self):
+        self.start()
+        self.assertEqual(0, self.probes())
+        self.frame()
+        self.assertEqual(0, self.probes())
+
+        self.assertEqual([], self.feed(self.ALTERNATE_SET + self.DEVICE_ATTRIBUTES))
+
+        self.assertEqual(self.PROBE + self.RENDITION, self.written[-1])
+        self.assertEqual([], self.feed(b"\x1bP1$r0;48:2::135:175:215m\x1b\\" + self.DEVICE_ATTRIBUTES))
+        self.assertEqual(2**24, self.screen.colors)
+        self.assertIs(raw_base._ColorProbe.FINISHED, self.screen._color_probe)
+
+    def test_kitty_primary_da_reply_ends_the_startup_queries(self):
+        """Read kitty's Primary DA reply, which ends its parameters with an empty one, as a reply.
+
+        kitty 0.45 answers ``CSI ? 62;52;c``; the reply is not passed on as a key.
+        """
+        self.start()
+        self.frame()
+
+        self.assertEqual(["a"], self.feed(self.ALTERNATE_SET + b"\x1b[?62;52;ca"))
+
+        self.assertFalse(self.screen._capability_query_pending)
+        self.assertEqual(self.PROBE + self.RENDITION, self.written[-1])
+
+    def test_report_and_startup_reply_in_separate_batches(self):
+        self.start()
+        self.frame()
+        self.feed(self.ALTERNATE_SET)
+        self.assertEqual(0, self.probes())
+        self.feed(self.DEVICE_ATTRIBUTES)
+        self.assertEqual(1, self.probes())
+
+    def test_no_probe_without_a_report_of_the_alternate_screen(self):
+        reset_reply = b"\x1bP1$r0;48:5:110m\x1b\\"
+        for label, report, alternate_buffer in (
+            ("reset", b"\x1b[?1049;2$y", True),
+            ("not recognised", b"\x1b[?1049;0$y", True),
+            ("no report", b"", True),
+            ("normal screen asked for", self.ALTERNATE_SET, False),
+        ):
+            with self.subTest(label):
+                self.written.clear()
+                self.start(alternate_buffer=alternate_buffer)
+                self.frame()
+                self.feed(report + self.DEVICE_ATTRIBUTES + reset_reply + self.DEVICE_ATTRIBUTES + b"a")
+                output = "".join(self.written)
+                self.assertNotIn("48:2::135:175:215", output)
+                self.assertNotIn(escape.REQUEST_RENDITION, output)
+                self.assertEqual(16, self.screen.colors)
+
+    def test_no_probe_when_the_colors_are_decided(self):
+        for label, decide in (
+            ("application", lambda: self.screen.set_terminal_properties(colors=16)),
+            ("assigned", lambda: setattr(self.screen, "colors", 16)),
+            ("environment", lambda: setattr(self.screen, "_colors_from_environment", True)),
+        ):
+            with self.subTest(label):
+                self.setUp()
+                decide()
+                self.start()
+                self.frame()
+                self.feed(self.ALTERNATE_SET + self.DEVICE_ATTRIBUTES)
+                self.feed(b"\x1bP1$r0;48:2::135:175:215m\x1b\\" + self.DEVICE_ATTRIBUTES)
+                self.assertEqual((0, 16), (self.probes(), self.screen.colors))
+
+    def test_no_probe_before_a_frame_of_the_run(self):
+        self.start()
+        self.feed(self.ALTERNATE_SET + self.DEVICE_ATTRIBUTES)
+        self.assertEqual(0, self.probes())
+
+        self.frame()
+        self.assertEqual(self.PROBE + self.RENDITION, self.written[-1])
+
+    def test_sent_once(self):
+        self.start()
+        self.frame()
+        self.feed(self.ALTERNATE_SET + self.DEVICE_ATTRIBUTES)
+        self.assertEqual(1, self.probes())
+
+        self.feed(b"a\x1b[?1049;1$y\x1b[?2004;1$y")
+        self.frame(text=b"cd")
+        self.assertEqual(1, self.probes())
+        # a Primary DA reply without a DECRQSS reply ends it
+        self.feed(self.DEVICE_ATTRIBUTES)
+        self.assertIs(raw_base._ColorProbe.FINISHED, self.screen._color_probe)
+        self.feed(b"b" + self.ALTERNATE_SET + self.DEVICE_ATTRIBUTES)
+        self.frame(text=b"ef")
+        self.assertEqual((1, 16), (self.probes(), self.screen.colors))
+
+    def test_replies(self):
+        for label, setting, colors in (
+            ("TermCanvas after a frame", "0;1;4;33;48;2;135;175;215m", 2**24),
+            ("kitty", "0;22;1;33;48:2:135:175:215;4m", 2**24),
+            ("xterm", "0;1;4;93;48:2::135:175:215m", 2**24),
+            ("xterm storing a palette entry", "0;1;4;93;48:5:110m", 256),
+            ("semicolon palette entry", "0;48;5;110m", 256),
+            ("a palette entry both palettes have", "0;48:5:16m", 16),
+            ("another RGB value", "0;48:2::1:2:3m", 16),
+            ("no background", "0;1m", 16),
+            ("truncated group after the entry", "0;48:5:110;48:2:1:2m", 16),
+            ("entry out of range after the entry", "0;48:5:110;48:5:999m", 16),
+            ("codes with leading zeros, cut short after the entry", "0;048;5;110;048;5m", 16),
+            ("a code with leading zeros", "0;048;5;110m", 256),
+            ("foreground argument that looks like a background", "0;38;5;48;48;2;135;175;215m", 2**24),
+        ):
+            with self.subTest(label):
+                self.setUp()
+                self.start()
+                self.frame()
+                self.feed(self.ALTERNATE_SET + self.DEVICE_ATTRIBUTES)
+                self.feed(f"\x1bP1$r{setting}\x1b\\".encode() + self.DEVICE_ATTRIBUTES)
+                self.assertEqual(colors, self.screen.colors)
+        for label, reply in (("refused", b"\x1bP0$r\x1b\\"), ("refused with a setting", b"\x1bP0$r0;48:5:110m\x1b\\")):
+            with self.subTest(label):
+                self.setUp()
+                self.start()
+                self.frame()
+                self.feed(self.ALTERNATE_SET + self.DEVICE_ATTRIBUTES)
+                self.assertEqual([], self.feed(reply + self.DEVICE_ATTRIBUTES))
+                self.assertEqual(16, self.screen.colors)
+
+    def test_a_confirmed_count_replaces_the_guesses(self):
+        """Take 256 colours for an xterm without direct colour under COLORTERM=truecolor: it answers RGB=-1."""
+        self.screen._terminal_properties = dataclasses.replace(self.screen._terminal_properties, colors=2**24)
+        self.start()
+        self.frame()
+        self.feed(_capabilities_reply(("colors", "256"), ("RGB", "-1"), ("Tc", None)))
+        self.feed(self.ALTERNATE_SET + self.DEVICE_ATTRIBUTES)
+        self.feed(b"\x1bP1$r0;1;4;93;48:5:110m\x1b\\" + self.DEVICE_ATTRIBUTES)
+        self.assertEqual(256, self.screen.colors)
+        # a later guess does not raise it again, and the next run sends no probe
+        self.screen._raise_terminal_properties(2**24, False)
+        self.assertEqual(256, self.screen.colors)
+        self.start()
+        self.frame(text=b"cd")
+        self.feed(self.ALTERNATE_SET)
+        self.assertEqual(1, self.probes())
+
+    def test_a_reply_without_the_probe_is_dropped(self):
+        self.start()
+        self.frame()
+        self.feed(self.DEVICE_ATTRIBUTES)
+        self.assertEqual([], self.feed(b"\x1bP1$r0;48:2::135:175:215m\x1b\\"))
+        self.assertEqual(16, self.screen.colors)
+
+    def test_a_failed_frame_is_drawn_again_and_its_rendition_is_unknown(self):
+        for failing in ("flush", "write"):
+            with self.subTest(failing):
+                self.setUp()
+                self.start()
+                attr = AttrSpec("default", "dark red")
+                failed: list[str] = []
+
+                def write(data: str) -> None:
+                    # the frame reaches the terminal, then the write or the following flush fails, once
+                    self.written.append(data)
+                    if "41m" in data and not failed:
+                        failed.append(data)
+                        if failing == "write":
+                            raise OSError(errno.EINTR, "interrupted")
+
+                def flush() -> None:
+                    if failing == "flush" and len(failed) == 1:
+                        failed.append("flushed")
+                        raise OSError(errno.EINTR, "interrupted")
+
+                self.screen.write = write
+                self.screen.flush = flush
+                canvas = urwid.TextCanvas([b"ab"], [[(attr, 2)]], maxcol=2)
+                self.screen.draw_screen((2, 1), canvas)
+                self.assertTrue(failed)
+                self.feed(self.ALTERNATE_SET + self.DEVICE_ATTRIBUTES)
+                self.assertEqual(0, self.probes())
+                # the same canvas is drawn again, not taken as drawn
+                self.written.clear()
+                self.screen.draw_screen((2, 1), canvas)
+                self.assertIn("41m", self.written[0])
+                self.assertEqual(self.PROBE + "\x1b[0;39;41m", self.written[-1])
+
+    def test_a_raw_run_makes_the_rendition_unknown(self):
+        self.start()
+        self.feed(self.ALTERNATE_SET + self.DEVICE_ATTRIBUTES)
+        raw = b"\x1b[1mab"
+        canvas = urwid.TextCanvas([raw], [[(self.ATTR, len(raw))]], [[("U", len(raw))]], maxcol=2, check_width=False)
+        self.screen.draw_screen((2, 1), canvas)
+        self.assertEqual(0, self.probes())
+
+        self.frame()
+        self.assertEqual(self.PROBE + self.RENDITION, self.written[-1])
+
+    def test_a_new_run_waits_for_its_own_frame(self):
+        self.start()
+        self.frame()
+        self.screen._disable_keyboard_protocol()  # as a stop does
+        self.start()
+        self.feed(self.ALTERNATE_SET + self.DEVICE_ATTRIBUTES)
+        self.assertEqual(0, self.probes())
+
+        self.frame(AttrSpec("default", "dark green"))
+        self.assertEqual(self.PROBE + "\x1b[0;39;42m", self.written[-1])
+
+    def test_the_probe_restores_the_last_frames_rendition(self):
+        self.screen.set_terminal_properties(hyperlinks=True)
+        self.screen._properties_set.discard("hyperlinks")
+        self.start()
+        linked = AttrSpec("light red,bold", "dark blue", hyperlink="https://urwid.org")
+        output = self.frame(linked)
+        self.assertIn(self.RENDITION + "\x1b]8;;https://urwid.org\x1b\\", output)
+        # a depth change after the frame: the terminal is still in the frame's rendition
+        self.feed(_capabilities_reply(("RGB", "")) + self.ALTERNATE_SET + self.DEVICE_ATTRIBUTES)
+        self.assertEqual(2**24, self.screen.colors)
+        self.assertEqual(self.PROBE + self.RENDITION, self.written[-1])
 
 
 @unittest.skipIf(IS_WINDOWS, "_posix_raw_display is not importable on Windows (no fcntl/termios/tty)")

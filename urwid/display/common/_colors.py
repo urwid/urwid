@@ -23,12 +23,13 @@
 from __future__ import annotations
 
 import functools
+import types
 import typing
 
 from urwid.util import int_scale
 
 if typing.TYPE_CHECKING:
-    from collections.abc import Sequence
+    from collections.abc import Mapping, Sequence
 
 
 # AttrSpec internal values
@@ -493,3 +494,34 @@ def _parse_color_88(desc: str) -> int | None:
 
     except ValueError:
         return None
+
+
+# the entries a color is approximated with, and their values, by the number of colors a display draws: the first 8
+# and all 16 basic colors, and the entries past the basic colors of the 88- and 256-color palettes, which the terminal
+# theme does not redefine
+_APPROXIMATION_ENTRIES: Mapping[int, Sequence[tuple[int, tuple[int, int, int]]]] = types.MappingProxyType(
+    {
+        8: tuple(enumerate(_BASIC_COLOR_VALUES[:8])),
+        16: tuple(enumerate(_BASIC_COLOR_VALUES)),
+        88: tuple(enumerate(_COLOR_VALUES_88))[_CUBE_START:],
+        256: tuple(enumerate(_COLOR_VALUES_256))[_CUBE_START:],
+    }
+)
+
+
+@functools.lru_cache(maxsize=4096)
+def _nearest_color(rgb: tuple[int, int, int], palette: typing.Literal[8, 16, 88, 256]) -> int:
+    """Return the entry of *palette* nearest to *rgb*, by the least squared distance of the components.
+
+    The 8 and 16 entries are basic colors; the 88- and 256-color entries are taken from 16 up.
+    The first of two equally near entries wins.
+
+    >>> _nearest_color((135, 175, 215), 256), _nearest_color((135, 175, 215), 88), _nearest_color((200, 0, 0), 8)
+    (110, 42, 1)
+    """
+    red, green, blue = rgb
+    entry, _value = min(
+        _APPROXIMATION_ENTRIES[palette],
+        key=lambda item: (item[1][0] - red) ** 2 + (item[1][1] - green) ** 2 + (item[1][2] - blue) ** 2,
+    )
+    return entry

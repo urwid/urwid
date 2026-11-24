@@ -30,11 +30,9 @@ import types
 import typing
 
 from urwid.display.common import _BASIC_COLORS as BASIC_COLORS
-from urwid.display.common import _SETTING_OFF_PREFIX, DEFAULT, AttrSpec
+from urwid.display.common import _SETTING_OFF_PREFIX, AttrSpec, _depth
 from urwid.display.common import _UNDERLINE_STYLE_NAMES as UNDERLINE_STYLE_NAMES
 from urwid.display.common import _UNDERLINE_STYLES as UNDERLINE_STYLE_SETTINGS
-from urwid.display.common import _color_desc_256 as color_desc_256
-from urwid.display.common import _color_desc_true as color_desc_true
 
 if typing.TYPE_CHECKING:
     from collections.abc import Sequence
@@ -119,20 +117,25 @@ def underline_style_parameter(attrspec: AttrSpec) -> str:
 def underline_color_parameter(attrspec: AttrSpec) -> str | None:
     """Return the SGR parameter of the underline colour of *attrspec*, None when it has none.
 
-    The colour is written with the colon sub-parameters of ECMA-48: ``58:5:n`` for a palette entry and
-    ``58:2::r:g:b`` for a 24-bit one.
+    The colour is written with the colon sub-parameters of ECMA-48: ``58:5:n`` for a basic colour or a palette entry,
+    and ``58:2::r:g:b`` for a 24-bit one.
 
     >>> from urwid import AttrSpec
     >>> underline_color_parameter(AttrSpec("underline", "default", 256, underline_color="h196"))
     '58:5:196'
+    >>> underline_color_parameter(AttrSpec("underline", "#102030", 2**24, underline_color="h196"))
+    '58:5:196'
     """
-    if (color := attrspec.underline_color) is None or color == DEFAULT:
-        return None
-    # the color as a foreground in the same color mode, which tells a palette entry from a 24-bit color
-    line = attrspec.copy_modified(fg=color, hyperlink=None, underline_color=None)
-    if line.foreground_true:
-        return f"58:2::{':'.join(str(component) for component in line.get_rgb_values()[:3])}"
-    return f"58:5:{line.foreground_number:d}"
+    line = _depth.channels(attrspec)[2]
+    match line.kind:
+        case _depth.Kind.INHERIT | _depth.Kind.DEFAULT:
+            return None
+        case _depth.Kind.RGB:
+            return f"58:2::{':'.join(str(component) for component in _depth.rgb_components(line.number))}"
+        case _depth.Kind.BASIC | _depth.Kind.INDEX_88 | _depth.Kind.INDEX_256:
+            return f"58:5:{line.number:d}"
+        case _:
+            typing.assert_never(line.kind)
 
 
 _SGR_ATTR_NAMES: tuple[str, ...] = tuple(name for name, _code in FLAGS)
@@ -281,9 +284,9 @@ def sgi_params_to_attrspec(
     AttrSpec('default,curly underline', 'default', underline_color='light red')
     """
     hyperlink = None if previous is None else previous.hyperlink
-    # the style of the underline, as SGR 4:n numbers it minus one, and its color, None for the enclosing one
+    # the style of the underline, as SGR 4:n numbers it minus one, and its color channel
     underline_style = 0
-    underline_color = None if previous is None else previous.underline_color
+    underline_color = _depth.INHERIT_CHANNEL if previous is None else _depth.promote(_depth.channels(previous)[2])
 
     attributes: set[str] = set()
     # settings an SGR reset turned off; with 'inherit' colors they stay off over the enclosing attribute
@@ -306,18 +309,21 @@ def sgi_params_to_attrspec(
             if part.startswith(_SETTING_OFF_PREFIX)
         )
 
-        has_fg = previous.foreground_basic or previous.foreground_high or previous.foreground_true
-        fg = previous.foreground_number if has_fg else None
-        fg_rgb = previous.foreground_true
+        # an 88-color entry above 15 is no 256-color entry, so it is taken as its RGB value
+        previous_fg, previous_bg, _previous_line = (_depth.promote(channel) for channel in _depth.channels(previous))
+        unset_kinds = {_depth.Kind.DEFAULT, _depth.Kind.INHERIT}
+        fg = None if previous_fg.kind in unset_kinds else previous_fg.number
+        fg_rgb = previous_fg.kind is _depth.Kind.RGB
         # undo the bold brightening applied below, so it can be reapplied or dropped with the new bold state
         if bright_is_bold and fg is not None and fg >= 8 and previous.colors == 16 and "bold" in attributes:
             fg -= 8
 
-        has_bg = previous.background_basic or previous.background_high or previous.background_true
-        bg = previous.background_number if has_bg else None
-        bg_rgb = previous.background_true
+        bg = None if previous_bg.kind in unset_kinds else previous_bg.number
+        bg_rgb = previous_bg.kind is _depth.Kind.RGB
 
         colors = previous.colors
+        if fg_rgb or bg_rgb or underline_color.kind is _depth.Kind.RGB:
+            colors = 16777216  # 2 ** 24
 
     for code in split_sgr_parameters(params):
         attr = code[0]
@@ -350,15 +356,15 @@ def sgi_params_to_attrspec(
         elif attr == _UNDERLINE_COLOR_SGR and code[1:2] == (_PALETTE_COLOR_MODEL,) and len(code) == _PALETTE_LENGTH:
             if (color := code[2]) in _BYTE_VALUES:
                 basic = color < len(BASIC_COLORS)
-                underline_color = BASIC_COLORS[color] if basic else color_desc_256(color)
+                underline_color = _depth.Channel(_depth.Kind.BASIC if basic else _depth.Kind.INDEX_256, color)
                 colors = max(len(BASIC_COLORS) if basic else 256, colors)
         elif attr == _UNDERLINE_COLOR_SGR and code[1:2] == (_RGB_COLOR_MODEL,) and len(code) == _RGB_LENGTH:
             if all(component in _BYTE_VALUES for component in code[2:]):
-                underline_color = color_desc_true((code[2] << 16) + (code[3] << 8) + code[4])
+                underline_color = _depth.rgb(*code[2:])
                 colors = 16777216  # 2 ** 24
         elif attr == _DEFAULT_UNDERLINE_COLOR_SGR:
             # the underline in the text color: over an enclosing attribute that says so, else as the terminal starts
-            underline_color = "default" if unset_color == "inherit" else None
+            underline_color = _depth.DEFAULT_CHANNEL if unset_color == "inherit" else _depth.INHERIT_CHANNEL
         elif attr in {38, 48} and code[1:2] == (_PALETTE_COLOR_MODEL,) and len(code) == _PALETTE_LENGTH:
             color = code[2]
             if 0 <= color <= 255:
@@ -390,7 +396,8 @@ def sgi_params_to_attrspec(
             attributes.difference_update(_SGR_RESETS[attr])
             turned_off.update(_SGR_RESETS[attr])
         elif attr == 0:
-            fg = bg = underline_color = None
+            fg = bg = None
+            underline_color = _depth.INHERIT_CHANNEL
             fg_rgb = bg_rgb = False
             colors = 1
             attributes.clear()
@@ -399,41 +406,39 @@ def sgi_params_to_attrspec(
     if bright_is_bold and "bold" in attributes and colors == 16 and fg is not None and fg < 8:
         fg += 8
 
-    def _defaulter(req_color: int | None, rgb: bool) -> str:
+    def _channel(req_color: int | None, rgb: bool) -> _depth.Channel:
         if req_color is None:
-            return unset_color
+            return _depth.INHERIT_CHANNEL if unset_color == "inherit" else _depth.DEFAULT_CHANNEL
         if rgb:
-            return color_desc_true(req_color)
-        # Note: 88-colour mode cannot be distinguished from 256-colour mode here.
-        # A true-colour AttrSpec converts a palette name to its RGB value itself.
+            return _depth.Channel(_depth.Kind.RGB, req_color)
+        # a palette entry 0-15 is a basic color while the attribute uses only the basic colors
         if req_color > 15 or colors == 256:
-            return color_desc_256(req_color)
-        return BASIC_COLORS[req_color]
+            return _depth.Channel(_depth.Kind.INDEX_256, req_color)
+        return _depth.Channel(_depth.Kind.BASIC, req_color)
 
-    decoded_fg = _defaulter(fg, fg_rgb)
-    decoded_bg = _defaulter(bg, bg_rgb)
+    foreground = _channel(fg, fg_rgb)
+    background = _channel(bg, bg_rgb)
 
     if unset_color == "inherit":
         attributes.update(f"{_SETTING_OFF_PREFIX}{name}" for name in turned_off)
     if "underline" in attributes and underline_style:
         attributes.discard("underline")
         attributes.add(UNDERLINE_STYLE_SETTINGS[underline_style - 1])
-    if attributes:
-        decoded_fg = ",".join((decoded_fg, *sorted(attributes)))
 
-    if decoded_fg == decoded_bg == unset_color and hyperlink is None is underline_color:
+    unset = _depth.INHERIT_CHANNEL if unset_color == "inherit" else _depth.DEFAULT_CHANNEL
+    if (
+        not attributes
+        and foreground == background == unset
+        and hyperlink is None
+        and underline_color == _depth.INHERIT_CHANNEL
+    ):
         return None
 
-    if colors:
-        # `colors` is only ever assigned one of AttrSpec's accepted literals above (1, 16, 88 -- via
-        # `previous.colors` --, 256 or 16777216), but the running total is tracked as a plain `int`
-        # through the `max()` calls, so the literal type is lost to mypy; the cast restores it.
-        return AttrSpec(
-            decoded_fg,
-            decoded_bg,
-            colors=typing.cast("typing.Literal[1, 16, 88, 256, 16777216]", colors),
-            hyperlink=hyperlink,
-            underline_color=underline_color,
-        )
-
-    return AttrSpec(decoded_fg, decoded_bg, hyperlink=hyperlink, underline_color=underline_color)
+    # the settings, parsed once; the colors are set as channels, so no color mode changes them
+    settings = AttrSpec(
+        ",".join((unset_color, *sorted(attributes))),
+        unset_color,
+        16777216 if colors == 16777216 else 256,  # 2 ** 24
+        hyperlink=hyperlink,
+    )
+    return _depth.replace_channels(settings, foreground=foreground, background=background, underline=underline_color)

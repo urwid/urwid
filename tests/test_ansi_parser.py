@@ -26,6 +26,7 @@ from urwid.ansi_parser import (
     split_sgr_parameters,
 )
 from urwid.display import NO_HYPERLINK, AttrSpec, Hyperlink, escape
+from urwid.display._sgr import underline_color_parameter
 from urwid.util import rle_len
 
 
@@ -794,6 +795,33 @@ class SgiParamsToAttrspecTest(unittest.TestCase):
                     attr = sgi_params_to_attrspec(params, attr, unset_color="inherit", bright_is_bold=False)
                 self.assertEqual(expected, attr)
 
+    def test_palette_entries_beside_true_color_keep_their_slots(self) -> None:
+        for label, steps in (
+            ("one sequence", [[38, 5, 196, (58, 5, 46), 48, 2, 1, 2, 3]]),
+            ("successive sequences", [[48, 2, 1, 2, 3], [38, 5, 196], [(58, 5, 46)]]),
+        ):
+            with self.subTest(label):
+                attr = None
+                for params in steps:
+                    attr = sgi_params_to_attrspec(params, attr)
+                assert attr is not None
+                self.assertEqual(
+                    (True, 196, (1, 2, 3), "58:5:46"),
+                    (
+                        attr.foreground_high,
+                        attr.foreground_number,
+                        attr.get_rgb_values()[3:],
+                        underline_color_parameter(attr),
+                    ),
+                )
+
+    def test_88_color_previous_keeps_its_colors(self) -> None:
+        """An 88-color entry of the previous attribute is its own color, not the 256-color entry of that number."""
+        attr = sgi_params_to_attrspec([1], AttrSpec("h50", "h17", 88))
+        assert attr is not None
+        self.assertEqual((205, 0, 205, 0, 0, 139), attr.get_rgb_values())
+        self.assertTrue(attr.bold)
+
     def test_applied_on_top_of_previous(self) -> None:
         """Apply each step of SGR parameters on top of the attribute the steps before it produced.
 
@@ -808,7 +836,19 @@ class SgiParamsToAttrspecTest(unittest.TestCase):
                 "default: 256-color foreground beside a true-color background",
                 "default",
                 [[38, 5, 100, 48, 2, 1, 2, 3]],
-                AttrSpec("#878700", "#010203", colors=2**24),
+                AttrSpec("h100", "#010203", colors=2**24),
+            ),
+            (
+                "default: 256-color foreground and underline beside a true-color background",
+                "default",
+                [[38, 5, 196, (58, 5, 46), 48, 2, 1, 2, 3]],
+                AttrSpec("h196", "#010203", colors=2**24, underline_color="h46"),
+            ),
+            (
+                "default: 256-color foreground and underline in sequences after a true-color background",
+                "default",
+                [[48, 2, 1, 2, 3], [38, 5, 196], [(58, 5, 46)]],
+                AttrSpec("h196", "#010203", colors=2**24, underline_color="h46"),
             ),
             (
                 "default: basic foreground beside a true-color background",
@@ -826,7 +866,7 @@ class SgiParamsToAttrspecTest(unittest.TestCase):
                 "default: 256-color foreground after a true-color background",
                 "default",
                 [[48, 2, 1, 2, 3], [38, 5, 100]],
-                AttrSpec("#878700", "#010203", colors=2**24),
+                AttrSpec("h100", "#010203", colors=2**24),
             ),
             (
                 "default: bright foreground keeps its brightness",

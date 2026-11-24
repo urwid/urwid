@@ -28,7 +28,6 @@ import typing
 
 from urwid import str_util, util
 from urwid.display import escape
-from urwid.display._raw_display_base._attributes import _ATTRSPEC_INDEX_BY_COLORS
 from urwid.display._raw_display_base._detection import IS_WINDOWS
 from urwid.display._raw_display_base._input import _InputScreen
 from urwid.display.common import (
@@ -69,6 +68,9 @@ class Screen(_InputScreen):  # pylint: disable=abstract-method  # a platform scr
     def draw_screen(self, size: tuple[int, int], canvas: Canvas) -> None:
         """Paint screen with rendered canvas.
 
+        A frame whose write fails is drawn whole again by the next call, even for the same canvas,
+        since part of it may have reached the terminal.
+
         :raises RuntimeError: the screen has not been started.
         :raises ValueError: *canvas* does not have the number of rows given by *size*.
         :raises OSError: the terminal could not be written to, for a reason other than an interrupted system call.
@@ -97,7 +99,7 @@ class Screen(_InputScreen):  # pylint: disable=abstract-method  # a platform scr
             :raises TypeError: *run* is not a byte string.
             :raises ValueError: *charset* is not a known character set flag.
             """
-            nonlocal last_charset_flag, last_attributes, first, link_open  # type: ignore[misc]
+            nonlocal last_charset_flag, last_attributes, first, link_open, rendition  # type: ignore[misc]
 
             if not isinstance(run, bytes):  # canvases render with bytes
                 raise TypeError(run)
@@ -106,7 +108,9 @@ class Screen(_InputScreen):  # pylint: disable=abstract-method  # a platform scr
                 run = run.translate(UNPRINTABLE_TRANS_TABLE)
 
             if last_attributes != attr:
-                attr_escape = self._attr_to_escape(attr)
+                attr_rendition, attr_link = self._attr_escape_parts(attr)
+                attr_escape = attr_rendition + attr_link
+                rendition = attr_rendition
                 if properties.hyperlinks:
                     # only an escape that opens a hyperlink ends with ST, and an open replaces any open link
                     opens = attr_escape.endswith(escape.ST)
@@ -154,6 +158,9 @@ class Screen(_InputScreen):  # pylint: disable=abstract-method  # a platform scr
             if properties.hyperlinks and charset == "U":
                 # the run may have closed or replaced urwid's hyperlink, so the next run reopens its own
                 last_attributes = link_closed
+            if charset == "U" and run:
+                # the run may carry SGR sequences of its own
+                rendition = None
 
             first = False
 
@@ -189,6 +196,8 @@ class Screen(_InputScreen):  # pylint: disable=abstract-method  # a platform scr
         link_open = False
 
         output: list[str] = [escape.HIDE_CURSOR, self._attr_to_escape(last_attributes)]
+        # the SGR sequence written last, which the terminal is left in; None after a raw run that may change it
+        rendition: str | None = self._attr_escape_parts(last_attributes)[0]
 
         if self._rows_used is None:
             output.append(escape.CURSOR_HOME)
@@ -244,7 +253,7 @@ class Screen(_InputScreen):  # pylint: disable=abstract-method  # a platform scr
                     run[-1:] == b" "
                     and properties.back_color_erase
                     and not (
-                        (pal_a := self.resolve_attr(a, _ATTRSPEC_INDEX_BY_COLORS[properties.colors])).standout
+                        (pal_a := self._drawn_spec(a)).standout
                         or pal_a.underline
                         or (properties.hyperlinks and pal_a.hyperlink is not None and pal_a.hyperlink.uri)
                     )
@@ -297,13 +306,20 @@ class Screen(_InputScreen):  # pylint: disable=abstract-method  # a platform scr
             self.write(frame)
             self.flush()
         except OSError as e:
+            # part of the frame may have reached the terminal, so neither the rows nor the rendition are known
+            self._rendition = None
+            self.screen_buf = None
+            self._screen_buf_canvas = None
             # ignore interrupted syscall
             if e.args[0] != errno.EINTR:
                 raise
+            return
 
         self.screen_buf = sb
         self._drawn_rows = drawn_rows
         self._screen_buf_canvas = canvas
+        self._rendition = rendition
+        self._send_color_probe()
 
     def _last_row(
         self,

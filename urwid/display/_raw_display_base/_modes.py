@@ -29,8 +29,12 @@ import typing
 from urwid import util
 from urwid.display import escape
 from urwid.display._raw_display_base._attributes import _AttributesScreen
+from urwid.display._raw_display_base._base import _ColorProbe
 from urwid.display._raw_display_base._detection import (
+    _PROBE_RGB,
     _QUERIED_CAPABILITIES,
+    _colors_from_rendition,
+    _colors_from_version,
     _is_linux_console,
     _properties_from_capabilities,
     _rejects_osc,
@@ -52,6 +56,7 @@ if typing.TYPE_CHECKING:
     _TerminalVersionReport = tuple[typing.Literal["terminal version"], str]
     _TerminalCapabilitiesReport = tuple[typing.Literal["terminal capabilities"], tuple[tuple[str, str | None], ...]]
     _DefaultColorReport = tuple[typing.Literal["default color"], int, str]
+    _SettingReport = tuple[typing.Literal["setting report"], bool, str]
     _TerminalReport = (
         _PrivateModeReport
         | _KeyboardProtocolReport
@@ -60,6 +65,7 @@ if typing.TYPE_CHECKING:
         | _TerminalVersionReport
         | _TerminalCapabilitiesReport
         | _DefaultColorReport
+        | _SettingReport
     )
     _WindowSizeReport = tuple[typing.Literal["window size report"], int, int]
     _DecodedInput = list[str | _MouseInput | _CursorPosition]
@@ -67,6 +73,8 @@ if typing.TYPE_CHECKING:
 
 # the DECRPM states of a mode that is set: set (1) and permanently set (3)
 _DECRQM_SET_VALUES: typing.Final = frozenset((escape.ModeReportState.SET, escape.ModeReportState.PERMANENTLY_SET))
+# the background the rendition probe sets, in the colon form a terminal that does not know ignores as a whole
+_PROBE_BACKGROUND: typing.Final = f"{escape.CSI}48:2::{':'.join(map(str, _PROBE_RGB))}m"
 
 
 # C0 and C1 control characters and DEL: in a window title, BEL, ESC or ST would end the title and start a sequence
@@ -118,7 +126,13 @@ class _ModesScreen(_AttributesScreen):  # pylint: disable=abstract-method  # a p
         Until the terminal has answered them, the terminal's version (XTVERSION), its colour and underline style
         capabilities (XTGETTCAP) and its default foreground and background colours (OSC 10 and OSC 11) are queried as
         well, unless the application set both properties itself or the terminal is the Linux console.
+
+        Each call starts a run of the screen: the rendition probe may be sent again, unless an earlier reply to it
+        confirmed the colour count, and the rendition and the alternate screen report of an earlier run are forgotten.
         """
+        self._color_probe = _ColorProbe.FINISHED if self._colors_confirmed else _ColorProbe.UNSENT
+        self._alternate_buffer_reported = False
+        self._rendition = None
         if not self._is_real_terminal():
             return
 
@@ -255,6 +269,11 @@ class _ModesScreen(_AttributesScreen):  # pylint: disable=abstract-method  # a p
         - A terminal version or capabilities reply counts the same way after the capability queries.
           It only raises the colour count and turns the underline styles on, see `_raise_terminal_properties()`.
         - A default colour reply counts the same way, and sets `terminal_default_colors`.
+        - A DECRPSS reply counts while the rendition probe waits for its Primary DA reply,
+          and sets the colour count it confirms.
+
+        The rendition probe is sent once the whole of *decoded_codes* is applied, when it can be, see
+        `_send_color_probe()`.
         """
         logger = self.logger.getChild("terminal_reports")
         filtered: list[str | _MouseInput | _CursorPosition | _WindowSizeReport] = []
@@ -271,6 +290,8 @@ class _ModesScreen(_AttributesScreen):  # pylint: disable=abstract-method  # a p
                 case ("private mode report", str() as mode, int() as value) if mode in self._mode_queries_pending:
                     self._mode_queries_pending.discard(mode)
                     reports.append((mode, value))
+                    if mode == escape.PrivateMode.ALTERNATE_SCREEN_BUFFER:
+                        self._alternate_buffer_reported = value in _DECRQM_SET_VALUES
                 case ("private mode report", *_):
                     logger.debug(f"Dropped a reply to a query urwid has no answer pending for: {item!r}")
                 case ("keyboard protocol report" | "modify keys report", *_) if not self._keyboard_query_pending:
@@ -279,10 +300,22 @@ class _ModesScreen(_AttributesScreen):  # pylint: disable=abstract-method  # a p
                     not self._capability_query_pending
                 ):
                     logger.debug(f"Dropped a reply to a query urwid has no answer pending for: {item!r}")
-                case ("device attributes", *_) if not (self._keyboard_query_pending or self._capability_query_pending):
+                case ("device attributes", *_) if not (
+                    self._keyboard_query_pending
+                    or self._capability_query_pending
+                    or self._color_probe is _ColorProbe.PENDING
+                ):
                     logger.debug(f"Dropped a reply to a query urwid has no answer pending for: {item!r}")
+                case ("setting report", *_) if self._color_probe is not _ColorProbe.PENDING:
+                    logger.debug(f"Dropped a reply to a query urwid has no answer pending for: {item!r}")
+                case ("setting report", bool() as valid, str() as setting):
+                    if valid and (colors := _colors_from_rendition(setting)) is not None:
+                        self._raise_terminal_properties(colors, False, confirmed=True)
                 case ("terminal version", str() as version):
-                    self._raise_terminal_properties(None, _underline_styles_from_version(version))
+                    self._raise_terminal_properties(
+                        _colors_from_version(version),
+                        _underline_styles_from_version(version),
+                    )
                 case ("terminal capabilities", capabilities):
                     self._raise_terminal_properties(*_properties_from_capabilities(capabilities))
                 case ("default color", number, color):
@@ -295,7 +328,11 @@ class _ModesScreen(_AttributesScreen):  # pylint: disable=abstract-method  # a p
                 case ("modify keys report", *_):
                     pass  # another key modifier resource, which urwid did not query
                 case ("device attributes", _attributes):
-                    # the Primary DA reply that ends the answers to the queries sent before it
+                    # the Primary DA reply that ends the answers to the queries sent before it;
+                    # the probe is sent after the startup reply was read, so a reply with no startup query pending is
+                    # the probe's own
+                    if not (self._capability_query_pending or self._keyboard_query_pending):
+                        self._color_probe = _ColorProbe.FINISHED
                     if self._capability_query_pending:
                         self._capability_query_pending = False
                         self._capabilities_answered = True
@@ -319,7 +356,40 @@ class _ModesScreen(_AttributesScreen):  # pylint: disable=abstract-method  # a p
             if enable or enable_in_band_resize:
                 self.flush()
 
+        self._send_color_probe()
         return filtered
+
+    def _send_color_probe(self) -> None:
+        """Ask the terminal how it stores a 24-bit background, once per run, when nothing else decides the colours.
+
+        The probe sets a background, asks for the rendition with DECRQSS and for Primary DA, and then writes the SGR
+        sequence the last frame left the terminal in, so the terminal is back in the rendition it was in.
+        It is sent only when all of these hold:
+
+        - it was not sent in this run, and no reply to it confirmed the colour count before;
+        - the terminal reported, in this run, that the alternate screen the screen switched to is set,
+          so a terminal that ignores the switch does not get the probe on its normal screen;
+        - neither the application nor the environment decided the colour count;
+        - the Primary DA replies of the startup queries were read, so the next one is the probe's;
+        - the rendition a frame left is known;
+        - the terminal is not the Linux console, which is never queried.
+
+        :raises OSError: the terminal could not be written to; the probe is not sent again in this run.
+        """
+        if self._color_probe is not _ColorProbe.UNSENT or self._rendition is None or _is_linux_console(self.term):
+            return
+        if not (self._alternate_buffer_reported and self._alternate_buffer and self._started):
+            return
+        colors_decided = "colors" in self._properties_set or self._colors_from_environment
+        if colors_decided or self._capability_query_pending or self._keyboard_query_pending:
+            return
+        # before the write: a write that fails part way may still have sent it
+        self._color_probe = _ColorProbe.PENDING
+        self.write(
+            f"{_PROBE_BACKGROUND}{escape.REQUEST_RENDITION}{escape.CSI}49m"
+            f"{escape.REPORT_DEVICE_ATTRIBUTES}{self._rendition}"
+        )
+        self.flush()
 
     def _enable_keyboard_protocol(self) -> None:
         """Turn on the keyboard protocol the terminal answered for, preferring kitty's to modifyOtherKeys.
@@ -344,6 +414,7 @@ class _ModesScreen(_AttributesScreen):  # pylint: disable=abstract-method  # a p
 
         Replies not read by then can be lost, as a POSIX stop discards the pending input, so queries still waiting for
         them, the capability queries included, are sent again on the next start.
+        The rendition probe ends with the run, and a reply to it that arrives later is dropped.
         """
         if self._keyboard_protocol_enabled == "kitty":
             self.write(escape.KITTY_KEYBOARD_POP)
@@ -352,6 +423,7 @@ class _ModesScreen(_AttributesScreen):  # pylint: disable=abstract-method  # a p
         self._keyboard_protocol_enabled = None
         self._keyboard_query_pending = False
         self._capability_query_pending = False
+        self._color_probe = _ColorProbe.FINISHED
 
     def _drop_past_end_mouse_events(self, codes: _DecodedInput) -> _DecodedInput:
         """Drop the mouse events at a position an X10 report cannot carry, when the terminal has no SGR reports.

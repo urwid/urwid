@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import dataclasses
 import socket
 import sys
 import time
@@ -9,9 +10,9 @@ import typing
 import unittest
 from unittest import mock
 
-from urwid import signals
+from urwid import TextCanvas, signals
 from urwid.display import escape
-from urwid.display.common import INPUT_DESCRIPTORS_CHANGED, InputClosedError
+from urwid.display.common import INPUT_DESCRIPTORS_CHANGED, AttrSpec, InputClosedError
 
 if typing.TYPE_CHECKING:
     import ctypes
@@ -498,3 +499,33 @@ class TestTitle(unittest.TestCase):
 
         set_title.assert_not_called()
         self.assertEqual("\x1b[22;0t\x1b]2;app\x07\x1b[23;0t", "".join(written))
+
+
+@unittest.skipUnless(IS_WINDOWS, "_win32_raw_display needs the Windows console API")
+class TestColorProbe(unittest.TestCase):
+    """The Windows screen sends the rendition probe as the POSIX one does, and takes the colour count it confirms."""
+
+    def test_probe_after_the_alternate_screen_report_and_its_reply(self) -> None:
+        s = _win32_raw_display.Screen()
+        s.term = "xterm-256color"
+        s._terminal_properties = dataclasses.replace(s._terminal_properties, colors=16, fg_bright_is_bold=False)
+        s._colors_from_environment = False
+        written: list[str] = []
+        s.write = written.append
+        s.flush = lambda: None
+        attr = AttrSpec("light red,bold", "dark blue")
+        canvas = TextCanvas([b"ab"], [[(attr, 2)]], maxcol=2)
+
+        with (
+            mock.patch.object(s, "_is_real_terminal", return_value=True),
+            mock.patch.object(s, "_started", True),
+            mock.patch.object(s, "_alternate_buffer", True),
+        ):
+            s._detect_terminal_modes()
+            s.draw_screen((2, 1), canvas)
+            s.parse_input(None, None, list(b"\x1b[?1049;1$y\x1b[?62;22c"))
+
+            self.assertEqual("\x1b[48:2::135:175:215m\x1bP$qm\x1b\\\x1b[49m\x1b[c\x1b[0;91;1;44m", written[-1])
+            s.parse_input(None, None, list(b"\x1bP1$r0;48:5:110m\x1b\\\x1b[?62;22c"))
+
+        self.assertEqual(256, s.colors)

@@ -109,23 +109,24 @@ class TerminalOutputTest(unittest.TestCase):
         with self.assertRaises(ValueError):
             urwid.TerminalOutput(term="vt100")  # type: ignore[arg-type]
 
-    def test_redefined_colors_follow_the_running_screen(self) -> None:
-        """Draw a palette color the data redefined in the running screen's colors, and as 24-bit without a loop.
+    def test_redefined_colors_are_24_bit_whatever_the_screen(self) -> None:
+        """Draw a palette color the data redefined as its exact 24-bit value, with or without a running loop.
 
-        A screen that reports no color count, such as curses, draws the cell in the color the data gave.
+        The screen the canvas is drawn on converts it to the colors it draws; the other colors keep their kind.
         """
         output = urwid.TerminalOutput(size=(4, 1), term="xterm-256color")
-        output.write("\x1b[31ma\x1b]4;1;rgb:ff/88/00\x07")
-        for label, screen, attr in (
-            ("no running loop", None, urwid.AttrSpec("#ff8800", "default", 2**24)),
-            ("256 colors", mock.Mock(colors=256), urwid.AttrSpec("#f80", "default", 256)),
-            ("no color count", mock.Mock(spec=[]), urwid.AttrSpec("dark red", "default")),
+        output.write("\x1b[31;58:5:2;4ma\x1b]4;1;rgb:ff/88/00\x07")
+        expected = urwid.AttrSpec("#ff8800,underline", "default", 2**24, underline_color="dark green")
+        for label, screen in (
+            ("no running loop", None),
+            ("256 colors", mock.Mock(colors=256)),
+            ("no color count", mock.Mock(spec=[])),
         ):
             with self.subTest(label):
                 loop = None if screen is None else mock.Mock(screen=screen)
                 with mock.patch("urwid.event_loop.get_running_loop_or_none", return_value=loop):
                     cell = next(iter(output.render((4, 1)).content()))[0]
-                self.assertEqual(attr, cell[0])
+                self.assertEqual(expected, cell[0])
 
     def test_text_and_its_utf8_bytes_give_the_same_cells(self) -> None:
         """Under UTF-8, write a character as text or as its UTF-8 bytes with the same result."""

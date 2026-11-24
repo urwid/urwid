@@ -55,16 +55,33 @@ class _AttributesScreen(_ScreenBase):  # pylint: disable=abstract-method  # a pl
 
         With :attr:`hyperlinks` on, the escape of an attribute with a hyperlink ends with the OSC 8 sequence opening it.
         """
+        rendition, link = self._attr_escape_parts(a)
+        return rendition + link
+
+    def _attr_escape_parts(self, a: Hashable) -> tuple[str, str]:
+        """Return the escape of canvas run attribute *a* in two parts: its SGR sequence, and its OSC 8 hyperlink.
+
+        The hyperlink part is empty without :attr:`hyperlinks` or without a link.
+        """
         if found := self._pal_escape.get(a):
             return found
-        spec = self.resolve_attr(a, _ATTRSPEC_INDEX_BY_COLORS[self._terminal_properties.colors])
-        found = self._attrspec_to_escape(spec)
+        spec = self._drawn_spec(a)
+        link = ""
         if self._terminal_properties.hyperlinks and spec.hyperlink is not None and spec.hyperlink.uri:
-            found += escape.hyperlink_open(spec.hyperlink)
+            link = escape.hyperlink_open(spec.hyperlink)
+        found = (self._attrspec_to_escape(spec), link)
         if len(self._pal_escape) >= _RESOLVED_ATTRS_LIMIT:
             self._pal_escape.clear()
         self._pal_escape[a] = found
         return found
+
+    def _drawn_spec(self, a: Hashable) -> AttrSpec:
+        """Return the :class:`AttrSpec` canvas run attribute *a* is drawn with, in the colors the terminal draws."""
+        colors = self._terminal_properties.colors
+        if self.term.lower() == "fbterm" and colors == 16777216:
+            # fbterm's own color sequences take palette entries only
+            colors = 256
+        return self._drawn_attr(a, _ATTRSPEC_INDEX_BY_COLORS[colors], colors)
 
     def _attrspec_to_escape(self, a: AttrSpec) -> str:
         r"""Convert AttrSpec instance a to an escape sequence for the terminal.

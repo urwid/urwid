@@ -52,6 +52,7 @@ if typing.TYPE_CHECKING:
     _TerminalVersionReport = tuple[typing.Literal["terminal version"], str]
     _TerminalCapabilitiesReport = tuple[typing.Literal["terminal capabilities"], tuple[tuple[str, str | None], ...]]
     _DefaultColorReport = tuple[typing.Literal["default color"], int, str]
+    _SettingReport = tuple[typing.Literal["setting report"], bool, str]
     _TerminalReport = (
         _PrivateModeReport
         | _KeyboardProtocolReport
@@ -61,6 +62,7 @@ if typing.TYPE_CHECKING:
         | _TerminalVersionReport
         | _TerminalCapabilitiesReport
         | _DefaultColorReport
+        | _SettingReport
     )
     _DecodedInput = list[str | _MouseInput | _CursorPosition]
 
@@ -380,6 +382,7 @@ class Screen(BaseScreen, RealTerminal):
                     | "device attributes"
                     | "terminal version"
                     | "terminal capabilities"
+                    | "setting report"
                     | "default color",
                     *_,
                 ):
@@ -723,8 +726,9 @@ class Screen(BaseScreen, RealTerminal):
         return cols, rows
 
     def _setattr(self, a: Hashable) -> None:
-        # curses cannot draw hyperlinks, so attributes differing only by one share a cache entry
-        a = self.resolve_attr(a, 0).style_only()
+        # curses cannot draw hyperlinks, so attributes differing only by one share a cache entry;
+        # it draws the 8 colors of the pairs _setup_colour_pairs() initialised
+        a = self._drawn_attr(a, 0, 8 if self.has_color else 1).style_only()
 
         try:
             attr = self._curses_attr_cache[a]
@@ -735,18 +739,9 @@ class Screen(BaseScreen, RealTerminal):
 
     def _compute_curses_attr(self, a: AttrSpec) -> int:
         if self.has_color:
-            if a.foreground_basic:
-                if a.foreground_number >= 8:
-                    fg = a.foreground_number - 8
-                else:
-                    fg = a.foreground_number
-            else:
-                fg = 7
-
-            if a.background_basic:
-                bg = a.background_number
-            else:
-                bg = 0
+            # a converted attribute holds the basic colors 0-7 only
+            fg = a.foreground_number if a.foreground_basic else 7
+            bg = a.background_number if a.background_basic else 0
 
             attr = curses.color_pair(bg * 8 + 7 - fg)
         else:

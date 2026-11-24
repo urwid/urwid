@@ -1024,6 +1024,10 @@ class ReadKeyboardQueryReplyTest(unittest.TestCase):
             (b"[?0u", ("keyboard protocol report", 0)),
             (b"[?62;22c", ("device attributes", (62, 22))),
             (b"[?6c", ("device attributes", (6,))),
+            # kitty ends the parameters with ";", and ECMA-48 allows an empty one anywhere
+            (b"[?62;52;c", ("device attributes", (62, 52))),
+            (b"[?62;;22c", ("device attributes", (62, 22))),
+            (b"[?;62c", ("device attributes", (62,))),
             (b"[>4;2m", ("modify keys report", 4, 2)),
             (b"[>4m", ("modify keys report", 4, None)),
             (b"[48;24;80;0;0t", ("window size report", 80, 24)),
@@ -1055,7 +1059,7 @@ class ReadKeyboardQueryReplyTest(unittest.TestCase):
                 self.assertEqual([ord("x")], rest)
 
     def test_malformed_replies_are_not_reports(self):
-        for sequence in (b"[?u", b"[?1;2u", b"[?1:2u", b"[?;c"):
+        for sequence in (b"[?u", b"[?1;2u", b"[?1:2u", b"[?;c", b"[?;u", b"[?62:1;c"):
             with self.subTest(sequence=sequence):
                 self.assertIsNone(escape.input_trie.read_private_report(list(sequence), more_available=False))
         for sequence in (b"[>m", b"[>;2m", b"[>4;2;1m", b"[>4:1m"):

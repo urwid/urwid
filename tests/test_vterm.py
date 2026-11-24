@@ -26,6 +26,7 @@ import gc
 import itertools
 import os
 import pty
+import re
 import selectors
 import signal
 import struct
@@ -41,7 +42,13 @@ import urwid
 import urwid.ansi_parser
 import urwid.vterm
 from tests.util import NonExternalLoopScreen, external_loop, pipe_terminal
+from urwid.display._raw_display_base import _detection as raw_detection
 from urwid.util import set_temporary_encoding
+
+try:
+    from urwid.display import curses as curses_display
+except ImportError:  # no stdlib curses on this platform
+    curses_display = None
 
 if typing.TYPE_CHECKING:
     from collections.abc import Callable
@@ -1045,33 +1052,31 @@ class TermTest(unittest.TestCase):
         The cells written before the sequence change too, RIS keeps the palette, and ESC ] R sets it back.
         """
 
-        def first_cells(colors: typing.Literal[16, 256, 16777216]) -> list[urwid.AttrSpec | None]:
-            self.term.term.display_colors = colors
+        def first_cells() -> list[urwid.AttrSpec | None]:
             return [attr for attr, _charset, _text in next(iter(self.term.term.content()))[:3]]
 
         self.write("\\e[31ma\\e[0mb\\e[38;5;9mc")
         self.term.wait_and_feed()
-        unchanged = {colors: first_cells(colors) for colors in (16, 2**24)}
+        unchanged = first_cells()
         self.write("\\e]P1ff8800\\e]P0102030\\e]P2gg0000")
         self.term.wait_and_feed()
+        # the exact values, which the screen converts to the colors it draws; entry 9 keeps its slot
         self.assertEqual(
             [
                 urwid.AttrSpec("#ff8800", "#102030", 2**24),
                 urwid.AttrSpec("default", "#102030", 2**24),
                 urwid.AttrSpec("h9", "#102030", 2**24),
             ],
-            first_cells(2**24),
+            first_cells(),
         )
-        self.assertEqual(urwid.AttrSpec("#f80", "#123", 256), first_cells(256)[0])
-        # a display of 16 colors has no color to draw the new values with
-        self.assertEqual(unchanged[16], first_cells(16))
+        self.assertTrue(first_cells()[2].foreground_high)
 
         self.write("\\ec\\e[31ma")
         self.term.wait_and_feed()
-        self.assertEqual(urwid.AttrSpec("#ff8800", "#102030", 2**24), first_cells(2**24)[0])
+        self.assertEqual(urwid.AttrSpec("#ff8800", "#102030", 2**24), first_cells()[0])
         self.write("\\e]R")
         self.term.wait_and_feed()
-        self.assertEqual(unchanged[2**24][0], first_cells(2**24)[0])
+        self.assertEqual(unchanged[0], first_cells()[0])
 
     def test_xterm_palette_osc(self) -> None:
         """Set, query and set back palette colors with OSC 4 and OSC 104 under xterm-256color.
@@ -1242,7 +1247,6 @@ class TermTest(unittest.TestCase):
     def test_xterm_dynamic_colors_draw_the_default_colors(self) -> None:
         """Draw the default foreground and background with the colors OSC 10 and OSC 11 set, under xterm-256color."""
         self.restart(term="xterm-256color")
-        self.term.term.display_colors = 2**24
         self.write("a\\e[31mb\\e]10;rgb:11/22/33\x07\\e]11;rgb:44/55/66\x07")
         self.term.wait_and_feed()
         self.assertEqual(
@@ -1287,7 +1291,6 @@ class TermTest(unittest.TestCase):
     def test_xterm_palette_recolors_the_cells(self) -> None:
         """Draw the 256 palette colors OSC 4 set with their new values, underline colors included, not the defaults."""
         self.restart(term="xterm-256color")
-        self.term.term.display_colors = 2**24
         self.write("\\e[31ma\\e[0mb\\e[38;5;200;48;5;9mc\\e[0;4;58;5;3md")
         self.term.wait_and_feed()
         unchanged = [attr for attr, _charset, _text in next(iter(self.term.term.content()))[:4]]
@@ -1639,6 +1642,20 @@ class TermTest(unittest.TestCase):
                 self.restart(*size)
                 self.write(output)
                 self.expect(screen)
+
+    def test_color_probe_keeps_the_saved_cursor_and_the_rendition(self) -> None:
+        """The raw display's rendition probe, ended by the SGR sequence of its last frame, changes neither."""
+        frame = "\x1b[0;33;1;4;44m"
+        probe = "\x1b[48:2::135:175:215m\x1bP$qm\x1b\\\x1b[49m\x1b[c" + frame
+        request = "\x1bP$qm\x1b\\"
+        self.write(f"\x1b[3;5H\x1b7\x1b[1;1H{frame}{request}{probe}{request}\x1b8\x1b[6n")
+        self.drain()
+
+        replies = bytes(self.pty.from_widget)
+        before, probed, after = re.findall(rb"\x1bP1\$r([0-9;:]*m)\x1b\\", replies)
+        self.assertEqual(b"0;1;4;33;48;2;135;175;215m", probed)
+        self.assertEqual(before, after)
+        self.assertTrue(replies.endswith(b"\x1b[3;5R"), replies)
 
     def test_left_and_right_margins_and_pending_wraps(self) -> None:
         """Match xterm for the left and right margins and for pending wraps.
@@ -3002,9 +3019,9 @@ class TermTest(unittest.TestCase):
             ("XTWINOPS 14 reports the text area in pixels as unknown", r"\e[14t\e[14;2t", b"\x1b[4;0;0t" * 2),
             ("the other XTWINOPS operations are not answered", r"\e[19t\e[22;0t\e[8;10;10t", b""),
             (
-                "XTGETTCAP answers an unknown first name as invalid, as while the display colors are unknown",
-                rf"\eP+q436f;524742{_ST}\eP+qzz;436f{_ST}",
-                b"\x1bP0+r\x1b\\" * 2,
+                "XTGETTCAP answers an unknown first name as invalid",
+                rf"\eP+qzz;436f{_ST}",
+                b"\x1bP0+r\x1b\\",
             ),
             (
                 "DECRQM reports the cursor blink and the urxvt mouse permanently reset, as they are never used",
@@ -3034,32 +3051,23 @@ class TermTest(unittest.TestCase):
                 self.read()
                 self.assertEqual(bytes(self.pty.from_widget), answer)
 
-    def test_xtgettcap_describes_the_display_colors(self) -> None:
-        """Answer the color count and RGB as the display draws them, the color count at most the 256 of the palette.
+    def test_xtgettcap_describes_24_bit_colors(self) -> None:
+        """Answer the 256 colors of the palette and RGB, as the canvas takes any color and the screen converts it.
 
         As in xterm, the names known are answered in one reply, up to the first one that is not.
         """
-        query = rf"\eP+q436f;636F6C6F7273;524742;544E;436f{_ST}"
-        for colors, answer in (
-            (2**24, b"\x1bP1+r436f=323536;636F6C6F7273=323536;524742=38;\x1b\\"),
-            (256, b"\x1bP1+r436f=323536;636F6C6F7273=323536;\x1b\\"),
-            (88, b"\x1bP1+r436f=3838;636F6C6F7273=3838;\x1b\\"),
-            (16, b"\x1bP1+r436f=3136;636F6C6F7273=3136;\x1b\\"),
-            (1, b"\x1bP0+r\x1b\\"),
-        ):
-            with self.subTest(colors=colors):
-                self.restart()
-                self.term.term.display_colors = colors
-                self.write(query)
-                self.term.wait_and_feed()
-                self.assertEqual(bytes(self.pty.from_widget), answer)
+        self.write(rf"\eP+q436f;636F6C6F7273;524742;544E;436f{_ST}")
+        self.term.wait_and_feed()
+        self.assertEqual(
+            bytes(self.pty.from_widget),
+            b"\x1bP1+r436f=323536;636F6C6F7273=323536;524742=38;\x1b\\",
+        )
 
     def test_raw_display_reads_the_answers_to_its_own_queries(self) -> None:
         """Decode what the widget answers to the queries a raw display sends as it starts, as replies and no keys."""
         queries = urwid.display.escape.REPORT_TERMINAL_VERSION + "".join(
-            urwid.display.escape.request_capability(name) for name in ("colors", "RGB", "Smulx", "Setulc")
+            urwid.display.escape.request_capability(name) for name in raw_detection._QUERIED_CAPABILITIES
         )
-        self.term.term.display_colors = 2**24
         self.write(queries.replace("\x1b", r"\e") + r"\e[c")
         self.term.wait_and_feed()
 
@@ -3069,14 +3077,17 @@ class TermTest(unittest.TestCase):
         self.assertIn(("terminal capabilities", (("colors", "256"),)), decoded)
         self.assertIn(("terminal capabilities", (("RGB", "8"),)), decoded)
 
-    def test_render_takes_the_display_colors_from_the_main_loop(self) -> None:
-        """Take the display colors from the screen of the running main loop, unknown for a screen without them."""
-        for screen, colors in ((mock.Mock(colors=88), 88), (mock.Mock(spec=[]), None)):
-            with self.subTest(colors=colors):
+    def test_render_takes_the_default_colors_from_the_main_loop(self) -> None:
+        """Take the default colors from the screen of the running main loop, unknown for a screen without them."""
+        for screen, defaults in (
+            (mock.Mock(terminal_default_colors=("rgb:0/0/0", "rgb:f/f/f")), ("rgb:0/0/0", "rgb:f/f/f")),
+            (mock.Mock(spec=[]), (None, None)),
+        ):
+            with self.subTest(defaults=defaults):
                 loop = mock.Mock(screen=screen)
                 with mock.patch("urwid.vterm.event_loop.get_running_loop_or_none", return_value=loop):
                     self.term.render(self.termsize, focus=False)
-                self.assertEqual(self.term.term.display_colors, colors)
+                self.assertEqual(self.term.term.display_default_colors, defaults)
 
     def test_input_the_pty_does_not_take_is_sent_later_in_order(self) -> None:
         """Keep the replies and keys the pty does not take, without blocking, and send them in order as the child reads.
@@ -3282,44 +3293,118 @@ class TermTest(unittest.TestCase):
         self.term.wait_and_feed()
         self.assertEqual(next(iter(self.term.render(self.termsize, focus=False).content()))[0], (None, None, b"A"))
 
+    def test_redefined_entries_keep_the_other_slots(self) -> None:
+        """A palette entry beside a 24-bit color keeps its slot, and becomes the exact value OSC 4 gives it."""
+        for label, data in (
+            ("one sequence", "\\e[38;5;196;58:5:46;4;48;2;1;2;3mA"),
+            ("successive sequences", "\\e[48;2;1;2;3m\\e[38;5;196m\\e[58:5:46;4mA"),
+        ):
+            with self.subTest(label):
+                self.restart(10, 3, term="xterm-256color")
+                self.write(data)
+                self.term.wait_and_feed()
+                expected = urwid.AttrSpec("h196,underline", "#010203", 2**24, underline_color="h46")
+                self.assertEqual(expected, next(iter(self.term.term.content()))[0][0])
+
+                self.write("\\e]4;46;rgb:12/34/56\x07")
+                self.term.wait_and_feed()
+                cell = next(iter(self.term.term.content()))[0][0]
+                self.assertEqual(
+                    urwid.AttrSpec("h196,underline", "#010203", 2**24, underline_color="#123456"),
+                    cell,
+                )
+                self.assertTrue(cell.foreground_high)
+
+    def test_default_colors_drawn_beside_palette_entries(self) -> None:
+        """OSC 11 replaces the default background only; the entries are drawn with their slots."""
+        self.restart(10, 3, term="xterm-256color")
+        self.write("\\e[38;5;1;58:5:2;4mA\\e]11;rgb:10/20/30\x07")
+        self.term.wait_and_feed()
+        attr = next(iter(self.term.term.content()))[0][0]
+        screen = urwid.display.raw.Screen()
+        screen.set_terminal_properties(underline_styles=True)
+        for colors, background in ((256, "48;5;234"), (2**24, "48;2;16;32;48")):
+            with self.subTest(colors=colors):
+                screen.colors = colors
+                self.assertEqual(f"\x1b[0;38;5;1;4;58:5:2;{background}m", screen._attr_to_escape(attr))
+
+    def test_cursor_color_stays_visible_where_colors_are_not_drawn(self) -> None:
+        """A cursor in the OSC 12 color differs from the same cell without it on screens that drop colors."""
+        mono = urwid.display.raw.Screen()
+        mono.set_terminal_properties(colors=1)
+        plain_underline = urwid.display.raw.Screen()
+        plain_underline.set_terminal_properties(colors=256, underline_styles=False)
+        drawn: dict[str, typing.Callable[[urwid.AttrSpec | None], object]] = {
+            "monochrome": mono._attr_to_escape,
+            "no underline colors": plain_underline._attr_to_escape,
+        }
+        if curses_display is not None:
+            curses_screen = curses_display.Screen()
+            curses_screen.s = mock.Mock()
+            curses_screen.has_color = True
+            self.enterContext(mock.patch.object(curses_display.curses, "color_pair", side_effect=lambda n: n << 8))
+
+            def curses_attr(attr: urwid.AttrSpec | None) -> int:
+                curses_screen._setattr(attr)
+                return curses_screen.s.attrset.call_args.args[0]
+
+            drawn["curses"] = curses_attr
+        for style in ("\\e[2 q", "\\e[4 q"):
+            for cell in ("", "\\e[7m", "\\e[4m"):
+                self.restart(10, 3, term="xterm-256color")
+                self.write(f"{style}\\e]12;rgb:00/ff/00\x07{cell}AA\\e[0m\\e[1;1H")
+                self.term.wait_and_feed()
+                (cursor, *_), (reference, *_) = next(iter(self.term.render(self.termsize, focus=True).content()))[:2]
+                for name, draw in drawn.items():
+                    with self.subTest(style=style, cell=cell, screen=name):
+                        self.assertNotEqual(draw(reference), draw(cursor))
+
     def test_cursor_style_is_drawn_in_the_cursor_color(self) -> None:
-        """Draw the cursor DECSCUSR set in the color OSC 12 set, as xterm 407 draws it, under xterm-256color."""
+        """Draw the cursor DECSCUSR set in the color OSC 12 set, as xterm 407 draws it, under xterm-256color.
+
+        The color is exact, whatever the screen draws; where it would be the only difference from the cell, the cursor
+        is drawn as without a color.
+        """
         true_colors = 2**24
         green = "\\e]12;rgb:00/ff/00\x07"
         block = urwid.AttrSpec("#00ff00,standout", "default", true_colors)
-        for label, data, colors, attr in (
-            ("a block: the cell in the color, the text in the cell's background", "AB", true_colors, block),
-            ("a bar is drawn as a block", "AB\\e[6 q", true_colors, block),
+        for label, data, attr in (
+            ("a block: the cell in the color, the text in the cell's background", "AB", block),
+            ("a bar is drawn as a block", "AB\\e[6 q", block),
             (
                 "a block keeps the cell's settings and takes its background color",
                 "\\e[1;31;44mA\\e[0mB",
-                true_colors,
                 urwid.AttrSpec("#00ff00,bold,standout", "dark blue", true_colors),
+            ),
+            (
+                "a block keeps a palette entry of the cell",
+                "\\e[38;5;100;48;5;200mA\\e[0mB",
+                urwid.AttrSpec("#00ff00,standout", "h200", true_colors),
             ),
             (
                 "a block on a reverse cell: the text in the cell's foreground",
                 "\\e[7mA\\e[0mB",
-                true_colors,
                 urwid.AttrSpec("default", "#00ff00", true_colors),
+            ),
+            (
+                "a block on a cell of the cursor color: reverse video",
+                "\\e[48;2;0;255;0mA\\e[0mB",
+                urwid.AttrSpec("default,standout", "#00ff00", true_colors),
             ),
             (
                 "an underline in the color",
                 "AB\\e[4 q",
-                true_colors,
                 urwid.AttrSpec("default,underline", "default", true_colors, underline_color="#00ff00"),
             ),
-            ("the closest color of a 256-color display", "AB", 256, urwid.AttrSpec("#0f0,standout", "default", 256)),
-            ("reverse video on a 16-color display", "AB", 16, urwid.AttrSpec("default,standout", "default")),
             (
-                "reverse video after OSC 112",
-                "AB\\e]112\x07",
-                true_colors,
-                urwid.AttrSpec("default,standout", "default"),
+                "an underline on an underlined cell: the underline is taken away",
+                "\\e[4mA\\e[0mB\\e[4 q",
+                urwid.AttrSpec("default", "default"),
             ),
+            ("reverse video after OSC 112", "AB\\e]112\x07", urwid.AttrSpec("default,standout", "default")),
         ):
             with self.subTest(label):
                 self.restart(10, 3, term="xterm-256color")
-                self.term.term.display_colors = colors
                 # the block is set first, so a later DECSCUSR in data replaces it
                 self.write(f"\\e[2 q{green}{data}\\e[1;1H")
                 self.term.wait_and_feed()
