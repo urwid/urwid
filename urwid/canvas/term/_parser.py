@@ -508,7 +508,8 @@ class TermCanvas(_ReportsCanvas, _RectanglesCanvas, _ModesCanvas, _VTParser[byte
 
         A spec of ``?`` asks for the color of entry c, the one set or xterm's default, which is answered as
         ``OSC 4 ; c ; rgb:rrrr/gggg/bbbb``, ended by BEL when *bel* is set and by ST otherwise.
-        Any other spec is an X11 color in ``rgb:`` or ``#`` form, see :func:`~urwid.canvas.term._palette._x11_rgb`.
+        Any other spec is an X11 color in ``rgb:``, ``rgbi:`` or ``#`` form,
+        see :func:`~urwid.canvas.term._palette._x11_rgb`.
         As in xterm, an index is read as C's ``atoi`` reads it, so one with no digits is 0, and the pairs are taken up
         to the first one with an index outside 0 to 255 or a spec not read.
         """
@@ -530,7 +531,7 @@ class TermCanvas(_ReportsCanvas, _RectanglesCanvas, _ModesCanvas, _VTParser[byte
         """Set or query xterm's dynamic colors (OSC 10 to 19), from the color *first* on, one item of *params* each.
 
         As in xterm, each item applies to the next dynamic color, up to 19, and an item that is neither ``?`` nor a
-        color in ``rgb:`` or ``#`` form, see :func:`~urwid.canvas.term._palette._x11_rgb`, is skipped.
+        color in ``rgb:``, ``rgbi:`` or ``#`` form, see :func:`~urwid.canvas.term._palette._x11_rgb`, is skipped.
         The colors kept are the default foreground (10), the default background (11) and the cursor color (12).
         A query is answered as ``OSC n ; rgb:rrrr/gggg/bbbb``, ended by BEL when *bel* is set and by ST otherwise,
         with the color the child set or, for 10 and 11, the display's default color in

@@ -241,12 +241,12 @@ It differs from xterm, or adds to it, in these points:
   * SGR 10, 11 and 12 and ``CSI 3 h`` are ignored, SO and SI only select G1
     and G0, and ``ESC ] P`` and ``ESC ] R`` are read as any other OSC string,
     up to BEL or ST, and ignored.
-  * OSC 4 sets palette colors 0 to 255, given in the ``rgb:r/g/b`` or ``#rgb``
-    form, and answers a query (``?``) with the color in xterm's reply, ended as
-    the query was; OSC 104 sets the colors listed back, or all of them.  The
-    cells in those colors are drawn with the new values as for the Linux
-    palette sequence above, but the default foreground and background are no
-    palette colors.  RIS and DECSTR set the palette back.
+  * OSC 4 sets palette colors 0 to 255, given in the ``rgb:r/g/b``,
+    ``rgbi:r/g/b`` or ``#rgb`` form, and answers a query (``?``) with the color
+    in xterm's reply, ended as the query was; OSC 104 sets the colors listed
+    back, or all of them.  The cells in those colors are drawn with the new
+    values as for the Linux palette sequence above, but the default foreground
+    and background are no palette colors.  RIS and DECSTR set the palette back.
   * OSC 10, 11 and 12 set the default foreground, the default background and
     the cursor color, each further item setting the next color, and answer a
     query with the color set or, for the default colors, the outer terminal's
@@ -256,14 +256,19 @@ It differs from xterm, or adds to it, in these points:
     underline in the cursor color, or for a block or a bar the cell in the
     cursor color with its text in the color the cell's background is shown in.
     RIS and DECSTR keep them.
-  * An ``rgb:`` color ignores anything after a ``/`` that follows its third
-    component, so ``rgb:1/2/3/4`` is ``rgb:1/2/3``.
+  * An ``rgb:`` or ``rgbi:`` color ignores anything after a ``/`` that follows
+    its third component, so ``rgb:1/2/3/4`` is ``rgb:1/2/3``.
 
   It does not follow xterm in these points:
 
-  * OSC 4, 10, 11 and 12 do not read X11 color names, such as ``orange``, or
-    the ``rgbi:`` form; such a color ends an OSC 4 sequence, as an invalid one
-    does in xterm, and is skipped in the others.
+  * OSC 4, 10, 11 and 12 do not read X11 color names, such as ``orange``;
+    such a color ends an OSC 4 sequence, as an invalid one does in xterm, and
+    is skipped in the others.
+  * An ``rgbi:`` intensity is encoded with the sRGB transfer function, where
+    xterm uses the X display's calibration, so the colors differ, most in dark
+    colors.  An intensity outside 0 to 1, an intensity written as a
+    hexadecimal number, ``inf`` or ``nan``, and one followed by other text are
+    not read.
   * A query of a default color neither the child nor the screen gave, of the
     cursor color before the child set it, and of the dynamic colors 13 to 19
     is not answered.

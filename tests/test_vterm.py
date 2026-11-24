@@ -1117,6 +1117,18 @@ class TermTest(unittest.TestCase):
                 "\\e]4;1;rgb:11/22/33x\x07\\e]4;1;?\x07",
                 b"\x1b]4;1;rgb:cdcd/0000/0000\x07",
             ),
+            (
+                "rgbi: encodes each linear intensity with the sRGB curve, after optional spaces",
+                "\\e]4;1;rgbi:0/0.5/1\x07\\e]4;1;?\x07\\e]4;2;RGBI:1e-1/ .25/0.003/x\x07\\e]4;2;?\x07",
+                b"\x1b]4;1;rgb:0000/bcbc/ffff\x07\x1b]4;2;rgb:5959/8989/0a0a\x07",
+            ),
+            (
+                "rgbi: outside 0 to 1, in hexadecimal or with text after a number is not read",
+                "\\e]4;1;rgbi:1.5/0/0\x07\\e]4;2;rgbi:-0.1/0/0\x07\\e]4;3;rgbi:0x1/0/0\x07"
+                "\\e]4;4;rgbi:0.5/0.5/0.5x\x07\\e]4;5;rgbi:inf/0/0\x07\\e]4;1;?;2;?;3;?;4;?;5;?\x07",
+                b"\x1b]4;1;rgb:cdcd/0000/0000\x07\x1b]4;2;rgb:0000/cdcd/0000\x07\x1b]4;3;rgb:cdcd/cdcd/0000\x07"
+                b"\x1b]4;4;rgb:0000/0000/eeee\x07\x1b]4;5;rgb:cdcd/0000/cdcd\x07",
+            ),
             ("a string that is not valid UTF-8 is ignored", "\\e]4;1;?\xff\x07", b""),
             ("a string with a control character is ignored", "\\e]4;1;\t?\x07", b""),
             ("a query before a NUL is answered", "\\e]4;1;?\x00\x07", b"\x1b]4;1;rgb:cdcd/0000/0000\x07"),
