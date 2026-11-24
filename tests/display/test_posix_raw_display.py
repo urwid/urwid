@@ -409,6 +409,22 @@ class TestStartStop(unittest.TestCase):
         # SIGCONT belongs to the application: neither start() nor stop() replaces it.
         self.assertEqual(signal.SIG_IGN, signal.getsignal(signal.SIGCONT))
 
+    def test_signal_init_failing_after_its_first_handler_restores_that_handler(self) -> None:
+        """The handler set before the failure is set back, since the undo of the failed start restores none."""
+        s = _make_screen()
+        s.write = lambda *_a: None
+        s.flush = lambda: None
+        previous_handler = mock.Mock()
+        s.signal_handler_setter = setter = mock.Mock(
+            side_effect=[previous_handler, ValueError("SIGTSTP refused"), None]
+        )
+
+        with self.assertRaisesRegex(ValueError, "SIGTSTP refused"):
+            s.start()
+
+        self.assertFalse(s.started)
+        self.assertEqual(mock.call(signal.SIGWINCH, previous_handler), setter.call_args_list[-1])
+
     @mock.patch("os.kill")  # guard: the gpm helper must be stopped through its Popen object only
     @mock.patch("termios.tcsetattr")
     @mock.patch("termios.tcgetattr", return_value=[0, 0, 0, 0, 0, 0, [b"\0"] * 32])

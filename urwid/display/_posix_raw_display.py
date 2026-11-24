@@ -232,7 +232,12 @@ class Screen(_raw_display_base.Screen):
         applications.
         """
         self._prev_sigwinch_handler = self.signal_handler_setter(signal.SIGWINCH, self._sigwinch_handler)
-        self._prev_sigtstp_handler = self.signal_handler_setter(signal.SIGTSTP, self._sigtstp_handler)
+        try:
+            self._prev_sigtstp_handler = self.signal_handler_setter(signal.SIGTSTP, self._sigtstp_handler)
+        except BaseException:
+            # the start fails, and its undo restores only handlers that signal_init() set completely
+            self.signal_handler_setter(signal.SIGWINCH, self._prev_sigwinch_handler or signal.SIG_DFL)
+            raise
 
     def signal_restore(self) -> None:
         """Restore the SIGTSTP and SIGWINCH signal handlers, called in the finally block of run wrapper.
