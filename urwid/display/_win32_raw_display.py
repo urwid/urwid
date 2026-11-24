@@ -212,13 +212,13 @@ class Screen(_raw_display_base.Screen):
             if not (ok := _win32.SetConsoleMode(handle_out, dword_out_mode)):
                 raise RuntimeError(f"ConsoleMode set failed for output. Err: {ok!r}")
 
-            if not (ok := _win32.SetConsoleMode(handle_in, dword_in_mode)):
-                _win32.SetConsoleMode(handle_out, original_out_mode)
-                raise RuntimeError(f"ConsoleMode set failed for input. Err: {ok!r}")
-
+            # Saved before the input mode is set: undoing a failed start sets the output mode back and checks it.
             self._dwOriginalOutMode = original_out_mode
             self._dwOriginalInMode = original_in_mode
             self._console_mode_active = True
+
+            if not (ok := _win32.SetConsoleMode(handle_in, dword_in_mode)):
+                raise RuntimeError(f"ConsoleMode set failed for input. Err: {ok!r}")
 
         # from the first escape sequence written on, a stop writes the ones that undo it
         self._console_without_vt = False

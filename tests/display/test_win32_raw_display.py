@@ -215,7 +215,15 @@ class TestScreenInput(unittest.TestCase):
         vt = _win32.ENABLE_VIRTUAL_TERMINAL_PROCESSING
         for failure, original_mode, mode_results, restored, writes, kwargs, error in (
             ("output mode", 0, [0], [], False, {}, RuntimeError),
-            ("input mode", 0, [1, 0, 1], [mock.call("out", mock.ANY)], False, {}, RuntimeError),
+            (
+                "input mode",
+                0,
+                [1, 0, 1, 1],
+                [mock.call("out", mock.ANY), mock.call("in", mock.ANY)],
+                False,
+                {},
+                RuntimeError,
+            ),
             ("output mode with VT before", vt, [0], [], True, {}, RuntimeError),
             ("unexpected argument", 0, [], [], False, {"unexpected": True}, TypeError),
         ):
@@ -253,6 +261,27 @@ class TestScreenInput(unittest.TestCase):
                 s.set_title("app")
                 self.assertEqual([], written)
                 set_title.assert_not_called()
+
+    def test_start_reports_an_output_mode_it_cannot_set_back(self) -> None:
+        """When the input mode fails and the output mode cannot be set back either, the output failure is raised."""
+        s = _win32_raw_display.Screen()
+        s.write = lambda _data: None
+        s.flush = lambda: None
+
+        def get_mode(_handle: str, mode: typing.Any) -> int:
+            mode._obj.value = 0
+            return 1
+
+        with (
+            mock.patch.object(_win32, "GetStdHandle", side_effect=lambda handle: handle),
+            mock.patch.object(_win32, "GetConsoleMode", side_effect=get_mode),
+            mock.patch.object(_win32, "SetConsoleMode", side_effect=[1, 0, 0, 1]),
+            self.assertRaisesRegex(RuntimeError, "for output") as raised,
+        ):
+            s.start()
+
+        self.assertFalse(s.started)
+        self.assertRegex(str(raised.exception.__context__), "for input")
 
     def test_stop_after_a_start_with_redirected_input_restores_the_screen(self) -> None:
         """A start that wrote to a console without VT processing, its input redirected, is fully undone by stop()."""
