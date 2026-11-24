@@ -29,6 +29,7 @@ import typing
 from collections.abc import Hashable
 
 from urwid.event_loop import ExitMainLoop, get_running_loop_or_none
+from urwid.event_loop.main_loop import _get_running_loop_of_this_thread
 from urwid.widget.constants import Severity
 from urwid.widget.notifications import Notifications, _Unset
 from urwid.widget.text import Text
@@ -92,12 +93,13 @@ class _LoopHandler(logging.Handler):
     so a sustained flood shows up to :data:`_ENTRIES_PER_DRAIN` times that limit before input is served again.
 
     Records held while the loop does not run are shown after :meth:`resume`, which starts each run.
-    The widget is changed by :meth:`_drain` only, so on the loop thread only.
+    :meth:`flush` shows the queued entries at once, from the loop thread.
+    The widget is changed by :meth:`_drain` and :meth:`flush` only, so on the loop thread only.
 
     State, read and written under the handler lock:
 
     - ``_scheduled``: a :meth:`_drain` call was handed to the loop and has not started.
-    - ``_draining``: a :meth:`_drain` call is running.
+    - ``_draining``: a :meth:`_drain` or :meth:`flush` call is showing entries.
     - ``_shut``: :meth:`close` was called.
     """
 
@@ -185,13 +187,43 @@ class _LoopHandler(logging.Handler):
         :exc:`~urwid.ExitMainLoop` from the widget propagates.
         Any other exception is logged and the next entry is shown.
         """
+        self._deliver(drain=True)
+
+    def flush(self) -> None:
+        """Show the records queued now in the widget.
+
+        Call it on the loop thread while the loop runs, for example before a widget callback stops the loop or
+        reads the widget, so the widget shows every record logged before the call, without waiting for the loop to
+        hand them over.
+        Records logged while it shows them, such as by the widget, wait for the next hand-over;
+        when they fill ``max_pending``, the oldest queued records are dropped as usual.
+        On any other thread, also one that runs in a copy of the loop's context, and after :meth:`close`,
+        it does nothing and the records stay queued.
+        A call from a widget callback during a hand-over shows nothing, and leaves the rest to that hand-over.
+        Any exception from the widget other than :exc:`~urwid.ExitMainLoop` is logged and the next entry is shown.
+
+        :raises ~urwid.ExitMainLoop: the widget stopped the loop.
+        """
+        if _get_running_loop_of_this_thread() is self.loop:
+            self._deliver(drain=False)
+
+    def _deliver(self, *, drain: bool) -> None:
+        """Show queued entries, oldest first, and hand the loop a call for the rest.
+
+        A hand-over (*drain* true) shows up to :data:`_ENTRIES_PER_DRAIN` entries,
+        otherwise every entry queued at the call.
+        Showing stops before the next entry once the loop is no longer the running loop, and after :meth:`close`.
+        Call it on the loop thread only.
+        """
         with self._lock:
-            self._scheduled = False
+            if drain:
+                self._scheduled = False
             if self._draining:
                 return
             self._draining = True
+            count = _ENTRIES_PER_DRAIN if drain else len(self._pending)
         try:
-            for _ in range(_ENTRIES_PER_DRAIN):
+            for _ in range(count):
                 if get_running_loop_or_none() is not self.loop:
                     break
                 with self._lock:

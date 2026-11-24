@@ -283,6 +283,121 @@ class _HandlerTests:
         self.assertEqual([["a"]], seen_by_nested)
         self.assertEqual(["a", "b", "c", "new"], self.shown(handler))
 
+    def test_flush_shows_the_queue_at_once(self) -> None:
+        """flush() on the loop thread shows every queued record, past the cap of one hand-over."""
+        cap = log_handler._ENTRIES_PER_DRAIN
+        handler, logger = self.handler()
+        self.start()
+        for number in range(cap + 8):
+            logger.info("record %d", number)
+        handler.flush()
+        self.assertEqual([f"record {number}" for number in range(cap + 8)], self.shown(handler))
+        self.event_loop.advance(0)
+        self.assertEqual(cap + 8, len(self.shown(handler)))
+
+    def test_flush_leaves_records_logged_during_it(self) -> None:
+        """A record the widget logs while flush() shows the queue waits for the next hand-over."""
+        handler, logger = self.handler()
+        logged = False
+
+        def log_once() -> None:
+            nonlocal logged
+            if not logged:
+                logged = True
+                logger.info("late")
+
+        self.on_show(handler, log_once)
+        self.start()
+        logger.info("a")
+        logger.info("b")
+        handler.flush()
+        self.assertEqual(["a", "b"], self.shown(handler))
+        self.event_loop.advance(0)
+        self.assertEqual(["a", "b", "late"], self.shown(handler))
+
+    def test_flush_off_the_loop_thread_does_nothing(self) -> None:
+        """flush() before the loop starts, or on another thread, also in a copy of the loop's context, does nothing."""
+        handler, logger = self.handler()
+        logger.info("held")
+        handler.flush()
+        self.assertEqual([], self.shown(handler))
+        self.start()
+        for name, context in (("own context", contextvars.Context()), ("copied context", contextvars.copy_context())):
+            with self.subTest(name):
+                worker = threading.Thread(target=context.run, args=(handler.flush,))
+                worker.start()
+                worker.join(JOIN_TIMEOUT)
+                self.assertFalse(worker.is_alive())
+                self.assertEqual([], self.shown(handler))
+        handler.flush()
+        self.assertEqual(["held"], self.shown(handler))
+
+    def test_flush_in_a_callback_on_another_thread_than_start(self) -> None:
+        """flush() works in a callback of a loop started on one thread and run on another."""
+        handler, logger = self.handler()
+        logger.info("held")
+        self.start()
+        context = contextvars.copy_context()
+
+        def callback() -> None:
+            with self.loop._as_running():
+                handler.flush()
+
+        worker = threading.Thread(target=context.run, args=(callback,))
+        worker.start()
+        worker.join(JOIN_TIMEOUT)
+        self.assertFalse(worker.is_alive())
+        self.assertEqual(["held"], self.shown(handler))
+
+    def test_flush_off_the_loop_thread_leaves_hand_overs_alone(self) -> None:
+        """A flush() on another thread, overlapping a hand-over and a new record, leaves them to the loop."""
+        handler, logger = self.handler()
+        self.start()
+        logger.info("a")
+        in_flush = threading.Event()
+        release = threading.Event()
+        worker: threading.Thread | None = None
+        find_loop = log_handler._get_running_loop_of_this_thread
+
+        def pausing_find_loop() -> urwid.MainLoop | None:
+            if threading.current_thread() is worker and not in_flush.is_set():
+                in_flush.set()
+                release.wait(JOIN_TIMEOUT)
+            return find_loop()
+
+        with unittest.mock.patch.object(log_handler, "_get_running_loop_of_this_thread", pausing_find_loop):
+            worker = threading.Thread(target=handler.flush)
+            worker.start()
+            try:
+                self.assertTrue(in_flush.wait(JOIN_TIMEOUT))
+                self.event_loop.advance(0)
+                logger.info("b")
+            finally:
+                release.set()
+                worker.join(JOIN_TIMEOUT)
+        self.assertFalse(worker.is_alive())
+        self.event_loop.advance(0)
+        self.assertEqual(["a", "b"], self.shown(handler))
+
+    def test_nested_flush_shows_nothing(self) -> None:
+        """flush() from a widget callback during a hand-over leaves the rest to that hand-over."""
+        handler, logger = self.handler()
+        seen_by_nested: list[list[str]] = []
+
+        def nested_once() -> None:
+            if not seen_by_nested:
+                handler.flush()
+                seen_by_nested.append(self.shown(handler))
+
+        self.on_show(handler, nested_once)
+        for name in ("a", "b", "c"):
+            logger.info(name)
+        self.start()
+        handler.resume()
+        self.event_loop.advance(0)
+        self.assertEqual([["a"]], seen_by_nested)
+        self.assertEqual(["a", "b", "c"], self.shown(handler))
+
     @unittest.skipUnless(IS_CPYTHON, "relies on reference counting to free the argument at once")
     def test_record_arguments_are_not_kept(self) -> None:
         class Argument:
