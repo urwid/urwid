@@ -1154,19 +1154,31 @@ class TestReadRawInput(unittest.TestCase):
         self.assertEqual(bytearray(), result)
 
     def test_raises_input_closed_error_on_eof(self):
-        """End of file raises InputClosedError, which a RuntimeError handler still catches."""
-        read_fd, write_fd = os.pipe()
-        s = Screen(input=os.fdopen(read_fd, "rb", buffering=0), output=open(os.devnull, "w"))  # noqa: SIM115
-        s.write = lambda *_a: None
-        s.flush = lambda: None
-        s.start()
-        self.addCleanup(s.stop)
+        """Raise InputClosedError at end of file, from the raw read and from get_input().
 
-        os.close(write_fd)  # EOF with nothing ever written
+        It is a RuntimeError, so a handler for that still catches it.
+        """
+        for label, read in (
+            ("raw read", lambda screen: screen._read_raw_input(1)),
+            ("get_input()", lambda screen: screen.get_input()),
+        ):
+            with self.subTest(label):
+                read_fd, write_fd = os.pipe()
+                input_file = os.fdopen(read_fd, "rb", buffering=0)
+                self.addCleanup(input_file.close)
+                output_file = open(os.devnull, "w")  # noqa: SIM115  # closed by the cleanup
+                self.addCleanup(output_file.close)
+                s = Screen(input=input_file, output=output_file)
+                s.write = lambda *_a: None
+                s.flush = lambda: None
+                s.start()
+                self.addCleanup(s.stop)
 
-        with self.assertRaises(urwid.InputClosedError) as ctx:
-            s._read_raw_input(1)
-        self.assertIsInstance(ctx.exception, RuntimeError)
+                os.close(write_fd)  # EOF with nothing ever written
+
+                with self.assertRaises(urwid.InputClosedError) as ctx:
+                    read(s)
+                self.assertIsInstance(ctx.exception, RuntimeError)
 
 
 @unittest.skipIf(IS_WINDOWS, "_posix_raw_display is not importable on Windows (no fcntl/termios/tty)")
