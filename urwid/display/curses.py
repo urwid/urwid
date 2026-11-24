@@ -167,6 +167,8 @@ class Screen(BaseScreen, RealTerminal):
         self.prev_input_resize = 0
         # keys of a sequence cut short, kept for the next get_input()
         self._partial_keys: list[int] = []
+        # per kept key, the raw codes it was read as, reported with the call that decodes it
+        self._partial_raw: list[tuple[int, ...]] = []
         # time.monotonic() of the read that left them: get_input() decodes them as they are once no more of the sequence
         # arrived for complete_wait after it
         self._partial_read_time = 0.0
@@ -541,10 +543,13 @@ class Screen(BaseScreen, RealTerminal):
         deadline = None if self.max_tenths is None else now + self.max_tenths / 10
         partial = self._partial_keys
         expired_keys: _DecodedInput = []
+        expired_raw: list[int] = []
         wait_tenths = self.max_tenths
         if partial and now >= partial_deadline:
             # Its deadline passed before this call: it is decoded alone, ahead of the keys that came since.
             self._partial_keys = []
+            expired_raw = [code for codes in self._partial_raw for code in codes]
+            self._partial_raw = []
             decoded = escape.decode_input(partial, more_available=False)[0]
             expired_keys, held = self._apply_terminal_reports(decoded, self._resize_held)
             self._resize_held = False
@@ -558,6 +563,7 @@ class Screen(BaseScreen, RealTerminal):
             wait_tenths = left_tenths if wait_tenths is None else min(wait_tenths, left_tenths)
         keys, raw = self._get_input(wait_tenths)
         keys = [*expired_keys, *keys]
+        raw = [*expired_raw, *raw]
 
         # Avoid pegging CPU at 100% when slowly resizing, and work
         # around a bug with some braindead curses implementations that
@@ -598,18 +604,26 @@ class Screen(BaseScreen, RealTerminal):
 
         key = self._getch(wait_tenths)
         resize = False
-        raw = []
         partial = self._partial_keys
         keys = [*partial]
+        # per key, the raw codes it was read as: a mouse report's code goes with its first key
+        keys_raw = [*self._partial_raw]
+        # raw codes that are no key, such as a resize, are reported with this call
+        other_raw: list[int] = []
 
         while key >= 0:
-            raw.append(key)
             if key == KEY_RESIZE:
                 resize = True
+                other_raw.append(key)
             elif key == KEY_MOUSE:
-                keys += self._encode_mouse_event()
+                if mouse_keys := self._encode_mouse_event():
+                    keys += mouse_keys
+                    keys_raw += [(key,), *[()] * (len(mouse_keys) - 1)]
+                else:
+                    other_raw.append(key)
             else:
                 keys.append(key)
+                keys_raw.append((key,))
             key = self._getch_nodelay()
 
         read_new = len(keys) > len(partial)
@@ -626,6 +640,9 @@ class Screen(BaseScreen, RealTerminal):
             # With no deadline for the rest of the sequence, a resize ends the wait, so it is not held for good.
             processed += escape.decode_input(self._partial_keys, more_available=False)[0]
             self._partial_keys = []
+            consumed = len(keys)
+        self._partial_raw = keys_raw[consumed:]
+        raw = [*(code for codes in keys_raw[:consumed] for code in codes), *other_raw]
 
         if self._partial_keys:
             # a resize read after keys still kept is reported once they are decoded, after them
