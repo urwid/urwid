@@ -2,6 +2,139 @@
 Changelog
 ---------
 
+Urwid 5.2.0
+============
+
+2026-11-24
+
+Major features 🗹
++++++++++++++++++
+
+Displays
+^^^^^^^^
+* Draw every ``AttrSpec`` on every display: a colour keeps its kind (basic, 88- or 256-colour entry, RGB) through layering and ``copy_modified()``, and each display converts the result once to the colours it draws. The raw display no longer writes a 24-bit colour to a terminal that cannot draw it or an 88-colour entry as the 256-colour entry of that number, curses draws the nearest of its 8 colours instead of the default pair, and the HTML and web displays keep every colour by @penguinolog in https://github.com/urwid/urwid/pull/1728
+* Add underline styles and underline colours: ``AttrSpec`` takes ``'double underline'``, ``'curly underline'``, ``'dotted underline'``, ``'dashed underline'`` and ``underline_color=``; the raw display writes SGR 4:n and SGR 58 where the terminal draws them (``Screen(underline_styles=None)`` detects it from terminfo and the terminal's version variables), the web displays draw them as text decoration, and curses draws a single underline, requested in https://github.com/urwid/urwid/issues/976 by @penguinolog in https://github.com/urwid/urwid/pull/1706 and https://github.com/urwid/urwid/pull/1726
+* Learn the terminal's capabilities from the terminal itself: at start the raw display asks for XTGETTCAP (``colors``, ``RGB``, ``Tc``, ``Smulx``, ``Setulc``), XTVERSION and the default colours (OSC 10 and 11, kept in ``Screen.terminal_default_colors``), and confirms the colour depth with a DECRQSS rendition probe. A reply only raises what TERM, terminfo and the environment gave, and never overrides the application, ``NO_COLOR``, ``CLICOLOR`` or ``FORCE_COLOR`` by @penguinolog in https://github.com/urwid/urwid/pull/1726 and https://github.com/urwid/urwid/pull/1728
+* Add ``Screen(alternate_scroll=...)`` for DEC private mode 1007, where the mouse wheel on the alternate screen arrives as cursor keys; stop restores the state the terminal reported by @penguinolog in https://github.com/urwid/urwid/pull/1706
+* Keep the raw ``Screen`` terminal settings in one frozen ``TerminalProperties``, with a new ``hyperlinks`` field; the attributes of the same names still read and replace its fields by @penguinolog in https://github.com/urwid/urwid/pull/1706
+
+Terminal widget and ``TerminalOutput``
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+* Add ``TerminalOutput``: a terminal widget fed by the application through ``write()``, with no child process, for captured output, recordings and generated text with colours and cursor control, also on Windows; see ``examples/terminal_output.py``. Fixes https://github.com/urwid/urwid/issues/1120 by @penguinolog in https://github.com/urwid/urwid/pull/1664 and https://github.com/urwid/urwid/pull/1680
+* Move ``TermCanvas`` out of ``urwid.vterm``: ``urwid`` exports ``TermCanvas``, ``TermCharset`` and ``TermModes`` on every platform, while ``Terminal`` stays POSIX-only by @penguinolog in https://github.com/urwid/urwid/pull/1661
+* Emulate a VT420 as xterm does, measured against xterm 407, with DECSCL selecting levels 61 to 64. The manual lists the remaining differences from xterm by @penguinolog in https://github.com/urwid/urwid/pull/1689, https://github.com/urwid/urwid/pull/1691 and https://github.com/urwid/urwid/pull/1718
+
+  * VT220: G2 and G3 with LS2/LS3 and SS2/SS3, DECSTR, DECRQSS, DECRQM for the ANSI modes, DECNKM and DECBKM by @penguinolog in https://github.com/urwid/urwid/pull/1689
+  * VT320: DECRQPSR with DECCIR and DECTABSR, DECRSPS, DECRQUPSS, 96-character sets, the DEC DSR forms and DECXCPR by @penguinolog in https://github.com/urwid/urwid/pull/1690, https://github.com/urwid/urwid/pull/1691 and https://github.com/urwid/urwid/pull/1697
+  * VT420: left and right margins (DECLRMM, DECSLRM), the rectangle operations DECFRA, DECERA, DECCRA, DECCARA, DECRARA and DECSACE, the column operations DECIC, DECDC, DECBI and DECFI, DECRQCRA with xterm's checksum, DECRQDE, and SL and SR by @penguinolog in https://github.com/urwid/urwid/pull/1691, https://github.com/urwid/urwid/pull/1693, https://github.com/urwid/urwid/pull/1695 and https://github.com/urwid/urwid/pull/1718
+  * Protected characters: DECSCA, SPA and EPA, with the selective erases DECSED, DECSEL and DECSERA by @penguinolog in https://github.com/urwid/urwid/pull/1694 and https://github.com/urwid/urwid/pull/1696
+  * SU and SD, REP, CHT and CBT, XTVERSION, XTWINOPS 14 and 18, and XTGETTCAP by @penguinolog in https://github.com/urwid/urwid/pull/1697 and https://github.com/urwid/urwid/pull/1706
+
+* Give wide characters two cells and grapheme clusters their own cell, measured with urwid's width calculation, so the rest of the row is no longer drawn shifted by @penguinolog in https://github.com/urwid/urwid/pull/1696 and https://github.com/urwid/urwid/pull/1698
+* Draw the DECSCUSR cursor shape in the widget, in the OSC 12 cursor colour where the child sets one by @penguinolog in https://github.com/urwid/urwid/pull/1691 and https://github.com/urwid/urwid/pull/1727
+* Add ``Terminal(term="xterm-256color")`` and ``TerminalOutput(term=...)``: the child gets xterm's keys and parsing rules, OSC 4, 10 to 12 and 104, 110 to 112 colours, and ``rgbi:`` colour specifications; the default ``term="linux"`` takes the Linux console palette sequences. Queries of the default colours are answered with the outer terminal's by @penguinolog in https://github.com/urwid/urwid/pull/1725, https://github.com/urwid/urwid/pull/1726 and https://github.com/urwid/urwid/pull/1727
+* Send focus changes (mode 1004) and the mouse wheel as cursor keys (mode 1007) to the child, and add ``Terminal(pass_signal_keys=False)`` to leave the signal keys of the outer terminal alone by @penguinolog in https://github.com/urwid/urwid/pull/1706
+* Add ``scroll_on_output`` to ``Terminal`` and ``TermCanvas``: by default output returns a scrolled-back view to the bottom, as xterm does; ``False`` keeps the view on the lines it shows by @penguinolog in https://github.com/urwid/urwid/pull/1663
+* ``AnsiParser`` and ``ANSIText`` count columns in screen cells, read SGR colon sub-parameters, underline styles and colours, and take HPA, HPR, CHT, CBT, DECFI and REP; ``parse_sgr_parameters()`` and ``split_sgr_parameters()`` are public by @penguinolog in https://github.com/urwid/urwid/pull/1705, https://github.com/urwid/urwid/pull/1706, https://github.com/urwid/urwid/pull/1713 and https://github.com/urwid/urwid/pull/1717
+* Rework ``examples/terminal.py`` with ``--display raw|curses|websocket`` and ``--term`` by @penguinolog in https://github.com/urwid/urwid/pull/1706 and https://github.com/urwid/urwid/pull/1728
+
+``ActionMenu``
+^^^^^^^^^^^^^^
+* Add ``ActionMenu`` and ``MenuItem``: a pop-up list of actions opened from a label or any widget, with separators, disabled items, accelerator keys, a key column, submenus beside their row, a box and a scroll bar; choosing an item sends ``"action"`` by @penguinolog in https://github.com/urwid/urwid/pull/1675
+* Add ``ActionMenu(placement="center")``, ``ActionMenu(pass_arrows_below=True)`` for a menu bar, ``ActionMenu.open_at()`` for a context menu, and ``scrollbar_`` options for ``ActionMenu`` and ``DropDown`` by @penguinolog in https://github.com/urwid/urwid/pull/1678, https://github.com/urwid/urwid/pull/1702 and https://github.com/urwid/urwid/pull/1704
+* Add ``DropDown(border=True)``, separators (``None`` in ``options``) and ``DropDown(disabled=..., disabled_map=...)``; a read-only drop-down is drawn with ``disabled_map`` by @penguinolog in https://github.com/urwid/urwid/pull/1675 and https://github.com/urwid/urwid/pull/1681
+* Add the pop-up parts the menu is built from: ``PopUpLauncher(signal_open_close=True)`` with ``"open"`` and ``"close"`` signals, the horizontal anchor ``anchor_width`` and ``anchor_side``, and ``Widget.request_focus()`` to move the focus from any mouse event by @penguinolog in https://github.com/urwid/urwid/pull/1674
+
+``Table``
+^^^^^^^^^
+* Make ``Table`` and ``TableRow`` containers: focus paths go through the focused row to its cell, and ``table[row][cell]`` gives the cell by @penguinolog in https://github.com/urwid/urwid/pull/1651
+* Add a sortable header: ``Table(sortable=True)``, ``Table.sort()``, the ``"header activated"`` signal, ``sort_marks``, ``header_focus_attr``, ``header_column`` and ``forget_header_column()`` by @penguinolog in https://github.com/urwid/urwid/pull/1683 and https://github.com/urwid/urwid/pull/1723
+* Add ``TableColumn.priority`` for the order columns are hidden in, ``TableColumn.key`` and ``TableLayout.column_order`` to show, hide and reorder columns of a built table, and ``TableColumn(min_width=WHSettings.PACK)`` to keep a column whole by @penguinolog in https://github.com/urwid/urwid/pull/1684, https://github.com/urwid/urwid/pull/1685 and https://github.com/urwid/urwid/pull/1723
+* Send ``"edge reached"`` from ``Table``, and add ``Table(home_end=...)`` by @penguinolog in https://github.com/urwid/urwid/pull/1688 and https://github.com/urwid/urwid/pull/1721
+
+Breaking Changes ⚠
+++++++++++++++++++
+* Return a C1 control character read from input as its value in angle brackets, such as ``'<133>'``, instead of the raw character that ``Edit`` took as typed text; ``Terminal`` still passes it to its child by @penguinolog in https://github.com/urwid/urwid/pull/1699
+* ``urwid.vterm`` no longer has the names it only imported (``AttrSpec``, ``Canvas``, ``util`` and others); a star import gives its new ``__all__`` by @penguinolog in https://github.com/urwid/urwid/pull/1661
+* The ``Terminal`` widget answers device attribute queries as a VT420 instead of a VT102, so a child program may use more of the terminal by @penguinolog in https://github.com/urwid/urwid/pull/1689, https://github.com/urwid/urwid/pull/1691 and https://github.com/urwid/urwid/pull/1718
+* The raw ``Screen`` terminal properties cannot be deleted, so ``mock.patch.object()`` cannot patch them by @penguinolog in https://github.com/urwid/urwid/pull/1706
+
+New features 🗹
++++++++++++++++
+* Add ``MainLoop(resized=..., resize_delay=0.1)`` and ``MainLoop.resized()``: one report once the size settles, also after ``MainLoop.paused()`` by @penguinolog in https://github.com/urwid/urwid/pull/1671
+* Add ``ListWalkerHandler`` and ``NotificationsHandler`` in ``urwid.log_handler`` to show log records in a list or in ``Notifications``, and ``Severity.DEBUG`` and ``Severity.CRITICAL`` by @penguinolog in https://github.com/urwid/urwid/pull/1720
+* Add the ``"edge reached"`` signal to ``ListBox`` for a list that loads rows on demand by @penguinolog in https://github.com/urwid/urwid/pull/1660
+* Add ``ListBox(home_end="selectable")`` and ``ListBox.scroll_to_selectable()``, and ``focus=`` to ``SimpleFocusListWalker`` and ``SimpleFocusDequeWalker`` by @penguinolog in https://github.com/urwid/urwid/pull/1703
+* Add ``Columns(shrink_pack=True)`` to narrow ``'pack'`` columns before a column is dropped by @penguinolog in https://github.com/urwid/urwid/pull/1659
+* Add ``BarGraph(keep="last")`` to show the newest bars that fit by @penguinolog in https://github.com/urwid/urwid/pull/1676
+* Accept ``("relative", n)`` and ``"pack"`` pop-up sizes and aligned positions, and add a pop-up ``margin=`` and ``PopUpTarget.placements``; an invalid size raises ``CanvasError`` by @penguinolog in https://github.com/urwid/urwid/pull/1652 and https://github.com/urwid/urwid/pull/1721
+* Validate ``MonitoredFocusDeque`` changes as ``MonitoredFocusList`` changes are, and add ``replace()`` to both by @penguinolog in https://github.com/urwid/urwid/pull/1672
+
+Bug fixes 🕷
+++++++++++++
+
+Terminal widget and ``ANSIText``
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+* Decode the child's output as UTF-8 under the ``"utf-8"`` encoding name a UTF-8 locale gives; before, each byte of a non-ASCII character took its own cell by @penguinolog in https://github.com/urwid/urwid/pull/1662
+* Drop C1 controls written in UTF-8 instead of sending them to the host terminal, where U+009B became CSI in an ISO-8859 encoding; drop invalid UTF-8, including a lone 0x9B, as xterm does, and refuse an OSC title or link with invalid UTF-8 by @penguinolog in https://github.com/urwid/urwid/pull/1662, https://github.com/urwid/urwid/pull/1680, https://github.com/urwid/urwid/pull/1697 and https://github.com/urwid/urwid/pull/1700
+* Write keys, mouse reports and replies to the child without blocking the event loop; a child that sent queries without reading its input stopped the application by @penguinolog in https://github.com/urwid/urwid/pull/1724
+* Keep the cursor on its line, the main screen behind the alternate one, and a scrolled-back view on its lines when the screen is resized; keep lines scrolled off a region below the top row out of the scrollback; report no cursor where none is drawn by @penguinolog in https://github.com/urwid/urwid/pull/1663 and https://github.com/urwid/urwid/pull/1666
+* Discard DCS, SOS, PM and APC strings instead of drawing them, read ESC sequences with intermediate bytes whole, and ignore DEL between ESC and the backslash of ST, in ``Terminal`` and ``ANSIText`` by @penguinolog in https://github.com/urwid/urwid/pull/1689 and https://github.com/urwid/urwid/pull/1710
+* Read SGR colour arguments correctly: ``38;5;11`` no longer switches to the IBM PC character set and ``58;5;196`` no longer turns on blink; ``ANSIText`` skips a private ``CSI ? Pm m`` by @penguinolog in https://github.com/urwid/urwid/pull/1705
+* Match xterm in cursor reports in origin mode and in DECSC/DECRC and SCOSC/SCORC, draw erased cells with the colours only, keep a pending wrap on HT, end it on ICH and DCH, move the cursor to the first column on IL and DL, erase the whole screen with ED 0 and ED 1 in origin mode, keep the saved cursor's character sets when a set is designated after DECSC, and draw a decoded character whose byte is 0x9B as a cell by @penguinolog in https://github.com/urwid/urwid/pull/1663, https://github.com/urwid/urwid/pull/1689, https://github.com/urwid/urwid/pull/1690, https://github.com/urwid/urwid/pull/1692, https://github.com/urwid/urwid/pull/1694, https://github.com/urwid/urwid/pull/1705 and https://github.com/urwid/urwid/pull/1718
+* Answer DECRQM for the private modes the widget recognises or keeps permanently reset or set, such as 12, 1015, 1036 and 1039, instead of reporting them unknown by @penguinolog in https://github.com/urwid/urwid/pull/1697 and https://github.com/urwid/urwid/pull/1705
+* Follow the Linux console in display control mode, in SO and SI, in DECRC and inside the palette sequence, so ncurses programs such as whiptail and mc draw their lines under ``TERM=linux`` by @penguinolog in https://github.com/urwid/urwid/pull/1724
+* ``ANSIText``: a tab moves the cursor instead of writing spaces over the text, a horizontal move with a private marker is skipped, C1 controls are dropped from the text, and the padding limit no longer depends on how the input was split into ``feed()`` calls by @penguinolog in https://github.com/urwid/urwid/pull/1709 and https://github.com/urwid/urwid/pull/1717
+
+Displays
+^^^^^^^^
+* Undo a failed screen start and leave the screen stopped; on Windows a failed ``SetConsoleMode`` was followed by escape sequences printed as text, and the console modes are now restored with their results checked by @penguinolog in https://github.com/urwid/urwid/pull/1680 and https://github.com/urwid/urwid/pull/1729
+* Keep a sequence cut short at the end of the input, such as a lone Esc, for the next ``get_input()`` call, so it arrives on the raw screen; bound the resize throttle by ``max_wait``, and use the ``max_wait`` set last by @penguinolog in https://github.com/urwid/urwid/pull/1669
+* Read a Primary DA reply with an empty parameter, as kitty sends it; before, the reply arrived as a key and kitty's keyboard protocol was not detected by @penguinolog in https://github.com/urwid/urwid/pull/1728
+* Repaint when a raw ``Screen`` terminal property such as ``colors`` is assigned by @penguinolog in https://github.com/urwid/urwid/pull/1728
+* Take the terminal's bottom row again when a stopped raw screen restarts after a resize by @penguinolog in https://github.com/urwid/urwid/pull/1729
+* Read the terminal size as unsigned, so a size above 32767 is not negative by @penguinolog in https://github.com/urwid/urwid/pull/1670
+* Compare TERM names for fbterm, ansi and vt100 without regard to case by @penguinolog in https://github.com/urwid/urwid/pull/1680
+* Accept every Python name for UTF-8 in ``set_encoding()``, such as ``"utf_8"`` and ``"cp65001"`` by @penguinolog in https://github.com/urwid/urwid/pull/1667
+* Name colour 0 of the 88-colour mode (``"h0"``), and correct the RGB value of 256-colour entry 245 by @penguinolog in https://github.com/urwid/urwid/pull/1705 and https://github.com/urwid/urwid/pull/1724
+* Blink only the text on the web displays, and define the blink animation in an HTML fragment by @penguinolog in https://github.com/urwid/urwid/pull/1705 and https://github.com/urwid/urwid/pull/1729
+
+Web display
+^^^^^^^^^^^
+* Never block on a keystroke request: answer 404 for an input pipe with no reader or a screen that exits during the request, 429 for a full pipe, which the page retries, and 413 for a body that would not be written whole by @penguinolog in https://github.com/urwid/urwid/pull/1673 and https://github.com/urwid/urwid/pull/1729
+* Give the daemon descriptors 0 to 2, and resolve a relative ``pipe_dir`` by @penguinolog in https://github.com/urwid/urwid/pull/1729
+
+Widgets and containers
+^^^^^^^^^^^^^^^^^^^^^^
+* Accept relative pop-up sizes again, which raised ``TypeError`` since 4.0.12, and map ``Filler`` clicks to the rows shown after a cursor trim by @penguinolog in https://github.com/urwid/urwid/pull/1652
+* Match a pop-up anchor height to its own pop-up, so a pop-up without an anchor is not placed by another one's by @penguinolog in https://github.com/urwid/urwid/pull/1674
+* Enter a ``Table`` at its first or last selectable cell from a parent with select navigation by @penguinolog in https://github.com/urwid/urwid/pull/1651
+* An ``int`` ``min_width`` no longer widens a ``Table`` PACK column wider than its cells by @penguinolog in https://github.com/urwid/urwid/pull/1723
+* Lay out a ``GridFlow`` fixed size by each cell's own width by @penguinolog in https://github.com/urwid/urwid/pull/1668
+* Keep the ``LineBox`` title attribute in ``set_title()`` by @penguinolog in https://github.com/urwid/urwid/pull/1657
+* Focus the last item when extending an empty ``MonitoredFocusDeque`` or ``SimpleFocusDequeWalker``, as the list versions do by @penguinolog in https://github.com/urwid/urwid/pull/1672
+* Raise ``ValueError`` instead of ``OverflowError`` for a ``Notifications`` timeout too large for a float by @penguinolog in https://github.com/urwid/urwid/pull/1680
+
+Event loops
+^^^^^^^^^^^
+* Refuse a nested ``MainLoop.run()`` on loops that cannot nest before it stops the outer run, and raise from ``call_from_thread()`` only for a call that was dropped by @penguinolog in https://github.com/urwid/urwid/pull/1658
+* Track alarms that fired or were cancelled natively in the GLib, Tornado and Trio loops, and remove Trio alarms and watches before the loop starts by @charan-rathore in https://github.com/urwid/urwid/pull/1653 and https://github.com/urwid/urwid/pull/1677, and @penguinolog in https://github.com/urwid/urwid/pull/1655 and https://github.com/urwid/urwid/pull/1656
+
+Optimizations 🛠
++++++++++++++++
+* Run ``AnsiParser`` and the ``Terminal`` widget on one shared escape-sequence state machine: ``parse_ansi_text()`` takes about 25% less time on program output, ``TermCanvas.addstr()`` 14% to 37% less by @penguinolog in https://github.com/urwid/urwid/pull/1711 and https://github.com/urwid/urwid/pull/1712
+
+Refactoring 🔧
++++++++++++++++
+* Split ``canvas``, ``ansi_parser``, ``display.escape``, ``display.common`` and the raw display base into packages of private modules; every released name stays importable from its old path, and the classes report their new modules in ``__module__`` by @penguinolog in https://github.com/urwid/urwid/pull/1707 and https://github.com/urwid/urwid/pull/1708
+
+Documentation 🕮
+++++++++++++++++
+* Document where the ``Terminal`` widget follows xterm and the Linux console and where it differs, how it joins grapheme clusters, and testing pop-ups through a ``PopUpTarget`` by @penguinolog in https://github.com/urwid/urwid/pull/1706, https://github.com/urwid/urwid/pull/1718, https://github.com/urwid/urwid/pull/1721 and https://github.com/urwid/urwid/pull/1724
+* Document the per-call cost of the ``rle_*`` helpers and correct what the window size report limit prevents by @penguinolog in https://github.com/urwid/urwid/pull/1670 and https://github.com/urwid/urwid/pull/1680
+
+**Full Changelog**: https://github.com/urwid/urwid/compare/5.1.3...5.2.0
+
 Urwid 5.1.3
 ============
 
