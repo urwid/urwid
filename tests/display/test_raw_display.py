@@ -1549,6 +1549,25 @@ class TestDrawnColors(unittest.TestCase):
 
         self.assertIn("\x1b[0;39;49m\x1b[1;110}\x1b[2;16}a", draw(self.screen, canvas))
 
+    def test_a_depth_change_draws_the_same_canvas_again(self) -> None:
+        canvas = runs_canvas([[(AttrSpec("#87afd7", "default", 2**24), None, b"a")]], 1)
+        self.screen.colors = 2**24
+        self.assertIn("\x1b[0;38;2;135;175;215;49ma", draw(self.screen, canvas))
+
+        self.screen.colors = 256
+        self.assertIn("\x1b[0;38;5;110;49ma", draw(self.screen, canvas))
+
+        self.screen.set_terminal_properties(colors=88)
+        self.assertIn("\x1b[0;38;5;42;49ma", draw(self.screen, canvas))
+
+    def test_a_reply_that_raises_the_depth_draws_the_same_canvas_again(self) -> None:
+        canvas = runs_canvas([[(AttrSpec("#87afd7", "default", 2**24), None, b"a")]], 1)
+        self.screen._terminal_properties = dataclasses.replace(self.screen._terminal_properties, colors=256)
+        self.assertIn("\x1b[0;38;5;110;49ma", draw(self.screen, canvas))
+
+        self.screen._raise_terminal_properties(2**24, False)
+        self.assertIn("\x1b[0;38;2;135;175;215;49ma", draw(self.screen, canvas))
+
     def test_palette_changes_draw_the_same_canvas_again(self) -> None:
         self.screen.colors = 256
         self.screen.register_palette([("entry", "inherit", "inherit", None, "#87afd7", "inherit"), ("alias", "entry")])

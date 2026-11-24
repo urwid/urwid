@@ -89,9 +89,9 @@ class _TerminalProperty(typing.Generic[_T]):
         return typing.cast("_T", getattr(instance._terminal_properties, self.name))
 
     def __set__(self, instance: _ScreenBase, value: _T) -> None:
-        # the field is named at run time, so its type cannot be checked against the keyword
-        change: dict[str, typing.Any] = {self.name: value}
-        instance._terminal_properties = dataclasses.replace(instance._terminal_properties, **change)
+        # the field is named at run time, so its type cannot be checked against the keyword;
+        # a changed value draws the whole screen again, in the new colors and settings
+        instance._replace_terminal_properties({self.name: value})
         instance._properties_set.add(self.name)
 
     def __delete__(self, instance: _ScreenBase) -> None:
