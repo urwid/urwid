@@ -225,6 +225,11 @@ On one that cannot, such as :class:`AsyncioEventLoop` on asyncio's
 ``ProactorEventLoop``, the default on Windows, ``resume()`` raises
 :exc:`RuntimeError` and the held records are never shown.
 
+A widget callback that stops the loop, or reads the widget, calls
+:meth:`~urwid.log_handler.ListWalkerHandler.flush` first, so the widget shows
+every record logged before the call.
+On any other thread ``flush()`` does nothing.
+
 ``close()``, which :func:`logging.shutdown` also calls, drops the held records
 without touching the widget.
 
