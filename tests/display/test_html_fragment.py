@@ -160,6 +160,29 @@ class HtmlGeneratorTest(unittest.TestCase):
             HtmlGenerator.fragments,
         )
 
+    def test_draw_screen_defines_the_blink_animation_it_uses(self) -> None:
+        """Start a fragment with blinking text with the keyframes its spans name, and no other with a style."""
+        self.screen.register_palette_entry("blink", "white,blink", "black")
+        for label, markup, expected_style in (
+            (
+                "blinking",
+                ("blink", "a"),
+                (
+                    "<style>@keyframes urwid-blink { 50% { color: transparent; text-decoration-color: transparent; } }"
+                    "</style>"
+                ),
+            ),
+            ("steady", "a", ""),
+        ):
+            with self.subTest(label):
+                HtmlGenerator.fragments = []
+                canvas = urwid.Text(markup).render((1,))
+
+                self.screen.draw_screen((1, canvas.rows()), canvas)
+
+                self.assertEqual(1, len(HtmlGenerator.fragments))
+                self.assertEqual(expected_style, HtmlGenerator.fragments[0].partition("<pre>")[0])
+
     def test_draw_screen_inherits_the_container_background(self) -> None:
         self.screen.register_palette([("red_fg", "dark red", "inherit"), ("blue_bg", "inherit", "dark blue")])
         canvas = urwid.AttrMap(urwid.Text([("red_fg", "a"), "b"]), "blue_bg").render((2,))

@@ -23,6 +23,7 @@
 from __future__ import annotations
 
 import html
+import pathlib
 import typing
 
 from urwid import _deprecation, str_util
@@ -46,6 +47,13 @@ else:
 
 # replace control characters with ?'s
 _trans_table = str.maketrans(dict.fromkeys(range(32), "?"))
+
+# The animation a blinking span names, from the web display's style sheet so both pages blink alike.
+_BLINK_KEYFRAMES: typing.Final = next(
+    line
+    for line in pathlib.Path(__file__).with_name("_web.css").read_text("utf-8").splitlines()
+    if line.startswith("@keyframes urwid-blink ")
+)
 
 _default_foreground = "black"
 _default_background = "light gray"
@@ -100,11 +108,13 @@ class HtmlGenerator(BaseScreen):
         """Create an html fragment from the render object.
 
         Append it to HtmlGenerator.fragments list.
+        A fragment with blinking text starts with the ``<style>`` element that defines its animation.
 
         :raises ValueError: *canvas* does not have the number of rows given by *size*.
         """
         # collect output in l
         lines = []
+        blinks = False
 
         _cols, rows = size
 
@@ -123,6 +133,7 @@ class HtmlGenerator(BaseScreen):
                 t_run = run.decode(get_encoding(), "replace").translate(_trans_table)
                 # the page draws any RGB color, so every color is kept as it is
                 aspec = self._drawn_attr(a, {1: 1, 16: 0, 88: 2, 256: 3, 2**24: 4}[self.colors], 16777216)
+                blinks = blinks or aspec.blink
 
                 if y == cy and col <= cx:
                     run_width = str_util.calc_width(t_run, 0, len(t_run))
@@ -137,7 +148,8 @@ class HtmlGenerator(BaseScreen):
             lines.append("\n")
 
         # add the fragment to the list
-        self.fragments.append(f"<pre>{''.join(lines)}</pre>")
+        style = f"<style>{_BLINK_KEYFRAMES}</style>" if blinks else ""
+        self.fragments.append(f"{style}<pre>{''.join(lines)}</pre>")
 
     def get_cols_rows(self) -> tuple[int, int]:
         """Return the next screen size in HtmlGenerator.sizes.
