@@ -316,18 +316,37 @@ class _HandlerTests:
         self.assertEqual(["a", "b", "late"], self.shown(handler))
 
     def test_flush_off_the_loop_thread_does_nothing(self) -> None:
-        """flush() before the loop starts, or on another thread, keeps the records queued."""
+        """flush() before the loop starts, or on another thread, also in a copy of the loop's context, does nothing."""
         handler, logger = self.handler()
         logger.info("held")
         handler.flush()
         self.assertEqual([], self.shown(handler))
         self.start()
-        worker = threading.Thread(target=handler.flush)
+        for name, context in (("own context", contextvars.Context()), ("copied context", contextvars.copy_context())):
+            with self.subTest(name):
+                worker = threading.Thread(target=context.run, args=(handler.flush,))
+                worker.start()
+                worker.join(JOIN_TIMEOUT)
+                self.assertFalse(worker.is_alive())
+                self.assertEqual([], self.shown(handler))
+        handler.flush()
+        self.assertEqual(["held"], self.shown(handler))
+
+    def test_flush_in_a_callback_on_another_thread_than_start(self) -> None:
+        """flush() works in a callback of a loop started on one thread and run on another."""
+        handler, logger = self.handler()
+        logger.info("held")
+        self.start()
+        context = contextvars.copy_context()
+
+        def callback() -> None:
+            with self.loop._as_running():
+                handler.flush()
+
+        worker = threading.Thread(target=context.run, args=(callback,))
         worker.start()
         worker.join(JOIN_TIMEOUT)
         self.assertFalse(worker.is_alive())
-        self.assertEqual([], self.shown(handler))
-        handler.flush()
         self.assertEqual(["held"], self.shown(handler))
 
     def test_flush_off_the_loop_thread_leaves_hand_overs_alone(self) -> None:
@@ -338,7 +357,7 @@ class _HandlerTests:
         in_flush = threading.Event()
         release = threading.Event()
         worker: threading.Thread | None = None
-        find_loop = urwid.get_running_loop_or_none
+        find_loop = log_handler._get_running_loop_of_this_thread
 
         def pausing_find_loop() -> urwid.MainLoop | None:
             if threading.current_thread() is worker and not in_flush.is_set():
@@ -346,7 +365,7 @@ class _HandlerTests:
                 release.wait(JOIN_TIMEOUT)
             return find_loop()
 
-        with unittest.mock.patch.object(log_handler, "get_running_loop_or_none", pausing_find_loop):
+        with unittest.mock.patch.object(log_handler, "_get_running_loop_of_this_thread", pausing_find_loop):
             worker = threading.Thread(target=handler.flush)
             worker.start()
             try:

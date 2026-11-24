@@ -29,6 +29,7 @@ import typing
 from collections.abc import Hashable
 
 from urwid.event_loop import ExitMainLoop, get_running_loop_or_none
+from urwid.event_loop.main_loop import _get_running_loop_of_this_thread
 from urwid.widget.constants import Severity
 from urwid.widget.notifications import Notifications, _Unset
 from urwid.widget.text import Text
@@ -196,15 +197,14 @@ class _LoopHandler(logging.Handler):
         hand them over.
         Records logged while it shows them, such as by the widget, wait for the next hand-over;
         when they fill ``max_pending``, the oldest queued records are dropped as usual.
-        On any other thread, and after :meth:`close`, it does nothing and the records stay queued.
-        The loop is found through the current context, so a thread that runs in a copy of the loop's context,
-        such as a function started with :func:`asyncio.to_thread` from a callback, must not call it.
+        On any other thread, also one that runs in a copy of the loop's context, and after :meth:`close`,
+        it does nothing and the records stay queued.
         A call from a widget callback during a hand-over shows nothing, and leaves the rest to that hand-over.
         Any exception from the widget other than :exc:`~urwid.ExitMainLoop` is logged and the next entry is shown.
 
         :raises ~urwid.ExitMainLoop: the widget stopped the loop.
         """
-        if get_running_loop_or_none() is self.loop:
+        if _get_running_loop_of_this_thread() is self.loop:
             self._deliver(drain=False)
 
     def _deliver(self, *, drain: bool) -> None:

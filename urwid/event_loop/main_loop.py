@@ -34,6 +34,7 @@ import math
 import os
 import socket
 import sys
+import threading
 import time
 import typing
 import weakref
@@ -118,12 +119,13 @@ class _Activation:
     Ending an entry clears :attr:`loop`, which ends it in all of those contexts at once and releases the loop.
     """
 
-    __slots__ = ("__weakref__", "loop", "previous", "running")
+    __slots__ = ("__weakref__", "loop", "previous", "running", "thread")
 
     def __init__(self, loop: MainLoop, *, running: bool, previous: _Activation | None = None) -> None:
         self.loop: MainLoop | None = loop  # None once the entry ended: lookups skip it
         self.running: typing.Final = running  # False: a mask, which hides every entry below it
         self.previous = previous  # the start entry of the same loop that this one is nested in
+        self.thread: typing.Final = threading.current_thread()  # the thread that pushed it
 
 
 class _ThreadCall:
@@ -184,6 +186,18 @@ def get_running_loop_or_none() -> MainLoop | None:
         if (loop := entry.loop) is not None:
             return loop if entry.running else None
     return None
+
+
+def _get_running_loop_of_this_thread() -> MainLoop | None:
+    """Return the loop :func:`get_running_loop_or_none` finds, when the current thread started it or runs its callback.
+
+    A thread that only runs in a copy of the loop's context, such as every thread started from a loop callback on a
+    free-threaded build, gets ``None``.
+    """
+    if (loop := get_running_loop_or_none()) is None:
+        return None
+    thread = threading.current_thread()
+    return loop if any(entry.loop is loop and entry.thread is thread for entry in _running.get()) else None
 
 
 def get_running_loop() -> MainLoop:
