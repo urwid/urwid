@@ -224,6 +224,7 @@ class _ScreenBase(BaseScreen, RealTerminal):
         "_rows_used",
         "_screen_buf_canvas",
         "_setup_G1_done",
+        "_start_complete",
         "_term_input_file",
         "_term_output_file",
         "_terminal_default_colors",
@@ -393,6 +394,8 @@ class _ScreenBase(BaseScreen, RealTerminal):
         self._last_cols_rows: tuple[int, int] | None = None
         self._resize_held_passes = 0
         self.maxrow: int | None = None
+        # the last _start() finished, so a stop moves the cursor below the frames to maxrow
+        self._start_complete = False
         self._alternate_buffer = False
         self._mouse_tracking_enabled = False
         self.last_bstate = 0

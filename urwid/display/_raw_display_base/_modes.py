@@ -455,7 +455,10 @@ class _ModesScreen(_AttributesScreen):  # pylint: disable=abstract-method  # a p
         finally:
             self._mouse_tracking_enabled = mouse_tracking_requested
 
-        move_cursor = "" if self.maxrow is None else escape.set_cursor_position(0, self.maxrow)
+        move_cursor = ""
+        # a start that failed drew nothing, so the cursor stays where it is
+        if self.maxrow is not None and self._start_complete:
+            move_cursor = escape.set_cursor_position(0, self.maxrow)
         if self._alternate_buffer:
             # Below the last frame first: the move lands on its last row and the line feed goes past it.
             # A terminal without an alternate screen drew the frames on its main screen and ignores the switch back,
@@ -467,8 +470,9 @@ class _ModesScreen(_AttributesScreen):  # pylint: disable=abstract-method  # a p
         close = escape.HYPERLINK_CLOSE if self._terminal_properties.hyperlinks else ""
         self.write(close + self._attrspec_to_escape(AttrSpec("", "")) + escape.SI + move_cursor + escape.SHOW_CURSOR)
         self.flush()
-        # a later start that fails before switching screens has no alternate screen to leave
+        # a later start that fails before switching screens has no alternate screen to leave, and drew nothing
         self._alternate_buffer = False
+        self._start_complete = False
         # leaving the alternate screen restores the G1 the terminal had before, and whatever runs before the next
         # start can reset the character sets, so G1 is designated again then
         self._setup_G1_done = False

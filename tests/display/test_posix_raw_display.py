@@ -8,6 +8,7 @@ import stat
 import struct
 import subprocess
 import sys
+import typing
 import unittest
 from unittest import mock
 
@@ -45,12 +46,17 @@ class _StrictBytes(bytes):
         return super().__eq__(other)
 
 
-def _make_screen(input_fd: int | None = None) -> Screen:
-    """Build a Screen over a pipe (or /dev/null) so tests never touch a real tty."""
+def _make_screen(input_fd: int | None = None, *, screen_class: type[Screen] | None = None) -> Screen:
+    """Build a Screen, or a *screen_class*, over a pipe (or /dev/null) so tests never touch a real tty.
+
+    *screen_class* defaults to None rather than Screen, which does not exist where this module is imported on Windows.
+    """
     if input_fd is None:
         input_fd, write_fd = os.pipe()
         os.close(write_fd)
-    return Screen(input=os.fdopen(input_fd, "rb", buffering=0), output=open(os.devnull, "w"))
+    if screen_class is None:
+        screen_class = Screen
+    return screen_class(input=os.fdopen(input_fd, "rb", buffering=0), output=open(os.devnull, "w"))
 
 
 def _device_stat(major: int, minor: int, *, file_type: int = stat.S_IFCHR) -> os.stat_result:
@@ -409,6 +415,31 @@ class TestStartStop(unittest.TestCase):
         # SIGCONT belongs to the application: neither start() nor stop() replaces it.
         self.assertEqual(signal.SIG_IGN, signal.getsignal(signal.SIGCONT))
 
+    def test_subclass_start_failing_before_the_screen_starts_moves_no_cursor(self) -> None:
+        """A restart a subclass fails before its super()._start() undoes nothing a stop already undid."""
+
+        class FailingRestart(Screen):
+            """A screen whose second start fails in its own setup."""
+
+            def _start(self, *args: typing.Any, **kwargs: typing.Any) -> None:
+                if self.maxrow is not None:
+                    raise RuntimeError("setup failed")
+                super()._start(*args, **kwargs)
+
+        s = _make_screen(screen_class=FailingRestart)
+        written: list[str] = []
+        s.write = written.append
+        s.flush = lambda: None
+        s.start(alternate_buffer=False)
+        s.maxrow = 23  # as get_cols_rows() of the first run leaves it
+        s.stop()
+        written.clear()
+
+        with self.assertRaisesRegex(RuntimeError, "setup failed"):
+            s.start(alternate_buffer=False)
+
+        self.assertNotIn(escape.set_cursor_position(0, 23), "".join(written))
+
     def test_signal_init_failing_after_its_first_handler_restores_that_handler(self) -> None:
         """The handler set before the failure is set back, since the undo of the failed start restores none."""
         s = _make_screen()
@@ -452,7 +483,10 @@ class TestStartStop(unittest.TestCase):
             s.flush = lambda: None
             s.signal_handler_setter = setter = mock.Mock(return_value=None)
             s.start()
+            s.maxrow = 23  # as get_cols_rows() of the first run leaves it
             s.stop()
+            move_to_last_row = escape.set_cursor_position(0, 23)
+            self.assertIn(move_to_last_row, "".join(written))
             written.clear()
             setter.reset_mock()
             mock_tcsetattr.reset_mock()
@@ -465,6 +499,8 @@ class TestStartStop(unittest.TestCase):
             # the signal keys saved by the first start are set back at every stop, so only the settings are checked
             self.assertNotIn(termios.TCSAFLUSH, [call.args[1] for call in mock_tcsetattr.mock_calls])
             self.assertNotIn(disable_alternate, "".join(written))
+            self.assertNotIn(move_to_last_row, "".join(written))
+            self.assertEqual(23, s.maxrow)  # kept for the next run that starts
 
         with self.subTest("start fails after signal_init()"):
             s = _make_screen()
@@ -540,6 +576,8 @@ class TestStartStop(unittest.TestCase):
                 mock_tcsetattr.assert_any_call(s._input_fileno(), termios.TCSAFLUSH, mock_tcgetattr.return_value)
                 gpm_mev.send_signal.assert_called_once_with(signal.SIGINT)
                 self.assertIsNone(s.gpm_mev)
+                # undoing a later start that fails moves no cursor below frames it never drew
+                self.assertFalse(s._start_complete)
 
     @mock.patch.dict(os.environ, {"TERM": "xterm"})  # fbterm has no palette reset to flush
     @mock.patch("termios.tcsetattr")

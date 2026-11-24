@@ -336,6 +336,8 @@ class Screen(_raw_display_base.Screen):
         :param kwargs: not supported; any value raises :exc:`TypeError`.
         :raises TypeError: unexpected positional or keyword arguments were given.
         """
+        self._start_complete = False
+
         if args or kwargs:
             raise TypeError(f"start() got unexpected arguments: {args=!r}, {kwargs=!r}")
 
@@ -390,6 +392,8 @@ class Screen(_raw_display_base.Screen):
         # restore mouse tracking to previous state
         self._mouse_tracking(self._mouse_tracking_enabled)
 
+        self._start_complete = True
+
         super()._start(*args, **kwargs)  # type: ignore[safe-super]
 
     def _stop(self) -> None:
@@ -425,6 +429,9 @@ class Screen(_raw_display_base.Screen):
                 # and raising here would hide the error that ended the run, such as the closed input.
                 if exc.errno not in {errno.EIO, errno.ENXIO, errno.EPIPE}:
                     raise
+                # _stop_mouse_restore_buffer() did not clear the flag; a later start that fails before clearing it
+                # draws nothing either
+                self._start_complete = False
             finally:
                 # a failed write skips the step of _mouse_tracking() that stops the helper
                 self._stop_gpm_tracking()

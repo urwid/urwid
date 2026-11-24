@@ -184,6 +184,7 @@ class Screen(_raw_display_base.Screen):
         :raises TypeError: unexpected positional or keyword arguments were given.
         :raises RuntimeError: the console mode could not be set.
         """
+        self._start_complete = False
         handle_out = _win32.GetStdHandle(_win32.STD_OUTPUT_HANDLE)
         handle_in = _win32.GetStdHandle(_win32.STD_INPUT_HANDLE)
         original_out_mode = DWORD(0)
@@ -251,6 +252,8 @@ class Screen(_raw_display_base.Screen):
         signals.emit_signal(self, INPUT_DESCRIPTORS_CHANGED)
         # restore mouse tracking to previous state
         self._mouse_tracking(self._mouse_tracking_enabled)
+
+        self._start_complete = True
 
         super()._start()  # type: ignore[safe-super]
 
