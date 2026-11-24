@@ -392,6 +392,10 @@ class Screen(_raw_display_base.Screen):
         # restore mouse tracking to previous state
         self._mouse_tracking(self._mouse_tracking_enabled)
 
+        # The bottom row of an earlier run follows a resize made while the screen was stopped.
+        # A subclass with its own get_cols_rows() sets it there, as the size this screen reads may not be its size.
+        if self.maxrow is not None and type(self).get_cols_rows is Screen.get_cols_rows:
+            self.maxrow = self._read_cols_rows()[1]
         self._start_complete = True
 
         super()._start(*args, **kwargs)  # type: ignore[safe-super]
@@ -662,10 +666,14 @@ class Screen(_raw_display_base.Screen):
         The size the terminal last reported in the input is returned while it is newer than the last ``SIGWINCH``,
         see :ref:`in-band-resize`; otherwise the size is read from the terminal device.
         """
+        x, y = self._last_cols_rows = self._read_cols_rows()
+        self.maxrow = y
+        return x, y
+
+    def _read_cols_rows(self) -> tuple[int, int]:
+        """Return the size :meth:`get_cols_rows` returns, without recording it as the size the application read."""
         if self._reported_cols_rows is not None:
-            x, y = self._last_cols_rows = self._reported_cols_rows
-            self.maxrow = y
-            return x, y
+            return self._reported_cols_rows
         x, y = super().get_cols_rows()
         with contextlib.suppress(OSError):  # Term size could not be determined
             if isinstance(self._term_output_file, _raw_display_base.SupportsFileno):
@@ -677,8 +685,6 @@ class Screen(_raw_display_base.Screen):
         # give sane answers
         if (x <= 0 or y <= 0) and self.term.lower() in {"ansi", "vt100"}:
             y, x = 24, 80
-        self.maxrow = y
-        self._last_cols_rows = x, y
         return x, y
 
 

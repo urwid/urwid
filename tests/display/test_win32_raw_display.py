@@ -332,24 +332,42 @@ class TestScreenInput(unittest.TestCase):
         self.assertIn(escape.PrivateMode.ALTERNATE_SCREEN_BUFFER.disable_seq, "".join(written))
         self.assertFalse(s._alternate_buffer)
 
-    def test_failed_restart_moves_no_cursor(self) -> None:
-        """Undo a restart that fails without moving the cursor to the bottom row of the last run, which is kept."""
-        s = _win32_raw_display.Screen()
-        written: list[str] = []
-        s.write = written.append
-        s.flush = lambda: None
-        with _console_with_redirected_input(s, (100, 30)):
-            s.start()
-            s.maxrow = 12  # as get_cols_rows() of the run leaves it
-            s.stop()
-            self.assertIn(escape.set_cursor_position(0, 12), "".join(written))
-            written.clear()
+    def test_start_takes_the_bottom_row_and_a_failed_restart_moves_no_cursor(self) -> None:
+        """Take the window's rows at a restart, without recording the size the application read.
 
-            with self.assertRaises(TypeError):
-                s.start(unexpected=True)
+        Undoing a failed restart moves no cursor, and the bottom row is kept.
+        A subclass with its own get_cols_rows() keeps the bottom row it set.
+        """
 
-        self.assertNotIn(escape.set_cursor_position(0, 12), "".join(written))
-        self.assertEqual(12, s.maxrow)  # kept for the next run that starts
+        class OwnSize(_win32_raw_display.Screen):
+            """A screen whose size comes from elsewhere than its console."""
+
+            def get_cols_rows(self) -> tuple[int, int]:
+                return 80, 50
+
+        for label, screen_class, last_row in (
+            ("this screen's size", _win32_raw_display.Screen, 30),
+            ("a subclass's own size", OwnSize, 12),
+        ):
+            with self.subTest(label):
+                s = screen_class()
+                written: list[str] = []
+                s.write = written.append
+                s.flush = lambda: None
+                s.maxrow = 12  # as get_cols_rows() of an earlier run leaves it
+                with _console_with_redirected_input(s, (100, 30)):
+                    s.start()
+                    self.assertEqual(last_row, s.maxrow)
+                    self.assertIsNone(s._last_cols_rows)
+                    s.stop()
+                    self.assertIn(escape.set_cursor_position(0, last_row), "".join(written))
+                    written.clear()
+
+                    with self.assertRaises(TypeError):
+                        s.start(unexpected=True)
+
+                self.assertNotIn(escape.set_cursor_position(0, last_row), "".join(written))
+                self.assertEqual(last_row, s.maxrow)  # kept for the next run that starts
 
     def test_no_reader_outlives_a_stop_that_re_hooks_the_screen(self):
         """A main loop re-hooking the screen while it stops does not leave a reader running."""

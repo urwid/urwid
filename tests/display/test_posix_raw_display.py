@@ -2238,6 +2238,78 @@ class TestGetColsRows(unittest.TestCase):
         self.assertEqual(["window resize", "x"], keys)
         self.assertEqual((100, 30), s.get_cols_rows())
 
+    @mock.patch("fcntl.ioctl")
+    def test_start_reads_the_bottom_row_without_recording_the_size(self, mock_ioctl):
+        """Take the rows the terminal has now when a run that had a bottom row starts again.
+
+        No get_cols_rows() call is needed for the stop to leave below them.
+        The size the application read stays as it was, so a report of the new size is still a resize.
+        """
+        mock_ioctl.return_value = struct.pack("HHHH", 24, 80, 0, 0)
+        s = _make_screen()
+        written: list[str] = []
+        s.write = written.append
+        s.flush = lambda: None
+        self.assertEqual((80, 24), s.get_cols_rows())
+        s.start()
+        s.stop()
+        mock_ioctl.return_value = struct.pack("HHHH", 30, 100, 0, 0)  # resized while stopped
+        written.clear()
+
+        s.start()
+        s.stop()
+
+        self.assertEqual(30, s.maxrow)
+        self.assertIn(escape.set_cursor_position(0, 30), "".join(written))
+        self.assertEqual((80, 24), s._last_cols_rows)
+
+    @mock.patch("fcntl.ioctl")
+    def test_run_that_never_read_the_size_moves_no_cursor(self, mock_ioctl):
+        """A run that only reads keys has no bottom row, so its stop leaves the cursor where it is."""
+        mock_ioctl.return_value = struct.pack("HHHH", 24, 80, 0, 0)
+        s = _make_screen()
+        written: list[str] = []
+        s.write = written.append
+        s.flush = lambda: None
+
+        s.start(alternate_buffer=False)
+        s.stop()
+
+        self.assertIsNone(s.maxrow)
+        self.assertNotIn(escape.set_cursor_position(0, 24), "".join(written))
+
+    @mock.patch("fcntl.ioctl", side_effect=OSError)  # as on a socket
+    def test_start_keeps_the_bottom_row_of_a_subclass_with_its_own_size(self, mock_ioctl):
+        """A subclass with its own get_cols_rows() keeps the bottom row it set, not the 24 rows this screen reads."""
+
+        class OwnSize(Screen):
+            """A screen whose size comes from elsewhere than its terminal, as on a socket."""
+
+            def get_cols_rows(self) -> tuple[int, int]:
+                return 80, 50
+
+        # moved_to: which of the candidate rows (12 from the earlier run, 24 from this screen's size,
+        # 50 from the subclass's size) the stop moves the cursor to
+        for label, earlier_row, moved_to in (
+            ("no row set", None, []),
+            ("row set by an earlier run", 12, [12]),
+        ):
+            with self.subTest(label):
+                s = _make_screen(screen_class=OwnSize)
+                written: list[str] = []
+                s.write = written.append
+                s.flush = lambda: None
+                s.maxrow = earlier_row
+
+                s.start()
+                s.stop()
+
+                self.assertEqual(earlier_row, s.maxrow)
+                output = "".join(written)
+                self.assertEqual(
+                    moved_to, [row for row in (12, 24, 50) if escape.set_cursor_position(0, row) in output]
+                )
+
     @mock.patch("fcntl.ioctl", side_effect=OSError)
     def test_falls_back_to_80x24_when_ioctl_fails(self, mock_ioctl):
         """An output that is not a terminal reports 80 columns by 24 rows."""

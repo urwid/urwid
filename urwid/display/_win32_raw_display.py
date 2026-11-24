@@ -253,6 +253,10 @@ class Screen(_raw_display_base.Screen):
         # restore mouse tracking to previous state
         self._mouse_tracking(self._mouse_tracking_enabled)
 
+        # The bottom row of an earlier run follows a resize made while the screen was stopped.
+        # A subclass with its own get_cols_rows() sets it there, as the size this screen reads may not be its size.
+        if self.maxrow is not None and type(self).get_cols_rows is Screen.get_cols_rows:
+            self.maxrow = self._read_cols_rows()[1]
         self._start_complete = True
 
         super()._start()  # type: ignore[safe-super]
@@ -451,9 +455,13 @@ class Screen(_raw_display_base.Screen):
 
     def get_cols_rows(self) -> tuple[int, int]:
         """Return the terminal dimensions (num columns, num rows)."""
-        x, y = self._last_cols_rows = self._console_window_size() or super().get_cols_rows()
+        x, y = self._last_cols_rows = self._read_cols_rows()
         self.maxrow = y
         return x, y
+
+    def _read_cols_rows(self) -> tuple[int, int]:
+        """Return the size :meth:`get_cols_rows` returns, without recording it as the size the application read."""
+        return self._console_window_size() or super().get_cols_rows()
 
 
 class ReadInputThread(threading.Thread):
