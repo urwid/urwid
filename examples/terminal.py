@@ -34,6 +34,10 @@ The window shows the terminal, its size, and an edit field to move the focus to.
 The title the shell sets is shown on the frame, and on the terminal window with the ``raw`` display.
 :kbd:`Q` outside the terminal, or the end of the shell, ends the application.
 
+The terminal type the shell's programs see is chosen with ``--term``: ``linux``, the default, or ``xterm-256color``.
+It is the ``TERM`` the shell gets, and it decides which keys the terminal sends and how it reads what the programs
+write, such as the palette sequences and the cursor colour, so a program's output can look different in each.
+
 The display is chosen with ``--display``:
 
 - ``raw``, the default, and ``curses`` run in the terminal.
@@ -99,6 +103,9 @@ WEBSOCKET_USER: typing.Final = "urwid"
 WEBSOCKET_PATH: typing.Final = "ws"
 # random bytes in the token of the websocket display
 TOKEN_BYTES: typing.Final = 32
+# the terminal types the Terminal widget emulates
+TermType: typing.TypeAlias = typing.Literal["linux", "xterm-256color"]
+TERM_TYPES: typing.Final = typing.get_args(TermType)
 
 
 def displays() -> list[str]:
@@ -120,21 +127,34 @@ def parse_args(argv: Sequence[str] | None = None) -> argparse.Namespace:
         default="raw",
         help="display to use (default: %(default)s); websocket serves a shell to a browser on this host",
     )
+    parser.add_argument(
+        "--term",
+        choices=TERM_TYPES,
+        default="linux",
+        help="terminal type the shell's programs see, which decides how their output is read (default: %(default)s)",
+    )
     return parser.parse_args(argv)
 
 
 def build_loop(
     screen: urwid.display.BaseScreen,
     *,
+    term_type: TermType,
     event_loop: urwid.EventLoop | None = None,
 ) -> tuple[urwid.MainLoop, urwid.Terminal]:
     """Return the main loop of the application and the terminal running the shell in it.
 
     :param screen: the display the main loop draws on.
+    :param term_type: the terminal type the shell's programs see.
     :param event_loop: the event loop the main loop runs on, the main loop's own when not given.
     """
     # in a browser, the terminal the script runs in is the server's, where Ctrl+C has to keep stopping it
-    term = urwid.Terminal(None, encoding="utf-8", pass_signal_keys=not isinstance(screen, websocket_display.Screen))
+    term = urwid.Terminal(
+        None,
+        encoding="utf-8",
+        pass_signal_keys=not isinstance(screen, websocket_display.Screen),
+        term=term_type,
+    )
     size_text = urwid.Text("")
     frame = urwid.LineBox(
         urwid.Pile(
@@ -173,25 +193,26 @@ def build_loop(
     return urwid.MainLoop(frame, screen=screen, unhandled_input=handle_key, event_loop=event_loop), term
 
 
-def run_in_terminal(display: str) -> None:
-    """Run the application in the terminal on the ``raw`` or ``curses`` *display*."""
+def run_in_terminal(display: str, term_type: TermType) -> None:
+    """Run the application in the terminal on the ``raw`` or ``curses`` *display*, with a terminal of *term_type*."""
     if display == "curses":
         from urwid.display import curses  # needs the curses extension module, which is optional
 
         screen: urwid.display.raw.Screen | curses.Screen = curses.Screen()
     else:
         screen = urwid.display.raw.Screen(bracketed_paste_mode=True, focus_reporting=True)
-    loop, term = build_loop(screen)
+    loop, term = build_loop(screen, term_type=term_type)
     try:
         loop.run()
     finally:
         term.terminate()
 
 
-def make_websocket_app(token: str) -> tornado.web.Application:
+def make_websocket_app(token: str, term_type: TermType) -> tornado.web.Application:
     """Return the application that serves the page, its files and one shell per WebSocket.
 
     :param token: the password every request has to carry, with the user name ``WEBSOCKET_USER``.
+    :param term_type: the terminal type each page's shell sees.
     """
     # Tornado is optional, so it is imported only for this display
     import tornado.web
@@ -312,7 +333,7 @@ def make_websocket_app(token: str) -> tornado.web.Application:
             self.screen = websocket_display.Screen(Transport(self))
             # every page shares the IOLoop, so an error ends this page's session only
             event_loop = urwid.GuardedEventLoop(urwid.TornadoEventLoop(), self._on_application_error)
-            self.main_loop, self.term = build_loop(self.screen, event_loop=event_loop)
+            self.main_loop, self.term = build_loop(self.screen, term_type=term_type, event_loop=event_loop)
             self.main_loop.start()
             sessions.add(self)
 
@@ -357,7 +378,11 @@ def make_websocket_app(token: str) -> tornado.web.Application:
     )
 
 
-async def serve_websocket(token: str, token_file: pathlib.Path) -> None:
+async def serve_websocket(
+    token: str,
+    token_file: pathlib.Path,
+    term_type: TermType,
+) -> None:
     """Serve the application to browsers on this host until ``SIGTERM`` or ``SIGHUP``, or until cancelled by Ctrl+C.
 
     The addresses and the login are printed once the server listens.
@@ -365,9 +390,10 @@ async def serve_websocket(token: str, token_file: pathlib.Path) -> None:
 
     :param token: the password every request has to carry.
     :param token_file: the file that also holds it, named in the printed login.
+    :param term_type: the terminal type each page's shell sees.
     :raises OSError: the port is in use.
     """
-    app = make_websocket_app(token)
+    app = make_websocket_app(token, term_type)
     server = app.listen(WEBSOCKET_PORT, WEBSOCKET_ADDRESS)
     try:
         stop = asyncio.Event()
@@ -395,11 +421,12 @@ async def serve_websocket(token: str, token_file: pathlib.Path) -> None:
         await server.close_all_connections()
 
 
-def run_websocket() -> None:
+def run_websocket(term_type: TermType) -> None:
     """Serve the application to browsers on this host until Ctrl+C, ``SIGTERM`` or ``SIGHUP``.
 
     Every request needs a login made for the run.
 
+    :param term_type: the terminal type each page's shell sees.
     :raises OSError: the port is in use, or the token file cannot be written.
     """
     token = secrets.token_urlsafe(TOKEN_BYTES)
@@ -409,7 +436,7 @@ def run_websocket() -> None:
             stream.write(f"{token}\n")
         # Ctrl+C cancels the server and ends the run
         with contextlib.suppress(KeyboardInterrupt):
-            asyncio.run(serve_websocket(token, token_file))
+            asyncio.run(serve_websocket(token, token_file, term_type))
 
 
 def main(argv: Sequence[str] | None = None) -> int:
@@ -417,12 +444,12 @@ def main(argv: Sequence[str] | None = None) -> int:
     args = parse_args(argv)
     if args.display == "websocket":
         try:
-            run_websocket()
+            run_websocket(args.term)
         except OSError as exc:
             print(f"Cannot serve the application: {exc}", file=sys.stderr)
             return 1
         return 0
-    run_in_terminal(args.display)
+    run_in_terminal(args.display, args.term)
     return 0
 
 
