@@ -47,10 +47,6 @@ _FOREGROUND_KEY: typing.Final = "foreground"
 _BACKGROUND_KEY: typing.Final = "background"
 #: the entries of xterm's palette, which OSC 4 sets: the 256 colors
 _XTERM_PALETTE_ENTRIES: typing.Final = 256
-#: the colors of a display that draws any RGB color
-_TRUE_COLORS: typing.Final = 16777216
-#: the fewest colors a display needs to draw a redefined palette color, as RGB
-_FEWEST_PALETTE_COLORS: typing.Final = 88
 #: the most hex digits an X11 color spec gives a component
 _MAX_SPEC_DIGITS: typing.Final = 4
 _SPEC_HEX_DIGITS: typing.Final = frozenset(string.hexdigits)
@@ -63,26 +59,21 @@ _SRGB_LINEAR_LIMIT: typing.Final = 0.0031308
 _C_WHITE_SPACE: typing.Final = " \t\n\v\f\r"
 
 
-def _palette_entry(
-    basic: bool,
-    high: bool,
-    true: bool,
-    number: int,
-    default_entry: int | str | None,
-) -> int | str | None:
-    """Return the palette entry a color of an :class:`AttrSpec` is drawn with, None for a color outside the palette.
+def _palette_entry(channel: _depth.Channel, default_entry: int | str | None) -> int | str | None:
+    """Return the palette entry a color channel is drawn with, None for a color outside the palette.
 
-    :param basic: the color is one of the 16 basic colors, *number* among them.
-    :param high: the color is a palette color of the 88 or 256 colors, *number* among them.
-    :param true: the color is an RGB color.
     :param default_entry: the entry the default color is drawn with: a palette entry, the key of a dynamic color, or
         None when it is neither.
     """
-    if basic or high:
-        return number
-    if true:
-        return None
-    return default_entry
+    match channel.kind:
+        case _depth.Kind.BASIC | _depth.Kind.INDEX_88 | _depth.Kind.INDEX_256:
+            return channel.number
+        case _depth.Kind.DEFAULT:
+            return default_entry
+        case _depth.Kind.RGB | _depth.Kind.INHERIT:
+            return None
+        case _:
+            typing.assert_never(channel.kind)
 
 
 def _underline_palette_entry(attr: AttrSpec) -> int | None:
@@ -94,17 +85,6 @@ def _underline_palette_entry(attr: AttrSpec) -> int | None:
     if line.kind in {_depth.Kind.BASIC, _depth.Kind.INDEX_88, _depth.Kind.INDEX_256}:
         return line.number
     return None
-
-
-def _rgb_color(rgb: tuple[int, int, int], colors: int) -> str:
-    """Return the color description of *rgb* for an :class:`AttrSpec` of *colors* colors: ``#rrggbb``, else ``#rgb``.
-
-    >>> _rgb_color((255, 0, 136), 2**24), _rgb_color((255, 0, 136), 256)
-    ('#ff0088', '#f08')
-    """
-    if colors == _TRUE_COLORS:
-        return "#" + "".join(f"{component:02x}" for component in rgb)
-    return "#" + "".join(f"{(component + 8) // 17:x}" for component in rgb)
 
 
 def _x11_rgb(spec: str) -> tuple[int, int, int] | None:

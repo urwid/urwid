@@ -367,7 +367,7 @@ def compose(inner: AttrSpec, outer: AttrSpec, *, settings: AttrSpec) -> AttrSpec
     )
 
 
-def _rgb_values(channel: Channel) -> tuple[int, int, int]:
+def rgb_values(channel: Channel) -> tuple[int, int, int]:
     """Return the red, green and blue of a color channel, as xterm's default palettes give them."""
     match channel.kind:
         case Kind.BASIC:
@@ -405,15 +405,15 @@ def _converted(channel: Channel, draws: Draws) -> Channel:
         return Channel(Kind.INDEX_88 if draws == 88 else Kind.INDEX_256, channel.number)
     match draws:
         case 8 | 16:
-            return Channel(Kind.BASIC, _nearest_color(_rgb_values(channel), draws))
+            return Channel(Kind.BASIC, _nearest_color(rgb_values(channel), draws))
         case 88:
             if channel.kind is Kind.INDEX_88:
                 return channel
-            return Channel(Kind.INDEX_88, _nearest_color(_rgb_values(channel), 88))
+            return Channel(Kind.INDEX_88, _nearest_color(rgb_values(channel), 88))
         case 256:
             if channel.kind is Kind.INDEX_256:
                 return channel
-            return Channel(Kind.INDEX_256, _nearest_color(_rgb_values(channel), 256))
+            return Channel(Kind.INDEX_256, _nearest_color(rgb_values(channel), 256))
         case 16777216:
             return promote(channel)
         case _:

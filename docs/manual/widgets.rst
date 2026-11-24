@@ -212,9 +212,9 @@ It differs from xterm, or adds to it, in these points:
     ``ESC ] R`` sets them all back; RIS keeps them.  The cells in those colors,
     and the underline colors of SGR 58, are drawn with the new values, the
     ones written before included, and the default foreground and background
-    with colors 7 and 0, on a display of 88 or more colors as its closest
-    color.  A control inside the sequence is executed, BEL included, and the
-    sequence continues.
+    with colors 7 and 0, as 24-bit colors that the display converts to the
+    colors it draws.  A control inside the sequence is executed, BEL included,
+    and the sequence continues.
   * The cursor style ``CSI ? Ps c`` is read and not answered as a device
     attributes query.
 
@@ -251,11 +251,14 @@ It differs from xterm, or adds to it, in these points:
     the cursor color, each further item setting the next color, and answer a
     query with the color set or, for the default colors, the outer terminal's
     when the screen reports it; OSC 110, 111 and 112 set them back.  The cells
-    in the default colors are drawn with the colors set, on a display of 88 or
-    more colors, and so is the cursor the widget draws after a DECSCUSR: an
-    underline in the cursor color, or for a block or a bar the cell in the
-    cursor color with its text in the color the cell's background is shown in.
-    RIS and DECSTR keep them.
+    in the default colors are drawn with the colors set, and so is the cursor
+    the widget draws after a DECSCUSR: an underline in the cursor color, or for
+    a block or a bar the cell in the cursor color with its text in the color
+    the cell's background is shown in.  Where the color would be the only
+    difference from the cell, on a cell that is already underlined or for a
+    block in the color of the cell's background, the cursor is drawn as
+    without a color, since a display may not draw the color.  RIS and DECSTR
+    keep them.
   * An ``rgb:`` or ``rgbi:`` color ignores anything after a ``/`` that follows
     its third component, so ``rgb:1/2/3/4`` is ``rgb:1/2/3``.
 
@@ -285,8 +288,12 @@ It differs from xterm, or adds to it, in these points:
   cursor color set with OSC 12 is drawn as described above.
 * XTVERSION is answered with urwid and its version, the XTWINOPS size reports
   in characters (18) and in pixels (14), the latter as unknown, and XTGETTCAP,
-  in xterm's form, for the color count and RGB colors the display draws.  xterm
-  answers the last two only when its window operations are allowed.
+  in xterm's form, for the 256 colors of the palette and RGB colors, which the
+  widget takes whatever the display draws.  xterm answers the last two only
+  when its window operations are allowed.
+* Every color the child gives is kept as it gave it, a palette entry beside a
+  24-bit color included, and the display converts it to the colors it draws,
+  as :ref:`color-conversion` describes.
 * DECRQM reports cursor blinking (12) and the urxvt mouse encoding (1015) as
   permanently reset, and Meta and Alt sending ESC (1036, 1039) as permanently
   set.
@@ -311,8 +318,8 @@ It differs from xterm, or adds to it, in these points:
 captured output, with no process behind it, and also works on Windows.  It
 reads the output as :class:`Terminal` does, and takes the same ``term``
 keyword for the terminal type the output was written for.  It draws the
-palette colors the output redefines in the colors of the running main loop's
-screen, and as 24-bit colors while no main loop runs.
+palette colors the output redefines as 24-bit colors, which the screen it is
+drawn on converts to the colors it draws.
 
 The color of a widget's title in the figures shows the sizing modes it
 supports: blue for box, orange for flow and yellow for fixed.  A title in more

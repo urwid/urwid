@@ -714,10 +714,10 @@ class Terminal(Widget):
         self.feed()
 
     def _read_display(self) -> None:
-        """Give the canvas the colors of the display the widget is drawn on, which its replies to the child describe.
+        """Give the canvas the default colors of the display the widget is drawn on, which its replies describe.
 
-        They are the color count and the outer terminal's default colors of the screen of :attr:`main_loop`, or of the
-        running :class:`MainLoop`; a screen without the attributes, such as curses, leaves them unknown.
+        They are the outer terminal's default colors of the screen of :attr:`main_loop`, or of the running
+        :class:`MainLoop`; a screen without them, such as curses, leaves them unknown.
         They are read again before each output of the child, since the screen learns them from the outer terminal's
         replies after the first render.
         """
@@ -725,9 +725,7 @@ class Terminal(Widget):
             self.main_loop if isinstance(self.main_loop, event_loop.MainLoop) else event_loop.get_running_loop_or_none()
         )
         if screen_loop is not None and self.term is not None:
-            screen = screen_loop.screen
-            self.term.display_colors = getattr(screen, "colors", None)
-            self.term.display_default_colors = getattr(screen, "terminal_default_colors", (None, None))
+            self.term.display_default_colors = getattr(screen_loop.screen, "terminal_default_colors", (None, None))
 
     def feed(self) -> None:
         """Read pending output from the pty and feed it to the terminal, terminating the child on EOF."""

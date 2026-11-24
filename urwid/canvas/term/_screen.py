@@ -49,16 +49,15 @@ from urwid.canvas.term._palette import (
     _DYNAMIC_BACKGROUND,
     _DYNAMIC_CURSOR,
     _DYNAMIC_FOREGROUND,
-    _FEWEST_PALETTE_COLORS,
     _FOREGROUND_KEY,
     _palette_entry,
-    _rgb_color,
     _underline_palette_entry,
+    _x11_rgb,
 )
 from urwid.canvas.term._state import TermCharset, TermModes
 from urwid.display import _sgr
 from urwid.display._sgr import sgi_params_to_attrspec, split_sgr_parameters
-from urwid.display.common import AttrSpec
+from urwid.display.common import AttrSpec, _depth
 from urwid.display.escape import PrivateMode
 
 if typing.TYPE_CHECKING:
@@ -102,30 +101,21 @@ _CONFORMANCE_LEVELS: typing.Final = range(61, 65)
 _LEFT_RIGHT_MARGIN_LEVEL: typing.Final = 64
 
 
-def _colored_cursor(
-    attr: AttrSpec | None,
-    *,
-    underline: bool,
-    color: str,
-    colors: Literal[1, 16, 88, 256, 16777216],
-) -> AttrSpec:
-    """Return the attribute of the cell *attr* under a cursor of the color *color*, as xterm draws it.
+def _colored_cursor(attr: AttrSpec | None, *, underline: bool, color: tuple[int, int, int]) -> AttrSpec:
+    """Return the attribute of the cell *attr* under a cursor of the RGB color *color*, as xterm draws it.
 
     An underline cursor is an underline in *color*.
     A block cursor fills the cell with *color* and draws the text in the color the cell's background is shown in.
-    The cell's other settings, such as bold, are kept.
+    The cell's other colors, kept with their kind, and its other settings, such as bold, are kept.
     """
+    cursor = _depth.rgb(*color)
     if underline:
-        return _with_flag(attr, "underline").copy_modified(colors=colors, underline_color=color)
-    if attr is None:
-        attr = AttrSpec("default", "default")
-    foreground, _, settings = attr.foreground.partition(",")
-    flags = [flag for flag in settings.split(",") if flag and flag != "standout"]
-    if attr.standout:
+        return _depth.replace_channels(_with_flag(attr, "underline"), underline=cursor)
+    if attr is not None and attr.standout:
         # the cell shows its foreground color as the background
-        return attr.copy_modified(fg=",".join((foreground, *flags)), bg=color, colors=colors)
+        return _depth.replace_channels(_with_flag(attr, "standout", remove=True), background=cursor)
     # standout shows the cell's background color, the default one included, as the text color
-    return attr.copy_modified(fg=",".join((color, *flags, "standout")), colors=colors)
+    return _depth.replace_channels(_with_flag(attr, "standout"), foreground=cursor)
 
 
 @dataclass(slots=True, weakref_slot=True)
@@ -164,7 +154,6 @@ class _ScreenCanvas(Canvas):
         "attrspec",
         "charset",
         "conformance_level",
-        "display_colors",
         "display_default_colors",
         "has_focus",
         "height",
@@ -259,9 +248,6 @@ class _ScreenCanvas(Canvas):
         self._last_graphic: tuple[bytes, bool, bool] | None = None
         # the character REP repeats: the one written just before the escape sequence being read
         self._repeat_graphic: tuple[bytes, bool, bool] | None = None
-        #: the colors the display draws, which the XTGETTCAP replies describe and the redefined palette colors are drawn
-        #: with; None while unknown, which leaves those colors unchanged. The widget the canvas belongs to sets it.
-        self.display_colors: Literal[1, 16, 88, 256, 16777216] | None = None
         # the palette colors the child redefined, with the Linux console's palette sequence or xterm's OSC 4, as red,
         # green and blue
         self._palette: dict[int, tuple[int, int, int]] = {}
@@ -1029,22 +1015,24 @@ class _ScreenCanvas(Canvas):
         """Canvas content.
 
         The cells store the attributes the child set.
-        On a display of 88 or more colors, the palette colors the child redefined, with the Linux palette sequence or
-        xterm's OSC 4, are drawn with their new values; a display whose color count is unknown draws them unchanged.
+        The palette colors the child redefined, with the Linux palette sequence or xterm's OSC 4, and the default colors
+        it set with OSC 10 and OSC 11, are drawn with their new values as 24-bit colors, which the screen converts to
+        the colors it draws; every other color keeps its kind and number.
         While the reverse video mode (DECSCNM) is on, every line is yielded with its attributes in standout.
         After a DECSCUSR the shown cursor cell is drawn in reverse video for a block or a bar, or underlined for an
         underline, and the blinking styles are drawn steady.
         A cell that is already in reverse video, or already underlined for an underline, is drawn without it.
-        On a display of 88 or more colors, a cursor color set with xterm's OSC 12 is drawn as xterm draws it instead:
+        A cursor color set with xterm's OSC 12 is drawn as xterm draws it instead:
         the underline in that color, or for a block or a bar the cell in that color with its text in the color the
         cell's background is shown in.
+        On a cell that is already underlined, and where the cursor color is the color a block cursor has to stand out
+        from, the cursor is drawn as without a color, since a display may not draw the color.
 
         All parameters are ignored.
         """
         lines = self._screen_lines()
-        colors = self.display_colors
-        if (self._palette or self._dynamic_colors) and colors is not None and colors >= _FEWEST_PALETTE_COLORS:
-            lines = self._recolored(lines, colors)
+        if self._palette or self._dynamic_colors:
+            lines = self._recolored(lines)
         style = self.modes.cursor_style
         if style is None or (shown := self._shown_cursor()) is None:
             yield from lines
@@ -1061,31 +1049,68 @@ class _ScreenCanvas(Canvas):
                 # the second half of a wide character: its first half draws both
                 cursor_x -= 1
             cell_attr, charset, text = drawn[cursor_x]
-            if cursor_color is not None and colors is not None and colors >= _FEWEST_PALETTE_COLORS:
-                cell_attr = _colored_cursor(
-                    cell_attr,
-                    underline=style in _UNDERLINE_CURSOR_STYLES,
-                    color=_rgb_color(cursor_color, colors),
-                    colors=colors,
-                )
+            underline = style in _UNDERLINE_CURSOR_STYLES
+            if cursor_color is not None and self._shows_colored_cursor(cell_attr, cursor_color, underline=underline):
+                cell_attr = _colored_cursor(cell_attr, underline=underline, color=cursor_color)
             else:
                 # the flag is turned off on a cell that already has it, so the cursor stays visible there
-                flag = "underline" if style in _UNDERLINE_CURSOR_STYLES else "standout"
+                flag = "underline" if underline else "standout"
                 cell_attr = _with_flag(cell_attr, flag, remove=cell_attr is not None and getattr(cell_attr, flag))
             drawn[cursor_x] = (cell_attr, charset, text)
             yield drawn
 
+    def _shows_colored_cursor(
+        self,
+        attr: AttrSpec | None,
+        color: tuple[int, int, int],
+        *,
+        underline: bool,
+    ) -> bool:
+        """Return whether a cursor of the RGB color *color* on the cell *attr* differs from the cell by more than color.
+
+        An underline cursor on a cell that is already underlined differs only by its color.
+        A block cursor differs from its cell by its standout state, unless its color is the one the cell's background
+        is shown in, as far as that color is known.
+        """
+        if underline:
+            return attr is None or not attr.underline
+        foreground, background, _line = (_depth.DEFAULT_CHANNEL,) * 3 if attr is None else _depth.channels(attr)
+        standout = attr is not None and attr.standout
+        return self._shown_rgb(foreground if standout else background, background=not standout) != color
+
+    def _shown_rgb(self, channel: _depth.Channel, *, background: bool) -> tuple[int, int, int] | None:
+        """Return the RGB value a color channel of a cell is shown in, None when it is not known.
+
+        :param background: a default color is the default background, not the default foreground.
+        """
+        match channel.kind:
+            case _depth.Kind.DEFAULT if self.linux_console:
+                entry = _DEFAULT_BACKGROUND_ENTRY if background else _DEFAULT_FOREGROUND_ENTRY
+                return self._palette.get(entry, _depth.rgb_values(_depth.Channel(_depth.Kind.BASIC, entry)))
+            case _depth.Kind.DEFAULT:
+                number = _DYNAMIC_BACKGROUND if background else _DYNAMIC_FOREGROUND
+                if number in self._dynamic_colors:
+                    return self._dynamic_colors[number]
+                spec = self.display_default_colors[1 if background else 0]
+                return None if spec is None else _x11_rgb(spec)
+            case _depth.Kind.INHERIT:
+                return None
+            case _depth.Kind.BASIC | _depth.Kind.INDEX_88 | _depth.Kind.INDEX_256:
+                return self._palette.get(channel.number, _depth.rgb_values(channel))
+            case _depth.Kind.RGB:
+                return _depth.rgb_components(channel.number)
+            case _:
+                typing.assert_never(channel.kind)
+
     def _recolored(
         self,
         lines: Iterable[list[tuple[AttrSpec | None, Literal["0", "U"] | None, bytes]]],
-        colors: Literal[1, 16, 88, 256, 16777216],
     ) -> Iterator[list[tuple[AttrSpec | None, Literal["0", "U"] | None, bytes]]]:
         """Yield *lines* with each palette color the child redefined drawn as its new value.
 
         The palette entries are the colors of their number, 0 to 15 on the Linux console and 0 to 255 in xterm.
         The default foreground and background are entries 7 and 0 on the Linux console; in xterm they are the
         dynamic colors OSC 10 and OSC 11 set.
-        The new value takes the closest color of a display of *colors* colors.
         """
         redefined: dict[int | str | None, tuple[int, int, int]] = dict(self._palette.items())
         for number, key in ((_DYNAMIC_FOREGROUND, _FOREGROUND_KEY), (_DYNAMIC_BACKGROUND, _BACKGROUND_KEY)):
@@ -1097,17 +1122,18 @@ class _ScreenCanvas(Canvas):
             new_line = []
             for cell_attr, charset, text in line:
                 if cell_attr not in recolored:
-                    recolored[cell_attr] = self._recolored_attr(cell_attr, colors, redefined)
+                    recolored[cell_attr] = self._recolored_attr(cell_attr, redefined)
                 new_line.append((recolored[cell_attr], charset, text))
             yield new_line
 
     def _recolored_attr(
         self,
         attr: AttrSpec | None,
-        colors: Literal[1, 16, 88, 256, 16777216],
         redefined: Mapping[int | str | None, tuple[int, int, int]],
     ) -> AttrSpec | None:
         """Return *attr* with its colors, the underline color included, from the *redefined* colors, or *attr* itself.
+
+        Only the colors that were redefined are replaced, by their exact RGB value; the others keep their kind.
 
         :param redefined: the new values, by palette entry and by the keys of the default colors.
         """
@@ -1116,40 +1142,22 @@ class _ScreenCanvas(Canvas):
         default_bg: int | str = _DEFAULT_BACKGROUND_ENTRY if self.linux_console else _BACKGROUND_KEY
         fg_entry: int | str | None
         bg_entry: int | str | None
+        line_entry: int | None
         if attr is None:
-            foreground, settings, background = "default", "", "default"
-            fg_entry, bg_entry = default_fg, default_bg
+            fg_entry, bg_entry, line_entry = default_fg, default_bg, None
         else:
-            foreground, _, settings = attr.foreground.partition(",")
-            background = attr.background
-            fg_entry = _palette_entry(
-                attr.foreground_basic,
-                attr.foreground_high,
-                attr.foreground_true,
-                attr.foreground_number,
-                default_fg,
-            )
-            bg_entry = _palette_entry(
-                attr.background_basic,
-                attr.background_high,
-                attr.background_true,
-                attr.background_number,
-                default_bg,
-            )
-        line_entry = None if attr is None else _underline_palette_entry(attr)
+            foreground, background, _line = _depth.channels(attr)
+            fg_entry = _palette_entry(foreground, default_fg)
+            bg_entry = _palette_entry(background, default_bg)
+            line_entry = _underline_palette_entry(attr)
         if fg_entry not in redefined and bg_entry not in redefined and line_entry not in redefined:
             return attr
-        if fg_entry in redefined:
-            foreground = _rgb_color(redefined[fg_entry], colors)
-        if bg_entry in redefined:
-            background = _rgb_color(redefined[bg_entry], colors)
-        fg = f"{foreground},{settings}" if settings else foreground
-        if attr is None:
-            return AttrSpec(fg, background, colors)
-        if line_entry in redefined:
-            line = _rgb_color(redefined[line_entry], colors)
-            return attr.copy_modified(fg=fg, bg=background, colors=colors, underline_color=line)
-        return attr.copy_modified(fg=fg, bg=background, colors=colors)
+        return _depth.replace_channels(
+            attr,
+            foreground=_depth.rgb(*redefined[fg_entry]) if fg_entry in redefined else None,
+            background=_depth.rgb(*redefined[bg_entry]) if bg_entry in redefined else None,
+            underline=_depth.rgb(*redefined[line_entry]) if line_entry in redefined else None,
+        )
 
     def _screen_lines(self) -> Iterator[list[tuple[AttrSpec | None, Literal["0", "U"] | None, bytes]]]:
         """Yield the rows in view, with their attributes in standout while the reverse video mode (DECSCNM) is on."""

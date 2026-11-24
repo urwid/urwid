@@ -28,7 +28,6 @@ import typing
 from urwid.ansi_parser import led_state
 from urwid.canvas.term._cells import _RENDITION_BITS
 from urwid.canvas.term._editing import _EditingCanvas
-from urwid.canvas.term._palette import _TRUE_COLORS
 from urwid.canvas.term._screen import _LEFT_RIGHT_MARGIN_LEVEL
 from urwid.display import _sgr
 from urwid.display.escape import CSI, DCS, ST
@@ -255,11 +254,11 @@ class _ReportsCanvas(_EditingCanvas):
         """Answer an XTGETTCAP query (DCS + q Pt ST) for the capability names in *names*.
 
         Each name is hex-encoded, and the names are separated by ``;``.
-        The capabilities answered describe the colors of the display, :attr:`display_colors`:
+        The capabilities answered describe the colors the canvas takes, which the screen it is drawn on converts to
+        the colors it draws:
 
-        - ``Co`` and ``colors``, the termcap and terminfo names of the color count, for a display with colors,
-          at most the 256 of the palette;
-        - ``RGB``, 8 bits per channel, for a display that draws any RGB color.
+        - ``Co`` and ``colors``, the termcap and terminfo names of the color count: the 256 of the palette;
+        - ``RGB``, 8 bits per channel, as any RGB color is taken.
 
         The reply follows xterm:
 
@@ -268,11 +267,7 @@ class _ReportsCanvas(_EditingCanvas):
           as the name is;
         - when the first name is not answered, the reply is DCS 0 + r ST.
         """
-        values: dict[str, str] = {}
-        if self.display_colors is not None and self.display_colors > 1:
-            values["Co"] = values["colors"] = str(min(self.display_colors, _PALETTE_COLORS))
-            if self.display_colors == _TRUE_COLORS:
-                values["RGB"] = "8"
+        values = {"Co": str(_PALETTE_COLORS), "colors": str(_PALETTE_COLORS), "RGB": "8"}
         answered = ""
         for name in names.split(b";"):
             try:
