@@ -218,6 +218,33 @@ class HandleShortRequestTest(unittest.TestCase):
         self.assertEqual(b"a\n", os.read(reader, 16))
         self.assertEqual("Content-type: text/plain\r\n\r\n", stdout.getvalue())
 
+    @unittest.skipIf(IS_WINDOWS, "The client pipe is a POSIX-only os.mkfifo FIFO")
+    def test_keyboard_input_to_a_screen_that_exits_after_the_open_is_not_found(self) -> None:
+        """A reader that closes between the open and the write is answered with 404, not an exception."""
+        pipe = f"{web._session_path('valid-id')}.in"
+        os.mkfifo(pipe, 0o600)
+        reader = os.open(pipe, os.O_RDONLY | os.O_NONBLOCK)
+        reader_open = [True]
+        self.addCleanup(lambda: reader_open[0] and os.close(reader))
+        stdin = io.TextIOWrapper(io.BytesIO(b"a\n"), encoding="ascii")
+        stdout = io.StringIO()
+        write = os.write
+
+        def screen_exits(fd: int, data: bytes) -> int:
+            os.close(reader)
+            reader_open[0] = False
+            return write(fd, data)
+
+        with (
+            mock.patch.dict(os.environ, {**self.environ, "CONTENT_LENGTH": "2"}, clear=True),
+            mock.patch.object(web.sys, "stdin", stdin),
+            mock.patch.object(web.sys, "stdout", stdout),
+            mock.patch.object(web.os, "write", screen_exits),
+        ):
+            self.assertTrue(web.handle_short_request())
+
+        self.assertEqual("Status: 404 Not Found\r\n\r\n", stdout.getvalue())
+
     @unittest.skipIf(IS_WINDOWS, "The polling update channel is a POSIX-only socket.AF_UNIX socket")
     def test_polling_decodes_after_receiving_complete_utf8_payload(self) -> None:
         stdout = io.StringIO()

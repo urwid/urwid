@@ -567,7 +567,12 @@ def handle_short_request() -> bool:
         except (LookupError, UnicodeError):
             sys.stdout.write("Status: 400 Bad Request\r\n\r\n")
             return True
-        os.write(fd, encoded_keydata)
+        try:
+            os.write(fd, encoded_keydata)
+        except BrokenPipeError:
+            # the screen exited after the open
+            sys.stdout.write("Status: 404 Not Found\r\n\r\n")
+            return True
     finally:
         with suppress(OSError):
             os.close(fd)
