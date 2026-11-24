@@ -631,7 +631,9 @@ class ErrorLog:
 def daemonize(errfile: str, *, keep_fds: Collection[int] = ()) -> None:
     """Detach process and become a daemon.
 
-    :param errfile: path of the file that receives what is written to :data:`sys.stderr`.
+    :param errfile: path of the file that receives what is written to :data:`sys.stderr`,
+        and to descriptor 2 unless *keep_fds* keeps it.
+        Descriptors 0 and 1 not kept read from and write to :file:`/dev/null`.
     :param keep_fds: descriptors below 20 to leave open. Every other descriptor below 20 is closed.
     """
     if os.fork():
@@ -651,6 +653,26 @@ def daemonize(errfile: str, *, keep_fds: Collection[int] = ()) -> None:
             continue
         with suppress(OSError):
             os.close(fd)
+
+    # Descriptors 0 to 2 are taken, so no later open becomes one of them, and child processes inherit them.
+    # os.open() returns a descriptor closed on exec; dup2() and set_inheritable() make one inheritable.
+    stdin_fd, stdout_fd, stderr_fd = 0, 1, 2
+    if stderr_fd not in keep_fds:
+        # Output of C code and child processes goes to the error log as well.
+        err_fd = os.open(errfile, os.O_WRONLY | os.O_CREAT | os.O_APPEND, 0o600)
+        if err_fd == stderr_fd:
+            os.set_inheritable(stderr_fd, True)
+        else:
+            os.dup2(err_fd, stderr_fd)
+            os.close(err_fd)
+    null_fd = os.open(os.devnull, os.O_RDWR)
+    for fd in (stdin_fd, stdout_fd):
+        if fd == null_fd:
+            os.set_inheritable(fd, True)
+        elif fd not in keep_fds:
+            os.dup2(null_fd, fd)
+    if null_fd > stderr_fd:
+        os.close(null_fd)
 
     sys.stdin = open("/dev/null", encoding="utf-8")  # noqa: SIM115  # pylint: disable=consider-using-with
     sys.stdout = open("/dev/null", "w", encoding="utf-8")  # noqa: SIM115  # pylint: disable=consider-using-with

@@ -296,6 +296,9 @@ class DaemonizeTest(unittest.TestCase):
             mock.patch.object(web.os, "umask"),
             mock.patch.object(web.os, "chdir"),
             mock.patch.object(web.os, "close") as close,
+            mock.patch.object(web.os, "open", side_effect=[2, 0]),
+            mock.patch.object(web.os, "dup2"),
+            mock.patch.object(web.os, "set_inheritable"),
             mock.patch.object(web, "open", create=True),
             mock.patch.object(web.sys, "stdin"),
             mock.patch.object(web.sys, "stdout"),
@@ -304,6 +307,43 @@ class DaemonizeTest(unittest.TestCase):
             web.daemonize("errfile", keep_fds=(3, 7))
 
         self.assertEqual([mock.call(fd) for fd in range(20) if fd not in {3, 7}], close.call_args_list)
+
+    def test_daemonize_takes_descriptors_0_to_2_for_child_processes(self) -> None:
+        """Descriptor 2 is the error log and 0 and 1 are /dev/null, all inherited; a kept descriptor is left alone.
+
+        Each open takes the lowest free descriptor, closed on exec until dup2() or set_inheritable() changes that.
+        """
+        error_log = mock.call("errfile", os.O_WRONLY | os.O_CREAT | os.O_APPEND, 0o600)
+        null = mock.call(os.devnull, os.O_RDWR)
+        # opened: the descriptors the opens return; closed: those closed after the loop over 0-19
+        for label, keep_fds, opened, expected_opens, expected_dup2, expected_inheritable, expected_closed in (
+            ("none kept", (), [0, 0], [error_log, null], [(0, 2), (0, 1)], [(0, True)], [0]),
+            ("0 kept", (0,), [1, 1], [error_log, null], [(1, 2)], [(1, True)], [1]),
+            ("0 and 1 kept", (0, 1), [2, 3], [error_log, null], [], [(2, True)], [3]),
+            ("2 kept", (2,), [0], [null], [(0, 1)], [(0, True)], []),
+        ):
+            with (
+                self.subTest(label),
+                mock.patch.object(web.os, "fork", return_value=0),
+                mock.patch.object(web.os, "setsid"),
+                mock.patch.object(web.signal, "signal"),
+                mock.patch.object(web.os, "umask"),
+                mock.patch.object(web.os, "chdir"),
+                mock.patch.object(web.os, "close") as close,
+                mock.patch.object(web.os, "open", side_effect=opened) as os_open,
+                mock.patch.object(web.os, "dup2") as dup2,
+                mock.patch.object(web.os, "set_inheritable") as set_inheritable,
+                mock.patch.object(web, "open", create=True),
+                mock.patch.object(web.sys, "stdin"),
+                mock.patch.object(web.sys, "stdout"),
+                mock.patch.object(web.sys, "stderr"),
+            ):
+                web.daemonize("errfile", keep_fds=keep_fds)
+
+                self.assertEqual(expected_opens, os_open.call_args_list)
+                self.assertEqual(expected_dup2, [call.args for call in dup2.call_args_list])
+                self.assertEqual(expected_inheritable, [call.args for call in set_inheritable.call_args_list])
+                self.assertEqual(expected_closed, [call.args[0] for call in close.call_args_list[20 - len(keep_fds) :]])
 
     def test_fork_child_keeps_the_client_pipe_reader(self) -> None:
         """The reader stays open through the forks, so the pipe never lacks one while the screen runs."""
