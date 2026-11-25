@@ -3054,14 +3054,20 @@ class TermTest(unittest.TestCase):
     def test_xtgettcap_describes_24_bit_colors(self) -> None:
         """Answer the 256 colors of the palette and RGB, as the canvas takes any color and the screen converts it.
 
-        As in xterm, the names known are answered in one reply, up to the first one that is not.
+        As in xterm, the names known are answered in one reply, up to the first one that is not,
+        and the reply ends with a semicolon only when it stopped at such a name.
         """
-        self.write(rf"\eP+q436f;636F6C6F7273;524742;544E;436f{_ST}")
-        self.term.wait_and_feed()
-        self.assertEqual(
-            bytes(self.pty.from_widget),
-            b"\x1bP1+r436f=323536;636F6C6F7273=323536;524742=38;\x1b\\",
-        )
+        for query, answer in (
+            (rf"\eP+q436f;636F6C6F7273;524742;544E;436f{_ST}", b"436f=323536;636F6C6F7273=323536;524742=38;"),
+            (rf"\eP+q436f;524742{_ST}", b"436f=323536;524742=38"),
+            (rf"\eP+q436f;{_ST}", b"436f=323536;"),
+            (rf"\eP+q436f;zz{_ST}", b"436f=323536;"),
+        ):
+            with self.subTest(query):
+                self.restart()
+                self.write(query)
+                self.term.wait_and_feed()
+                self.assertEqual(bytes(self.pty.from_widget), b"\x1bP1+r" + answer + b"\x1b\\")
 
     def test_raw_display_reads_the_answers_to_its_own_queries(self) -> None:
         """Decode what the widget answers to the queries a raw display sends as it starts, as replies and no keys."""

@@ -263,22 +263,27 @@ class _ReportsCanvas(_EditingCanvas):
         The reply follows xterm:
 
         - the names are answered in order up to the first one that is not answered;
-        - those answered are listed in one DCS 1 + r Pt ST, Pt holding ``name=value;`` for each, the value hex-encoded
-          as the name is;
+        - those answered are listed in one DCS 1 + r Pt ST, Pt holding ``name=value`` for each, separated by ``;``,
+          the value hex-encoded as the name is, and ending with ``;`` when a name after them is not answered;
         - when the first name is not answered, the reply is DCS 0 + r ST.
         """
         values = {"Co": str(_PALETTE_COLORS), "colors": str(_PALETTE_COLORS), "RGB": "8"}
-        answered = ""
+        answered: list[str] = []
+        stopped = False
         for name in names.split(b";"):
             try:
                 hex_name = name.decode("ascii")
                 key = bytes.fromhex(hex_name).decode("ascii")
             except ValueError:
-                break
+                key = None
             if key not in values:
+                stopped = True
                 break
-            answered += f"{hex_name}={values[key].encode('ascii').hex().upper()};"
-        self.widget.respond(f"{DCS}1+r{answered}{ST}" if answered else f"{DCS}0+r{ST}")
+            answered.append(f"{hex_name}={values[key].encode('ascii').hex().upper()}")
+        if not answered:
+            self.widget.respond(f"{DCS}0+r{ST}")
+            return
+        self.widget.respond(f"{DCS}1+r{';'.join(answered)}{';' if stopped else ''}{ST}")
 
     def dcs_restore_tab_stops(self, body: bytes) -> None:
         """Set the tab stops to the 1-based columns of a DECTABSR report *body* (DECRSPS 2), separated by ``/``.
