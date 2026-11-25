@@ -5,12 +5,12 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
 
-    <title>Logging Handlers &#8212; Urwid 5.2.0</title>
+    <title>Logging Handlers &#8212; Urwid 5.2.1</title>
     <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=03e43079" />
     <link rel="stylesheet" type="text/css" href="../_static/classic.css?v=65f223dd" />
     <link rel="stylesheet" type="text/css" href="../_static/urwid_theme.css?v=de5f08c4" />
     
-    <script src="../_static/documentation_options.js?v=2dde5210"></script>
+    <script src="../_static/documentation_options.js?v=89a6d609"></script>
     <script src="../_static/doctools.js?v=fd6eb6e6"></script>
     <script src="../_static/sphinx_highlight.js?v=6ffebe34"></script>
     
@@ -32,7 +32,7 @@
         <li class="right" >
           <a href="testing.html" title="Testing Helpers"
              accesskey="P">previous</a> |</li>
-        <li class="nav-item nav-item-0"><a href="../index.html">Urwid 5.2.0</a> &#187;</li>
+        <li class="nav-item nav-item-0"><a href="../index.html">Urwid 5.2.1</a> &#187;</li>
           <li class="nav-item nav-item-1"><a href="index.html" accesskey="U">Urwid Reference</a> &#187;</li>
         <li class="nav-item nav-item-this"><a href="">Logging Handlers</a></li> 
       </ul>
@@ -108,6 +108,26 @@ or a value is not hashable.</p></li>
 <dd><p>Queue the formatted <em>record</em> and hand a call that shows it to the loop.</p>
 <p>A failure of the formatter goes to <code class="xref py py-meth docutils literal notranslate"><span class="pre">handleError()</span></code>.
 Records of this module’s own logger are ignored, so a failing widget cannot report its failures to itself.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="urwid.log_handler.ListWalkerHandler.flush">
+<span class="sig-name descname"><span class="pre">flush</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="headerlink" href="#urwid.log_handler.ListWalkerHandler.flush" title="Link to this definition">¶</a></dt>
+<dd><p>Show the records queued now in the widget.</p>
+<p>Call it on the loop thread while the loop runs, for example before a widget callback stops the loop or
+reads the widget, so the widget shows every record logged before the call, without waiting for the loop to
+hand them over.
+Records logged while it shows them, such as by the widget, wait for the next hand-over;
+when they fill <code class="docutils literal notranslate"><span class="pre">max_pending</span></code>, the oldest queued records are dropped as usual.
+On any other thread, also one that runs in a copy of the loop’s context, and after <a class="reference internal" href="#urwid.log_handler.ListWalkerHandler.close" title="urwid.log_handler.ListWalkerHandler.close"><code class="xref py py-meth docutils literal notranslate"><span class="pre">close()</span></code></a>,
+it does nothing and the records stay queued.
+A call from a widget callback during a hand-over shows nothing, and leaves the rest to that hand-over.
+Any exception from the widget other than <a class="reference internal" href="exceptions.html#urwid.ExitMainLoop" title="urwid.ExitMainLoop"><code class="xref py py-exc docutils literal notranslate"><span class="pre">ExitMainLoop</span></code></a> is logged and the next entry is shown.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Raises<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference internal" href="exceptions.html#urwid.ExitMainLoop" title="urwid.ExitMainLoop"><strong>ExitMainLoop</strong></a> – the widget stopped the loop.</p>
+</dd>
+</dl>
 </dd></dl>
 
 <dl class="py method">
@@ -200,6 +220,26 @@ Records of this module’s own logger are ignored, so a failing widget cannot re
 </dd></dl>
 
 <dl class="py method">
+<dt class="sig sig-object py" id="urwid.log_handler.NotificationsHandler.flush">
+<span class="sig-name descname"><span class="pre">flush</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="headerlink" href="#urwid.log_handler.NotificationsHandler.flush" title="Link to this definition">¶</a></dt>
+<dd><p>Show the records queued now in the widget.</p>
+<p>Call it on the loop thread while the loop runs, for example before a widget callback stops the loop or
+reads the widget, so the widget shows every record logged before the call, without waiting for the loop to
+hand them over.
+Records logged while it shows them, such as by the widget, wait for the next hand-over;
+when they fill <code class="docutils literal notranslate"><span class="pre">max_pending</span></code>, the oldest queued records are dropped as usual.
+On any other thread, also one that runs in a copy of the loop’s context, and after <a class="reference internal" href="#urwid.log_handler.NotificationsHandler.close" title="urwid.log_handler.NotificationsHandler.close"><code class="xref py py-meth docutils literal notranslate"><span class="pre">close()</span></code></a>,
+it does nothing and the records stay queued.
+A call from a widget callback during a hand-over shows nothing, and leaves the rest to that hand-over.
+Any exception from the widget other than <a class="reference internal" href="exceptions.html#urwid.ExitMainLoop" title="urwid.ExitMainLoop"><code class="xref py py-exc docutils literal notranslate"><span class="pre">ExitMainLoop</span></code></a> is logged and the next entry is shown.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Raises<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference internal" href="exceptions.html#urwid.ExitMainLoop" title="urwid.ExitMainLoop"><strong>ExitMainLoop</strong></a> – the widget stopped the loop.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
 <dt class="sig sig-object py" id="urwid.log_handler.NotificationsHandler.resume">
 <span class="sig-name descname"><span class="pre">resume</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="headerlink" href="#urwid.log_handler.NotificationsHandler.resume" title="Link to this definition">¶</a></dt>
 <dd><p>Hand a call that shows the queued records to the loop.</p>
@@ -242,6 +282,7 @@ urwid logs at DEBUG on each redraw and each alarm it sets, so showing those reco
 <li><a class="reference internal" href="#urwid.log_handler.ListWalkerHandler"><code class="docutils literal notranslate"><span class="pre">ListWalkerHandler</span></code></a><ul>
 <li><a class="reference internal" href="#urwid.log_handler.ListWalkerHandler.close"><code class="docutils literal notranslate"><span class="pre">ListWalkerHandler.close()</span></code></a></li>
 <li><a class="reference internal" href="#urwid.log_handler.ListWalkerHandler.emit"><code class="docutils literal notranslate"><span class="pre">ListWalkerHandler.emit()</span></code></a></li>
+<li><a class="reference internal" href="#urwid.log_handler.ListWalkerHandler.flush"><code class="docutils literal notranslate"><span class="pre">ListWalkerHandler.flush()</span></code></a></li>
 <li><a class="reference internal" href="#urwid.log_handler.ListWalkerHandler.resume"><code class="docutils literal notranslate"><span class="pre">ListWalkerHandler.resume()</span></code></a></li>
 <li><a class="reference internal" href="#urwid.log_handler.ListWalkerHandler.urwid_filter"><code class="docutils literal notranslate"><span class="pre">ListWalkerHandler.urwid_filter</span></code></a></li>
 </ul>
@@ -249,6 +290,7 @@ urwid logs at DEBUG on each redraw and each alarm it sets, so showing those reco
 <li><a class="reference internal" href="#urwid.log_handler.NotificationsHandler"><code class="docutils literal notranslate"><span class="pre">NotificationsHandler</span></code></a><ul>
 <li><a class="reference internal" href="#urwid.log_handler.NotificationsHandler.close"><code class="docutils literal notranslate"><span class="pre">NotificationsHandler.close()</span></code></a></li>
 <li><a class="reference internal" href="#urwid.log_handler.NotificationsHandler.emit"><code class="docutils literal notranslate"><span class="pre">NotificationsHandler.emit()</span></code></a></li>
+<li><a class="reference internal" href="#urwid.log_handler.NotificationsHandler.flush"><code class="docutils literal notranslate"><span class="pre">NotificationsHandler.flush()</span></code></a></li>
 <li><a class="reference internal" href="#urwid.log_handler.NotificationsHandler.resume"><code class="docutils literal notranslate"><span class="pre">NotificationsHandler.resume()</span></code></a></li>
 <li><a class="reference internal" href="#urwid.log_handler.NotificationsHandler.urwid_filter"><code class="docutils literal notranslate"><span class="pre">NotificationsHandler.urwid_filter</span></code></a></li>
 </ul>
@@ -301,7 +343,7 @@ urwid logs at DEBUG on each redraw and each alarm it sets, so showing those reco
         <li class="right" >
           <a href="testing.html" title="Testing Helpers"
              >previous</a> |</li>
-        <li class="nav-item nav-item-0"><a href="../index.html">Urwid 5.2.0</a> &#187;</li>
+        <li class="nav-item nav-item-0"><a href="../index.html">Urwid 5.2.1</a> &#187;</li>
           <li class="nav-item nav-item-1"><a href="index.html" >Urwid Reference</a> &#187;</li>
         <li class="nav-item nav-item-this"><a href="">Logging Handlers</a></li> 
       </ul>

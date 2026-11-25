@@ -5,12 +5,12 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
 
-    <title>Widgets &#8212; Urwid 5.2.0</title>
+    <title>Widgets &#8212; Urwid 5.2.1</title>
     <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=03e43079" />
     <link rel="stylesheet" type="text/css" href="../_static/classic.css?v=65f223dd" />
     <link rel="stylesheet" type="text/css" href="../_static/urwid_theme.css?v=de5f08c4" />
     
-    <script src="../_static/documentation_options.js?v=2dde5210"></script>
+    <script src="../_static/documentation_options.js?v=89a6d609"></script>
     <script src="../_static/doctools.js?v=fd6eb6e6"></script>
     <script src="../_static/sphinx_highlight.js?v=6ffebe34"></script>
     
@@ -32,7 +32,7 @@
         <li class="right" >
           <a href="displaymodules.html" title="Display Modules"
              accesskey="P">previous</a> |</li>
-        <li class="nav-item nav-item-0"><a href="../index.html">Urwid 5.2.0</a> &#187;</li>
+        <li class="nav-item nav-item-0"><a href="../index.html">Urwid 5.2.1</a> &#187;</li>
           <li class="nav-item nav-item-1"><a href="index.html" accesskey="U">Urwid Manual</a> &#187;</li>
         <li class="nav-item nav-item-this"><a href="">Widgets</a></li> 
       </ul>
@@ -247,6 +247,12 @@ takes only from some level on is taken from that level here too, except the
 rectangular area operations, DECIC, DECDC, DECBI and DECFI, which work at every
 level, and DECRQCRA and the tertiary device attributes query, which are
 answered from the VT200 level on.</p>
+<p>The child’s output is read as UTF-8, or in urwid’s encoding while it has not
+selected UTF-8.  An encoding that switches character sets with escape
+sequences, such as ISO-2022-JP, cannot be read: the parser takes those
+sequences as its own, as a terminal does.  Such output is converted before it
+reaches the widget, by a program such as luit for <a class="reference internal" href="../reference/widget.html#urwid.Terminal" title="urwid.Terminal"><code class="xref py py-class docutils literal notranslate"><span class="pre">Terminal</span></code></a>, or by
+decoding it and writing <code class="docutils literal notranslate"><span class="pre">str</span></code> to <a class="reference internal" href="../reference/widget.html#urwid.TerminalOutput" title="urwid.TerminalOutput"><code class="xref py py-class docutils literal notranslate"><span class="pre">TerminalOutput</span></code></a>.</p>
 <p>It differs from xterm, or adds to it, in these points:</p>
 <ul>
 <li><p>VT52 mode, 132 columns, the status line and printing are not implemented,
@@ -256,8 +262,8 @@ and replies use 7-bit controls only.</p></li>
 <li><p>With <code class="docutils literal notranslate"><span class="pre">term=&quot;linux&quot;</span></code>, where the Linux console and xterm differ, it follows
 the Linux console, which <code class="docutils literal notranslate"><span class="pre">TERM=linux</span></code> describes:</p>
 <ul class="simple">
-<li><p>F1 to F5 are sent as <code class="docutils literal notranslate"><span class="pre">CSI</span> <span class="pre">[</span> <span class="pre">A</span></code> to <code class="docutils literal notranslate"><span class="pre">CSI</span> <span class="pre">[</span> <span class="pre">E</span></code>, and Shift+Tab as
-<code class="docutils literal notranslate"><span class="pre">ESC</span> <span class="pre">Tab</span></code>, while cursor key mode (DECCKM) is reset.</p></li>
+<li><p>Shift+Tab is sent as <code class="docutils literal notranslate"><span class="pre">ESC</span> <span class="pre">Tab</span></code>.  F1 to F5 are sent as <code class="docutils literal notranslate"><span class="pre">CSI</span> <span class="pre">[</span> <span class="pre">A</span></code> to
+<code class="docutils literal notranslate"><span class="pre">CSI</span> <span class="pre">[</span> <span class="pre">E</span></code> while cursor key mode (DECCKM) is reset.</p></li>
 <li><p>G1 starts as DEC Special Graphics.</p></li>
 <li><p>SGR 11 and 12 select the IBM PC character set (CP437) and display control
 mode, SGR 10 ends both, and <code class="docutils literal notranslate"><span class="pre">CSI</span> <span class="pre">3</span> <span class="pre">h</span></code> turns display control mode on.
@@ -351,8 +357,9 @@ cursor color set with OSC 12 is drawn as described above.</p></li>
 <li><p>XTVERSION is answered with urwid and its version, the XTWINOPS size reports
 in characters (18) and in pixels (14), the latter as unknown, and XTGETTCAP,
 in xterm’s form, for the 256 colors of the palette and RGB colors, which the
-widget takes whatever the display draws.  xterm answers the last two only
-when its window operations are allowed.</p></li>
+widget takes whatever the display draws.  xterm answers the XTWINOPS
+reports only when its window operations are allowed, and XTGETTCAP only when
+its termcap operations are allowed.</p></li>
 <li><p>Every color the child gives is kept as it gave it, a palette entry beside a
 24-bit color included, and the display converts it to the colors it draws,
 as <a class="reference internal" href="displayattributes.html#color-conversion"><span class="std std-ref">Colors the Display Does Not Have</span></a> describes.</p></li>
@@ -398,7 +405,8 @@ the conditions for each mode.</p>
 <p><a class="reference internal" href="../reference/widget.html#urwid.Button" title="urwid.Button"><code class="xref py py-class docutils literal notranslate"><span class="pre">Button</span></code></a>, <a class="reference internal" href="../reference/widget.html#urwid.CheckBox" title="urwid.CheckBox"><code class="xref py py-class docutils literal notranslate"><span class="pre">CheckBox</span></code></a> and <a class="reference internal" href="../reference/widget.html#urwid.RadioButton" title="urwid.RadioButton"><code class="xref py py-class docutils literal notranslate"><span class="pre">RadioButton</span></code></a> send a signal
 when the user activates them with <kbd class="kbd docutils literal notranslate">enter</kbd>, <kbd class="kbd docutils literal notranslate">space</kbd> or a mouse
 click: <code class="docutils literal notranslate"><span class="pre">'click'</span></code> for a button and <code class="docutils literal notranslate"><span class="pre">'change'</span></code> for a check box or a radio
-button.  <a class="reference internal" href="../reference/widget.html#urwid.GridFlow" title="urwid.GridFlow"><code class="xref py py-class docutils literal notranslate"><span class="pre">GridFlow</span></code></a> arranges a group of them in equal-width cells.
+button.  <a class="reference internal" href="../reference/widget.html#urwid.GridFlow" title="urwid.GridFlow"><code class="xref py py-class docutils literal notranslate"><span class="pre">GridFlow</span></code></a> arranges a group of them in equal-width cells, or
+in cells as wide as each widget packs to with <code class="docutils literal notranslate"><span class="pre">options('pack')</span></code>.
 The <code class="docutils literal notranslate"><span class="pre">selected_button</span></code> property of a <a class="reference internal" href="../reference/widget.html#urwid.RadioButton" title="urwid.RadioButton"><code class="xref py py-class docutils literal notranslate"><span class="pre">RadioButton</span></code></a> returns the selected
 button of its group, or <code class="docutils literal notranslate"><span class="pre">None</span></code> when no button of the group is selected.</p>
 <p>A <a class="reference internal" href="../reference/widget.html#urwid.Button" title="urwid.Button"><code class="xref py py-class docutils literal notranslate"><span class="pre">Button</span></code></a> shows its label between <code class="docutils literal notranslate"><span class="pre">&lt;</span></code> and <code class="docutils literal notranslate"><span class="pre">&gt;</span></code>.  The <code class="docutils literal notranslate"><span class="pre">left</span></code> and
@@ -2281,7 +2289,7 @@ defined in superclasses after the class definition.</p>
         <li class="right" >
           <a href="displaymodules.html" title="Display Modules"
              >previous</a> |</li>
-        <li class="nav-item nav-item-0"><a href="../index.html">Urwid 5.2.0</a> &#187;</li>
+        <li class="nav-item nav-item-0"><a href="../index.html">Urwid 5.2.1</a> &#187;</li>
           <li class="nav-item nav-item-1"><a href="index.html" >Urwid Manual</a> &#187;</li>
         <li class="nav-item nav-item-this"><a href="">Widgets</a></li> 
       </ul>

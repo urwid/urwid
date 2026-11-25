@@ -5,12 +5,12 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
 
-    <title>Canvas Classes and Functions &#8212; Urwid 5.2.0</title>
+    <title>Canvas Classes and Functions &#8212; Urwid 5.2.1</title>
     <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=03e43079" />
     <link rel="stylesheet" type="text/css" href="../_static/classic.css?v=65f223dd" />
     <link rel="stylesheet" type="text/css" href="../_static/urwid_theme.css?v=de5f08c4" />
     
-    <script src="../_static/documentation_options.js?v=2dde5210"></script>
+    <script src="../_static/documentation_options.js?v=89a6d609"></script>
     <script src="../_static/doctools.js?v=fd6eb6e6"></script>
     <script src="../_static/sphinx_highlight.js?v=6ffebe34"></script>
     
@@ -32,7 +32,7 @@
         <li class="right" >
           <a href="attrspec.html" title="Raw Display Attributes"
              accesskey="P">previous</a> |</li>
-        <li class="nav-item nav-item-0"><a href="../index.html">Urwid 5.2.0</a> &#187;</li>
+        <li class="nav-item nav-item-0"><a href="../index.html">Urwid 5.2.1</a> &#187;</li>
           <li class="nav-item nav-item-1"><a href="index.html" accesskey="U">Urwid Reference</a> &#187;</li>
         <li class="nav-item nav-item-this"><a href="">Canvas Classes and Functions</a></li> 
       </ul>
@@ -621,6 +621,263 @@ values &lt; 0 indicate screen columns to trim</p>
 </dd></dl>
 
 </section>
+<section id="terminal-canvas">
+<h2>Terminal Canvas<a class="headerlink" href="#terminal-canvas" title="Link to this heading">¶</a></h2>
+<p>The canvas of the <a class="reference internal" href="widget.html#urwid.Terminal" title="urwid.Terminal"><code class="xref py py-class docutils literal notranslate"><span class="pre">Terminal</span></code></a> and <a class="reference internal" href="widget.html#urwid.TerminalOutput" title="urwid.TerminalOutput"><code class="xref py py-class docutils literal notranslate"><span class="pre">TerminalOutput</span></code></a> widgets, available on every platform.</p>
+<dl class="py class">
+<dt class="sig sig-object py" id="urwid.TermCanvas">
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">urwid.</span></span><span class="sig-name descname"><span class="pre">TermCanvas</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">width</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">height</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">widget</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">_TermCanvasOwner</span></span></em>, <em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">scroll_on_output</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">term_type</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">TermType</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">'linux'</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#urwid.TermCanvas" title="Link to this definition">¶</a></dt>
+<dd><p>Canvas holding a terminal’s screen and scrollback content, for the widget that owns it.</p>
+<p>Initialize an empty <cite>width</cite> by <cite>height</cite> canvas backing <cite>widget</cite>.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>scroll_on_output</strong> – move a view scrolled back from the bottom to the bottom when output arrives.
+When off, the view stays on the lines it shows while new lines scroll into the scrollback below them.</p></li>
+<li><p><strong>term_type</strong> – the terminal type the output is written for: <code class="docutils literal notranslate"><span class="pre">&quot;linux&quot;</span></code> follows the Linux console where it
+differs from xterm, <code class="docutils literal notranslate"><span class="pre">&quot;xterm-256color&quot;</span></code> follows xterm.</p></li>
+</ul>
+</dd>
+</dl>
+<dl class="py method">
+<dt class="sig sig-object py" id="urwid.TermCanvas.addbyte">
+<span class="sig-name descname"><span class="pre">addbyte</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">byte</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="headerlink" href="#urwid.TermCanvas.addbyte" title="Link to this definition">¶</a></dt>
+<dd><p>Parse main charset and add the processed byte(s) to the terminal state machine.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>byte</strong> – an integer ordinal</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="urwid.TermCanvas.addstr">
+<span class="sig-name descname"><span class="pre">addstr</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">data</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Iterable</span><span class="p"><span class="pre">[</span></span><span class="pre">int</span><span class="p"><span class="pre">]</span></span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="headerlink" href="#urwid.TermCanvas.addstr" title="Link to this definition">¶</a></dt>
+<dd><p>Feed a sequence of input bytes through the terminal parser, one byte at a time.</p>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="urwid.TermCanvas.escbuf">
+<span class="property"><span class="k"><span class="pre">property</span></span><span class="w"> </span></span><span class="sig-name descname"><span class="pre">escbuf</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">bytes</span></span><a class="headerlink" href="#urwid.TermCanvas.escbuf" title="Link to this definition">¶</a></dt>
+<dd><p>Return the buffered bytes of the escape sequence being parsed.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="urwid.TermCanvas.get_utf8_len">
+<span class="sig-name descname"><span class="pre">get_utf8_len</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">bytenum</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">int</span></span></span><a class="headerlink" href="#urwid.TermCanvas.get_utf8_len" title="Link to this definition">¶</a></dt>
+<dd><p>Process startbyte and return the number of bytes following it to get a valid UTF-8 multibyte sequence.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>bytenum</strong> – an integer ordinal</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="urwid.TermCanvas.leave_escape">
+<span class="sig-name descname"><span class="pre">leave_escape</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="headerlink" href="#urwid.TermCanvas.leave_escape" title="Link to this definition">¶</a></dt>
+<dd><p>Reset the escape-sequence parser state, discarding any sequence being read.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="urwid.TermCanvas.parse_csi">
+<span class="sig-name descname"><span class="pre">parse_csi</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">char</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bytes</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="headerlink" href="#urwid.TermCanvas.parse_csi" title="Link to this definition">¶</a></dt>
+<dd><p>Parse ECMA-48 CSI (Control Sequence Introducer) sequences.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="urwid.TermCanvas.parse_dcs">
+<span class="sig-name descname"><span class="pre">parse_dcs</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">body</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bytes</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="headerlink" href="#urwid.TermCanvas.parse_dcs" title="Link to this definition">¶</a></dt>
+<dd><p>Apply the DCS string <em>body</em>, given without its <code class="docutils literal notranslate"><span class="pre">ESC</span> <span class="pre">P</span></code> and ST framing.</p>
+<p>DECRQSS and XTGETTCAP are answered and DECRSPS is applied.
+As in xterm, DECRSPS is applied from the VT300 level (63) on,
+and at the VT100 level (61) DECRQSS does not answer the conformance level.
+Any other DCS string is ignored.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="urwid.TermCanvas.parse_escape">
+<span class="sig-name descname"><span class="pre">parse_escape</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">char</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bytes</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="headerlink" href="#urwid.TermCanvas.parse_escape" title="Link to this definition">¶</a></dt>
+<dd><p>Feed <em>char</em>, read inside an escape sequence, to that sequence.</p>
+<p>It is a parameter or final byte of an ESC or CSI sequence, or a character of a string.
+<a class="reference internal" href="#urwid.TermCanvas.process_char" title="urwid.TermCanvas.process_char"><code class="xref py py-meth docutils literal notranslate"><span class="pre">process_char()</span></code></a> handles control characters outside strings itself.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="urwid.TermCanvas.parse_noncsi">
+<span class="sig-name descname"><span class="pre">parse_noncsi</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">char</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bytes</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mod</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bytes</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">b''</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="headerlink" href="#urwid.TermCanvas.parse_noncsi" title="Link to this definition">¶</a></dt>
+<dd><p>Parse escape sequences which are not CSI.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="urwid.TermCanvas.parse_osc">
+<span class="sig-name descname"><span class="pre">parse_osc</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">buf</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bytes</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="headerlink" href="#urwid.TermCanvas.parse_osc" title="Link to this definition">¶</a></dt>
+<dd><p>Parse operating system command: a window title, or an OSC 8 hyperlink for the text written after it.</p>
+<p>The OSC bodies are recognised by <code class="xref py py-func docutils literal notranslate"><span class="pre">urwid.ansi_parser.resolve_osc_title()</span></code> and
+<code class="xref py py-func docutils literal notranslate"><span class="pre">urwid.ansi_parser.resolve_osc_hyperlink()</span></code>, shared with <a class="reference internal" href="widget.html#urwid.ANSIText" title="urwid.ANSIText"><code class="xref py py-class docutils literal notranslate"><span class="pre">ANSIText</span></code></a>.
+An invalid OSC 8 command ends the current link, so the text after it does not point at the previous target;
+An over-long one, which never reaches this method, ends it as well.
+The body is in the encoding <a class="reference internal" href="#urwid.TermCanvas.addbyte" title="urwid.TermCanvas.addbyte"><code class="xref py py-meth docutils literal notranslate"><span class="pre">addbyte()</span></code></a> passes characters on in, and as in tmux, a title that is not
+valid in it is not set.
+A string that had a sequence that is not valid UTF-8, in UTF-8 mode, sets no title and ends the current link.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>buf</strong> – the OSC command body, excluding the <code class="docutils literal notranslate"><span class="pre">ESC</span> <span class="pre">]</span></code> framing and terminator.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="urwid.TermCanvas.parsestate">
+<span class="property"><span class="k"><span class="pre">property</span></span><span class="w"> </span></span><span class="sig-name descname"><span class="pre">parsestate</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">ParseState</span></span><a class="headerlink" href="#urwid.TermCanvas.parsestate" title="Link to this definition">¶</a></dt>
+<dd><p>Return the state of the escape-sequence parser.</p>
+<p>Setting it to a number that names no <code class="xref py py-class docutils literal notranslate"><span class="pre">ParseState</span></code> raises <code class="xref py py-exc docutils literal notranslate"><span class="pre">ValueError</span></code>.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="urwid.TermCanvas.process_char">
+<span class="sig-name descname"><span class="pre">process_char</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">char</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">bytes</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="headerlink" href="#urwid.TermCanvas.process_char" title="Link to this definition">¶</a></dt>
+<dd><p>Process a single character (single- and multi-byte).</p>
+<p>Display control mode, the 8-bit CSI and the controls inside the Linux palette sequence are handled here,
+and REP is tracked; everything else is the escape-sequence state machine’s,
+see <code class="xref py py-class docutils literal notranslate"><span class="pre">urwid.ansi_parser._vt_parser._VTParser</span></code>.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>char</strong> – a byte string</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="urwid.TermCanvas.reads_utf8">
+<span class="property"><span class="k"><span class="pre">property</span></span><span class="w"> </span></span><span class="sig-name descname"><span class="pre">reads_utf8</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">bool</span></span><a class="headerlink" href="#urwid.TermCanvas.reads_utf8" title="Link to this definition">¶</a></dt>
+<dd><p>Whether input bytes are decoded as UTF-8.</p>
+<p>They are when the data selected UTF-8 (<code class="docutils literal notranslate"><span class="pre">ESC</span> <span class="pre">%</span> <span class="pre">G</span></code>) or urwid’s encoding is UTF-8.
+Otherwise each byte is one character in urwid’s encoding.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="urwid.TermCanvas.set_g01">
+<span class="sig-name descname"><span class="pre">set_g01</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">char</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bytes</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mod</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bytes</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="headerlink" href="#urwid.TermCanvas.set_g01" title="Link to this definition">¶</a></dt>
+<dd><p>Designate the character set of final byte <em>char</em> to the slot of intermediate byte <em>mod</em>.</p>
+<p>The slots are G0 for <code class="docutils literal notranslate"><span class="pre">(</span></code>, G2 for <code class="docutils literal notranslate"><span class="pre">*</span></code>, G3 for <code class="docutils literal notranslate"><span class="pre">+</span></code> and G1 for any other byte.</p>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="urwid.TermCanvas.within_escape">
+<span class="property"><span class="k"><span class="pre">property</span></span><span class="w"> </span></span><span class="sig-name descname"><span class="pre">within_escape</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">bool</span></span><a class="headerlink" href="#urwid.TermCanvas.within_escape" title="Link to this definition">¶</a></dt>
+<dd><p>Return whether an escape sequence is being read.</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="urwid.TermCharset">
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">urwid.</span></span><span class="sig-name descname"><span class="pre">TermCharset</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">g1_graphics</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#urwid.TermCharset" title="Link to this definition">¶</a></dt>
+<dd><p>Tracks the terminal’s G0 to G3 character set slots and which one is currently active.</p>
+<p>Initialize with G0, G2 and G3 at the default charset, G0 active.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>g1_graphics</strong> – G1 starts as DEC special graphics, as on the Linux console; otherwise it starts at the
+default charset, as in xterm.</p>
+</dd>
+</dl>
+<dl class="py method">
+<dt class="sig sig-object py" id="urwid.TermCharset.activate">
+<span class="sig-name descname"><span class="pre">activate</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">g</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="headerlink" href="#urwid.TermCharset.activate" title="Link to this definition">¶</a></dt>
+<dd><p>Activate the given charset slot.</p>
+<p>A pending single shift still applies to the next character.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="urwid.TermCharset.apply_mapping">
+<span class="sig-name descname"><span class="pre">apply_mapping</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">char</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bytes</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">bytes</span></span></span><a class="headerlink" href="#urwid.TermCharset.apply_mapping" title="Link to this definition">¶</a></dt>
+<dd><p>Map <em>char</em> through the active IBM PC/DEC special character set, tracking which slot the result came from.</p>
+<p>A display writes a charset “U” cell to the host terminal unchanged.
+With the UTF-8 encoding a control character there would be executed by the host terminal,
+so it is stored as <code class="docutils literal notranslate"><span class="pre">?</span></code>.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="urwid.TermCharset.define">
+<span class="sig-name descname"><span class="pre">define</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">g</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">charset</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">final</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bytes</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">size96</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="headerlink" href="#urwid.TermCharset.define" title="Link to this definition">¶</a></dt>
+<dd><p>Redefine G’g’ with new mapping.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>g</strong> – the slot, 0 to 3 for G0 to G3.</p></li>
+<li><p><strong>charset</strong> – the name of the character set, a key of <code class="xref py py-attr docutils literal notranslate"><span class="pre">MAPPING</span></code>.</p></li>
+<li><p><strong>final</strong> – the final byte of the designation, reported by DECCIR; the one <em>charset</em> is known by by default.
+A final that is not one byte from <code class="docutils literal notranslate"><span class="pre">0</span></code> to <code class="docutils literal notranslate"><span class="pre">~</span></code>, or is <code class="docutils literal notranslate"><span class="pre">;</span></code>, cannot be reported and is replaced so too.</p></li>
+<li><p><strong>size96</strong> – the designation is of a 96-character set.</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="urwid.TermCharset.designations">
+<span class="property"><span class="k"><span class="pre">property</span></span><span class="w"> </span></span><span class="sig-name descname"><span class="pre">designations</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">bytes</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">int</span><span class="p"><span class="pre">]</span></span></span><a class="headerlink" href="#urwid.TermCharset.designations" title="Link to this definition">¶</a></dt>
+<dd><p>Return the final bytes G0 to G3 were designated with, and a bit per slot holding a 96-character set.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="urwid.TermCharset.end_single_shift">
+<span class="sig-name descname"><span class="pre">end_single_shift</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="headerlink" href="#urwid.TermCharset.end_single_shift" title="Link to this definition">¶</a></dt>
+<dd><p>End a single shift after the character it applied to.</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="urwid.TermCharset.gr">
+<span class="sig-name descname"><span class="pre">gr</span></span><a class="headerlink" href="#urwid.TermCharset.gr" title="Link to this definition">¶</a></dt>
+<dd><p>the slot invoked into GR by LS1R, LS2R or LS3R; GR is not drawn from, only reported</p>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="urwid.TermCharset.ibmpc_mapped">
+<span class="property"><span class="k"><span class="pre">property</span></span><span class="w"> </span></span><span class="sig-name descname"><span class="pre">ibmpc_mapped</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">bool</span></span><a class="headerlink" href="#urwid.TermCharset.ibmpc_mapped" title="Link to this definition">¶</a></dt>
+<dd><p>Return whether the characters written are mapped as the IBM PC character set, by SGR 11 or a designation.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="urwid.TermCharset.reset_sgr_ibmpc">
+<span class="sig-name descname"><span class="pre">reset_sgr_ibmpc</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="headerlink" href="#urwid.TermCharset.reset_sgr_ibmpc" title="Link to this definition">¶</a></dt>
+<dd><p>Reset graphics rendition mapping to IBM PC CP437.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="urwid.TermCharset.set_sgr_ibmpc">
+<span class="sig-name descname"><span class="pre">set_sgr_ibmpc</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="headerlink" href="#urwid.TermCharset.set_sgr_ibmpc" title="Link to this definition">¶</a></dt>
+<dd><p>Set graphics rendition mapping to IBM PC CP437.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="urwid.TermCharset.single_shift">
+<span class="sig-name descname"><span class="pre">single_shift</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">g</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="headerlink" href="#urwid.TermCharset.single_shift" title="Link to this definition">¶</a></dt>
+<dd><p>Draw the next character only from slot <em>g</em>, as SS2 and SS3 do.</p>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="urwid.TermCharset.single_shifted">
+<span class="property"><span class="k"><span class="pre">property</span></span><span class="w"> </span></span><span class="sig-name descname"><span class="pre">single_shifted</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">int</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><a class="headerlink" href="#urwid.TermCharset.single_shifted" title="Link to this definition">¶</a></dt>
+<dd><p>Return the slot a pending single shift draws the next character from, or None without one.</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="urwid.TermModes">
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">urwid.</span></span><span class="sig-name descname"><span class="pre">TermModes</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">display_ctrl</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">insert</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">lfnl</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">keys_decckm</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">reverse_video</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">constrain_scrolling</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">autowrap</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">visible_cursor</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">bracketed_paste</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">synchronized_output</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">in_band_resize</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mouse_tracking</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">PrivateMode</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mouse_encoding</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">PrivateMode</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">alternate_screen</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">keyboard_flags</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">list</span><span class="p"><span class="pre">[</span></span><span class="pre">int</span><span class="p"><span class="pre">]</span></span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">&lt;factory&gt;</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">main_charset</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Literal[1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">2]</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">keypad_application</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">backarrow_sends_backspace</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">cursor_style</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">iso_protection</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">focus_reporting</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">alternate_scroll</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">left_right_margins</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#urwid.TermModes" title="Link to this definition">¶</a></dt>
+<dd><p>Terminal mode flags (ECMA-48 and DEC private modes) tracked for a <a class="reference internal" href="#urwid.TermCanvas" title="urwid.TermCanvas"><code class="xref py py-class docutils literal notranslate"><span class="pre">TermCanvas</span></code></a>.</p>
+<dl class="py method">
+<dt class="sig sig-object py" id="urwid.TermModes.reset">
+<span class="sig-name descname"><span class="pre">reset</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="headerlink" href="#urwid.TermModes.reset" title="Link to this definition">¶</a></dt>
+<dd><p>Reset every mode flag to its terminal-startup default.</p>
+</dd></dl>
+
+</dd></dl>
+
+</section>
 <section id="compositecanvas-builders">
 <h2>CompositeCanvas Builders<a class="headerlink" href="#compositecanvas-builders" title="Link to this heading">¶</a></h2>
 <dl class="py function">
@@ -818,6 +1075,45 @@ Widgets are not guaranteed to be weak-referenceable, so neither index can use we
 </li>
 </ul>
 </li>
+<li><a class="reference internal" href="#terminal-canvas">Terminal Canvas</a><ul>
+<li><a class="reference internal" href="#urwid.TermCanvas"><code class="docutils literal notranslate"><span class="pre">TermCanvas</span></code></a><ul>
+<li><a class="reference internal" href="#urwid.TermCanvas.addbyte"><code class="docutils literal notranslate"><span class="pre">TermCanvas.addbyte()</span></code></a></li>
+<li><a class="reference internal" href="#urwid.TermCanvas.addstr"><code class="docutils literal notranslate"><span class="pre">TermCanvas.addstr()</span></code></a></li>
+<li><a class="reference internal" href="#urwid.TermCanvas.escbuf"><code class="docutils literal notranslate"><span class="pre">TermCanvas.escbuf</span></code></a></li>
+<li><a class="reference internal" href="#urwid.TermCanvas.get_utf8_len"><code class="docutils literal notranslate"><span class="pre">TermCanvas.get_utf8_len()</span></code></a></li>
+<li><a class="reference internal" href="#urwid.TermCanvas.leave_escape"><code class="docutils literal notranslate"><span class="pre">TermCanvas.leave_escape()</span></code></a></li>
+<li><a class="reference internal" href="#urwid.TermCanvas.parse_csi"><code class="docutils literal notranslate"><span class="pre">TermCanvas.parse_csi()</span></code></a></li>
+<li><a class="reference internal" href="#urwid.TermCanvas.parse_dcs"><code class="docutils literal notranslate"><span class="pre">TermCanvas.parse_dcs()</span></code></a></li>
+<li><a class="reference internal" href="#urwid.TermCanvas.parse_escape"><code class="docutils literal notranslate"><span class="pre">TermCanvas.parse_escape()</span></code></a></li>
+<li><a class="reference internal" href="#urwid.TermCanvas.parse_noncsi"><code class="docutils literal notranslate"><span class="pre">TermCanvas.parse_noncsi()</span></code></a></li>
+<li><a class="reference internal" href="#urwid.TermCanvas.parse_osc"><code class="docutils literal notranslate"><span class="pre">TermCanvas.parse_osc()</span></code></a></li>
+<li><a class="reference internal" href="#urwid.TermCanvas.parsestate"><code class="docutils literal notranslate"><span class="pre">TermCanvas.parsestate</span></code></a></li>
+<li><a class="reference internal" href="#urwid.TermCanvas.process_char"><code class="docutils literal notranslate"><span class="pre">TermCanvas.process_char()</span></code></a></li>
+<li><a class="reference internal" href="#urwid.TermCanvas.reads_utf8"><code class="docutils literal notranslate"><span class="pre">TermCanvas.reads_utf8</span></code></a></li>
+<li><a class="reference internal" href="#urwid.TermCanvas.set_g01"><code class="docutils literal notranslate"><span class="pre">TermCanvas.set_g01()</span></code></a></li>
+<li><a class="reference internal" href="#urwid.TermCanvas.within_escape"><code class="docutils literal notranslate"><span class="pre">TermCanvas.within_escape</span></code></a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#urwid.TermCharset"><code class="docutils literal notranslate"><span class="pre">TermCharset</span></code></a><ul>
+<li><a class="reference internal" href="#urwid.TermCharset.activate"><code class="docutils literal notranslate"><span class="pre">TermCharset.activate()</span></code></a></li>
+<li><a class="reference internal" href="#urwid.TermCharset.apply_mapping"><code class="docutils literal notranslate"><span class="pre">TermCharset.apply_mapping()</span></code></a></li>
+<li><a class="reference internal" href="#urwid.TermCharset.define"><code class="docutils literal notranslate"><span class="pre">TermCharset.define()</span></code></a></li>
+<li><a class="reference internal" href="#urwid.TermCharset.designations"><code class="docutils literal notranslate"><span class="pre">TermCharset.designations</span></code></a></li>
+<li><a class="reference internal" href="#urwid.TermCharset.end_single_shift"><code class="docutils literal notranslate"><span class="pre">TermCharset.end_single_shift()</span></code></a></li>
+<li><a class="reference internal" href="#urwid.TermCharset.gr"><code class="docutils literal notranslate"><span class="pre">TermCharset.gr</span></code></a></li>
+<li><a class="reference internal" href="#urwid.TermCharset.ibmpc_mapped"><code class="docutils literal notranslate"><span class="pre">TermCharset.ibmpc_mapped</span></code></a></li>
+<li><a class="reference internal" href="#urwid.TermCharset.reset_sgr_ibmpc"><code class="docutils literal notranslate"><span class="pre">TermCharset.reset_sgr_ibmpc()</span></code></a></li>
+<li><a class="reference internal" href="#urwid.TermCharset.set_sgr_ibmpc"><code class="docutils literal notranslate"><span class="pre">TermCharset.set_sgr_ibmpc()</span></code></a></li>
+<li><a class="reference internal" href="#urwid.TermCharset.single_shift"><code class="docutils literal notranslate"><span class="pre">TermCharset.single_shift()</span></code></a></li>
+<li><a class="reference internal" href="#urwid.TermCharset.single_shifted"><code class="docutils literal notranslate"><span class="pre">TermCharset.single_shifted</span></code></a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#urwid.TermModes"><code class="docutils literal notranslate"><span class="pre">TermModes</span></code></a><ul>
+<li><a class="reference internal" href="#urwid.TermModes.reset"><code class="docutils literal notranslate"><span class="pre">TermModes.reset()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
 <li><a class="reference internal" href="#compositecanvas-builders">CompositeCanvas Builders</a><ul>
 <li><a class="reference internal" href="#urwid.CanvasCombine"><code class="docutils literal notranslate"><span class="pre">CanvasCombine()</span></code></a></li>
 <li><a class="reference internal" href="#urwid.CanvasJoin"><code class="docutils literal notranslate"><span class="pre">CanvasJoin()</span></code></a></li>
@@ -883,7 +1179,7 @@ Widgets are not guaranteed to be weak-referenceable, so neither index can use we
         <li class="right" >
           <a href="attrspec.html" title="Raw Display Attributes"
              >previous</a> |</li>
-        <li class="nav-item nav-item-0"><a href="../index.html">Urwid 5.2.0</a> &#187;</li>
+        <li class="nav-item nav-item-0"><a href="../index.html">Urwid 5.2.1</a> &#187;</li>
           <li class="nav-item nav-item-1"><a href="index.html" >Urwid Reference</a> &#187;</li>
         <li class="nav-item nav-item-this"><a href="">Canvas Classes and Functions</a></li> 
       </ul>

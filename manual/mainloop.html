@@ -5,12 +5,12 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
 
-    <title>Main Loop &#8212; Urwid 5.2.0</title>
+    <title>Main Loop &#8212; Urwid 5.2.1</title>
     <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=03e43079" />
     <link rel="stylesheet" type="text/css" href="../_static/classic.css?v=65f223dd" />
     <link rel="stylesheet" type="text/css" href="../_static/urwid_theme.css?v=de5f08c4" />
     
-    <script src="../_static/documentation_options.js?v=2dde5210"></script>
+    <script src="../_static/documentation_options.js?v=89a6d609"></script>
     <script src="../_static/doctools.js?v=fd6eb6e6"></script>
     <script src="../_static/sphinx_highlight.js?v=6ffebe34"></script>
     
@@ -32,7 +32,7 @@
         <li class="right" >
           <a href="overview.html" title="Library Overview"
              accesskey="P">previous</a> |</li>
-        <li class="nav-item nav-item-0"><a href="../index.html">Urwid 5.2.0</a> &#187;</li>
+        <li class="nav-item nav-item-0"><a href="../index.html">Urwid 5.2.1</a> &#187;</li>
           <li class="nav-item nav-item-1"><a href="index.html" accesskey="U">Urwid Manual</a> &#187;</li>
         <li class="nav-item nav-item-this"><a href="">Main Loop</a></li> 
       </ul>
@@ -239,6 +239,10 @@ watch files.
 On one that cannot, such as <a class="reference internal" href="../reference/main_loop.html#urwid.AsyncioEventLoop" title="urwid.AsyncioEventLoop"><code class="xref py py-class docutils literal notranslate"><span class="pre">AsyncioEventLoop</span></code></a> on asyncio’s
 <code class="docutils literal notranslate"><span class="pre">ProactorEventLoop</span></code>, the default on Windows, <code class="docutils literal notranslate"><span class="pre">resume()</span></code> raises
 <code class="xref py py-exc docutils literal notranslate"><span class="pre">RuntimeError</span></code> and the held records are never shown.</p>
+<p>A widget callback that stops the loop, or reads the widget, calls
+<a class="reference internal" href="../reference/log_handler.html#urwid.log_handler.ListWalkerHandler.flush" title="urwid.log_handler.ListWalkerHandler.flush"><code class="xref py py-meth docutils literal notranslate"><span class="pre">flush()</span></code></a> first, so the widget shows
+every record logged before the call.
+On any other thread <code class="docutils literal notranslate"><span class="pre">flush()</span></code> does nothing.</p>
 <p><code class="docutils literal notranslate"><span class="pre">close()</span></code>, which <code class="xref py py-func docutils literal notranslate"><span class="pre">logging.shutdown()</span></code> also calls, drops the held records
 without touching the widget.</p>
 <p>Each handler rejects the records of the <code class="docutils literal notranslate"><span class="pre">urwid</span></code> logger and its children with
@@ -487,7 +491,7 @@ A worker running there hands its results to the widgets with <a class="reference
         <li class="right" >
           <a href="overview.html" title="Library Overview"
              >previous</a> |</li>
-        <li class="nav-item nav-item-0"><a href="../index.html">Urwid 5.2.0</a> &#187;</li>
+        <li class="nav-item nav-item-0"><a href="../index.html">Urwid 5.2.1</a> &#187;</li>
           <li class="nav-item nav-item-1"><a href="index.html" >Urwid Manual</a> &#187;</li>
         <li class="nav-item nav-item-this"><a href="">Main Loop</a></li> 
       </ul>

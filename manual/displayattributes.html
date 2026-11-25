@@ -5,12 +5,12 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
 
-    <title>Display Attributes &#8212; Urwid 5.2.0</title>
+    <title>Display Attributes &#8212; Urwid 5.2.1</title>
     <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=03e43079" />
     <link rel="stylesheet" type="text/css" href="../_static/classic.css?v=65f223dd" />
     <link rel="stylesheet" type="text/css" href="../_static/urwid_theme.css?v=de5f08c4" />
     
-    <script src="../_static/documentation_options.js?v=2dde5210"></script>
+    <script src="../_static/documentation_options.js?v=89a6d609"></script>
     <script src="../_static/doctools.js?v=fd6eb6e6"></script>
     <script src="../_static/sphinx_highlight.js?v=6ffebe34"></script>
     
@@ -32,7 +32,7 @@
         <li class="right" >
           <a href="encodings.html" title="Encodings Supported"
              accesskey="P">previous</a> |</li>
-        <li class="nav-item nav-item-0"><a href="../index.html">Urwid 5.2.0</a> &#187;</li>
+        <li class="nav-item nav-item-0"><a href="../index.html">Urwid 5.2.1</a> &#187;</li>
           <li class="nav-item nav-item-1"><a href="index.html" accesskey="U">Urwid Manual</a> &#187;</li>
         <li class="nav-item nav-item-this"><a href="">Display Attributes</a></li> 
       </ul>
@@ -72,9 +72,15 @@ The number of colors is decided by the first of these that gives one:</p>
 assigning <code class="docutils literal notranslate"><span class="pre">screen.colors</span></code>;</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">NO_COLOR</span></code>, <code class="docutils literal notranslate"><span class="pre">CLICOLOR=0</span></code>, <code class="docutils literal notranslate"><span class="pre">FORCE_COLOR</span></code> or <code class="docutils literal notranslate"><span class="pre">CLICOLOR_FORCE</span></code> in the environment;</p></li>
 <li><p>the answer to the rendition question, which may also lower a number of colors the guesses below gave;</p></li>
-<li><p>the capability and version replies, which only raise it;</p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">COLORTERM</span></code>, <code class="docutils literal notranslate"><span class="pre">TERM</span></code> and its terminfo entry.</p></li>
+<li><p>the capability and version replies, which only raise it;
+the version replies of Konsole, tmux and xterm.js (the VS Code terminal) mean 24-bit colors,
+which tmux converts for the terminal around it;</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">TERM</span></code> and its terminfo entry, and on Windows 10 the console’s version.</p></li>
 </ol>
+<p>Variables that name a terminal, such as <code class="docutils literal notranslate"><span class="pre">COLORTERM</span></code>, <code class="docutils literal notranslate"><span class="pre">WT_SESSION</span></code> or <code class="docutils literal notranslate"><span class="pre">TERM_PROGRAM</span></code>, are not read: a terminal or
+multiplexer started inside another one inherits them, and they then describe the wrong terminal.
+A terminal that draws 24-bit colors and answers none of the queries gets 256 colors; <code class="docutils literal notranslate"><span class="pre">FORCE_COLOR=3</span></code> gives it 24-bit
+colors.</p>
 <p>With those queries it also asks for the terminal’s default foreground and background colors (OSC 10 and OSC 11),
 which <code class="xref py py-attr docutils literal notranslate"><span class="pre">display.raw.Screen.terminal_default_colors</span></code> then holds, and with which the <a class="reference internal" href="../reference/widget.html#urwid.Terminal" title="urwid.Terminal"><code class="xref py py-class docutils literal notranslate"><span class="pre">Terminal</span></code></a> widget
 answers its child’s queries of the same colors. Like the other queries, they are not sent on the Linux console, nor
@@ -370,7 +376,8 @@ A color it is not given keeps its kind and number.</p></li>
 the kind of each color for layers of different color modes, where they used to convert every color to the larger
 mode.</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">repr()</span></code> of a true color <a class="reference internal" href="../reference/attrspec.html#urwid.AttrSpec" title="urwid.AttrSpec"><code class="xref py py-class docutils literal notranslate"><span class="pre">AttrSpec</span></code></a> names <code class="docutils literal notranslate"><span class="pre">colors=16777216</span></code>.</p></li>
-<li><p><a class="reference internal" href="../reference/widget.html#urwid.ANSIText" title="urwid.ANSIText"><code class="xref py py-class docutils literal notranslate"><span class="pre">ANSIText</span></code></a> and the <a class="reference internal" href="../reference/widget.html#urwid.Terminal" title="urwid.Terminal"><code class="xref py py-class docutils literal notranslate"><span class="pre">Terminal</span></code></a> widget keep a palette entry beside a 24-bit color as an entry.</p></li>
+<li><p><a class="reference internal" href="../reference/widget.html#urwid.ANSIText" title="urwid.ANSIText"><code class="xref py py-class docutils literal notranslate"><span class="pre">ANSIText</span></code></a>, <a class="reference internal" href="../reference/widget.html#urwid.Terminal" title="urwid.Terminal"><code class="xref py py-class docutils literal notranslate"><span class="pre">Terminal</span></code></a> and <a class="reference internal" href="../reference/widget.html#urwid.TerminalOutput" title="urwid.TerminalOutput"><code class="xref py py-class docutils literal notranslate"><span class="pre">TerminalOutput</span></code></a> keep a palette entry beside a 24-bit color as an
+entry.</p></li>
 </ul>
 </section>
 <section id="bold-underline-standout">
@@ -414,9 +421,10 @@ color of the enclosing attribute is taken:</p>
 </div>
 <p>The raw display draws the styles and the color where the terminal does, and an underline in the
 text color and single elsewhere. It finds them in the terminal’s terminfo entry (<code class="docutils literal notranslate"><span class="pre">Smulx</span></code> or
-<code class="docutils literal notranslate"><span class="pre">Setulc</span></code>), from the terminal’s version in the environment (VTE, Konsole, iTerm2, WezTerm, Ghostty,
-mintty, Rio and the VS Code terminal),
-or from the terminal’s replies to its capability and version queries, and
+<code class="docutils literal notranslate"><span class="pre">Setulc</span></code>), or in the terminal’s replies to its capability and version queries; the version replies of VTE, Konsole,
+iTerm2, WezTerm, Ghostty, foot, mintty, Rio and xterm.js (the VS Code terminal) are known.
+It does not read the variables that name these terminals, such as <code class="docutils literal notranslate"><span class="pre">VTE_VERSION</span></code>,
+because a terminal started from inside another one inherits them.
 <code class="docutils literal notranslate"><span class="pre">underline_styles</span></code> given to <a class="reference internal" href="../reference/display_modules.html#urwid.display.raw.Screen" title="urwid.display.raw.Screen"><code class="xref py py-class docutils literal notranslate"><span class="pre">display.raw.Screen</span></code></a> or
 <code class="xref py py-meth docutils literal notranslate"><span class="pre">display.raw.Screen.set_terminal_properties()</span></code> turns them on or off. The web displays draw
 them as the text decoration’s style and color; the curses display draws a single underline.</p>
@@ -435,7 +443,8 @@ An attribute without a link takes the link of the attribute around it, and
 <a class="reference internal" href="../reference/attrspec.html#urwid.NO_HYPERLINK" title="urwid.NO_HYPERLINK"><code class="xref py py-data docutils literal notranslate"><span class="pre">NO_HYPERLINK</span></code></a> turns it off: <code class="docutils literal notranslate"><span class="pre">AttrSpec(hyperlink=NO_HYPERLINK)</span></code> inside a link is drawn unlinked.
 <a class="reference internal" href="../reference/attrspec.html#urwid.Hyperlink" title="urwid.Hyperlink"><code class="xref py py-class docutils literal notranslate"><span class="pre">Hyperlink</span></code></a> also takes an <code class="docutils literal notranslate"><span class="pre">id</span></code>, which makes the terminal highlight several separate runs as one link.
 A URI or id outside printable ASCII is refused, so a link cannot write other escape sequences to the terminal.</p>
-<p><a class="reference internal" href="../reference/widget.html#urwid.ANSIText" title="urwid.ANSIText"><code class="xref py py-class docutils literal notranslate"><span class="pre">ANSIText</span></code></a> and <a class="reference internal" href="../reference/widget.html#urwid.Terminal" title="urwid.Terminal"><code class="xref py py-class docutils literal notranslate"><span class="pre">Terminal</span></code></a> turn the OSC 8 sequences in their input into such attributes.
+<p><a class="reference internal" href="../reference/widget.html#urwid.ANSIText" title="urwid.ANSIText"><code class="xref py py-class docutils literal notranslate"><span class="pre">ANSIText</span></code></a>, <a class="reference internal" href="../reference/widget.html#urwid.Terminal" title="urwid.Terminal"><code class="xref py py-class docutils literal notranslate"><span class="pre">Terminal</span></code></a> and <a class="reference internal" href="../reference/widget.html#urwid.TerminalOutput" title="urwid.TerminalOutput"><code class="xref py py-class docutils literal notranslate"><span class="pre">TerminalOutput</span></code></a> turn the OSC 8 sequences in their input into such
+attributes.
 SGR sequences, <code class="docutils literal notranslate"><span class="pre">ESC[0m</span></code> included, leave the link in place, as they do in a terminal.
 An OSC 8 sequence urwid refuses ends the current link, so the text after it does not point at the previous target.</p>
 <p>The raw display draws links only after
@@ -682,7 +691,7 @@ edit boxes).</p>
         <li class="right" >
           <a href="encodings.html" title="Encodings Supported"
              >previous</a> |</li>
-        <li class="nav-item nav-item-0"><a href="../index.html">Urwid 5.2.0</a> &#187;</li>
+        <li class="nav-item nav-item-0"><a href="../index.html">Urwid 5.2.1</a> &#187;</li>
           <li class="nav-item nav-item-1"><a href="index.html" >Urwid Manual</a> &#187;</li>
         <li class="nav-item nav-item-this"><a href="">Display Attributes</a></li> 
       </ul>
