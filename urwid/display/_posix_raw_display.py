@@ -433,9 +433,7 @@ class Screen(_raw_display_base.Screen):
                 # and raising here would hide the error that ended the run, such as the closed input.
                 if exc.errno not in {errno.EIO, errno.ENXIO, errno.EPIPE}:
                     raise
-                # _stop_mouse_restore_buffer() did not clear the flag; a later start that fails before clearing it
-                # draws nothing either
-                self._start_complete = False
+                self._forget_stop_state()
             finally:
                 # a failed write skips the step of _mouse_tracking() that stops the helper
                 self._stop_gpm_tracking()

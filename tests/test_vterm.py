@@ -2855,7 +2855,16 @@ class TermTest(unittest.TestCase):
                 b"\x1b[?2;3$y",
             ),
             ("DECRQUPSS reports ISO Latin-1", r"\e[&u", b"\x1bP1!uA\x1b\\"),
-            ("DECRQUPSS is not answered at the VT100 level", r'\e[61"p\e[&u', b""),
+            (
+                "DECRQUPSS is answered from the VT300 level on",
+                r'\e[61"p\e[&u\e[62;1"p\e[&u\e[63;1"p\e[&u',
+                b"\x1bP1!uA\x1b\\",
+            ),
+            (
+                "DECRQDE is answered from the VT300 level on",
+                r'\e[61"p\e["v\e[62;1"p\e["v\e[63;1"p\e["v',
+                b'\x1b[24;80;1;1;1"w',
+            ),
             ("DECRQM is not answered without a mode", r"\e[?$p\e[?1;2$p", b""),
             ("other sequences ending in p are not answered", r'\e[5p\e[!p\e[61;1"p', b""),
             (
@@ -2897,9 +2906,16 @@ class TermTest(unittest.TestCase):
                 b'\x1bP1$r62;1"p\x1b\\\x1bP1$r62;1"p\x1b\\\x1bP1$r64;1"p\x1b\\',
             ),
             (
-                "at the VT100 level DECRQPSR is not answered, DECRQM and DECRQSS still are, as in xterm",
+                "at the VT100 level DECRQPSR is not answered, DECRQM for a private mode and DECRQSS still are,"
+                " as in xterm",
                 rf'\e[61"p\eP$qm{_ST}\e[1$w\e[2$w\e[?66$p',
                 b"\x1bP1$r0m\x1b\\\x1b[?66;2$y",
+            ),
+            (
+                "at the VT200 level DECRQM for an ANSI mode, DECRQPSR and the page of DECXCPR are not answered,"
+                " as in xterm",
+                r'\e[62;1"p\e[4$p\e[1$w\e[?6n\e[63;1"p\e[4$p\e[?6n\e[2$w',
+                b"\x1b[?1;1R\x1b[4;2$y\x1b[?1;1;1R\x1bP2$u1/9/17/25/33/41/49/57/65/73\x1b\\",
             ),
             (
                 "at the VT100 level DECRQSS does not answer the conformance level, as in xterm",
@@ -2907,9 +2923,11 @@ class TermTest(unittest.TestCase):
                 b"\x1bP1$r1;24r\x1b\\",
             ),
             (
-                "at the VT100 level DECRSPS is not applied, as in xterm",
-                rf'\e[61"p\e[2;2H\eP1$t5;5;1;@;@;@;0;2;@;BBBB{_ST}\e[6n',
-                b"\x1b[2;2R",
+                "DECRSPS is applied from the VT300 level on, as in xterm",
+                rf'\e[61"p\e[2;2H\eP1$t5;5;1;@;@;@;0;2;@;BBBB{_ST}\e[6n'
+                rf'\e[62;1"p\e[2;2H\eP1$t5;5;1;@;@;@;0;2;@;BBBB{_ST}\e[6n'
+                rf'\e[63;1"p\e[2;2H\eP1$t5;5;1;@;@;@;0;2;@;BBBB{_ST}\e[6n',
+                b"\x1b[2;2R\x1b[2;2R\x1b[5;5R",
             ),
             ("DECSCL performs a soft reset", r'\e[?25l\e[63;1"p\e[?25$p', b"\x1b[?25;1$y"),
             (
@@ -3054,14 +3072,20 @@ class TermTest(unittest.TestCase):
     def test_xtgettcap_describes_24_bit_colors(self) -> None:
         """Answer the 256 colors of the palette and RGB, as the canvas takes any color and the screen converts it.
 
-        As in xterm, the names known are answered in one reply, up to the first one that is not.
+        As in xterm, the names known are answered in one reply, up to the first one that is not,
+        and the reply ends with a semicolon only when it stopped at such a name.
         """
-        self.write(rf"\eP+q436f;636F6C6F7273;524742;544E;436f{_ST}")
-        self.term.wait_and_feed()
-        self.assertEqual(
-            bytes(self.pty.from_widget),
-            b"\x1bP1+r436f=323536;636F6C6F7273=323536;524742=38;\x1b\\",
-        )
+        for query, answer in (
+            (rf"\eP+q436f;636F6C6F7273;524742;544E;436f{_ST}", b"436f=323536;636F6C6F7273=323536;524742=38;"),
+            (rf"\eP+q436f;524742{_ST}", b"436f=323536;524742=38"),
+            (rf"\eP+q436f;{_ST}", b"436f=323536;"),
+            (rf"\eP+q436f;zz{_ST}", b"436f=323536;"),
+        ):
+            with self.subTest(query):
+                self.restart()
+                self.write(query)
+                self.term.wait_and_feed()
+                self.assertEqual(bytes(self.pty.from_widget), b"\x1bP1+r" + answer + b"\x1b\\")
 
     def test_raw_display_reads_the_answers_to_its_own_queries(self) -> None:
         """Decode what the widget answers to the queries a raw display sends as it starts, as replies and no keys."""
@@ -3242,6 +3266,12 @@ class TermTest(unittest.TestCase):
             ("LS2 and LS3 stay until SI", "\\e*0\\e+0\\enq\\eoq\x0fq", [dec, dec, ascii_q]),
             ("a 96-character set is drawn as the default set", "\\e)0\\e-A\\e.A\\e/A\x0eq\\enq", [ascii_q, ascii_q]),
             ("RIS resets G2 and G3", r"\e*0\ec\enq", [ascii_q]),
+            (
+                "the VT100 level ignores the shifts, as xterm does",
+                r'\e[61"p\e*0\e+0\enq\eNq\eoq\eOq',
+                [ascii_q] * 4,
+            ),
+            ("the VT200 level takes the shifts, as xterm does", r'\e[62;1"p\e*0\enq', [dec]),
         ):
             with self.subTest(label):
                 self.restart()

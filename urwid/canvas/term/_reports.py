@@ -263,22 +263,27 @@ class _ReportsCanvas(_EditingCanvas):
         The reply follows xterm:
 
         - the names are answered in order up to the first one that is not answered;
-        - those answered are listed in one DCS 1 + r Pt ST, Pt holding ``name=value;`` for each, the value hex-encoded
-          as the name is;
+        - those answered are listed in one DCS 1 + r Pt ST, Pt holding ``name=value`` for each, separated by ``;``,
+          the value hex-encoded as the name is, and ending with ``;`` when a name after them is not answered;
         - when the first name is not answered, the reply is DCS 0 + r ST.
         """
         values = {"Co": str(_PALETTE_COLORS), "colors": str(_PALETTE_COLORS), "RGB": "8"}
-        answered = ""
+        answered: list[str] = []
+        stopped = False
         for name in names.split(b";"):
             try:
                 hex_name = name.decode("ascii")
                 key = bytes.fromhex(hex_name).decode("ascii")
             except ValueError:
-                break
+                key = None
             if key not in values:
+                stopped = True
                 break
-            answered += f"{hex_name}={values[key].encode('ascii').hex().upper()};"
-        self.widget.respond(f"{DCS}1+r{answered}{ST}" if answered else f"{DCS}0+r{ST}")
+            answered.append(f"{hex_name}={values[key].encode('ascii').hex().upper()}")
+        if not answered:
+            self.widget.respond(f"{DCS}0+r{ST}")
+            return
+        self.widget.respond(f"{DCS}1+r{';'.join(answered)}{';' if stopped else ''}{ST}")
 
     def dcs_restore_tab_stops(self, body: bytes) -> None:
         """Set the tab stops to the 1-based columns of a DECTABSR report *body* (DECRSPS 2), separated by ``/``.
@@ -298,17 +303,19 @@ class _ReportsCanvas(_EditingCanvas):
         """Answer DECRQUPSS (``CSI & u``) with DECAUPSS for ISO Latin-1, ``DCS 1 ! u A ST``.
 
         That is the 96-character set a designation such as ``ESC - A`` draws.
-        It is not answered at the VT100 level (61), like the other DCS replies.
+        It is answered from the VT300 level (63) on, as in xterm.
         """
-        if self.conformance_level > 61:
+        if self.conformance_level > 62:
             self.widget.respond(f"{DCS}1!uA{ST}")
 
     def csi_report_displayed_extent(self, _params: Sequence[int | None]) -> None:
         """Answer DECRQDE (``CSI " v``) with DECRPDE.
 
         The reply is the height and the width, and column, row and page 1 at the top left.
+        It is answered from the VT300 level (63) on, as in xterm.
         """
-        self.widget.respond(f'{CSI}{self.height:d};{self.width:d};1;1;1"w')
+        if self.conformance_level > 62:
+            self.widget.respond(f'{CSI}{self.height:d};{self.width:d};1;1;1"w')
 
     def csi_get_device_attributes(self, qmark: bool) -> None:
         """Report the primary device attributes: a VT220 with ANSI colour."""
@@ -324,8 +331,9 @@ class _ReportsCanvas(_EditingCanvas):
             - 6, the cursor position report, with the row and the column counted from the top and left margins in
               origin mode, as CUP takes them.
         :param private: the DEC form, ``CSI ? Ps n``, was sent.
-            Its cursor position report (DECXCPR) adds page 1, and it also answers 15 (no printer), 25 (user-defined
-            keys unlocked) and 26 (a North American keyboard, ready, an LK201).
+            Its cursor position report (DECXCPR) adds page 1 from the VT300 level (63) on.
+            It also answers 15 (no printer), 25 (user-defined keys unlocked)
+            and 26 (a North American keyboard, ready, an LK201).
         """
         prefix = "?" if private else ""
         if mode == 5:
@@ -335,7 +343,8 @@ class _ReportsCanvas(_EditingCanvas):
             if self.modes.constrain_scrolling:
                 x -= self.margin_left
                 y -= self.scrollregion_start
-            self.widget.respond(f"{CSI}{prefix}{y + 1:d};{x + 1:d}{';1' if private else ''}R")
+            page = ";1" if private and self.conformance_level > 62 else ""
+            self.widget.respond(f"{CSI}{prefix}{y + 1:d};{x + 1:d}{page}R")
         elif private and mode in _PRIVATE_STATUS_REPORTS:
             self.widget.respond(f"{CSI}?{_PRIVATE_STATUS_REPORTS[mode]}n")
 
