@@ -406,6 +406,7 @@ class GridFlow(
         A flow size gives the width directly, and a ``'pack'`` cell is at most that wide.
         A :exc:`GridFlowWarning` is issued when that width is narrower than the widest ``'given'`` cell.
         A fixed size uses the width of all cells in one row, with each ``'pack'`` cell at its fixed width.
+        A cell 0 columns wide takes no space and no divider, as :class:`Columns` hides it.
 
         :param size: ``(maxcol,)`` for a flow size, ``()`` for a fixed size
         :returns: the width in screen columns, 0 for an empty GridFlow with a fixed size, and the cell widths
@@ -429,7 +430,8 @@ class GridFlow(
                 widths.append(min(width, maxcol))
 
         if not size:
-            return sum(widths) + (len(widths) - 1) * self.h_sep if widths else 0, tuple(widths)
+            visible = [width for width in widths if width > 0]
+            return sum(visible) + (len(visible) - 1) * self.h_sep if visible else 0, tuple(widths)
 
         (maxcol,) = size
         if maxcol < widest_given:
@@ -487,7 +489,10 @@ class GridFlow(
         used_space = 0
 
         for i, ((w, _options), width_amount) in enumerate(zip(self.contents, widths, strict=True)):
-            if c is None or maxcol - used_space < width_amount:
+            # A cell takes at most maxcol columns, as it is added below. A cell 0 columns wide fits in any row,
+            # and a row of only such cells has room for any cell, so no row shows nothing.
+            width = min(width_amount, maxcol)
+            if c is None or (width > 0 and maxcol - used_space < width):
                 # starting a new row
                 if self.v_sep:
                     p.contents.append((divider, p.options()))
@@ -504,7 +509,7 @@ class GridFlow(
                     w,
                     c.options(
                         WHSettings.GIVEN,
-                        min(width_amount, maxcol),
+                        width,
                     ),
                 )
             )
@@ -516,8 +521,10 @@ class GridFlow(
                 # only the row holding the focus cell marks it, so the other rows' own focus cells stay plain
                 c.unfocused_focus_attr = self._unfocused_focus_attr
                 c.unfocused_focus_attr_func = self._unfocused_focus_attr_func
-            used_space = sum(typing.cast("int", x[1][1]) for x in c.contents) + self.h_sep * len(c.contents)
-            pad.width = used_space - self.h_sep
+            # Columns draws no divider next to a column 0 columns wide
+            visible = [width for _w, (_t, width, _b) in c.contents if typing.cast("int", width) > 0]
+            used_space = sum(typing.cast("int", width) for width in visible) + self.h_sep * len(visible)
+            pad.width = max(used_space - self.h_sep, 0)
 
         if self.v_sep:
             # remove first divider

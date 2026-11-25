@@ -1,7 +1,9 @@
 from __future__ import annotations
 
+import itertools
 import typing
 import unittest
+import warnings
 from unittest import mock
 
 import urwid
@@ -46,6 +48,41 @@ class GridFlowTest(unittest.TestCase):
 
         self.assertEqual((20, 1), grid.pack(()))
         self.assertEqual([b"Open Quit program Up"], grid.render(()).text)
+
+    def test_zero_width_cells(self) -> None:
+        """A cell 0 columns wide takes no space and no divider, as :class:`Columns` hides it.
+
+        Every case runs with ``'given'`` widths and with ``'pack'`` cells, where an empty label is 0 columns wide.
+        """
+        cases = (
+            # name, labels, align, flow width, expected flow rows, expected fixed size
+            ("first cell, right aligned", ("", "ab", "cd"), urwid.RIGHT, 12, ("      ab  cd",), (6, 1)),
+            ("after a full row", ("ab", "cd", ""), urwid.LEFT, 6, ("ab  cd",), (6, 1)),
+            ("only empty cells", ("", ""), urwid.LEFT, 5, ("     ",), (0, 1)),
+            ("before a cell wider than the grid", ("", "abcdefgh"), urwid.LEFT, 4, ("abcd", "efgh"), (8, 1)),
+        )
+        for (name, labels, align, maxcol, expected, fixed), width_type in itertools.product(
+            cases,
+            (urwid.GIVEN, urwid.PACK),
+        ):
+            with self.subTest(name, width_type=width_type):
+                grid = urwid.GridFlow([], cell_width=1, h_sep=2, v_sep=0, align=align)
+                grid.contents.extend(
+                    (
+                        urwid.Text(label),
+                        grid.options(urwid.GIVEN, len(label))
+                        if width_type == urwid.GIVEN
+                        else grid.options(urwid.PACK),
+                    )
+                    for label in labels
+                )
+
+                with warnings.catch_warnings():
+                    # a cell wider than the grid warns, which is not what this test is about
+                    warnings.simplefilter("ignore", urwid.widget.GridFlowWarning)
+                    rendered = grid.render((maxcol,)).decoded_text
+                self.assertEqual(expected, rendered)
+                self.assertEqual(fixed, grid.pack(()))
 
     def test_display_widget_cached(self) -> None:
         """The display widget is reused at the same width, and rebuilt for another width or a change.
