@@ -7,6 +7,7 @@ import warnings
 import weakref
 from typing import Literal
 
+from urwid.command_map import Command
 from urwid.split_repr import remove_defaults
 
 from .columns import Columns
@@ -14,7 +15,6 @@ from .constants import Align, Sizing, WHSettings
 from .container import (
     _SELECT_COMMANDS,
     SelectNavigationListContentsMixin,
-    _invalidate_on_focus_change,
     _UnfocusedFocusAttrMixin,
     _WeakCallback,
 )
@@ -39,6 +39,16 @@ class GridFlowError(WidgetError):
 
 class GridFlowWarning(WidgetWarning):
     """GridFlow specific warning."""
+
+
+def _cell_span(columns: Columns, index: int) -> tuple[int, int]:
+    """Return the offset and the width of cell *index* in a row of the display widget.
+
+    Every cell of the row has a ``'given'`` width, and a cell 0 columns wide has no divider, as :class:`Columns` lays
+    it out.
+    """
+    widths = [typing.cast("int", options[1]) for _w, options in columns.contents]
+    return sum(columns.dividechars + width for width in widths[:index] if width > 0), widths[index]
 
 
 GridFlowOptions = tuple[Literal[WHSettings.GIVEN], int]
@@ -147,7 +157,7 @@ class GridFlow(
         # Bumped on every contents change, so input handlers can tell that the display widget went stale.
         self._contents_generation = 0
         self._contents.set_modified_callback(_WeakCallback(self, type(self)._contents_changed))
-        self._contents.set_focus_changed_callback(_WeakCallback(self, _invalidate_on_focus_change))
+        self._contents.set_focus_changed_callback(_WeakCallback(self, type(self)._focus_changed))
         self._contents.set_focus_moved_callback(_WeakCallback(self, type(self)._emit, "focus changed"))
         self._contents.set_validate_contents_modified(_WeakCallback(self, type(self)._contents_modified))
         self._cell_width = cell_width
@@ -158,6 +168,9 @@ class GridFlow(
         self._set_unfocused_focus_attr(unfocused_focus_attr)
         self._unfocused_focus_attr_func = unfocused_focus_attr_func
         self.first_position: weakref.WeakKeyDictionary[Padding[Columns], int] = weakref.WeakKeyDictionary()
+        # The cursor column kept for the focus cell, as an offset inside that cell, so it survives rebuilds of the
+        # display widget. It always belongs to the current focus cell: a focus or contents change drops it.
+        self._pref_col: int | None = None
         maxcol = self._get_maxcol(())
         # The width laid out in and which cells are selectable, which picks the focus cell of each row:
         # a cell can change its selectability without invalidating the GridFlow.
@@ -213,9 +226,21 @@ class GridFlow(
         self._cache_key = None
         super()._invalidate()
 
+    def _focus_changed(self, _focus: int) -> None:
+        """Drop the cursor column kept for the cell losing the focus.
+
+        The cached display widget is invalidated too.
+        """
+        self._pref_col = None
+        self._invalidate()
+
     def _contents_changed(self) -> None:
-        """Record a contents change and invalidate the cached display widget."""
+        """Record a contents change.
+
+        The kept cursor column is dropped, and the cached display widget is invalidated.
+        """
         self._contents_generation += 1
+        self._pref_col = None
         self._invalidate()
 
     def _contents_modified(
@@ -373,24 +398,27 @@ class GridFlow(
 
         Also updates the display widget.
         The display widget is reused while the width and every cell's ``selectable()`` stay the same.
+        The row of the focus cell gets the cursor column kept for that cell, and every other row none.
         """
         maxcol = self._get_maxcol(size)
         key = (maxcol, tuple(w.selectable() for w, _ in self.contents))
 
-        # use cache if possible
-        if self._cache_key == key:
-            # Each call starts from the preferred columns a new display widget has: a column left by an earlier
-            # move_cursor_to_coords() would otherwise replace the cell centre that get_pref_col() falls back to.
-            if isinstance(self._w, Pile):
-                self._w.pref_col = 0
-                for row, _options in self._w.contents:
-                    if isinstance(row, Padding):
-                        typing.cast("Columns", row.original_widget).pref_col = None
-            return self._w
+        if self._cache_key != key:
+            self._w = self.generate_display_widget((maxcol,))
+            # after the assignment: setting _w invalidates, which clears the cache key
+            self._cache_key = key
+        elif isinstance(self._w, Pile):
+            # a reused display widget starts from the preferred columns a new one has
+            self._w.pref_col = 0
+            for row, _options in self._w.contents:
+                if isinstance(row, Padding):
+                    typing.cast("Columns", row.original_widget).pref_col = None
 
-        self._w = self.generate_display_widget((maxcol,))
-        # after the assignment: setting _w invalidates, which clears the cache key
-        self._cache_key = key
+        if self._pref_col is not None:
+            pad = typing.cast("Padding[Columns]", self._w.focus)
+            columns = pad.original_widget
+            x, width = _cell_span(columns, self.focus_position - self.first_position[pad])
+            columns.pref_col = x + min(self._pref_col, max(width - 1, 0))
 
         return self._w
 
@@ -450,7 +478,11 @@ class GridFlow(
         return p
 
     def _set_focus_from_display_widget(self) -> None:
-        """Set the focus to the item in focus in the display widget."""
+        """Set the focus to the item in focus in the display widget.
+
+        The cursor column of its row is kept for that cell,
+        unless a "focus changed" handler moved the focus again or changed the contents.
+        """
         # display widget (self._w) is always built as:
         #
         # Pile([
@@ -472,7 +504,25 @@ class GridFlow(
 
         first_position = self.first_position[typing.cast("Padding[Columns]", pile_focus)]
 
-        self.focus_position = first_position + col_focus_position
+        # The cursor column the row got from the display widget is kept as an offset inside the focus cell:
+        # 'left' and 'right' become its first and last column.
+        pref_col: int | None = None
+        if (col := c.pref_col) is not None:
+            x, width = _cell_span(c, col_focus_position)
+            if col in {Align.LEFT, Align.RIGHT}:
+                offset = 0 if col == Align.LEFT else width - 1
+            else:
+                offset = typing.cast("int", col) - x
+            pref_col = min(max(offset, 0), max(width - 1, 0))
+
+        position = first_position + col_focus_position
+        generation = self._contents_generation
+        self.focus_position = position
+        # This runs after the focus change, which drops the column kept for the cell before.
+        # A "focus changed" handler runs inside the setter: when it moved the focus or changed the contents,
+        # the column belongs to no cell.
+        if self.contents.focus == position and self._contents_generation == generation:
+            self._pref_col = pref_col
 
     def keypress(
         self,
@@ -484,7 +534,10 @@ class GridFlow(
         Captures focus changes.
         With :attr:`select_navigation`, unhandled ``'next selectable'`` and ``'prev selectable'`` commands
         move the focus to the next or previous selectable cell.
+        A key other than up, down, page up and page down drops the kept cursor column, as in :class:`Columns`.
         """
+        if self._command_map[key] not in {Command.UP, Command.DOWN, Command.PAGE_UP, Command.PAGE_DOWN}:
+            self._pref_col = None
         self.get_display_widget(size)
         focus_before = self.contents.focus
         generation_before = self._contents_generation
@@ -532,10 +585,18 @@ class GridFlow(
         return super().get_cursor_coords(size)
 
     def move_cursor_to_coords(self, size: tuple[int] | tuple[()], col: int, row: int) -> bool:
-        """Set the widget in focus based on the col + row."""
+        """Set the widget in focus based on the col + row.
+
+        The column, limited to the cell that gets the focus, is kept as the preferred column.
+        A cell that changes the contents while it moves its cursor leaves no column kept.
+        """
         self.get_display_widget(size)
+        generation_before = self._contents_generation
         rval = super().move_cursor_to_coords(size, col, row)
         self._set_focus_from_display_widget()
+        if self._contents_generation != generation_before:
+            # the column was read from the display widget of the old contents
+            self._pref_col = None
         return rval
 
     def mouse_event(
@@ -549,6 +610,8 @@ class GridFlow(
     ) -> bool | None:
         """Handle a mouse event, updating the focus based on the resulting display widget.
 
+        An event that moves the focus to another cell leaves no cursor column kept.
+
         :returns: ``True`` when a cell handled the event or the focus moved to another cell, otherwise the
             result of the display widget, so an event such as the mouse wheel stays unhandled for a parent
             like :class:`ListBox`.
@@ -561,6 +624,9 @@ class GridFlow(
         # over the display widget, which was built before the event was dispatched.
         if self.contents.focus == focus_before and self._contents_generation == generation_before:
             self._set_focus_from_display_widget()
+        if self.contents.focus != focus_before:
+            # no cursor column comes with a click, so the kept one belongs to the cell left behind
+            self._pref_col = None
         return handled or self.contents.focus != focus_before
 
     def get_pref_col(self, size: tuple[int] | tuple[()]) -> int | None:
