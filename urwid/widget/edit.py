@@ -87,6 +87,10 @@ class Edit(WidgetWrap[Text]):
       It receives the edit text as an argument. :meth:`keypress` still returns the key.
     * ``"validation"`` is sent when :attr:`validation` changes.
       It receives the old and the new value as arguments.
+    * ``"validated"`` is sent after every run of :attr:`validator`, after ``"validation"`` when that is sent.
+      It is sent also when :attr:`validation` did not change, and also when there is no validator,
+      so a handler sees the current :attr:`validation` after every text change.
+      It receives the current value of :attr:`validation` as an argument.
     * ``"completion_cycle"`` is sent when a completion cycle starts, moves or ends, see :attr:`text_completer`.
       It receives the new value of :attr:`completion_cycle` as an argument.
     """
@@ -95,7 +99,15 @@ class Edit(WidgetWrap[Text]):
     _selectable = True
     ignore_focus = False
     # (this variable is picked up by the MetaSignals metaclass)
-    signals: typing.ClassVar[list[str]] = ["change", "postchange", "submit", "cancel", "validation", "completion_cycle"]
+    signals: typing.ClassVar[list[str]] = [
+        "change",
+        "postchange",
+        "submit",
+        "cancel",
+        "validation",
+        "validated",
+        "completion_cycle",
+    ]
 
     def valid_char(self, ch: str) -> bool:
         """
@@ -589,7 +601,7 @@ class Edit(WidgetWrap[Text]):
         """Run :attr:`validator` on :attr:`edit_text` now and return the new :attr:`validation`.
 
         This is for a check that depends on something else than the text, which has changed.
-        ``"validation"`` is sent when the result differs from the previous one.
+        ``"validation"`` is sent when the result differs from the previous one, and ``"validated"`` always.
         This class never calls it, so a subclass may define its own :meth:`validate` for something else.
 
         :raises TypeError: the validator returned something else than the types :attr:`validator` lists;
@@ -607,7 +619,8 @@ class Edit(WidgetWrap[Text]):
             old_validation, self._validation = self._validation, validation
             self._invalidate()
             self._emit("validation", old_validation, validation)
-        return self._validation  # a "validation" handler may have changed the text, and validated it again
+        self._emit("validated", self._validation)
+        return self._validation  # a handler may have changed the text, and validated it again
 
     @property
     def validation_attr(self) -> dict[Severity, dict[Hashable, Hashable]]:
