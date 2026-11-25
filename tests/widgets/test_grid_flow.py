@@ -89,14 +89,84 @@ class GridFlowTest(unittest.TestCase):
         with mock.patch.object(cell, "selectable", return_value=True):
             self.assertEqual(1, grid.get_display_widget((3,)).contents[1][0].base_widget.focus_position)
 
-    def test_pref_col_not_kept_between_calls(self) -> None:
-        """A column given to ``move_cursor_to_coords`` is not the preferred column of a later call.
+    def test_pref_col_kept_inside_cell(self) -> None:
+        """A column given to ``move_cursor_to_coords`` stays the preferred column, limited to the focus cell.
 
-        A focus cell without ``get_pref_col`` gives its centre, also when the display widget is reused.
+        The cells are 5 wide at columns 0-4, 6-10 and 12-16, and have no ``get_pref_col`` of their own.
         Width 17 is the natural width, where the display widget built by the constructor is reused.
         """
-        for maxcol in (17, 20):
-            with self.subTest(maxcol=maxcol):
+        cases = (
+            # name, width, align, focus before, column, keys after, expected preferred column
+            ("on the focus cell", 20, "left", 1, 10, (), 10),
+            ("focus moved to the cell", 20, "left", 0, 10, (), 10),
+            ("unhandled down", 20, "left", 1, 10, ("down",), 10),
+            ("natural width", 17, "left", 1, 10, ("down",), 10),
+            ("cell on the right", 20, "left", 1, 13, (), 13),
+            ("gap, nearest cell on the left", 20, "left", 1, 11, (), 10),
+            ("centred rows", 30, "center", 1, 15, (), 15),
+            ("'left' is the first column of the cell", 20, "left", 1, "left", (), 0),
+            ("'right' is the last column of the cell", 20, "left", 1, "right", (), 16),
+            ("left key: centre of the new cell", 20, "left", 1, 10, ("left",), 2),
+            ("back to the cell: its centre", 20, "left", 1, 10, ("right", "left"), 8),
+        )
+        for name, maxcol, align, focus, col, keys, expected in cases:
+            with self.subTest(name):
+                grid = urwid.GridFlow(
+                    [SelectableText(char) for char in "abc"],
+                    cell_width=5,
+                    h_sep=1,
+                    v_sep=0,
+                    align=align,
+                    focus=focus,
+                )
+                self.assertTrue(grid.move_cursor_to_coords((maxcol,), col, 0))
+                for key in keys:
+                    grid.keypress((maxcol,), key)
+
+                self.assertEqual(expected, grid.get_pref_col((maxcol,)))
+
+    def test_pref_col_kept_across_rows(self) -> None:
+        """Up and down between the rows of the grid keep the column, as in a :class:`Pile` of :class:`Columns`."""
+        grid = urwid.GridFlow(
+            [SelectableText(char) for char in "abcdef"],
+            cell_width=5,
+            h_sep=1,
+            v_sep=0,
+            align="left",
+            focus=1,
+        )
+        self.assertTrue(grid.move_cursor_to_coords((11,), 9, 0))
+
+        self.assertIsNone(grid.keypress((11,), "down"))
+
+        self.assertEqual(3, grid.focus_position)
+        self.assertEqual(9, grid.get_pref_col((11,)))
+
+    def test_pref_col_dropped(self) -> None:
+        """A focus or contents change drops the kept column, so the focus cell gives its centre.
+
+        The cells are 5 wide at columns 0-4, 6-10 and 12-16; the column 10 is kept for the cell at 6-10.
+        """
+
+        def click(grid: urwid.GridFlow) -> None:
+            self.assertTrue(grid.mouse_event((20,), "mouse press", 1, 13, 0, True))
+
+        def focus_away_and_back(grid: urwid.GridFlow) -> None:
+            grid.focus_position = 2
+            grid.focus_position = 1
+
+        def replace_focus_cell(grid: urwid.GridFlow) -> None:
+            # the focus index stays the same, so only the contents change drops the column
+            grid.contents[1] = (SelectableText("x"), grid.options())
+
+        cases = (
+            # name, action, expected focus position, expected preferred column
+            ("click on another cell", click, 2, 14),
+            ("focus set away and back", focus_away_and_back, 1, 8),
+            ("focus cell replaced", replace_focus_cell, 1, 8),
+        )
+        for name, action, focus, expected in cases:
+            with self.subTest(name):
                 grid = urwid.GridFlow(
                     [SelectableText(char) for char in "abc"],
                     cell_width=5,
@@ -105,11 +175,99 @@ class GridFlowTest(unittest.TestCase):
                     align="left",
                     focus=1,
                 )
-                self.assertTrue(grid.move_cursor_to_coords((maxcol,), 10, 0))
+                self.assertTrue(grid.move_cursor_to_coords((20,), 10, 0))
 
-                self.assertEqual(8, grid.get_pref_col((maxcol,)))
-                self.assertEqual("down", grid.keypress((maxcol,), "down"))
-                self.assertEqual(8, grid.get_pref_col((maxcol,)))
+                action(grid)
+
+                self.assertEqual(focus, grid.focus_position)
+                self.assertEqual(expected, grid.get_pref_col((20,)))
+
+    def test_pref_col_not_kept_after_contents_change_by_cell(self) -> None:
+        """A cell that changes the contents while it moves its cursor leaves no column kept."""
+
+        class InsertingText(SelectableText):
+            def move_cursor_to_coords(self, size: tuple[int], col: int, row: int) -> bool:
+                grid.contents.insert(0, (urwid.Text("z"), grid.options()))
+                return True
+
+        grid = urwid.GridFlow(
+            [SelectableText("a"), SelectableText("b"), InsertingText("c")],
+            cell_width=5,
+            h_sep=1,
+            v_sep=0,
+            align="left",
+            focus=1,
+        )
+
+        self.assertTrue(grid.move_cursor_to_coords((30,), 13, 0))
+
+        self.assertEqual(6 * grid.focus_position + 2, grid.get_pref_col((30,)))
+
+    def test_pref_col_not_kept_after_focus_changed_handler(self) -> None:
+        """A "focus changed" handler that moves the focus again or empties the grid leaves no column kept.
+
+        Three 5 wide cells fit in a row, at columns 0-4, 6-10 and 12-16.
+        """
+
+        def redirect(grid: urwid.GridFlow, _old: int | None, new: int | None) -> None:
+            if new == 2:
+                grid.focus_position = 1
+
+        def empty(grid: urwid.GridFlow, _old: int | None, new: int | None) -> None:
+            if new == 4:
+                del grid.contents[:]
+
+        def enter_last_cell(grid: urwid.GridFlow) -> None:
+            grid.move_cursor_to_coords((17,), 16, 0)
+
+        def down_from_middle_cell(grid: urwid.GridFlow) -> None:
+            grid.move_cursor_to_coords((17,), 9, 0)
+            grid.keypress((17,), "down")
+
+        cases = (
+            # name, handler, action, expected preferred column (None: empty grid)
+            ("focus moved again", redirect, enter_last_cell, 8),
+            ("grid emptied", empty, down_from_middle_cell, None),
+        )
+        for name, handler, action, expected in cases:
+            with self.subTest(name):
+                grid = urwid.GridFlow(
+                    [SelectableText(char) for char in "abcdef"],
+                    cell_width=5,
+                    h_sep=1,
+                    v_sep=0,
+                    align="left",
+                    focus=0,
+                )
+                urwid.connect_signal(grid, "focus changed", handler)
+
+                action(grid)
+
+                if expected is None:
+                    self.assertEqual(0, len(grid))
+                    self.assertEqual(1, grid.render((17,)).rows())
+                else:
+                    self.assertEqual(expected, grid.get_pref_col((17,)))
+
+    def test_pref_col_through_pile(self) -> None:
+        """Down through a grid of cells without their own column keeps the cursor column of the widget above."""
+        top = urwid.Edit("", "x" * 16)
+        top.edit_pos = 10
+        bottom = urwid.Edit("", "y" * 16)
+        grid = urwid.GridFlow(
+            [SelectableText(char) for char in "abc"],
+            cell_width=5,
+            h_sep=1,
+            v_sep=0,
+            align="left",
+            focus=1,
+        )
+        pile = urwid.Pile([top, grid, bottom])
+
+        for _ in range(2):
+            self.assertIsNone(pile.keypress((17,), "down"))
+
+        self.assertEqual(10, bottom.edit_pos)
 
     def test_default_focus(self):
         with self.subTest("Simple"):
