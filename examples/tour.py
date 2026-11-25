@@ -208,7 +208,9 @@ def main() -> None:
         ("important", "GridFlow"),
         " of buttons below sets ",
         ("important", "unfocused_focus_attr"),
-        ", so its focus button stays marked while the focus is elsewhere.",
+        ", so its focus button stays marked while the focus is elsewhere.  The check boxes use ",
+        ("important", "'pack'"),
+        " cells instead, each as wide as its label.",
     ]
     text_button_list = ["Yes", "No", "Perhaps", "Certainly", "Partially", "Tuesdays Only", "Help"]
     text_cb_list = ["Wax", "Wash", "Buff", "Clear Coat", "Dry", "Racing Stripe"]
@@ -365,6 +367,11 @@ def main() -> None:
 
     show_sizes_box = urwid.CheckBox("Show sizes", state=True)
     urwid.connect_signal(show_sizes_box, "change", show_sizes)
+
+    check_box_grid = urwid.GridFlow([], 10, 3, 1, urwid.LEFT, select_navigation=True)
+    check_box_grid.contents.extend(
+        (urwid.AttrMap(urwid.CheckBox(txt), "buttn", "buttnf"), check_box_grid.options("pack")) for txt in text_cb_list
+    )
 
     action_chosen = urwid.Text(["Action: ", ("important", "none yet")])
     view_chosen = urwid.Text(["View: ", ("important", "list")])
@@ -601,14 +608,7 @@ def main() -> None:
         ),
         blank,
         urwid.Padding(
-            urwid.GridFlow(
-                [urwid.AttrMap(urwid.CheckBox(txt), "buttn", "buttnf") for txt in text_cb_list],
-                10,
-                3,
-                1,
-                urwid.LEFT,
-                select_navigation=True,
-            ),
+            check_box_grid,
             left=4,
             right=3,
             min_width=10,
