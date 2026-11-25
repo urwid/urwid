@@ -101,6 +101,9 @@ class DropDown(PopUpLauncher[Columns]):
         attr_map: _AttrMapLike = None,
         focus_map: _AttrMapLike = None,
         disabled_map: _AttrMapLike = None,
+        launcher_attr_map: _AttrMapLike = None,
+        launcher_focus_map: _AttrMapLike = None,
+        launcher_disabled_map: _AttrMapLike = None,
         border: bool = False,
         **scrollbar_options: typing.Unpack[_ScrollBarOptions],
     ) -> None:
@@ -112,10 +115,18 @@ class DropDown(PopUpLauncher[Columns]):
         :param disabled: indexes of the options that are shown in the open list but cannot be chosen.
         :param max_visible_items: most rows the open list shows at once, separators included;
             it scrolls through the rest.
-        :param attr_map: display attribute of each option in the open list, as for :class:`AttrMap <urwid.AttrMap>`.
-        :param focus_map: display attribute of the focused option in the open list.
+        :param attr_map: display attribute of each option in the open list, and of the widget itself while it is not
+            focused unless `launcher_attr_map` is given, as for :class:`AttrMap <urwid.AttrMap>`.
+        :param focus_map: display attribute of the focused option in the open list, and of the widget itself while
+            it is focused unless `launcher_focus_map` is given.
         :param disabled_map: display attribute of a disabled option in the open list, applied over `attr_map`,
-            and of the whole widget while it is read-only.
+            and of the whole widget while it is read-only, unless `launcher_disabled_map` is given.
+        :param launcher_attr_map: display attribute of the widget itself while it is not focused;
+            ``None`` for `attr_map`.
+        :param launcher_focus_map: display attribute of the widget itself while it is focused;
+            ``None`` for `focus_map`.
+        :param launcher_disabled_map: display attribute of the widget itself while it is read-only;
+            ``None`` for `disabled_map`.
         :param border: draw a box around the open list, with its scroll bar outside the box,
             in the display attribute of `attr_map`; every option must then be one line.
         :param scrollbar_options: the :class:`ScrollBar <urwid.ScrollBar>` parameters of the open list's scroll bar,
@@ -131,7 +142,7 @@ class DropDown(PopUpLauncher[Columns]):
             - :class:`ScrollBar <urwid.ScrollBar>` rejects the value of a ``scrollbar_`` parameter.
         :raises TypeError: a keyword argument is neither a parameter of the drop-down nor one of `scrollbar_options`.
         :raises IndexError: `selected` or an index in `disabled` is not an index of `options`.
-        :raises AttrMapError: a key or value of `disabled_map` is not hashable.
+        :raises AttrMapError: a key or value of one of the maps is not hashable.
         """
         self._bar = _bar_settings(type(self).__name__, scrollbar_options)
         self._options: tuple[_TagMarkup | None, ...] = tuple(options)
@@ -159,6 +170,12 @@ class DropDown(PopUpLauncher[Columns]):
         self._attr_map = attr_map
         self._focus_map = focus_map
         self._disabled_map = _attr_map_dict(disabled_map)
+        self._launcher_attr_map = _attr_map_dict(attr_map if launcher_attr_map is None else launcher_attr_map)
+        launcher_focus = focus_map if launcher_focus_map is None else launcher_focus_map
+        self._launcher_focus_map = None if launcher_focus is None else _attr_map_dict(launcher_focus)
+        self._launcher_disabled_map = (
+            self._disabled_map if launcher_disabled_map is None else _attr_map_dict(launcher_disabled_map)
+        )
         self._border = border
         self._choosable_count = len(choosable)
         # Widest option, so the widget and its list do not change width with the selection.
@@ -290,13 +307,20 @@ class DropDown(PopUpLauncher[Columns]):
     ) -> CompositeCanvas | Canvas:
         """Render the selected option and the indicator, with the list attached when it is open.
 
-        A read-only drop-down is drawn with `disabled_map`.
+        The widget is drawn with `launcher_attr_map`, or with `launcher_focus_map` while focused.
+        A read-only drop-down is drawn with `launcher_disabled_map` instead of both.
         """
         canv = super().render(size or (self._fixed_width,), focus)
-        if self.selectable():
+        if not self.selectable():
+            launcher_map = self._launcher_disabled_map
+        elif focus and self._launcher_focus_map is not None:
+            launcher_map = self._launcher_focus_map
+        else:
+            launcher_map = self._launcher_attr_map
+        if launcher_map == {None: None}:
             return canv
         canv = CompositeCanvas(canv)
-        canv.fill_attr_apply(self._disabled_map)
+        canv.fill_attr_apply(launcher_map)
         return canv
 
     def keypress(

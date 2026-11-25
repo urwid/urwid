@@ -504,6 +504,9 @@ class ActionMenu(_MenuOwner):
         attr_map: _AttrMapLike = ...,
         focus_map: _AttrMapLike = ...,
         disabled_map: _AttrMapLike = ...,
+        launcher_attr_map: _AttrMapLike = ...,
+        launcher_focus_map: _AttrMapLike = ...,
+        launcher_disabled_map: _AttrMapLike = ...,
         **scrollbar_options: typing.Unpack[_ScrollBarOptions],
     ) -> None: ...
 
@@ -527,6 +530,9 @@ class ActionMenu(_MenuOwner):
         attr_map: _AttrMapLike = ...,
         focus_map: _AttrMapLike = ...,
         disabled_map: _AttrMapLike = ...,
+        launcher_attr_map: _AttrMapLike = ...,
+        launcher_focus_map: _AttrMapLike = ...,
+        launcher_disabled_map: _AttrMapLike = ...,
         **scrollbar_options: typing.Unpack[_ScrollBarOptions],
     ) -> None: ...
 
@@ -549,6 +555,9 @@ class ActionMenu(_MenuOwner):
         attr_map: _AttrMapLike = None,
         focus_map: _AttrMapLike = None,
         disabled_map: _AttrMapLike = None,
+        launcher_attr_map: _AttrMapLike = None,
+        launcher_focus_map: _AttrMapLike = None,
+        launcher_disabled_map: _AttrMapLike = None,
         **scrollbar_options: typing.Unpack[_ScrollBarOptions],
     ) -> None:
         """Create a menu of `items`, opened from a label or from the `launcher` widget.
@@ -575,10 +584,18 @@ class ActionMenu(_MenuOwner):
         :param border: draw a box around each list, with separators joined to it.
         :param show_keys: draw each item's key in a column before its label.
         :param max_visible_items: most entries a list shows at once; it scrolls through the rest.
-        :param attr_map: display attribute of the lists, as for :class:`AttrMap <urwid.AttrMap>`.
-        :param focus_map: display attribute of the focused item, and of a submenu row while its child is open.
+        :param attr_map: display attribute of the lists, and of the default launcher while it is not focused
+            unless `launcher_attr_map` is given, as for :class:`AttrMap <urwid.AttrMap>`.
+        :param focus_map: display attribute of the focused item, of a submenu row while its child is open,
+            and of the default launcher while it is focused unless `launcher_focus_map` is given.
         :param disabled_map: display attribute of a disabled item, and of the default launcher with no item that
-            can be chosen.
+            can be chosen, unless `launcher_disabled_map` is given.
+        :param launcher_attr_map: display attribute of the default launcher while it is not focused;
+            ``None`` for `attr_map`.
+        :param launcher_focus_map: display attribute of the default launcher while it is focused;
+            ``None`` for `focus_map`.
+        :param launcher_disabled_map: display attribute of the default launcher with no item that can be chosen;
+            ``None`` for `disabled_map`.
         :param scrollbar_options: the :class:`ScrollBar <urwid.ScrollBar>` parameters of the scroll bar of each list,
             with a ``scrollbar_`` prefix, such as ``scrollbar_thumb_char``, ``scrollbar_end_markers``,
             ``scrollbar_side`` and ``scrollbar_attr``; ``visible`` and ``delegate_selectable`` are left out.
@@ -628,8 +645,17 @@ class ActionMenu(_MenuOwner):
                 [SelectableIcon(label, 0, wrap=WrapMode.ELLIPSIS), (indicator_width, self.menu_indicator)],
                 dividechars=1,
             )
-            if not self._usable:
-                launcher = AttrMap(launcher, disabled_map)
+            if self._usable:
+                launcher = AttrMap(
+                    launcher,
+                    attr_map if launcher_attr_map is None else launcher_attr_map,
+                    focus_map if launcher_focus_map is None else launcher_focus_map,
+                )
+            else:
+                launcher = AttrMap(
+                    launcher,
+                    disabled_map if launcher_disabled_map is None else launcher_disabled_map,
+                )
         elif label is not None or launcher is None:
             raise ValueError("ActionMenu needs either a label or a launcher widget, not both")
         super().__init__(launcher, close_on_menu=True, close_on_click_outside=True, signal_open_close=True)
