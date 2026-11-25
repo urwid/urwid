@@ -159,7 +159,9 @@ class GridFlow(
         self._unfocused_focus_attr_func = unfocused_focus_attr_func
         self.first_position: weakref.WeakKeyDictionary[Padding[Columns], int] = weakref.WeakKeyDictionary()
         maxcol = self._get_maxcol(())
-        self._cache_maxcol: int | None = maxcol
+        # The width laid out in and which cells are selectable, which picks the focus cell of each row:
+        # a cell can change its selectability without invalidating the GridFlow.
+        self._cache_key: tuple[int, tuple[bool, ...]] | None = (maxcol, tuple(w.selectable() for w, _ in self.contents))
         super().__init__(self.generate_display_widget((maxcol,)))
 
     def _repr_words(self) -> list[str]:
@@ -208,7 +210,7 @@ class GridFlow(
 
     def _invalidate(self) -> None:
         """Drop the cached display widget and the cached canvases."""
-        self._cache_maxcol = None
+        self._cache_key = None
         super()._invalidate()
 
     def _contents_changed(self) -> None:
@@ -370,15 +372,25 @@ class GridFlow(
         """Arrange the cells into columns (and possibly a pile) for display, input or to calculate rows.
 
         Also updates the display widget.
+        The display widget is reused while the width and every cell's ``selectable()`` stay the same.
         """
         maxcol = self._get_maxcol(size)
+        key = (maxcol, tuple(w.selectable() for w, _ in self.contents))
 
         # use cache if possible
-        if self._cache_maxcol == maxcol:
+        if self._cache_key == key:
+            # Each call starts from the preferred columns a new display widget has: a column left by an earlier
+            # move_cursor_to_coords() would otherwise replace the cell centre that get_pref_col() falls back to.
+            if isinstance(self._w, Pile):
+                self._w.pref_col = 0
+                for row, _options in self._w.contents:
+                    if isinstance(row, Padding):
+                        typing.cast("Columns", row.original_widget).pref_col = None
             return self._w
 
-        self._cache_maxcol = maxcol
         self._w = self.generate_display_widget((maxcol,))
+        # after the assignment: setting _w invalidates, which clears the cache key
+        self._cache_key = key
 
         return self._w
 

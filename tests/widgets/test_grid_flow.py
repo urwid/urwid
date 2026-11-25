@@ -47,6 +47,70 @@ class GridFlowTest(unittest.TestCase):
         self.assertEqual((20, 1), grid.pack(()))
         self.assertEqual([b"Open Quit program Up"], grid.render(()).text)
 
+    def test_display_widget_cached(self) -> None:
+        """The display widget is reused at the same width, and rebuilt for another width or a change.
+
+        The width 7 differs from the fixed width the constructor lays the cells out in.
+        """
+        grid = urwid.GridFlow(
+            [SelectableText(char) for char in "abc"],
+            cell_width=1,
+            h_sep=1,
+            v_sep=0,
+            align="left",
+        )
+        display = grid.get_display_widget((7,))
+
+        with self.subTest("same width"):
+            grid.rows((7,))
+            self.assertIs(display, grid.get_display_widget((7,)))
+
+        with self.subTest("other width"):
+            self.assertIsNot(display, grid.get_display_widget((3,)))
+
+        with self.subTest("focus change"):
+            display = grid.get_display_widget((3,))
+            grid.focus_position = 2
+            self.assertIsNot(display, grid.get_display_widget((3,)))
+            self.assertEqual(1, grid.get_display_widget((3,)).focus_position)
+
+    def test_display_widget_follows_cell_selectable(self) -> None:
+        """A row without the focus focuses its first selectable cell, also after that cell becomes selectable."""
+        cell = urwid.Text("d")
+        grid = urwid.GridFlow(
+            [SelectableText("a"), SelectableText("b"), urwid.Text("c"), cell],
+            cell_width=1,
+            h_sep=1,
+            v_sep=0,
+            align="left",
+        )
+        self.assertEqual(0, grid.get_display_widget((3,)).contents[1][0].base_widget.focus_position)
+
+        with mock.patch.object(cell, "selectable", return_value=True):
+            self.assertEqual(1, grid.get_display_widget((3,)).contents[1][0].base_widget.focus_position)
+
+    def test_pref_col_not_kept_between_calls(self) -> None:
+        """A column given to ``move_cursor_to_coords`` is not the preferred column of a later call.
+
+        A focus cell without ``get_pref_col`` gives its centre, also when the display widget is reused.
+        Width 17 is the natural width, where the display widget built by the constructor is reused.
+        """
+        for maxcol in (17, 20):
+            with self.subTest(maxcol=maxcol):
+                grid = urwid.GridFlow(
+                    [SelectableText(char) for char in "abc"],
+                    cell_width=5,
+                    h_sep=1,
+                    v_sep=0,
+                    align="left",
+                    focus=1,
+                )
+                self.assertTrue(grid.move_cursor_to_coords((maxcol,), 10, 0))
+
+                self.assertEqual(8, grid.get_pref_col((maxcol,)))
+                self.assertEqual("down", grid.keypress((maxcol,), "down"))
+                self.assertEqual(8, grid.get_pref_col((maxcol,)))
+
     def test_default_focus(self):
         with self.subTest("Simple"):
             grid = urwid.GridFlow(
