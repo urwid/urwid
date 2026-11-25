@@ -2,6 +2,42 @@
 Changelog
 ---------
 
+Urwid 5.2.1
+============
+
+2026-11-25
+
+New features 🗹
++++++++++++++++
+* Add ``GridFlow.options("pack")``: a cell as wide as its widget packs to, at most the width of the grid, so a row of labels or check boxes needs no width measured by hand. A ``'pack'`` cell holding a FLOW-only widget limits the grid to FLOW by @penguinolog in https://github.com/urwid/urwid/pull/1739
+* ``flush()`` of ``ListWalkerHandler`` and ``NotificationsHandler`` shows the queued records at once when called on the loop thread, so a callback that stops the loop or reads the widget sees the records logged just before it; on any other thread it does nothing by @penguinolog in https://github.com/urwid/urwid/pull/1731
+* Add ``launcher_attr_map``, ``launcher_focus_map`` and ``launcher_disabled_map`` to ``DropDown`` and ``ActionMenu`` to style the launcher alone by @penguinolog in https://github.com/urwid/urwid/pull/1733
+
+Bug fixes 🕷
+++++++++++++
+
+Displays
+^^^^^^^^
+* Do not read the environment variables that name a terminal (``COLORTERM``, ``VTE_VERSION``, ``KONSOLE_VERSION``, ``TERM_PROGRAM``, ``LC_TERMINAL``, ``WT_SESSION``, ``ConEmu*`` and similar): a terminal or multiplexer started inside another one inherits them, so rxvt or GNU screen started from VTE, VS Code or Windows Terminal was sent 24-bit colours and underline styles it does not draw. The startup guess comes from TERM, terminfo, the Windows version and ``NO_COLOR``, ``FORCE_COLOR`` and ``CLICOLOR``; the terminal's own XTGETTCAP, XTVERSION and colour probe replies raise it. The XTVERSION replies of tmux and xterm.js mean 24-bit colours by @penguinolog in https://github.com/urwid/urwid/pull/1734
+* End a raw screen stop on a hung-up terminal as a full stop, so a later start no longer writes the reset sequences of the ended run or keeps the kitty keyboard protocol off by @penguinolog in https://github.com/urwid/urwid/pull/1735
+
+Terminal widget
+^^^^^^^^^^^^^^^
+* End an XTGETTCAP reply with a semicolon only where xterm does, after a name it does not answer, and take LS2, LS3, SS2, SS3, the locking shifts to GR, DECRQM for ANSI modes, the page in DECXCPR, DECRQPSR, DECRSPS, DECRQUPSS and DECRQDE from the conformance levels xterm takes them from by @penguinolog in https://github.com/urwid/urwid/pull/1735
+
+Widgets
+^^^^^^^
+* Draw the ``DropDown`` and ``ActionMenu`` launcher with ``attr_map``, or ``focus_map`` while focused; a read-only launcher is drawn with ``disabled_map`` alone by @penguinolog in https://github.com/urwid/urwid/pull/1733
+* Keep the ``GridFlow`` cursor column inside the focus cell when moving up and down, as a ``Pile`` of ``Columns`` does, instead of jumping to the centre of a cell without its own ``get_pref_col()`` by @penguinolog in https://github.com/urwid/urwid/pull/1738
+* Reuse the cached ``GridFlow`` display widget, which was rebuilt on every call except at the width laid out by the constructor by @penguinolog in https://github.com/urwid/urwid/pull/1736
+* A ``GridFlow`` cell 0 columns wide adds no divider to its row and opens no empty row, so right-aligned and centred rows are no longer shifted and ``pack(())`` is no longer too wide by @penguinolog in https://github.com/urwid/urwid/pull/1740
+
+Documentation 🕮
+++++++++++++++++
+* List only the ``Terminal`` widget as unsupported on Windows, document ``TermCanvas``, ``TermCharset`` and ``TermModes`` in the reference, and say that output in an encoding that switches character sets with escape sequences, such as ISO-2022-JP, has to be converted before it reaches the terminal widgets by @penguinolog in https://github.com/urwid/urwid/pull/1732 and https://github.com/urwid/urwid/pull/1735
+
+**Full Changelog**: https://github.com/urwid/urwid/compare/5.2.0...5.2.1
+
 Urwid 5.2.0
 ============
 
