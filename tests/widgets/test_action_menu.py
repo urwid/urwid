@@ -799,6 +799,37 @@ class ReadOnlyTest(unittest.TestCase):
         self.assertIsNone(menu.pop_up_widget)
         self.assertEqual({"disabled"}, {attr for attr, _cs, _text in next(iter(menu.render((9,)).content()))})
 
+    def test_launcher_attributes(self) -> None:
+        """The label launcher takes the list's maps unless the ``launcher_*`` maps override them."""
+        items = [MenuItem("Open")]
+        for name, kwargs, focus, expected in (
+            ("attr_map", {"attr_map": "option", "focus_map": "focus"}, False, {"option"}),
+            ("focus_map", {"attr_map": "option", "focus_map": "focus"}, True, {"focus"}),
+            ("focused without focus_map", {"attr_map": "option"}, True, {"option"}),
+            ("override", {"attr_map": "option", "launcher_attr_map": "own"}, False, {"own"}),
+            ("focused takes launcher_attr_map", {"launcher_attr_map": "own"}, True, {"own"}),
+            ("focus override", {"focus_map": "focus", "launcher_focus_map": "own focus"}, True, {"own focus"}),
+        ):
+            with self.subTest(name):
+                canvas = urwid.ActionMenu("Actions", items, **kwargs).render((9,), focus=focus)
+                self.assertEqual(expected, {attr for attr, _cs, _text in next(iter(canvas.content()))})
+
+        menu = urwid.ActionMenu(
+            "Actions",
+            self.NOTHING,
+            disabled_map="disabled",
+            launcher_disabled_map="own disabled",
+        )
+        self.assertEqual({"own disabled"}, {attr for attr, _cs, _text in next(iter(menu.render((9,)).content()))})
+
+    def test_given_launcher_is_not_restyled(self) -> None:
+        menu = urwid.ActionMenu(None, [MenuItem("Open")], launcher=urwid.Text("x"), attr_map="option", focus_map="f")
+        self.assertEqual({None}, {attr for attr, _cs, _text in next(iter(menu.render((3,), focus=True).content()))})
+
+    def test_launcher_attr_map_is_not_hashable(self) -> None:
+        with self.assertRaises(urwid.AttrMapError):
+            urwid.ActionMenu("Actions", [MenuItem("Open")], launcher_attr_map={"a": []})
+
     def test_launcher_widget_keeps_its_keys_and_buttons(self) -> None:
         edit = urwid.Edit()
         menu = urwid.ActionMenu(None, self.NOTHING, launcher=edit, open_keys=("m",), disabled_map="disabled")

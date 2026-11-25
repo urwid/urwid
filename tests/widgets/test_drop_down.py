@@ -295,6 +295,29 @@ class DropDownListTest(unittest.TestCase):
                 content = drop_down.render(()).content()
                 self.assertEqual(expected, {attr for row in content for attr, _cs, _text in row})
 
+    def test_launcher_attributes(self) -> None:
+        """The widget takes the list's maps unless the ``launcher_*`` maps override them."""
+        for name, kwargs, focus, expected in (
+            ("attr_map", {"attr_map": "option", "focus_map": "focus"}, False, {"option"}),
+            ("focus_map", {"attr_map": "option", "focus_map": "focus"}, True, {"focus"}),
+            ("focused without focus_map", {"attr_map": "option"}, True, {"option"}),
+            ("override", {"attr_map": "option", "launcher_attr_map": "own"}, False, {"own"}),
+            ("focused takes launcher_attr_map", {"launcher_attr_map": "own"}, True, {"own"}),
+            ("focus override", {"focus_map": "focus", "launcher_focus_map": "own focus"}, True, {"own focus"}),
+        ):
+            with self.subTest(name):
+                content = urwid.DropDown(SIZES, **kwargs).render((), focus=focus).content()
+                self.assertEqual(expected, {attr for row in content for attr, _cs, _text in row})
+
+        read_only = urwid.DropDown(
+            ["only", None, "off"],
+            disabled={2},
+            disabled_map="disabled",
+            launcher_disabled_map={None: "own disabled"},
+        )
+        content = read_only.render((), focus=True).content()
+        self.assertEqual({"own disabled"}, {attr for row in content for attr, _cs, _text in row})
+
     def test_separator_and_disabled_option(self) -> None:
         """A separator and a disabled option are drawn in the list, and up and down skip them."""
         for description, border, expected in (
