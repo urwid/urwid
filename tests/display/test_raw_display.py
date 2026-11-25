@@ -607,6 +607,8 @@ class TestRawDisplay(unittest.TestCase):
         read_fd, write_fd = os.pipe()
         self.addCleanup(os.close, write_fd)
         s = urwid.display.raw.Screen(input=os.fdopen(read_fd, "rb", buffering=0), output=open(os.devnull, "w"))
+        self.addCleanup(s._term_input_file.close)
+        self.addCleanup(s._term_output_file.close)
 
         watched = {}
 

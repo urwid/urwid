@@ -10,6 +10,7 @@ import subprocess
 import sys
 import typing
 import unittest
+import weakref
 from unittest import mock
 
 import urwid
@@ -46,8 +47,15 @@ class _StrictBytes(bytes):
         return super().__eq__(other)
 
 
-def _make_screen(input_fd: int | None = None, *, screen_class: type[Screen] | None = None) -> Screen:
+def _make_screen(
+    input_fd: int | None = None,
+    *,
+    screen_class: type[Screen] | None = None,
+    **options: typing.Any,
+) -> Screen:
     """Build a Screen, or a *screen_class*, over a pipe (or /dev/null) so tests never touch a real tty.
+
+    *options* are the keyword arguments of the Screen constructor.
 
     *screen_class* defaults to None rather than Screen, which does not exist where this module is imported on Windows.
     """
@@ -56,7 +64,13 @@ def _make_screen(input_fd: int | None = None, *, screen_class: type[Screen] | No
         os.close(write_fd)
     if screen_class is None:
         screen_class = Screen
-    return screen_class(input=os.fdopen(input_fd, "rb", buffering=0), output=open(os.devnull, "w"))
+    input_file = os.fdopen(input_fd, "rb", buffering=0)
+    output_file = open(os.devnull, "w")  # noqa: SIM115  # closed with the screen
+    screen = screen_class(input=input_file, output=output_file, **options)
+    # The Screen never closes files it was given, so they are closed as soon as the test drops the screen.
+    weakref.finalize(screen, input_file.close)
+    weakref.finalize(screen, output_file.close)
+    return screen
 
 
 def _device_stat(major: int, minor: int, *, file_type: int = stat.S_IFCHR) -> os.stat_result:
@@ -76,9 +90,8 @@ class TestStartStop(unittest.TestCase):
         """Termios is left untouched when the input fd is not a tty (a pipe here)."""
         read_fd, write_fd = os.pipe()
         self.addCleanup(os.close, write_fd)
-        s = Screen(
-            input=os.fdopen(read_fd, "rb", buffering=0),
-            output=open(os.devnull, "w"),  # noqa: SIM115
+        s = _make_screen(
+            read_fd,
             bracketed_paste_mode=True,
             focus_reporting=True,
         )
@@ -121,9 +134,8 @@ class TestStartStop(unittest.TestCase):
             with self.subTest(alternate_scroll=alternate_scroll, report=report):
                 read_fd, write_fd = os.pipe()
                 self.addCleanup(os.close, write_fd)
-                s = Screen(
-                    input=os.fdopen(read_fd, "rb", buffering=0),
-                    output=open(os.devnull, "w"),  # noqa: SIM115
+                s = _make_screen(
+                    read_fd,
                     alternate_scroll=alternate_scroll,
                 )
                 written: list[str] = []
@@ -148,9 +160,8 @@ class TestStartStop(unittest.TestCase):
         with self.subTest("a stop after a start that did not set it"):
             read_fd, write_fd = os.pipe()
             self.addCleanup(os.close, write_fd)
-            s = Screen(
-                input=os.fdopen(read_fd, "rb", buffering=0),
-                output=open(os.devnull, "w"),  # noqa: SIM115
+            s = _make_screen(
+                read_fd,
                 alternate_scroll=True,
             )
             written = []
@@ -1143,7 +1154,7 @@ class TestReadRawInput(unittest.TestCase):
     def test_reads_bytes_of_several_writes_in_one_call(self):
         read_fd, write_fd = os.pipe()
         self.addCleanup(os.close, write_fd)
-        s = Screen(input=os.fdopen(read_fd, "rb", buffering=0), output=open(os.devnull, "w"))  # noqa: SIM115
+        s = _make_screen(read_fd)
         s.write = lambda *_a: None
         s.flush = lambda: None
         s.start()
@@ -1237,7 +1248,7 @@ class TestReadRawInput(unittest.TestCase):
     def test_returns_empty_on_timeout_with_nothing_available(self):
         read_fd, write_fd = os.pipe()
         self.addCleanup(os.close, write_fd)
-        s = Screen(input=os.fdopen(read_fd, "rb", buffering=0), output=open(os.devnull, "w"))  # noqa: SIM115
+        s = _make_screen(read_fd)
         s.write = lambda *_a: None
         s.flush = lambda: None
         s.start()
@@ -1289,9 +1300,8 @@ class TestDetectTerminalModes(unittest.TestCase):
     ):
         read_fd, write_fd = os.pipe()
         self.addCleanup(os.close, write_fd)
-        s = Screen(
-            input=os.fdopen(read_fd, "rb", buffering=0),
-            output=open(os.devnull, "w"),  # noqa: SIM115
+        s = _make_screen(
+            read_fd,
             bracketed_paste_mode=bracketed_paste_mode,
             focus_reporting=focus_reporting,
             extended_keys=extended_keys,
@@ -1685,9 +1695,8 @@ class TestTerminalCapabilities(unittest.TestCase):
         # the constructor's setting is the application's choice as well
         read_fd, write_fd = os.pipe()
         self.addCleanup(os.close, write_fd)
-        s = Screen(
-            input=os.fdopen(read_fd, "rb", buffering=0),
-            output=open(os.devnull, "w"),  # noqa: SIM115
+        s = _make_screen(
+            read_fd,
             underline_styles=False,
         )
         s.write = lambda data: None
@@ -2010,9 +2019,8 @@ class TestKeyboardProtocol(unittest.TestCase):
     def _queried_screen(self):
         read_fd, write_fd = os.pipe()
         self.addCleanup(os.close, write_fd)
-        s = Screen(
-            input=os.fdopen(read_fd, "rb", buffering=0),
-            output=open(os.devnull, "w"),  # noqa: SIM115
+        s = _make_screen(
+            read_fd,
             extended_keys=True,
         )
         written: list[str] = []
@@ -2128,9 +2136,8 @@ class TestKeyboardProtocol(unittest.TestCase):
     def test_start_turns_a_resolved_protocol_on_and_stop_restores_it_on_the_alternate_screen(self):
         read_fd, write_fd = os.pipe()
         self.addCleanup(os.close, write_fd)
-        s = Screen(
-            input=os.fdopen(read_fd, "rb", buffering=0),
-            output=open(os.devnull, "w"),  # noqa: SIM115
+        s = _make_screen(
+            read_fd,
             extended_keys=True,
         )
         s.modes.kitty_keyboard = True
