@@ -331,7 +331,8 @@ class TermCanvas(_ReportsCanvas, _RectanglesCanvas, _ModesCanvas, _VTParser[byte
             if self._escbuf.startswith(b"?"):
                 if (mode := self._escbuf[1:-1]).isdigit():
                     self.csi_report_private_mode(int(mode))
-            elif (mode := self._escbuf[:-1]).isdigit():
+            elif (mode := self._escbuf[:-1]).isdigit() and self.conformance_level > 62:
+                # for an ANSI mode only from the VT300 level (63) on, as in xterm
                 self.csi_report_mode(int(mode))
             return
 
@@ -367,8 +368,8 @@ class TermCanvas(_ReportsCanvas, _RectanglesCanvas, _ModesCanvas, _VTParser[byte
             return
 
         if char == b"w" and self._escbuf.endswith(b"$"):
-            # DECRQPSR: CSI Ps $ w, which a VT100 (level 61) does not answer
-            if (report := self._escbuf[:-1]).isdigit() and self.conformance_level > 61:
+            # DECRQPSR: CSI Ps $ w, answered from the VT300 level (63) on, as in xterm
+            if (report := self._escbuf[:-1]).isdigit() and self.conformance_level > 62:
                 self.csi_report_presentation_state(int(report))
             return
 
@@ -433,15 +434,19 @@ class TermCanvas(_ReportsCanvas, _RectanglesCanvas, _ModesCanvas, _VTParser[byte
             # another intermediate byte, such as S7C1T/S8C1T (ESC SP F, ESC SP G): accepted and not applied
             pass
         elif char in _GR_LOCKING_SHIFTS:
-            self.charset.gr = _GR_LOCKING_SHIFTS[char]
+            # the G2 and G3 shifts are VT200 functions, which a VT100 (level 61) ignores, as xterm does
+            if self.conformance_level > 61:
+                self.charset.gr = _GR_LOCKING_SHIFTS[char]
         elif char == b"6":  # DECBI
             self.back_index()
         elif char == b"9":  # DECFI
             self.forward_index()
         elif char in _LOCKING_SHIFTS:
-            self.charset.activate(_LOCKING_SHIFTS[char])
+            if self.conformance_level > 61:
+                self.charset.activate(_LOCKING_SHIFTS[char])
         elif char in _SINGLE_SHIFTS:
-            self.charset.single_shift(_SINGLE_SHIFTS[char])
+            if self.conformance_level > 61:
+                self.charset.single_shift(_SINGLE_SHIFTS[char])
         elif char in {b"=", b">"}:  # DECKPAM, DECKPNM
             self.modes.keypad_application = char == b"="
         elif char == b"M":  # reverse line feed
@@ -574,7 +579,8 @@ class TermCanvas(_ReportsCanvas, _RectanglesCanvas, _ModesCanvas, _VTParser[byte
         """Apply the DCS string *body*, given without its ``ESC P`` and ST framing.
 
         DECRQSS and XTGETTCAP are answered and DECRSPS is applied.
-        As in xterm, at the VT100 level (61) DECRSPS is not applied, and DECRQSS does not answer the conformance level.
+        As in xterm, DECRSPS is applied from the VT300 level (63) on,
+        and at the VT100 level (61) DECRQSS does not answer the conformance level.
         Any other DCS string is ignored.
         """
         if body.startswith(b"$q"):
@@ -582,7 +588,8 @@ class TermCanvas(_ReportsCanvas, _RectanglesCanvas, _ModesCanvas, _VTParser[byte
                 self.dcs_request_setting(body[2:])
         elif body.startswith(b"+q"):
             self.dcs_request_termcap(body[2:])
-        elif self.conformance_level == _CONFORMANCE_LEVELS[0]:
+        elif self.conformance_level < 63:
+            # DECRSPS, from the VT300 level (63) on, as in xterm
             return
         elif body.startswith(b"1$t"):
             self.dcs_restore_cursor_information(body[3:])

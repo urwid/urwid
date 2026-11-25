@@ -310,7 +310,7 @@ class _RectanglesCanvas(_EditingCanvas):
         character, valued as one.
 
         Without parameters it is not answered, and an empty Pid is 65535, as in xterm.
-        It is not answered at the VT100 level (61), like the other DCS replies.
+        It is not answered at the VT100 level (61).
         """
         if self.conformance_level == 61 or params == [None]:
             return
