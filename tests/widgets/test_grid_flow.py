@@ -269,6 +269,57 @@ class GridFlowTest(unittest.TestCase):
 
         self.assertEqual(10, bottom.edit_pos)
 
+    def test_pack_cells(self) -> None:
+        """A ``'pack'`` cell is as wide as its widget packs to, and at most as wide as the grid."""
+        grid = urwid.GridFlow([], cell_width=1, h_sep=1, v_sep=0, align=urwid.LEFT)
+        grid.contents.extend(
+            (urwid.Text(label), grid.options(urwid.PACK)) for label in ("a", "bbbb", "cc", "dddddd", "e", "f" * 12)
+        )
+
+        with self.subTest("fixed"):
+            self.assertEqual(frozenset((urwid.FIXED, urwid.FLOW)), grid.sizing())
+            self.assertEqual((31, 1), grid.pack(()))
+            self.assertEqual(("a bbbb cc dddddd e ffffffffffff",), grid.render(()).decoded_text)
+
+        with self.subTest("flow"):
+            self.assertEqual(
+                ("a bbbb cc ", "dddddd e  ", "ffffffffff", "ff        "),
+                grid.render((10,)).decoded_text,
+            )
+
+    def test_pack_cell_uses_fixed_width_first(self) -> None:
+        """A widget that fills any flow width, such as a ``Button``, takes its fixed width in a ``'pack'`` cell."""
+        grid = urwid.GridFlow(
+            [urwid.Button("OK"), urwid.Button("Cancel")],
+            cell_width=10,
+            h_sep=1,
+            v_sep=0,
+            align="left",
+        )
+        grid.contents[:] = [(widget, grid.options("pack")) for widget, _options in grid.contents]
+
+        self.assertEqual(("< OK > < Cancel >   ",), grid.render((20,)).decoded_text)
+
+    def test_pack_cell_follows_its_widget(self) -> None:
+        """A ``'pack'`` cell is measured again when its widget changes width, with no contents change."""
+        text = urwid.Text("ab")
+        grid = urwid.GridFlow([], cell_width=1, h_sep=1, v_sep=0, align=urwid.LEFT)
+        grid.contents.extend(((text, grid.options("pack")), (urwid.Text("cd"), grid.options("pack"))))
+        self.assertEqual(("ab cd ",), grid.render((6,)).decoded_text)
+
+        text.set_text("abcd")
+
+        self.assertEqual(("abcd  ", "cd    "), grid.render((6,)).decoded_text)
+
+    def test_pack_cell_flow_only(self) -> None:
+        """A ``'pack'`` cell holding a FLOW-only widget limits the grid to FLOW sizing."""
+        grid = urwid.GridFlow([urwid.Edit("x: ")], cell_width=10, h_sep=1, v_sep=0, align=urwid.LEFT)
+        self.assertEqual(frozenset((urwid.FIXED, urwid.FLOW)), grid.sizing())
+
+        grid.contents[0] = (grid.contents[0][0], grid.options("pack"))
+
+        self.assertEqual(frozenset((urwid.FLOW,)), grid.sizing())
+
     def test_default_focus(self):
         with self.subTest("Simple"):
             grid = urwid.GridFlow(
@@ -567,7 +618,9 @@ class GridFlowTest(unittest.TestCase):
         with self.subTest("Contents options"):
             self.assertEqual(gf.options(), ("given", 5))
             self.assertEqual(gf.options(width_amount=9), ("given", 9))
-            self.assertRaises(urwid.GridFlowError, lambda: gf.options("pack", None))
+            self.assertEqual(gf.options("pack"), ("pack", None))
+            self.assertRaises(urwid.GridFlowError, lambda: gf.options("weight", None))
+            self.assertRaises(urwid.GridFlowError, lambda: gf.options("pack", 3))
 
     def test_focus_position(self):
         t1 = urwid.Text("one")
@@ -582,7 +635,8 @@ class GridFlowTest(unittest.TestCase):
         gf.contents.insert(0, (t2, ("given", 5)))
         self.assertEqual(gf.focus_position, 2)
         self.assertRaises(urwid.GridFlowError, lambda: gf.contents.append(()))
-        self.assertRaises(urwid.GridFlowError, lambda: gf.contents.insert(1, (t1, ("pack", None))))
+        self.assertRaises(urwid.GridFlowError, lambda: gf.contents.insert(1, (t1, ("weight", 1))))
+        self.assertRaises(urwid.GridFlowError, lambda: gf.contents.insert(1, (t1, ("pack", 3))))
         gf.focus_position = 0
         self.assertRaises(IndexError, lambda: setattr(gf, "focus_position", -1))
         self.assertRaises(IndexError, lambda: setattr(gf, "focus_position", 3))
@@ -734,6 +788,12 @@ class GridFlowSelectNavigationTest(unittest.TestCase):
         grid.focus_position = 2
         grid.enter_selectable()
         self.assertEqual(2, grid.focus_position)
+
+    def test_generate_display_widget_override(self) -> None:
+        """A subclass that overrides ``generate_display_widget`` is drawn with the widget it returns."""
+        grid = FramedGridFlow([urwid.Text("ab")], cell_width=4, h_sep=1, v_sep=0, align="left")
+
+        self.assertEqual(("┌────────┐", "│ab      │", "└────────┘"), grid.render((10,)).decoded_text)
 
     def test_traversal(self) -> None:
         """Steps follow the contents order across rows, and past the edge the key is returned after a reset."""

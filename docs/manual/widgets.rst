@@ -348,7 +348,8 @@ Controls
 :class:`Button`, :class:`CheckBox` and :class:`RadioButton` send a signal
 when the user activates them with :kbd:`enter`, :kbd:`space` or a mouse
 click: ``'click'`` for a button and ``'change'`` for a check box or a radio
-button.  :class:`GridFlow` arranges a group of them in equal-width cells.
+button.  :class:`GridFlow` arranges a group of them in equal-width cells, or
+in cells as wide as each widget packs to with ``options('pack')``.
 The ``selected_button`` property of a :class:`RadioButton` returns the selected
 button of its group, or ``None`` when no button of the group is selected.
 
