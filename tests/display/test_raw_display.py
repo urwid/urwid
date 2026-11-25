@@ -1146,11 +1146,7 @@ class TestTerminalProperties(unittest.TestCase):
         self.assertEqual(256, colors("xterm", {"FORCE_COLOR": "2"}))
         self.assertEqual(16777216, colors("linux", {"FORCE_COLOR": "3"}))
         self.assertEqual(256, colors("xterm", {"CLICOLOR_FORCE": "2"}))
-        self.assertEqual(16777216, colors(xterm, {"COLORTERM": "truecolor"}))
-        self.assertEqual(16777216, colors("xterm", {"COLORTERM": "24bit"}))
-        self.assertEqual(256, colors("xterm", {"COLORTERM": "gnome-terminal"}))
-        # NO_COLOR wins over COLORTERM / FORCE_COLOR
-        self.assertEqual(1, colors(xterm, {"NO_COLOR": "1", "COLORTERM": "truecolor"}))
+        # NO_COLOR wins over FORCE_COLOR
         self.assertEqual(1, colors(xterm, {"NO_COLOR": "1", "FORCE_COLOR": "3"}))
         # Empty NO_COLOR is unset per the spec
         self.assertEqual(256, colors(xterm, {"NO_COLOR": ""}))
@@ -1181,7 +1177,7 @@ class TestTerminalProperties(unittest.TestCase):
             ("alacritty", environ, 16777216),
             # the environment variables still decide over the entry
             ("fancy-direct32", {**environ, "NO_COLOR": "1"}, 1),
-            ("fancy-8", {**environ, "COLORTERM": "yes"}, 256),
+            ("fancy-8", {**environ, "FORCE_COLOR": "3"}, 16777216),
             # TERM never leaves the database directory, and only names a file the platform can encode
             ("../f/fancy", {"TERMINFO": f"{terminfo}/f"}, 16),
             ("f:fancy", environ, 16),
@@ -1316,20 +1312,36 @@ class TestTerminalProperties(unittest.TestCase):
         self.assertEqual(1, detect_terminal_properties("", {"NO_COLOR": "1"}, windows_version=win11).colors)
         self.assertEqual(1, detect_terminal_properties("dumb", {}, windows_version=win11).colors)
 
-    def test_windows_terminal_hosts(self) -> None:
-        # Windows Terminal / ConEmu / VS Code report xterm-256color but speak 24-bit SGR.
+    def test_host_variables_are_not_read(self) -> None:
+        """Take nothing from the variables a terminal or multiplexer started inside another one inherits."""
         for environ in (
+            {"COLORTERM": "truecolor"},
+            {"COLORTERM": "24bit"},
+            {"COLORTERM": "rxvt-xpm"},
             {"WT_SESSION": "deadbeef-0000-0000-0000-000000000000"},
             {"WT_PROFILE_ID": "{guid}"},
             {"ConEmuANSI": "ON"},
             {"ConEmuPID": "1234"},
             {"TERM_PROGRAM": "vscode"},
         ):
-            with self.subTest(environ=environ):
-                props = detect_terminal_properties("xterm-256color", environ, windows_version=(6, 1, 7601))
-                self.assertEqual(16777216, props.colors)
+            for term in ("xterm-256color", "rxvt-unicode-256color", "screen", "screen.xterm-256color"):
+                with self.subTest(environ=environ, term=term):
+                    self.assertEqual(
+                        detect_terminal_properties(term, {}, windows_version=(6, 1, 7601)),
+                        detect_terminal_properties(term, environ, windows_version=(6, 1, 7601)),
+                    )
+
+    def test_windows_host_names(self) -> None:
+        """Draw bright colours without bold under the ncurses names of the Windows hosts."""
+        for term in ("ms-terminal", "vscode", "conemu"):
+            with self.subTest(term=term):
+                props = detect_terminal_properties(term, {}, windows_version=(6, 1, 7601))
                 self.assertFalse(props.fg_bright_is_bold)
                 self.assertTrue(props.has_underline)
+        # the older Microsoft console entries have no SGR 90-97
+        self.assertTrue(
+            detect_terminal_properties("ms-vt100-color", {}, windows_version=(6, 1, 7601)).fg_bright_is_bold
+        )
 
 
 class TestTermModesSetFromCodes(unittest.TestCase):
@@ -1921,7 +1933,7 @@ def _terminfo_entry(strings: dict[str, bytes]) -> bytes:
 
 
 class UnderlineStylesDetectionTest(unittest.TestCase):
-    """Detecting underline styles and colors from the terminfo entry and the terminal's environment."""
+    """Detecting underline styles and colors from the terminfo entry and the terminal's version reply."""
 
     def test_extended_names(self) -> None:
         """Read the names of the extended capabilities, and refuse an extended section that does not fit the entry."""
@@ -1944,9 +1956,16 @@ class UnderlineStylesDetectionTest(unittest.TestCase):
             ("iTerm2 3.6.7", True),
             ("iTerm2 3.5.10", False),
             ("ghostty 1.2.0", True),
-            ("ghostty 1.3.0-dev+0123abc", False),
+            # a pre-release counts as just before the release its numbers name
+            ("ghostty 1.3.0-dev+0123abc", True),
+            ("ghostty 1.0.0-dev+0123abc", False),
+            ("xterm.js(6.1.0-beta.337)", True),
+            # a missing part is a zero
+            ("Konsole 22.12.0-rc1", False),
+            ("foot(1.18)", True),
             ("mintty 3.7.8", True),
             ("Rio 0.2.33", True),
+            ("Rio latest", False),
             ("foot(1.20.0)", True),
             ("foot(1.17.2)", False),
             ("xterm.js(6.1.0)", True),
@@ -1961,7 +1980,7 @@ class UnderlineStylesDetectionTest(unittest.TestCase):
                 self.assertIs(expected, raw_detection._underline_styles_from_version(reply))
 
     def test_detection(self) -> None:
-        """Take the terminfo entry's Smulx or Setulc, or a known terminal version, outside screen and tmux."""
+        """Take the terminfo entry's Smulx or Setulc, and no terminal version from the environment."""
         smulx = _terminfo_entry({"Smulx": b"\x1b[4:%p1%dm"})
         plain = _terminfo_entry({"AX": b""})
         for label, term, environ, entry, expected in (
@@ -1969,128 +1988,17 @@ class UnderlineStylesDetectionTest(unittest.TestCase):
             ("no capability", "xterm-256color", {}, plain, False),
             ("no terminfo entry", "xterm-256color", {}, None, False),
             ("malformed extended section", "xterm-256color", {}, smulx[:-3], False),
-            ("VTE 0.76", "xterm-256color", {"VTE_VERSION": "7600"}, plain, True),
-            ("VTE before 0.76, without dotted and dashed", "xterm-256color", {"VTE_VERSION": "7599"}, plain, False),
-            ("Konsole 22.12", "xterm-256color", {"KONSOLE_VERSION": "221200"}, plain, True),
-            ("Konsole before 22.12", "xterm-256color", {"KONSOLE_VERSION": "220800"}, plain, False),
+            # a terminal started from inside another one inherits these, so only the terminal's own reply counts
+            ("VTE_VERSION", "rxvt-unicode", {"VTE_VERSION": "8400"}, plain, False),
+            ("KONSOLE_VERSION", "xterm-256color", {"KONSOLE_VERSION": "251203"}, plain, False),
             (
-                "WezTerm",
+                "TERM_PROGRAM",
                 "xterm-256color",
-                {"TERM_PROGRAM": "WezTerm", "TERM_PROGRAM_VERSION": "20240203-110809-5046fc22"},
-                plain,
-                True,
-            ),
-            (
-                "WezTerm before",
-                "xterm-256color",
-                {"TERM_PROGRAM": "WezTerm", "TERM_PROGRAM_VERSION": "20210101-000000-1a2b3c4d"},
-                plain,
-                False,
-            ),
-            (
-                "iTerm2 3.6.7",
-                "xterm-256color",
-                {"TERM_PROGRAM": "iTerm.app", "TERM_PROGRAM_VERSION": "3.6.7"},
-                plain,
-                True,
-            ),
-            (
-                "iTerm2 nightly",
-                "xterm-256color",
-                {"TERM_PROGRAM": "iTerm.app", "TERM_PROGRAM_VERSION": "3.6.20251101-nightly"},
-                plain,
-                False,
-            ),
-            (
-                "iTerm2 over SSH",
-                "xterm-256color",
-                {"LC_TERMINAL": "iTerm2", "LC_TERMINAL_VERSION": "3.6.8"},
-                plain,
-                True,
-            ),
-            (
-                "iTerm2 3.6.6 over SSH",
-                "xterm-256color",
-                {"LC_TERMINAL": "iTerm2", "LC_TERMINAL_VERSION": "3.6.6"},
-                plain,
-                False,
-            ),
-            ("Ghostty", "xterm-256color", {"TERM_PROGRAM": "ghostty", "TERM_PROGRAM_VERSION": "1.1.3"}, plain, True),
-            (
-                "Ghostty development build",
-                "xterm-256color",
-                {"TERM_PROGRAM": "ghostty", "TERM_PROGRAM_VERSION": "1.2.0-dev+0123abc"},
-                plain,
-                False,
-            ),
-            (
-                "mintty 3.1.5",
-                "xterm-256color",
-                {"TERM_PROGRAM": "mintty", "TERM_PROGRAM_VERSION": "3.1.5"},
-                plain,
-                True,
-            ),
-            (
-                "mintty before its version variable",
-                "xterm-256color",
-                {"TERM_PROGRAM": "mintty", "TERM_PROGRAM_VERSION": "3.1.4"},
-                plain,
-                False,
-            ),
-            (
-                "VS Code 1.71",
-                "xterm-256color",
-                {"TERM_PROGRAM": "vscode", "TERM_PROGRAM_VERSION": "1.71.0"},
-                plain,
-                True,
-            ),
-            (
-                "VS Code 1.70",
-                "xterm-256color",
-                {"TERM_PROGRAM": "vscode", "TERM_PROGRAM_VERSION": "1.70.2"},
-                plain,
-                False,
-            ),
-            ("Rio", "xterm-256color", {"TERM_PROGRAM": "rio", "TERM_PROGRAM_VERSION": "0.1.6"}, plain, True),
-            (
-                "Rio before 0.1.6",
-                "xterm-256color",
-                {"TERM_PROGRAM": "rio", "TERM_PROGRAM_VERSION": "0.1.5"},
-                plain,
-                False,
-            ),
-            (
-                "VS Code Insiders",
-                "xterm-256color",
-                {"TERM_PROGRAM": "vscode", "TERM_PROGRAM_VERSION": "1.72.0-insider"},
-                plain,
-                False,
-            ),
-            (
-                "Warp draws curly as single",
-                "xterm-256color",
-                {"TERM_PROGRAM": "WarpTerminal", "TERM_PROGRAM_VERSION": "v0.2026.01.01"},
-                plain,
-                False,
-            ),
-            (
-                "version not a number",
-                "xterm-256color",
-                {"TERM_PROGRAM": "rio", "TERM_PROGRAM_VERSION": "latest"},
-                plain,
-                False,
-            ),
-            (
-                "TERM_PROGRAM under tmux",
-                "tmux-256color",
                 {"TERM_PROGRAM": "ghostty", "TERM_PROGRAM_VERSION": "1.1.3"},
                 plain,
                 False,
             ),
-            ("not a number", "xterm-256color", {"KONSOLE_VERSION": "22.04"}, plain, False),
-            ("non-ASCII digit", "xterm-256color", {"VTE_VERSION": "\u00b2"}, plain, False),
-            ("too many digits", "xterm-256color", {"VTE_VERSION": "9" * 5000}, plain, False),
-            ("VTE outside tmux", "tmux-256color", {"VTE_VERSION": "8400"}, plain, False),
+            ("LC_TERMINAL", "xterm-256color", {"LC_TERMINAL": "iTerm2", "LC_TERMINAL_VERSION": "3.6.8"}, plain, False),
             ("tmux with Smulx", "tmux-256color", {"VTE_VERSION": "8400"}, smulx, True),
         ):
             with self.subTest(label), mock.patch.object(raw_detection, "_terminfo_entry", return_value=entry):

@@ -49,6 +49,7 @@ _ColorCount = typing.Literal[1, 16, 88, 256, 16777216]
 _INDEPENDENT_BRIGHT_FAMILIES = frozenset(
     {
         "alacritty",
+        "conemu",
         "cygwin",
         "eterm",
         "foot",
@@ -65,6 +66,7 @@ _INDEPENDENT_BRIGHT_FAMILIES = frozenset(
         "st",
         "terminator",
         "tmux",
+        "vscode",
         "vte",
         "wezterm",
         "xfce",
@@ -84,34 +86,22 @@ _TRUECOLOR_FAMILIES = frozenset(
     }
 )
 _NO_UNDERLINE_FAMILIES = frozenset({"dumb", "unknown", "vt52"})
+# the TERM families of a multiplexer, which answers the program in place of the terminal around it
+_MULTIPLEXER_FAMILIES = frozenset({"screen", "tmux"})
 # the terminals that draw every underline style (SGR 4:2 to 4:5) and the underline colour without a terminfo entry
-# saying so, by the environment variable holding their version, and the first version that draws them all:
-# VTE 0.76, the first with dotted and dashed underlines, and Konsole 22.12
-_VTE_UNDERLINE_STYLE_VERSION: typing.Final = 7600
-_KONSOLE_UNDERLINE_STYLE_VERSION: typing.Final = 221200
-_UNDERLINE_STYLE_VERSIONS: Sequence[tuple[str, int]] = (
-    ("VTE_VERSION", _VTE_UNDERLINE_STYLE_VERSION),
-    ("KONSOLE_VERSION", _KONSOLE_UNDERLINE_STYLE_VERSION),
-)
-# the same first versions by the lower-case TERM_PROGRAM of a terminal that sets TERM_PROGRAM_VERSION;
-# iTerm2 also sets LC_TERMINAL and LC_TERMINAL_VERSION, which SSH passes on with the locale
-_TERM_PROGRAM_UNDERLINE_STYLE_FLOORS: Mapping[str, tuple[int, ...]] = {
+# saying so, by the lower-case terminal name of their XTVERSION reply, and the first version that draws them all.
+# VTE replies with the number of its VTE_VERSION, and 0.76 is the first with dotted and dashed underlines.
+# The environment variables that name these terminals are not read: a terminal started from inside another one
+# inherits them (Konsole and tmux pass VTE_VERSION on), while the reply comes from the terminal itself.
+_XTVERSION_UNDERLINE_STYLE_FLOORS: Mapping[str, tuple[int, ...]] = {
+    "foot": (1, 18, 0),
     "ghostty": (1, 0, 0),
-    "iterm.app": (3, 6, 7),
+    "iterm2": (3, 6, 7),
+    "konsole": (22, 12),
     "mintty": (3, 1, 5),
     "rio": (0, 1, 6),
-    "vscode": (1, 71, 0),
+    "vte": (7600,),
     "wezterm": (20210203, 95643),
-}
-_ITERM2_UNDERLINE_STYLE_FLOOR: typing.Final = _TERM_PROGRAM_UNDERLINE_STYLE_FLOORS["iterm.app"]
-# the same first versions by the lower-case terminal name of an XTVERSION reply; VTE replies with VTE_VERSION's number
-# and Konsole with its release, and foot drew the styles from 1.18.0 and xterm.js from 5.0.0
-_XTVERSION_UNDERLINE_STYLE_FLOORS: Mapping[str, tuple[int, ...]] = {
-    **{name: _TERM_PROGRAM_UNDERLINE_STYLE_FLOORS[name] for name in ("ghostty", "mintty", "rio", "wezterm")},
-    "foot": (1, 18, 0),
-    "iterm2": _ITERM2_UNDERLINE_STYLE_FLOOR,
-    "konsole": (_KONSOLE_UNDERLINE_STYLE_VERSION // 10000, _KONSOLE_UNDERLINE_STYLE_VERSION // 100 % 100),
-    "vte": (_VTE_UNDERLINE_STYLE_VERSION,),
     "xterm.js": (5, 0, 0),
 }
 # the numbers a version starts with, separated by "." or "-", as in "3.6.7" or WezTerm's "20240203-110809-5046fc22"
@@ -125,9 +115,9 @@ _XTVERSION_TEXT = re.compile(r"([A-Za-z][\w.+-]*?)[ (](.*)")
 _QUERIED_CAPABILITIES: typing.Final = ("colors", "RGB", "Tc", "Smulx", "Setulc")
 # an RGB value that names the bits per component, as ncurses gives it: one number, or one per component
 _RGB_BITS: typing.Final = re.compile(r"[1-9][0-9]?(?:/[1-9][0-9]?/[1-9][0-9]?)?", re.ASCII)
-# the terminals that draw 24-bit colours and answer neither the rendition probe nor XTGETTCAP, by the lower-case
-# name of their XTVERSION reply
-_XTVERSION_TRUE_COLOR_TERMINALS: typing.Final = frozenset({"konsole"})
+# the terminals that draw 24-bit colours and show it in no reply to the rendition probe or XTGETTCAP, by the
+# lower-case name of their XTVERSION reply; tmux converts them for the terminal around it
+_XTVERSION_TRUE_COLOR_TERMINALS: typing.Final = frozenset({"konsole", "tmux", "xterm.js"})
 # the background the rendition probe sets, a 256-colour cube entry the 88-colour palette does not have, as an RGB
 # value and as that entry
 _PROBE_RGB: typing.Final = (135, 175, 215)
@@ -141,7 +131,6 @@ _BYTE: typing.Final = re.compile(r"[0-9]{1,3}", re.ASCII)
 # Windows 10 TH2 (1511) gained 256-color VT; 1703-era build 14931 gained 24-bit color.
 _WINDOWS_256COLOR_BUILD = 10586
 _WINDOWS_TRUECOLOR_BUILD = 14931
-_TRUECOLOR_TERM_PROGRAMS = frozenset({"hyper", "tabby", "vscode", "vscode-insiders"})
 
 # Compiled terminfo entries, as term(5) describes them.
 # ncurses' built-in search path on common systems, searched after TERMINFO, ~/.terminfo and TERMINFO_DIRS.
@@ -185,8 +174,9 @@ def sends_incomplete_window_size_reports(environ: Mapping[str, str]) -> bool:
 
     iTerm2 sets ``LC_TERMINAL`` and ``LC_TERMINAL_VERSION``, and SSH passes them on with the locale.
     An iTerm2 version that cannot be read counts as such a release.
+    Under screen or tmux, as TERM names them, the variables are inherited, and the program talks to the multiplexer.
     """
-    if environ.get("LC_TERMINAL") != "iTerm2":
+    if environ.get("LC_TERMINAL") != "iTerm2" or _term_families(environ.get("TERM", "")) & _MULTIPLEXER_FAMILIES:
         return False
     version = re.match(r"(\d+)\.(\d+)\.(\d+)", environ.get("LC_TERMINAL_VERSION", ""))
     return version is None or tuple(int(part) for part in version.groups()) < _ITERM2_COMPLETE_WINDOW_SIZE_REPORT
@@ -262,17 +252,6 @@ def _windows_console_colors(version: tuple[int, int, int] | None) -> _ColorCount
     if version >= (10, 0, _WINDOWS_256COLOR_BUILD):
         return 256
     return 16
-
-
-def _truecolor_host(environ: Mapping[str, str]) -> bool:
-    """Hosts that speak 24-bit SGR even when TERM still says xterm-256color."""
-    if (colorterm := environ.get("COLORTERM")) and colorterm.lower() in {"truecolor", "24bit"}:
-        return True
-    if environ.get("WT_SESSION") or environ.get("WT_PROFILE_ID"):
-        return True
-    if environ.get("ConEmuANSI", "").lower() in {"on", "1"} or environ.get("ConEmuPID"):
-        return True
-    return environ.get("TERM_PROGRAM", "").lower() in _TRUECOLOR_TERM_PROGRAMS
 
 
 def _colors_from_term(term: str, families: frozenset[str]) -> _ColorCount:
@@ -448,9 +427,13 @@ def _terminfo_entry(term: str, environ: Mapping[str, str]) -> bytes | None:
 def _version_reaches(version: str, floor: tuple[int, ...] | None) -> bool:
     """Return whether *version* is a release at or after *floor*.
 
-    A version with a pre-release word after its numbers, such as ``3.6.7beta2`` or ``1.2.0-dev``, counts as before.
+    A version with a pre-release word after its numbers, such as ``3.6.7beta2`` or ``1.2.0-dev``, counts as just before
+    the release its numbers name, so it reaches only a *floor* below that release.
+    VS Code ships pre-releases of xterm.js, such as ``6.1.0-beta.337``.
 
     >>> _version_reaches("3.6.7", (3, 6, 7)), _version_reaches("3.6.7beta2", (3, 6, 7))
+    (True, False)
+    >>> _version_reaches("6.1.0-beta.337", (5, 0, 0)), _version_reaches("22.12.0-rc1", (22, 12))
     (True, False)
     >>> _version_reaches("20240203-110809-5046fc22", (20210203, 95643))
     True
@@ -459,9 +442,14 @@ def _version_reaches(version: str, floor: tuple[int, ...] | None) -> bool:
     """
     if floor is None or (match := _VERSION_NUMBERS.match(version)) is None:
         return False
+    numbers = tuple(int(part) for part in re.split(r"[.-]", match.group(1)))
+    # missing parts are zeros, so 22.12.0 and 22.12 name the same release
+    width = max(len(numbers), len(floor))
+    numbers += (0,) * (width - len(numbers))
+    floor += (0,) * (width - len(floor))
     if _PRERELEASE.search(version, match.end()):
-        return False
-    return tuple(int(part) for part in re.split(r"[.-]", match.group(1))) >= floor
+        return numbers > floor
+    return numbers >= floor
 
 
 def _underline_styles_from_version(text: str) -> bool:
@@ -627,14 +615,15 @@ def detect_term_colors(
 
     - ``NO_COLOR``, then ``FORCE_COLOR`` / ``CLICOLOR_FORCE``, then ``CLICOLOR=0``.
     - A monochrome TERM such as ``dumb``.
-    - A 24-bit host: ``COLORTERM=truecolor``, Windows Terminal, ConEmu, VS Code, or Windows 10 from build 14931.
-    - Any other ``COLORTERM``, which means at least 256 colours.
+    - Windows 10 from build 14931, which has 24-bit colours.
     - The Windows 10 console from build 10586, which has 256 colours.
     - TERM itself.
 
     TERM gives a count by its name, matched by family so ``gnome-256color``, ``konsole-direct``
     and ``rxvt-unicode-256color`` are recognized.
     The ``colors`` capability of its terminfo entry raises that count and never lowers it.
+    Variables that name a terminal, such as ``COLORTERM`` or ``WT_SESSION``, are not read: a terminal or multiplexer
+    started inside another one inherits them. The raw screen raises the count from the terminal's own replies instead.
     The entry is searched in the ``TERMINFO``, ``$HOME/.terminfo`` and ``TERMINFO_DIRS`` directories of *environ*,
     then in the system terminfo directories; native Windows has no terminfo lookup.
 
@@ -659,11 +648,7 @@ def detect_term_colors(
     if term_colors == 1:
         return 1
     win_colors = _windows_console_colors(_windows_version() if windows_version is None else windows_version)
-    if _truecolor_host(env) or win_colors == 16777216:
-        return 16777216
-    # Any other COLORTERM, or the Windows console, sets the minimum.
-    minimum: _ColorCount = 256 if env.get("COLORTERM") else win_colors or 1
-    return max(term_colors, minimum)
+    return max(term_colors, win_colors or 1)
 
 
 def detect_terminal_properties(
@@ -672,14 +657,13 @@ def detect_terminal_properties(
     *,
     windows_version: tuple[int, int, int] | None = None,
 ) -> TerminalProperties:
-    """Detect raw-display capabilities from TERM and standard colour environment variables.
+    """Detect raw-display capabilities from TERM, its terminfo entry and the colour settings in the environment.
 
     The colour count comes from :func:`detect_term_colors`.
     TERM names are matched by family, so ``screen.xterm-256color`` is treated as both screen and xterm.
 
-    On Windows 10 and later the console VT host is used when TERM is empty or generic.
-    Windows Terminal (``WT_SESSION``), ConEmu and VS Code's terminal are treated as VT hosts even
-    when TERM still reports ``xterm-256color``.
+    On Windows 10 from build 10586 the console VT host draws bright colours without bold and draws underlines,
+    under any TERM but the Linux console's.
     """
     env = os.environ if environ is None else environ
     term_value = env.get("TERM", "") if term is None else term
@@ -688,11 +672,12 @@ def detect_terminal_properties(
     if windows_version is None:
         windows_version = _windows_version()
     win_colors = _windows_console_colors(windows_version)
-    vt_host = _truecolor_host(env) or win_colors in {256, 16777216}
+    vt_host = win_colors in {256, 16777216}
 
     has_underline = not bool(families & _NO_UNDERLINE_FAMILIES)
     linux_console = _is_linux_console(term_value)
-    fg_bright_is_bold = not bool(families & _INDEPENDENT_BRIGHT_FAMILIES)
+    # ms-terminal is Windows Terminal; the other ms-* entries name older Microsoft consoles, most with 8 colours
+    fg_bright_is_bold = not (families & _INDEPENDENT_BRIGHT_FAMILIES or term_l.startswith("ms-terminal"))
     if vt_host and not linux_console:
         fg_bright_is_bold = False
         has_underline = True
@@ -705,35 +690,15 @@ def detect_terminal_properties(
         fg_bright_is_bold=fg_bright_is_bold,
         bg_bright_is_blink=bg_bright_is_blink,
         back_color_erase=back_color_erase,
-        underline_styles=_has_underline_styles(term_value, env, families),
+        underline_styles=_has_underline_styles(term_value, env),
     )
 
 
-def _has_underline_styles(term: str, environ: Mapping[str, str], families: frozenset[str]) -> bool:
-    """Return whether the terminal draws underline styles (SGR 4:2 to 4:5) and underline colors (SGR 58).
+def _has_underline_styles(term: str, environ: Mapping[str, str]) -> bool:
+    """Return whether the terminfo entry of *term* says the terminal draws underline styles and underline colors.
 
-    It does when the terminfo entry of *term* has ``Smulx`` or ``Setulc``, or when the environment names a terminal
-    version known to draw them.
-    Under screen or tmux, *families* of *term*, the outer terminal's variables are not taken, since the multiplexer
-    decides what reaches the terminal.
+    The styles are SGR 4:2 to 4:5 and the colors SGR 58; the entry says so with ``Smulx`` or ``Setulc``.
     """
-    if not families & {"screen", "tmux"}:
-        for name, first in _UNDERLINE_STYLE_VERSIONS:
-            # isdigit() alone accepts digits that int() rejects, such as "²"
-            value = environ.get(name, "")
-            if value.isascii() and value.isdigit() and len(value) <= 9 and int(value) >= first:
-                return True
-        program = environ.get("TERM_PROGRAM", "").lower()
-        if _version_reaches(
-            environ.get("TERM_PROGRAM_VERSION", ""),
-            _TERM_PROGRAM_UNDERLINE_STYLE_FLOORS.get(program),
-        ):
-            return True
-        if environ.get("LC_TERMINAL") == "iTerm2" and _version_reaches(
-            environ.get("LC_TERMINAL_VERSION", ""),
-            _ITERM2_UNDERLINE_STYLE_FLOOR,
-        ):
-            return True
     if (data := _terminfo_entry(term, environ)) is None:
         return False
     try:

@@ -38,7 +38,14 @@ The number of colors is decided by the first of these that gives one:
 #. ``NO_COLOR``, ``CLICOLOR=0``, ``FORCE_COLOR`` or ``CLICOLOR_FORCE`` in the environment;
 #. the answer to the rendition question, which may also lower a number of colors the guesses below gave;
 #. the capability and version replies, which only raise it;
-#. ``COLORTERM``, ``TERM`` and its terminfo entry.
+   the version replies of Konsole, tmux and xterm.js (the VS Code terminal) mean 24-bit colors,
+   which tmux converts for the terminal around it;
+#. ``TERM`` and its terminfo entry, and on Windows 10 the console's version.
+
+Variables that name a terminal, such as ``COLORTERM``, ``WT_SESSION`` or ``TERM_PROGRAM``, are not read: a terminal or
+multiplexer started inside another one inherits them, and they then describe the wrong terminal.
+A terminal that draws 24-bit colors and answers none of the queries gets 256 colors; ``FORCE_COLOR=3`` gives it 24-bit
+colors.
 
 With those queries it also asks for the terminal's default foreground and background colors (OSC 10 and OSC 11),
 which :attr:`display.raw.Screen.terminal_default_colors` then holds, and with which the :class:`Terminal` widget
@@ -414,9 +421,10 @@ color of the enclosing attribute is taken::
 
 The raw display draws the styles and the color where the terminal does, and an underline in the
 text color and single elsewhere. It finds them in the terminal's terminfo entry (``Smulx`` or
-``Setulc``), from the terminal's version in the environment (VTE, Konsole, iTerm2, WezTerm, Ghostty,
-mintty, Rio and the VS Code terminal),
-or from the terminal's replies to its capability and version queries, and
+``Setulc``), or in the terminal's replies to its capability and version queries; the version replies of VTE, Konsole,
+iTerm2, WezTerm, Ghostty, foot, mintty, Rio and xterm.js (the VS Code terminal) are known.
+It does not read the variables that name these terminals, such as ``VTE_VERSION``,
+because a terminal started from inside another one inherits them.
 ``underline_styles`` given to :class:`display.raw.Screen` or
 :meth:`display.raw.Screen.set_terminal_properties` turns them on or off. The web displays draw
 them as the text decoration's style and color; the curses display draws a single underline.
