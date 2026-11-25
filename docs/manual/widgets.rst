@@ -189,6 +189,13 @@ rectangular area operations, DECIC, DECDC, DECBI and DECFI, which work at every
 level, and DECRQCRA and the tertiary device attributes query, which are
 answered from the VT200 level on.
 
+The child's output is read as UTF-8, or in urwid's encoding while it has not
+selected UTF-8.  An encoding that switches character sets with escape
+sequences, such as ISO-2022-JP, cannot be read: the parser takes those
+sequences as its own, as a terminal does.  Such output is converted before it
+reaches the widget, by a program such as luit for :class:`Terminal`, or by
+decoding it and writing ``str`` to :class:`TerminalOutput`.
+
 It differs from xterm, or adds to it, in these points:
 
 * VT52 mode, 132 columns, the status line and printing are not implemented,
@@ -198,8 +205,8 @@ It differs from xterm, or adds to it, in these points:
 * With ``term="linux"``, where the Linux console and xterm differ, it follows
   the Linux console, which ``TERM=linux`` describes:
 
-  * F1 to F5 are sent as ``CSI [ A`` to ``CSI [ E``, and Shift+Tab as
-    ``ESC Tab``, while cursor key mode (DECCKM) is reset.
+  * Shift+Tab is sent as ``ESC Tab``.  F1 to F5 are sent as ``CSI [ A`` to
+    ``CSI [ E`` while cursor key mode (DECCKM) is reset.
   * G1 starts as DEC Special Graphics.
   * SGR 11 and 12 select the IBM PC character set (CP437) and display control
     mode, SGR 10 ends both, and ``CSI 3 h`` turns display control mode on.
@@ -289,8 +296,9 @@ It differs from xterm, or adds to it, in these points:
 * XTVERSION is answered with urwid and its version, the XTWINOPS size reports
   in characters (18) and in pixels (14), the latter as unknown, and XTGETTCAP,
   in xterm's form, for the 256 colors of the palette and RGB colors, which the
-  widget takes whatever the display draws.  xterm answers the last two only
-  when its window operations are allowed.
+  widget takes whatever the display draws.  xterm answers the XTWINOPS
+  reports only when its window operations are allowed, and XTGETTCAP only when
+  its termcap operations are allowed.
 * Every color the child gives is kept as it gave it, a palette entry beside a
   24-bit color included, and the display converts it to the colors it draws,
   as :ref:`color-conversion` describes.

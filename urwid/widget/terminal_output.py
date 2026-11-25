@@ -105,6 +105,8 @@ class TerminalOutput(Widget):
         - ``bytes`` and bytes-like objects are what a program writes to a terminal, in the encoding the terminal reads:
           UTF-8 when urwid's encoding is UTF-8 or the data selected UTF-8 (``ESC % G``), urwid's encoding otherwise.
           Data in any other encoding is decoded by the caller and written as ``str``.
+          That includes an encoding that switches character sets with escape sequences, such as ISO-2022-JP,
+          even when it is urwid's encoding: the parser takes those sequences as its own, as a terminal does.
           A character split between two writes is completed by the second one.
         - ``str`` is text, shown as the characters given in either case.
 
