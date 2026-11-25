@@ -477,6 +477,24 @@ class _ModesScreen(_AttributesScreen):  # pylint: disable=abstract-method  # a p
         # start can reset the character sets, so G1 is designated again then
         self._setup_G1_done = False
 
+    def _forget_stop_state(self) -> None:
+        """Clear the state the stop steps clear, for a stop whose output failed before they all ran.
+
+        A later stop then writes nothing for the run that ended, and a later start begins as after a full stop.
+        A step added to the stop clears its state here too.
+        """
+        self._in_band_resize = False
+        self._alternate_scroll_written = False
+        self._keyboard_protocol_enabled = None
+        self._keyboard_query_pending = False
+        self._capability_query_pending = False
+        self._color_probe = _ColorProbe.FINISHED
+        self._modified_palette_entries.clear()
+        self._title_saved = False
+        self._alternate_buffer = False
+        self._start_complete = False
+        self._setup_G1_done = False
+
     def _stop_restore_palette(self) -> None:
         """Reset any palette entries modify_terminal_palette() changed this session.
 

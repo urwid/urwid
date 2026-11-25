@@ -562,10 +562,12 @@ class TestStartStop(unittest.TestCase):
             with self.subTest(error=errno.errorcode[error]):
                 mock_tcsetattr.reset_mock()
                 s = _make_screen()
-                self.enterContext(mock.patch.object(s, "write"))
+                write = self.enterContext(mock.patch.object(s, "write"))
                 flush = self.enterContext(mock.patch.object(s, "flush"))
                 s.start()
                 s._modified_palette_entries.add(1)
+                s.set_title("run")
+                s._keyboard_protocol_enabled = "kitty"
                 gpm_mev = s.gpm_mev = mock.MagicMock()
                 flush.side_effect = OSError(error, os.strerror(error))
 
@@ -576,8 +578,62 @@ class TestStartStop(unittest.TestCase):
                 mock_tcsetattr.assert_any_call(s._input_fileno(), termios.TCSAFLUSH, mock_tcgetattr.return_value)
                 gpm_mev.send_signal.assert_called_once_with(signal.SIGINT)
                 self.assertIsNone(s.gpm_mev)
-                # undoing a later start that fails moves no cursor below frames it never drew
+                # undoing a later start that fails moves no cursor below frames it never drew,
+                # and leaves no alternate screen it never switched to
                 self.assertFalse(s._start_complete)
+                flush.side_effect = None
+                write.reset_mock()
+                with self.assertRaises(TypeError):
+                    s.start(unexpected=True)
+                written = "".join(call.args[0] for call in write.call_args_list)
+                for sequence in (
+                    escape.PrivateMode.ALTERNATE_SCREEN_BUFFER.disable_seq,
+                    "\x1b]104",
+                    escape.TITLE_POP,
+                    escape.KITTY_KEYBOARD_POP,
+                ):
+                    self.assertNotIn(sequence, written)
+                # the next run that starts saves the title again before its stop gives the saved one back
+                write.reset_mock()
+                s.start()
+                s.stop()
+                written = "".join(call.args[0] for call in write.call_args_list)
+                self.assertLess(written.index(escape.TITLE_PUSH), written.index(escape.TITLE_POP))
+
+    @mock.patch("termios.tcsetattr")
+    @mock.patch("termios.tcgetattr", return_value=[0, 0, 0, 0, 0, 0, [b"\0"] * 32])
+    @mock.patch("tty.setcbreak")
+    @mock.patch("os.isatty", return_value=True)
+    def test_stop_failing_at_its_first_write_ends_like_a_full_stop(
+        self,
+        mock_isatty: mock.Mock,
+        mock_setcbreak: mock.Mock,
+        mock_tcgetattr: mock.Mock,
+        mock_tcsetattr: mock.Mock,
+    ) -> None:
+        """Leave no state of the run behind when an unbuffered write fails before every stop step."""
+        s = _make_screen()
+        written: list[str] = []
+        write = self.enterContext(mock.patch.object(s, "write", side_effect=written.append))
+        self.enterContext(mock.patch.object(s, "flush"))
+        s.start()
+        s.modes.bracketed_paste = True
+        s._keyboard_protocol_enabled = "kitty"
+        s._keyboard_query_pending = True
+        write.side_effect = OSError(errno.EIO, os.strerror(errno.EIO))
+
+        s.stop()
+
+        self.assertEqual(
+            (None, False, False, False, False),
+            (
+                s._keyboard_protocol_enabled,
+                s._keyboard_query_pending,
+                s._in_band_resize,
+                s._alternate_buffer,
+                s._setup_G1_done,
+            ),
+        )
 
     @mock.patch.dict(os.environ, {"TERM": "xterm"})  # fbterm has no palette reset to flush
     @mock.patch("termios.tcsetattr")
