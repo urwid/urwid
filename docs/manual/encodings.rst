@@ -59,7 +59,7 @@ graphic characters:
 If you use these characters with a non-UTF-8 encoding they will be sent using
 the alternate character set sequences supported by some terminals. This also
 applies to the UTF-8 output of a program running in a :class:`Terminal`
-widget.
+widget, and to the text shown by a :class:`TerminalOutput`.
 
 Any other character that a non-UTF-8 encoding cannot represent is sent as
 ``?``. :func:`urwid.set_ascii_fallbacks` sets a replacement for such
