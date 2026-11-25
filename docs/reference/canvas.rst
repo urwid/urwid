@@ -16,6 +16,17 @@ Canvas Classes
 
 .. autoclass:: CompositeCanvas
 
+Terminal Canvas
+---------------
+
+The canvas of the :class:`Terminal` and :class:`TerminalOutput` widgets, available on every platform.
+
+.. autoclass:: TermCanvas
+
+.. autoclass:: TermCharset
+
+.. autoclass:: TermModes
+
 CompositeCanvas Builders
 ------------------------
 

@@ -362,7 +362,8 @@ Code written for earlier releases sees these differences, also with palettes tha
   the kind of each color for layers of different color modes, where they used to convert every color to the larger
   mode.
 * ``repr()`` of a true color :class:`AttrSpec` names ``colors=16777216``.
-* :class:`ANSIText` and the :class:`Terminal` widget keep a palette entry beside a 24-bit color as an entry.
+* :class:`ANSIText`, :class:`Terminal` and :class:`TerminalOutput` keep a palette entry beside a 24-bit color as an
+  entry.
 
 .. _bold-underline-standout:
 
@@ -440,7 +441,8 @@ An attribute without a link takes the link of the attribute around it, and
 :class:`Hyperlink` also takes an ``id``, which makes the terminal highlight several separate runs as one link.
 A URI or id outside printable ASCII is refused, so a link cannot write other escape sequences to the terminal.
 
-:class:`ANSIText` and :class:`Terminal` turn the OSC 8 sequences in their input into such attributes.
+:class:`ANSIText`, :class:`Terminal` and :class:`TerminalOutput` turn the OSC 8 sequences in their input into such
+attributes.
 SGR sequences, ``ESC[0m`` included, leave the link in place, as they do in a terminal.
 An OSC 8 sequence urwid refuses ends the current link, so the text after it does not point at the previous target.
 

@@ -53,9 +53,12 @@ Windows support is limited to the Windows 10+ due to ANSI support requirement.
 
 * Not supported:
 
-1. Terminal widget and all related render API (TermCanvas, TermCharset, TermModes, TermScroller)
+1. Terminal widget (it runs a child process on a pty)
 2. Any file descriptors except sockets (Windows OS limitation)
 3. ZMQEventLoop.
+
+* Supported, although they belong to the terminal emulation: ``TerminalOutput``, ``TermCanvas``, ``TermCharset`` and
+  ``TermModes``.
 
 * Special requirements:
 
