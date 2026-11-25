@@ -1286,6 +1286,9 @@ class TestDetectTerminalModes(unittest.TestCase):
             ({"LC_TERMINAL": "iTerm2", "LC_TERMINAL_VERSION": "3.5.10"}, True, True),
             ({"LC_TERMINAL": "iTerm2", "LC_TERMINAL_VERSION": "3.5.11"}, None, None),
             ({"LC_TERMINAL": "iTerm2", "LC_TERMINAL_VERSION": "3.6.0"}, None, None),
+            # inherited by a multiplexer, which sends the reports itself
+            ({"LC_TERMINAL": "iTerm2", "LC_TERMINAL_VERSION": "3.5.10", "TERM": "tmux-256color"}, None, None),
+            ({"LC_TERMINAL": "iTerm2", "LC_TERMINAL_VERSION": "3.5.10", "TERM": "screen.xterm-256color"}, None, None),
             ({}, None, None),
         ):
             with self.subTest(environ=environ, in_band_resize=in_band_resize):
@@ -1598,9 +1601,16 @@ class TestTerminalCapabilities(unittest.TestCase):
         self.assertTrue(s.underline_styles)
 
     def test_terminal_version_of_a_true_color_terminal(self):
-        s = self._screen(colors=256)
-        s.parse_input(None, None, list(b"\x1bP>|Konsole 25.12.3\x1b\\"))
-        self.assertEqual(2**24, s.colors)
+        # tmux converts 24-bit colours for the terminal around it
+        for reply in (
+            b"\x1bP>|Konsole 25.12.3\x1b\\",
+            b"\x1bP>|tmux 3.6\x1b\\",
+            b"\x1bP>|xterm.js(6.1.0-beta.337)\x1b\\",
+        ):
+            with self.subTest(reply=reply):
+                s = self._screen(colors=256)
+                s.parse_input(None, None, list(reply))
+                self.assertEqual(2**24, s.colors)
 
         s = self._screen(colors=256)
         s.parse_input(None, None, list(b"\x1bP>|XTerm(407)\x1b\\"))
@@ -1691,7 +1701,7 @@ class TestColorProbe(unittest.TestCase):
         patcher = mock.patch.dict(os.environ, {"TERM": "xterm"})
         patcher.start()
         self.addCleanup(patcher.stop)
-        for name in ("NO_COLOR", "CLICOLOR", "FORCE_COLOR", "CLICOLOR_FORCE", "COLORTERM"):
+        for name in ("NO_COLOR", "CLICOLOR", "FORCE_COLOR", "CLICOLOR_FORCE"):
             os.environ.pop(name, None)
         self.screen = _make_screen()
         self.screen._terminal_properties = dataclasses.replace(self.screen._terminal_properties, colors=16)
@@ -1842,7 +1852,7 @@ class TestColorProbe(unittest.TestCase):
                 self.assertEqual(16, self.screen.colors)
 
     def test_a_confirmed_count_replaces_the_guesses(self):
-        """Take 256 colours for an xterm without direct colour under COLORTERM=truecolor: it answers RGB=-1."""
+        """Take 256 colours for an xterm without direct colour that was taken for 24-bit: it answers RGB=-1."""
         self.screen._terminal_properties = dataclasses.replace(self.screen._terminal_properties, colors=2**24)
         self.start()
         self.frame()
