@@ -95,7 +95,7 @@ class _EditRender(_EditUndo):
         if y < top_y or y >= len(trans):
             return False
 
-        pos = text_layout.calc_pos(self.get_text()[0], trans, x, y)
+        pos = text_layout.calc_pos(self._displayed_text(), trans, x, y)
         e_pos = min(max(pos - len(self.caption), 0), len(self.edit_text))
         self.set_edit_pos(e_pos)
         self.pref_col_maxcol = x, maxcol
@@ -219,10 +219,7 @@ class _EditRender(_EditUndo):
 
         placeholder_text, placeholder_attrib = self._placeholder_ta
         text = self._caption + placeholder_text  # type: ignore[operator]  # type normalised
-        caption_attrib = self._attrib.copy()
-        if (uncovered := len(self._caption) - sum(run for _attr, run in caption_attrib)) > 0:
-            caption_attrib.append((None, uncovered))  # so that the placeholder's attributes start after the caption
-        attrib = [*caption_attrib, *placeholder_attrib]
+        attrib = [*self._padded_caption_attrib(), *placeholder_attrib]
 
         trans = self._w.layout.layout(text, maxcol, self._w.align, self._w.wrap)
         grow = self.multiline if self._placeholder_grow is None else self._placeholder_grow
@@ -244,7 +241,7 @@ class _EditRender(_EditUndo):
             # so there is never a partially hidden row to scroll horizontally into view.
             return trans
 
-        text, _ignore = self.get_text()
+        text = self._displayed_text()
         if self._w.wrap == WrapMode.ELLIPSIS and self._w.layout.supports_wrap_mode(WrapMode.CLIP):
             # The ellipsis replaces the text past the cut, so no shift could bring a cursor there into view:
             # the row with the cursor is clipped instead, and the other rows keep their ellipsis.
@@ -351,5 +348,5 @@ class _EditRender(_EditUndo):
         """Return (*x*, *y*) coordinates for an offset into self.edit_text."""
         p = pos + len(self.caption)
         trans = self.get_line_translation(maxcol)
-        x, y = text_layout.calc_coords(self.get_text()[0], trans, p)
+        x, y = text_layout.calc_coords(self._displayed_text(), trans, p)
         return x, y

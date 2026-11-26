@@ -96,6 +96,7 @@ class Edit(_EditKeys):
         validator: Callable[[str], ValidationMessage | str | Iterable[ValidationMessage] | None] | None = None,
         validation_attr: Mapping[Severity, _AttrMapLike] | None = None,
         validation_focus_attr: Mapping[Severity, _AttrMapLike] | None = None,
+        highlighter: Callable[[str], _TagMarkup] | None = None,
         text_completer: Callable[[str, int], Sequence[tuple[str, int]]] | None = None,
         undo_limit: int = 0,
         kill_buffer: MutableSequence[str | bytes] | None = None,
@@ -121,6 +122,7 @@ class Edit(_EditKeys):
         :param validation_attr: attribute map applied for each :class:`Severity`, see :attr:`validation_attr`
         :param validation_focus_attr: attribute map applied for each :class:`Severity` while focused,
             see :attr:`validation_focus_attr`
+        :param highlighter: called with :attr:`edit_text` for its markup coloured by content, see :attr:`highlighter`
         :param text_completer: called with :attr:`edit_text` and :attr:`edit_pos` for completions,
             see :attr:`text_completer`
         :param undo_limit: the number of changes :meth:`undo` can take back, see :attr:`undo_limit`
@@ -128,6 +130,7 @@ class Edit(_EditKeys):
             see :attr:`kill_buffer`
         :raises ValueError: *max_length* is negative, or *edit_text* is longer than it.
             *undo_limit* is negative.
+            *highlighter* is set together with *validation_attr* or *validation_focus_attr*.
         :raises TagMarkupException: *placeholder* is not valid text markup.
         :raises UnicodeError: the text of *placeholder* cannot be converted to the type of *caption*.
         :raises TypeError: *validator* returned something else than its documented return types for *edit_text*.
@@ -177,6 +180,11 @@ class Edit(_EditKeys):
         self._validation: tuple[ValidationMessage, ...] = ()
         self._validation_attr = _attr_map_dicts(validation_attr)
         self._validation_focus_attr = _attr_map_dicts(validation_focus_attr)
+        self._edit_attrib: list[tuple[Hashable, int]] = []
+        # installed after the mask, so that it is never called with the text the mask hides
+        self._highlighter: Callable[[str], _TagMarkup] | None = None
+        self._highlight_runs: list[tuple[Hashable, int]] | None = None
+        self._highlight_ready = False
         self._text_completer = text_completer
         # (candidates, index) of the completion cycle, where candidate 0 is the text and position it started from
         self._completion_cycle: tuple[tuple[tuple[str | bytes, int], ...], int] | None = None
@@ -206,6 +214,7 @@ class Edit(_EditKeys):
             edit_pos = len(edit_text)
         self.set_edit_pos(edit_pos)
         self.set_mask(mask)
+        self.highlighter = highlighter
 
     def selectable(self) -> bool:
         """Return True: this widget is always selectable.

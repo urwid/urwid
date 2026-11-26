@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import itertools
+import re
 import sys
 import typing
 import unittest
@@ -1522,6 +1523,437 @@ class EditValidatorTest(unittest.TestCase):
         e.keypress((10,), "0")
         self.assertEqual(e.edit_text, "50")
         self.assertEqual(e.validation, (urwid.ValidationMessage(urwid.Severity.ERROR, "too big"),))
+
+
+def mark_upper(text: str | bytes) -> list[tuple[str, str | bytes] | str | bytes]:
+    """Return *text* as markup with each run of capital letters in the attribute ``"up"``."""
+    pattern = re.compile(r"([A-Z]+)") if isinstance(text, str) else re.compile(rb"([A-Z]+)")
+    return [("up", part) if index % 2 else part for index, part in enumerate(pattern.split(text)) if part]
+
+
+class CountingHighlighter:
+    """Highlighter that marks capital letters and records the text and validation of each call."""
+
+    def __init__(self) -> None:
+        self.edit: urwid.Edit | None = None
+        self.calls: list[tuple[str, tuple[urwid.ValidationMessage, ...] | None]] = []
+
+    def __call__(self, text: str) -> list[tuple[str, str | bytes] | str | bytes]:
+        self.calls.append((text, None if self.edit is None else self.edit.validation))
+        return mark_upper(text)
+
+
+class ShownControlEdit(urwid.Edit):
+    """Edit that shows the zero-width BEL character as a visible ``?`` of the same length."""
+
+    def get_text(self) -> tuple[str | bytes, list[tuple[typing.Hashable, int]]]:
+        text, attrib = super().get_text()
+        return typing.cast("str", text).replace("\x07", "?"), attrib
+
+
+class EditHighlightTest(unittest.TestCase):
+    ERROR = urwid.ValidationMessage(urwid.Severity.ERROR, "bad")
+
+    def test_render_content(self) -> None:
+        cases = [
+            (
+                "plain caption",
+                urwid.Edit("> ", "aBc", highlighter=mark_upper),
+                (6,),
+                [[(None, None, b"> a"), ("up", None, b"B"), (None, None, b"c ")]],
+            ),
+            (
+                "styled caption",
+                urwid.Edit([("cap", ">"), " "], "aBc", highlighter=mark_upper),
+                (6,),
+                [[("cap", None, b">"), (None, None, b" a"), ("up", None, b"B"), (None, None, b"c ")]],
+            ),
+            (
+                "multiline",
+                urwid.Edit("", "aB\nCd", multiline=True, highlighter=mark_upper),
+                (3,),
+                [
+                    [(None, None, b"a"), ("up", None, b"B"), (None, None, b" ")],
+                    [("up", None, b"C"), (None, None, b"d ")],
+                ],
+            ),
+            (
+                "wrapped",
+                urwid.Edit("", "aBCd", wrap="any", highlighter=mark_upper),
+                (2,),
+                [[(None, None, b"a"), ("up", None, b"B")], [("up", None, b"C"), (None, None, b"d")]],
+            ),
+            (
+                "right aligned",
+                urwid.Edit("", "aB", align="right", highlighter=mark_upper),
+                (4,),
+                [[(None, None, b"  a"), ("up", None, b"B")]],
+            ),
+            (
+                "bytes",
+                urwid.Edit(b"> ", b"aBc", highlighter=mark_upper),
+                (6,),
+                [[(None, None, b"> a"), ("up", None, b"B"), (None, None, b"c ")]],
+            ),
+        ]
+        for label, e, size, expected in cases:
+            with self.subTest(label):
+                self.assertEqual(list(e.render(size).content()), expected)
+
+    def test_caption_attributes_padded_only_before_edit_runs(self) -> None:
+        def deferred_attrib(e: urwid.Edit) -> list[tuple[typing.Hashable, int]]:
+            seen: list[list[tuple[typing.Hashable, int]]] = []
+            urwid.connect_signal(e, "postchange", lambda w, _old: seen.append(w.attrib))
+            e.set_edit_text("xY")
+            return seen[0]
+
+        for caption, plain, padded in (
+            ("? ", [], [(None, 2), (None, 1), ("up", 1)]),
+            ([("cap", "?"), " "], [("cap", 1)], [("cap", 1), (None, 1), (None, 1), ("up", 1)]),
+        ):
+            with self.subTest(caption=caption):
+                self.assertEqual(urwid.Edit(caption, "xY").attrib, plain)
+                self.assertEqual(urwid.Edit(caption, "xY", highlighter=mark_upper, mask="*").attrib, plain)
+                self.assertEqual(urwid.Edit(caption, "", highlighter=mark_upper).attrib, plain)
+                self.assertEqual(deferred_attrib(urwid.Edit(caption, "", highlighter=mark_upper)), plain)
+                self.assertEqual(urwid.Edit(caption, "xY", highlighter=mark_upper).attrib, padded)
+                self.assertEqual(urwid.Edit(caption, "xY", highlighter=mark_upper).get_text(), (f"{'? '}xY", padded))
+
+    def test_get_text_override_drives_layout_and_cursor(self) -> None:
+        """An override that shows a zero-width character as a visible one moves the cursor and the wrapping."""
+        for label, kwargs, runs in (
+            ("no runs", {}, None),
+            ("highlighter", {"highlighter": mark_upper}, None),
+            ("edit_attrib", {}, [(None, 2), ("up", 1)]),
+        ):
+            with self.subTest(label):
+                e = ShownControlEdit("", "a\x07B", edit_pos=2, **kwargs)
+                if runs is not None:
+                    e.edit_attrib = runs
+                coloured = label != "no runs"
+                self.assertEqual(e.get_text(), ("a?B", [(None, 2), ("up", 1)] if coloured else []))
+                self.assertEqual(e.get_cursor_coords((10,)), (2, 0))
+                self.assertEqual(e.position_coords(10, 3), (3, 0))
+                canvas = e.render((10,), focus=True)
+                self.assertEqual(canvas.cursor, (2, 0))
+                expected_row = (
+                    [(None, None, b"a?"), ("up", None, b"B"), (None, None, b"       ")]
+                    if coloured
+                    else [(None, None, b"a?B       ")]
+                )
+                self.assertEqual(next(iter(canvas.content())), expected_row)
+                self.assertEqual(e.rows((2,)), 2)
+                self.assertEqual(e.render((2,)).text, [b"a?", b"B "])
+                self.assertTrue(e.mouse_event((10,), "mouse press", 1, 1, 0, focus=True))
+                self.assertEqual(e.edit_pos, 1)
+                self.assertTrue(e.mouse_event((10,), "mouse press", 1, 3, 0, focus=True))
+                self.assertEqual(e.edit_pos, 3)
+
+    def test_highlighter_called_once_per_text_and_validation(self) -> None:
+        highlighter = CountingHighlighter()
+        e = urwid.Edit("", "aB", highlighter=highlighter)
+        e.get_cursor_coords((5,))
+        e.position_coords(5, 1)
+        e.rows((3,))
+        e.move_cursor_to_coords((5,), 0, 0)
+        e.keypress((5,), "end")
+        self.assertEqual(highlighter.calls, [])
+        e.render((5,))
+        e.render((5,), focus=True)
+        e.render((8,), focus=True)
+        e.keypress((5,), "left")
+        e.render((5,), focus=True)
+        e.get_cursor_coords((5,))
+        e.position_coords(5, 1)
+        e.rows((3,))
+        e.move_cursor_to_coords((5,), 0, 0)
+        self.assertEqual(highlighter.calls, [("aB", None)])
+        e.keypress((5,), "C")
+        e.render((5,))
+        self.assertEqual([text for text, _validation in highlighter.calls], ["aB", "CaB"])
+        e.rehighlight()
+        e.render((5,))
+        self.assertEqual(len(highlighter.calls), 3)
+        replacement = CountingHighlighter()
+        e.highlighter = replacement
+        e.render((5,))
+        self.assertEqual((len(highlighter.calls), replacement.calls), (3, [("CaB", None)]))
+
+    def test_highlighter_called_again_for_new_validation(self) -> None:
+        strict = [False]
+        highlighter = CountingHighlighter()
+        e = urwid.Edit("", "aB", validator=lambda _text: "bad" if strict[0] else None, highlighter=highlighter)
+        highlighter.edit = e
+        e.render((5,))
+        e.validate()
+        e.render((5,), focus=True)
+        strict[0] = True
+        e.validate()
+        e.render((5,))
+        self.assertEqual(highlighter.calls, [("aB", ()), ("aB", (self.ERROR,))])
+
+    def test_highlighter_not_called_for_masked_or_empty_text(self) -> None:
+        for label, kwargs in (("masked", {"edit_text": "aB", "mask": "*"}), ("empty", {"edit_text": ""})):
+            with self.subTest(label):
+                highlighter = CountingHighlighter()
+                e = urwid.Edit("> ", highlighter=highlighter, **kwargs)
+                e.render((5,), focus=True)
+                self.assertEqual(e.attrib, [])
+                self.assertEqual(highlighter.calls, [])
+
+    def test_highlighter_markup_of_another_text_raises(self) -> None:
+        e = urwid.Edit("", "ab", highlighter=lambda text: text.upper())
+        with self.assertRaises(ValueError):
+            e.render((5,))
+
+    def test_signal_order(self) -> None:
+        """Handlers see the old runs, then none until the new text is validated, then the new runs."""
+        highlighter = CountingHighlighter()
+        e = urwid.Edit("", "aB", validator=lambda text: "bad" if "X" in text else None, highlighter=highlighter)
+        highlighter.edit = e
+        seen: list[tuple[str, list[tuple[typing.Hashable, int]], int]] = []
+        for name in ("change", "edit_pos", "postchange", "validation"):
+            urwid.connect_signal(
+                e,
+                name,
+                lambda w, *_args, name=name: seen.append(
+                    (name, w.attrib, len(highlighter.calls), w.render((6,)).text[0])
+                ),
+            )
+        e.set_edit_text("aBX", edit_pos=3)
+        self.assertEqual(
+            seen,
+            [
+                ("change", [(None, 1), ("up", 1)], 1, b"aB    "),
+                ("edit_pos", [], 1, b"aBX   "),
+                ("postchange", [], 1, b"aBX   "),
+                ("validation", [(None, 1), ("up", 2)], 2, b"aBX   "),
+            ],
+        )
+        self.assertEqual(highlighter.calls, [("aB", ()), ("aBX", (self.ERROR,))])
+        seen.clear()
+        e.set_edit_text("aBX")
+        e.render((6,))
+        self.assertEqual(len(highlighter.calls), 2)
+
+    def test_nested_edit_sees_current_validation(self) -> None:
+        for signal in ("postchange", "validation"):
+            with self.subTest(signal):
+                highlighter = CountingHighlighter()
+                e = urwid.Edit("", "", validator=lambda text: "bad" if text == "aB" else None, highlighter=highlighter)
+                highlighter.edit = e
+                urwid.connect_signal(
+                    e, signal, lambda w, *_args: w.edit_text == "aB" and (w.render((6,)), w.set_edit_text("aBC"))
+                )
+                e.set_edit_text("aB")
+                e.render((6,))
+                self.assertEqual(e.edit_text, "aBC")
+                self.assertEqual(e.attrib, [(None, 1), ("up", 2)])
+                for text, validation in highlighter.calls:
+                    self.assertEqual(validation, (self.ERROR,) if text == "aB" else ())
+
+    def test_failure_leaves_highlighter_deferred(self) -> None:
+        for label in ("validator raises", "postchange raises"):
+            with self.subTest(label):
+                fail = [True]
+
+                def validator(text: str, fail: list[bool] = fail, label: str = label) -> None:
+                    if label == "validator raises" and text == "aB" and fail[0]:
+                        raise RuntimeError("validator failed")
+
+                e = urwid.Edit("", "a", validator=validator, highlighter=mark_upper)
+                rendered: list[urwid.Canvas] = []
+
+                def postchange(w: urwid.Edit, _old: str, label: str = label) -> None:
+                    rendered.append(w.render((4,)))
+                    if label == "postchange raises" and fail[0]:
+                        raise RuntimeError("handler failed")
+
+                urwid.connect_signal(e, "postchange", postchange)
+                with self.assertRaises(RuntimeError):
+                    e.set_edit_text("aB")
+                self.assertEqual(e.edit_text, "aB")
+                self.assertEqual(e.attrib, [])
+                self.assertIs(e.render((4,)), rendered[0])
+                fail[0] = False
+                self.assertEqual(e.validate(), ())
+                self.assertEqual(e.attrib, [(None, 1), ("up", 1)])
+                canvas = e.render((4,))
+                self.assertIsNot(canvas, rendered[0])
+                self.assertEqual(
+                    next(iter(canvas.content())), [(None, None, b"a"), ("up", None, b"B"), (None, None, b"  ")]
+                )
+
+    def test_highlighter_never_sees_masked_text_on_construction(self) -> None:
+        class ReadingEdit(urwid.Edit):
+            def set_edit_text(self, text: str, *, edit_pos: int | None = None) -> None:
+                super().set_edit_text(text, edit_pos=edit_pos)
+                self.get_text()
+
+        highlighter = CountingHighlighter()
+        e = ReadingEdit("", "secret", mask="*", highlighter=highlighter)
+        e.render((8,))
+        e.set_edit_text("Other")
+        self.assertEqual(highlighter.calls, [])
+
+    def test_edit_attrib(self) -> None:
+        e = urwid.Edit("", "abc")
+        runs = [("a", 1), ("b", 2)]
+        e.edit_attrib = runs
+        runs.append(("c", 1))
+        self.assertEqual(e.edit_attrib, [("a", 1), ("b", 2)])
+        e.edit_attrib.append(("c", 1))
+        self.assertEqual(e.edit_attrib, [("a", 1), ("b", 2)])
+        self.assertEqual(e.attrib, [("a", 1), ("b", 2)])
+        e.edit_attrib = [("a", 1)]
+        self.assertEqual(e.attrib, [("a", 1)])
+        e.edit_attrib = []
+        self.assertEqual(e.attrib, [])
+        for label, bad in (("negative", [("a", -1)]), ("too long", [("a", 2), ("b", 2)])):
+            with self.subTest(label), self.assertRaises(ValueError):
+                e.edit_attrib = bad
+        b = urwid.Edit(b"", b"\xc3\xa9")
+        b.edit_attrib = [("a", 2)]
+        self.assertEqual(b.attrib, [("a", 2)])
+        s = urwid.Edit("", "é")
+        with self.assertRaises(ValueError):
+            s.edit_attrib = [("a", 2)]
+
+    def test_edit_attrib_follows_text(self) -> None:
+        e = urwid.Edit("", "abc", highlighter=mark_upper)
+        e.edit_attrib = [("x", 3)]
+        e.set_edit_text("abc")
+        self.assertEqual(e.edit_attrib, [("x", 3)])
+        e.set_edit_text("aBc")
+        self.assertEqual(e.edit_attrib, [])
+        self.assertEqual(e.attrib, [(None, 1), ("up", 1)])
+        e.edit_attrib = [(None, 3)]
+        self.assertEqual(e.attrib, [(None, 3)])
+
+    def test_edit_attrib_set_for_the_new_text(self) -> None:
+        class RunsEdit(urwid.Edit):
+            def set_edit_text(self, text: str, *, edit_pos: int | None = None) -> None:
+                super().set_edit_text(text, edit_pos=edit_pos)
+                self.edit_attrib = [("set", len(self.edit_text))]
+
+        from_handler = urwid.Edit("", "a")
+        urwid.connect_signal(from_handler, "postchange", lambda w, _old: setattr(w, "edit_attrib", [("set", 2)]))
+        for e in (RunsEdit("", "a"), from_handler):
+            with self.subTest(type(e).__name__):
+                e.set_edit_text("bc")
+                self.assertEqual(e.edit_attrib, [("set", 2)])
+                self.assertEqual(e.attrib, [("set", 2)])
+
+    def test_colouring_excludes_validation_colours(self) -> None:
+        attr = {urwid.Severity.ERROR: "err"}
+
+        def highlighted() -> urwid.Edit:
+            return urwid.Edit("", "ab", highlighter=mark_upper)
+
+        def with_runs() -> urwid.Edit:
+            e = urwid.Edit("", "ab")
+            e.edit_attrib = [("a", 1)]
+            return e
+
+        def validation_coloured() -> urwid.Edit:
+            return urwid.Edit("", "ab", validation_attr=attr)
+
+        def focus_coloured() -> urwid.Edit:
+            return urwid.Edit("", "ab", validation_focus_attr=attr)
+
+        cases: list[tuple[str, typing.Callable[[], object]]] = [
+            ("constructor, validation_attr", lambda: urwid.Edit(highlighter=mark_upper, validation_attr=attr)),
+            (
+                "constructor, validation_focus_attr",
+                lambda: urwid.Edit(highlighter=mark_upper, validation_focus_attr=attr),
+            ),
+            ("highlighter after validation_attr", lambda: setattr(validation_coloured(), "highlighter", mark_upper)),
+            ("highlighter after validation_focus_attr", lambda: setattr(focus_coloured(), "highlighter", mark_upper)),
+            ("edit_attrib after validation_attr", lambda: setattr(validation_coloured(), "edit_attrib", [("a", 1)])),
+            ("edit_attrib after validation_focus_attr", lambda: setattr(focus_coloured(), "edit_attrib", [("a", 1)])),
+            ("validation_attr after highlighter", lambda: setattr(highlighted(), "validation_attr", attr)),
+            ("validation_focus_attr after highlighter", lambda: setattr(highlighted(), "validation_focus_attr", attr)),
+            ("validation_attr after edit_attrib", lambda: setattr(with_runs(), "validation_attr", attr)),
+            ("validation_focus_attr after edit_attrib", lambda: setattr(with_runs(), "validation_focus_attr", attr)),
+        ]
+        for label, make in cases:
+            with self.subTest(label), self.assertRaises(ValueError):
+                make()
+        e = highlighted()
+        e.validation_attr = {}
+        e.highlighter = None
+        e.validation_attr = attr
+        e.edit_attrib = []
+        self.assertEqual(e.validation_attr, {urwid.Severity.ERROR: {None: "err"}})
+
+
+class DelayedLexerTest(unittest.TestCase):
+    """The delayed lexer pattern of the manual: a result applies only to the text it was made for."""
+
+    def setUp(self) -> None:
+        self.alarms: list[typing.Callable[[], None]] = []
+        self.e = urwid.Edit("", "")
+
+        def postchange(w: urwid.Edit, _old: str) -> None:
+            text = w.edit_text
+            self.alarms.append(lambda: self.apply(text))
+
+        urwid.connect_signal(self.e, "postchange", postchange)
+
+    def apply(self, text: str) -> None:
+        if self.e.edit_text == text:
+            self.e.edit_attrib = [(attr, 1) for attr in text]
+
+    def run_alarms(self) -> None:
+        alarms, self.alarms = self.alarms, []
+        for alarm in alarms:
+            alarm()
+
+    def test_text_changed_before_alarm(self) -> None:
+        """Only the alarm queued for the current text applies its runs, also when the text got shorter."""
+        self.e.set_edit_text("abc")
+        self.e.set_edit_text("ab")
+        self.run_alarms()
+        self.assertEqual(self.e.edit_attrib, [("a", 1), ("b", 1)])
+
+    def test_raising_edit_pos_handler(self) -> None:
+        """A result queued for the previous text is not applied to a text whose "postchange" never came."""
+        self.e.set_edit_text("aa")
+        self.run_alarms()
+        self.e.set_edit_text("bb")
+
+        def fail(_w: urwid.Edit, _old: int, _new: int) -> None:
+            raise RuntimeError("edit_pos handler failed")
+
+        urwid.connect_signal(self.e, "edit_pos", fail)
+        queued = list(self.alarms)
+        with self.assertRaises(RuntimeError):
+            self.e.set_edit_text("cc", edit_pos=1)
+        self.assertEqual(self.alarms, queued)
+        self.run_alarms()
+        self.assertEqual(self.e.edit_text, "cc")
+        self.assertEqual(self.e.edit_attrib, [])
+
+    def test_nested_edit_from_change(self) -> None:
+        """A result queued by an edit nested in "change" is not applied to the outer edit's text."""
+        self.e.set_edit_text("aa")
+        self.run_alarms()
+
+        def nested(w: urwid.Edit, text: str) -> None:
+            if text == "bb":
+                w.set_edit_text("cc")
+
+        urwid.connect_signal(self.e, "change", nested)
+
+        def fail(_w: urwid.Edit, _old: int, _new: int) -> None:
+            raise RuntimeError("edit_pos handler failed")
+
+        urwid.connect_signal(self.e, "edit_pos", fail)
+        with self.assertRaises(RuntimeError):
+            self.e.set_edit_text("bb", edit_pos=1)
+        self.run_alarms()
+        self.assertEqual(self.e.edit_text, "bb")
+        self.assertEqual(self.e.edit_attrib, [])
 
 
 def complete_words(text: str, pos: int) -> list[tuple[str, int]]:

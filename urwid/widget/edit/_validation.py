@@ -7,8 +7,7 @@ from collections.abc import Iterable
 
 from ..attr_map import _attr_map_dicts
 from ..constants import Severity, ValidationMessage
-from ..text import Text
-from ..widget import WidgetWrap
+from ._highlight import _EditHighlight
 
 if typing.TYPE_CHECKING:
     from collections.abc import Callable, Hashable, Mapping
@@ -43,13 +42,10 @@ def _validation_messages(
     return typing.cast("tuple[ValidationMessage, ...]", messages)
 
 
-class _EditValidation(WidgetWrap[Text]):
+class _EditValidation(_EditHighlight):
     """Validator, validation result and its colours of :class:`Edit`."""
 
-    _edit_text: str
     _validation: tuple[ValidationMessage, ...]
-    _validation_attr: dict[Severity, dict[Hashable, Hashable]]
-    _validation_focus_attr: dict[Severity, dict[Hashable, Hashable]]
     _validator: Callable[[str], ValidationMessage | str | Iterable[ValidationMessage] | None] | None
 
     @property
@@ -133,8 +129,9 @@ class _EditValidation(WidgetWrap[Text]):
         if self._validator is not validator or self._edit_text != text:
             return self._validation
         validation = _validation_messages(result)
-        if validation != self._validation:
-            old_validation, self._validation = self._validation, validation
+        old_validation, self._validation = self._validation, validation
+        self._highlight_validated(validation != old_validation)
+        if validation != old_validation:
             self._invalidate()
             self._emit("validation", old_validation, validation)
         return self._validation  # a "validation" handler may have changed the text, and validated it again
@@ -147,17 +144,24 @@ class _EditValidation(WidgetWrap[Text]):
         A single attribute is stored as ``{None: attribute}``, so the caption's own attributes are placed over it.
         A severity with no entry is not coloured.
         A copy is returned.
+        It colours the whole text, and :attr:`highlighter` and :attr:`edit_attrib` colour parts of it,
+        so it cannot be set together with either of them.
 
         >>> from urwid import Edit
         >>> e = Edit(validator=lambda text: "empty" if not text else None, validation_attr={Severity.ERROR: "error"})
         >>> next(iter(e.render((4,)).content()))
         [('error', None, b'    ')]
+
+        :raises ValueError: on assignment, a non-empty map is set while :attr:`highlighter`
+            or :attr:`edit_attrib` is set.
         """
         return {severity: attr_map.copy() for severity, attr_map in self._validation_attr.items()}
 
     @validation_attr.setter
     def validation_attr(self, attr_maps: Mapping[Severity, _AttrMapLike] | None) -> None:
-        self._validation_attr = _attr_map_dicts(attr_maps)
+        validation_attr = _attr_map_dicts(attr_maps)
+        self._check_colouring(colours_validation=bool(validation_attr or self._validation_focus_attr))
+        self._validation_attr = validation_attr
         self._invalidate()
 
     @property
@@ -167,10 +171,16 @@ class _EditValidation(WidgetWrap[Text]):
         It is set as :attr:`validation_attr`.
         A severity with no entry here uses its :attr:`validation_attr` entry when focused.
         A copy is returned.
+        It cannot be set together with :attr:`highlighter` or :attr:`edit_attrib`, as :attr:`validation_attr`.
+
+        :raises ValueError: on assignment, a non-empty map is set while :attr:`highlighter`
+            or :attr:`edit_attrib` is set.
         """
         return {severity: attr_map.copy() for severity, attr_map in self._validation_focus_attr.items()}
 
     @validation_focus_attr.setter
     def validation_focus_attr(self, attr_maps: Mapping[Severity, _AttrMapLike] | None) -> None:
-        self._validation_focus_attr = _attr_map_dicts(attr_maps)
+        validation_focus_attr = _attr_map_dicts(attr_maps)
+        self._check_colouring(colours_validation=bool(self._validation_attr or validation_focus_attr))
+        self._validation_focus_attr = validation_focus_attr
         self._invalidate()

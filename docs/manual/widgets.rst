@@ -537,6 +537,41 @@ An application that shows the cursor position of an :class:`Edit` connects to
 its ``"edit_pos"`` signal, which every cursor move sends with the old and the new
 position: keys, the mouse, a new text and the ``edit_pos`` property alike.
 
+An :class:`Edit` colours its text by content in one of two ways.  A
+``highlighter`` is a callable that gets the edit text and returns it as text
+markup.  The edit calls it when it is drawn, at most once for each text and
+validation, and only after the new text has been validated, so the highlighter
+can read :attr:`Edit.validation` to colour an error::
+
+    def highlight(text):
+        return [("keyword", word) if word in KEYWORDS else word for word in re.split(r"(\W+)", text) if word]
+
+    edit = urwid.Edit("> ", highlighter=highlight)
+
+:attr:`Edit.edit_attrib` takes the attribute runs over the edit text directly,
+for a lexer too slow to run on every key.  A change of the text clears them,
+and a result that arrives later is applied only while the text is still the one
+it was computed from::
+
+    def lex_later(edit, old_text):
+        text = edit.edit_text
+        loop.set_alarm_in(0.3, lambda _loop, _data: apply_runs(edit, text))
+
+    def apply_runs(edit, text):
+        if edit.edit_text == text:
+            edit.edit_attrib = slow_lexer(text)
+
+    urwid.connect_signal(edit, "postchange", lex_later)
+
+The comparison of the text is required.  A key typed before the alarm fires
+changes the text again: runs for a longer text raise ``ValueError`` from the
+alarm, and runs for another text of the same length colour the wrong
+characters.  The alarm of the later key brings the right colours, except when
+an ``"edit_pos"`` handler raises after the new text is stored, so that no
+``"postchange"`` is sent for it.  A highlighter
+and the runs colour parts of the text, so they cannot be combined with
+``validation_attr`` or ``validation_focus_attr``, which colour the whole text.
+
 .. _decoration-widgets:
 
 Decoration Widgets
