@@ -9,4 +9,4 @@ import sys
 
 import real_edit
 
-real_edit.EditDisplay(os.path.join(os.path.dirname(sys.argv[0]), "edit_text.txt")).main()
+sys.exit(real_edit.main([os.path.join(os.path.dirname(sys.argv[0]), "edit_sample.py")]))
