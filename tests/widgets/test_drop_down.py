@@ -60,6 +60,14 @@ class DropDownConstructionTest(unittest.TestCase):
         self.assertEqual(frozenset({1}), drop_down.disabled)
         self.assertEqual([b"on  v"], drop_down.render(()).text)
 
+    def test_empty_indicator_adds_no_column(self) -> None:
+        class PlainDropDown(urwid.DropDown):
+            drop_down_indicator = urwid.Text("")
+
+        drop_down = PlainDropDown(["on", "off"])
+        self.assertEqual((3, 1), drop_down.pack())
+        self.assertEqual([b"on "], drop_down.render(()).text)
+
     def test_flow_render_clips_the_label(self) -> None:
         drop_down = urwid.DropDown(["a very long option"])
         self.assertEqual((8, 1), drop_down.pack((8,)))

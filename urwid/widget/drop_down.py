@@ -26,7 +26,7 @@ from urwid.canvas import CompositeCanvas
 from urwid.command_map import Command
 from urwid.util import is_mouse_press
 
-from ._pop_up_list import _bar_settings, _boxed_list, _PopUpListItem
+from ._pop_up_list import _bar_settings, _boxed_list, _PopUpListItem, _with_indicator
 from .attr_map import AttrMap, _attr_map_dict
 from .columns import Columns
 from .constants import BOX_SYMBOLS, MouseButton, WrapMode
@@ -85,6 +85,7 @@ class DropDown(PopUpLauncher[Columns]):
     """
 
     #: Widget drawn after the selected option; a subclass replaces it to change the indicator.
+    #: An empty one leaves no column for it.
     drop_down_indicator: typing.ClassVar[Text] = Text("v")
     #: Character of a separator line; a subclass replaces it.
     separator: typing.ClassVar[str] = BOX_SYMBOLS.LIGHT.HORIZONTAL
@@ -180,14 +181,14 @@ class DropDown(PopUpLauncher[Columns]):
         self._choosable_count = len(choosable)
         # Widest option, so the widget and its list do not change width with the selection.
         self._options_width = max(Text(option).pack()[0] for option in labels)
-        indicator_width = self.drop_down_indicator.pack()[0]
-        self._fixed_width = self._options_width + 1 + indicator_width
 
         self._selected = selected
         # A choosable option is never a separator.
         self._label = SelectableIcon(typing.cast("_TagMarkup", self._options[selected]), 0, wrap=WrapMode.ELLIPSIS)
+        launcher, added = _with_indicator(self._label, self.drop_down_indicator)
+        self._fixed_width = self._options_width + added
         super().__init__(
-            Columns([self._label, (indicator_width, self.drop_down_indicator)], dividechars=1),
+            launcher,
             close_on_menu=True,
             close_on_click_outside=True,
         )

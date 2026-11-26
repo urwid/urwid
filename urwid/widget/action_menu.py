@@ -28,7 +28,7 @@ from urwid.command_map import Command
 from urwid.signals import connect_signal
 from urwid.util import is_mouse_press
 
-from ._pop_up_list import _bar_settings, _BarSettings, _boxed_list, _PopUpListItem
+from ._pop_up_list import _bar_settings, _BarSettings, _boxed_list, _PopUpListItem, _with_indicator
 from .attr_map import AttrMap
 from .columns import Columns
 from .constants import BOX_SYMBOLS, MouseButton, WrapMode
@@ -147,12 +147,12 @@ class _ListLayout:
 
 def _list_layout(items: tuple[MenuItem | None, ...], style: _MenuStyle) -> _ListLayout:
     """Return the size of the open list of `items`."""
-    indicator = style.menu_indicator.pack()[0]
+    indicator = _with_indicator(Text(""), style.menu_indicator)[1]  # the columns a submenu row adds
     key_width = 0
     if style.show_keys:
         key_width = max((Text(item.key).pack()[0] for item in items if item is not None and item.key), default=0)
     content = max(
-        Text(item.label).pack()[0] + (1 + indicator if item.submenu else 0) for item in items if item is not None
+        Text(item.label).pack()[0] + (indicator if item.submenu else 0) for item in items if item is not None
     ) + (key_width + 2 if key_width else 0)
     border = 2 if style.border else 0
     scrolls = len(items) > style.max_visible_items
@@ -318,7 +318,7 @@ def _labelled_row(
     """Return `label` with the submenu indicator after it and the key column before it, where they apply."""
     row = label
     if item.submenu:
-        row = Columns([row, (style.menu_indicator.pack()[0], style.menu_indicator)], dividechars=1)
+        row = _with_indicator(row, style.menu_indicator)[0]
     if layout.key_width:
         row = Columns([(layout.key_width, Text(item.key or "")), row], dividechars=2)
     return row
@@ -478,6 +478,7 @@ class ActionMenu(_MenuOwner):
     """
 
     #: Widget drawn after the label of the default launcher and of a submenu row; a subclass replaces it.
+    #: An empty one leaves no column for it, as a menu bar of bare labels needs.
     menu_indicator: typing.ClassVar[Text] = Text(">")
     #: Character of a separator line; a subclass replaces it.
     separator: typing.ClassVar[str] = BOX_SYMBOLS.LIGHT.HORIZONTAL
@@ -639,12 +640,8 @@ class ActionMenu(_MenuOwner):
         # Focus of the render in progress, see render().
         self._render_focus = False
         if label is not None and launcher is None:
-            indicator_width = self.menu_indicator.pack()[0]
-            self._fixed_width = Text(label).pack()[0] + 1 + indicator_width
-            launcher = Columns(
-                [SelectableIcon(label, 0, wrap=WrapMode.ELLIPSIS), (indicator_width, self.menu_indicator)],
-                dividechars=1,
-            )
+            launcher, added = _with_indicator(SelectableIcon(label, 0, wrap=WrapMode.ELLIPSIS), self.menu_indicator)
+            self._fixed_width = Text(label).pack()[0] + added
             if self._usable:
                 launcher = AttrMap(
                     launcher,
