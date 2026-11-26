@@ -335,9 +335,9 @@ class TestPathCompleter(CompleterTestCase):
         self.assertEqual(self.path("one", "two") + SEP, absolute.edit_text)
 
     def test_order_is_natural_and_sort_key_overrides(self) -> None:
-        self.make("f10", "f9", "F1")
+        self.make("f10", "f9", "g1")
         edit = self.edit("f", completer=urwid.PathCompleter(base_dir=self.root))
-        # "F1" does not start with "f", so the two others cycle
+        # natural order puts f9 first, where plain string order would put f10 first
         self.tab(edit)
         self.assertEqual("f9", edit.edit_text)
         reverse = urwid.PathCompleter(base_dir=self.root, sort_key=lambda entry: -len(entry.name))
@@ -355,10 +355,11 @@ class TestPathCompleter(CompleterTestCase):
         self.assertEqual(".config" + SEP, dotted.edit_text)
 
     def test_glob_characters_are_literal(self) -> None:
-        self.make("a*b.txt", "axb.txt")
-        edit = self.edit("a*")
+        # "[" is a glob character that every platform allows in a file name
+        self.make("a[b].txt", "axb.txt")
+        edit = self.edit("a[")
         self.tab(edit)
-        self.assertEqual("a*b.txt", edit.edit_text)
+        self.assertEqual("a[b].txt", edit.edit_text)
 
     def test_tilde_is_kept(self) -> None:
         self.make("home/docs/")
@@ -380,6 +381,7 @@ class TestPathCompleter(CompleterTestCase):
         with mock.patch.object(DirectoryReader, "scan", side_effect=PermissionError(errno.EACCES, "denied")):
             self.assertEqual(["tab"], self.tab(self.edit("a")))
 
+    @unittest.skipIf(sys.platform == "win32", "Windows file names cannot hold control characters")
     def test_non_editable_name_is_not_offered(self) -> None:
         self.make("tab\tname", "tame")
         edit = self.edit("ta")
