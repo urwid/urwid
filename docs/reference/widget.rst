@@ -86,6 +86,34 @@ FloatEdit
 .. autoclass:: FloatEdit
 
 
+File Chooser Classes
+--------------------
+
+.. currentmodule:: urwid
+
+PathCompleter
+~~~~~~~~~~~~~
+
+.. autoclass:: PathCompleter
+   :special-members: __call__
+
+FileKind
+~~~~~~~~
+
+.. autoclass:: FileKind
+   :undoc-members:
+
+FileEntry
+~~~~~~~~~
+
+.. autoclass:: urwid.widget.FileEntry
+
+DirectoryReader
+~~~~~~~~~~~~~~~
+
+.. autoclass:: urwid.widget.DirectoryReader
+
+
 Control Widget Classes
 ----------------------
 
