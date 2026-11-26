@@ -45,8 +45,10 @@ Source: :doc:`code/edit`
    :scale: 50%
 .. image:: edit2.png
    :scale: 50%
+.. image:: edit3.png
+   :scale: 50%
 
-A simple text editor with lazy loading
+A text editor with a menu bar, Open and Save As dialogs built on FileChooser, and syntax highlighting
 
 
 browse.py

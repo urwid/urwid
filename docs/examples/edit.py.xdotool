@@ -1,2 +1,3 @@
-windowsize --usehints $TERMWINDOWID 39 20
-key --window $TERMWINDOWID Return Return a d d i n g space s o m e space t e x t space
+windowsize --usehints $TERMWINDOWID 72 18 sleep 0.5 key --window $TERMWINDOWID Escape e sleep 0.5 key --window $TERMWINDOWID h Down Down Down Down Down Down End
+key --window $TERMWINDOWID Escape f
+key --window $TERMWINDOWID o

@@ -64,6 +64,7 @@ lint = [
 ]
 mypy = [
   "mypy[faster-cache,reports]",
+  "types-pygments",
   "types-pyserial",
 ]
 pre-commit = [
@@ -74,13 +75,16 @@ pylint = [
 ]
 pyrefly = [
   "pyrefly",
+  "types-pygments",
   "types-pyserial",
 ]
 pyright = [
   "pyright[nodejs]",
+  "types-pygments",
   "types-pyserial",
 ]
 pytest = [
+  "pygments",
   "pytest",
   "pytest-asyncio",
   "pytest-cov",

@@ -624,6 +624,11 @@ judged on resolved paths, so a symbolic link or ``..`` does not lead out of it.
 It is not a sandbox: an accepted path can be replaced before the application
 opens it, so the application opens it as it would any path a user typed.
 
+The edit.py_ example program uses the chooser for its Open and Save As
+dialogs, and asks before replacing an existing file by vetoing ``"accept"``.
+
+.. _edit.py: https://github.com/urwid/urwid/blob/master/examples/edit.py
+
 .. _decoration-widgets:
 
 Decoration Widgets
@@ -1817,10 +1822,6 @@ position objects and it generates Text widgets to display the numbers on the
 fly. The result is a :class:`ListBox` that can scroll through an
 unending list of widgets.
 
-The edit.py_ example program demonstrates a custom list walker that loads lines
-from a text file only as the user scrolls them into view. This allows even
-huge files to be opened almost instantly.
-
 The browse.py_ example program demonstrates a custom list walker that uses a
 tuple of strings as position objects, one for the parent directory and one for
 the file selected. The widgets are cached in a separate class that is accessed
@@ -1829,7 +1830,6 @@ directories to be read only as required. The custom list walker also allows
 directories to be hidden from view when they are "collapsed".
 
 .. _fib.py: https://github.com/urwid/urwid/blob/master/examples/fib.py
-.. _edit.py: https://github.com/urwid/urwid/blob/master/examples/edit.py
 .. _browse.py: https://github.com/urwid/urwid/blob/master/examples/browse.py
 .. _filter_list.py: https://github.com/urwid/urwid/blob/master/examples/filter_list.py
 
