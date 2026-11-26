@@ -5,6 +5,7 @@ from __future__ import annotations
 import importlib.util
 import pathlib
 import shutil
+import sys
 import tempfile
 import typing
 import unittest
@@ -32,6 +33,8 @@ def load_example() -> types.ModuleType:
     if spec is None or spec.loader is None:
         raise ImportError(f"cannot load {EXAMPLE}")
     module = importlib.util.module_from_spec(spec)
+    # registered first, as importlib does: dataclasses resolve the module's string annotations through sys.modules
+    sys.modules[spec.name] = module
     spec.loader.exec_module(module)
     return module
 
