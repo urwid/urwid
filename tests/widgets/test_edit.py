@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import itertools
 import sys
 import typing
 import unittest
@@ -1148,6 +1149,30 @@ class EditRenderTest(unittest.TestCase):
         w.keypress((4,), "left")
         self.rtest(w, ["  hi"], (3, 0))
 
+    def test_render_cache_follows_focus(self) -> None:
+        """Cache a focused and an unfocused render apart.
+
+        Both are replaced after an invalidation.
+        """
+        e = urwid.Edit(
+            "? ",
+            "ab",
+            validator=lambda _text: "bad",
+            validation_attr={urwid.Severity.ERROR: "err"},
+            validation_focus_attr={urwid.Severity.ERROR: "err focus"},
+        )
+        plain = e.render((6,))
+        focused = e.render((6,), focus=True)
+        self.assertIsNone(plain.cursor)
+        self.assertEqual(focused.cursor, (4, 0))
+        self.assertEqual(next(iter(plain.content())), [("err", None, b"? ab  ")])
+        self.assertEqual(next(iter(focused.content())), [("err focus", None, b"? ab  ")])
+        self.assertIs(e.render((6,)), plain)
+        self.assertIs(e.render((6,), focus=True), focused)
+        e._invalidate()
+        self.assertIsNot(e.render((6,)), plain)
+        self.assertIsNot(e.render((6,), focus=True), focused)
+
 
 class EditPlaceholderTest(unittest.TestCase):
     def test_drawn_while_empty_focused_or_not(self) -> None:
@@ -1196,11 +1221,11 @@ class EditPlaceholderTest(unittest.TestCase):
             ("multiline default grows", True, None, [b"? a   ", b"long  ", b"hint  "]),
             ("multiline clips when asked", True, False, [b"? a   "]),
         ]
-        for label, multiline, grow, expected in cases:
-            with self.subTest(label):
+        for (label, multiline, grow, expected), focus in itertools.product(cases, (False, True)):
+            with self.subTest(label, focus=focus):
                 e = urwid.Edit("? ", multiline=multiline, placeholder="a long hint", placeholder_grow=grow)
-                rows = e.rows((6,))  # uncached: no canvas has been rendered yet
-                canvas = e.render((6,))
+                rows = e.rows((6,), focus)  # uncached: no canvas has been rendered yet
+                canvas = e.render((6,), focus)
                 self.assertEqual(canvas.text, expected)
                 self.assertEqual(rows, canvas.rows())
                 self.assertEqual(e.render((6,), focus=True).cursor, (2, 0))
