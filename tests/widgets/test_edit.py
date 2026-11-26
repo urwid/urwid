@@ -512,6 +512,64 @@ class EditTest(unittest.TestCase):
         self.assertEqual(e.moves, [10])
         self.assertEqual(e.edit_pos, 10)
 
+    def test_set_edit_text_moves_cursor_through_set_edit_pos_override(self) -> None:
+        """set_edit_text(edit_pos=) and a cursor clipped to a shorter text call the set_edit_pos() override."""
+
+        class RecordingEdit(urwid.Edit):
+            """An Edit subclass recording every set_edit_text() and set_edit_pos() call."""
+
+            def __init__(self) -> None:
+                self.calls: list[tuple[str, str | int]] = []
+                super().__init__("", "hello")
+                self.calls.clear()
+
+            def set_edit_text(self, text: str, *, edit_pos: int | None = None) -> None:
+                self.calls.append(("text", text))
+                super().set_edit_text(text, edit_pos=edit_pos)
+
+            def set_edit_pos(self, pos: int) -> None:
+                self.calls.append(("pos", pos))
+                super().set_edit_pos(pos)
+
+        cases = (
+            ("set_edit_text edit_pos", lambda e: e.set_edit_text("abc", edit_pos=1), [("text", "abc"), ("pos", 1)]),
+            ("set_edit_text clips", lambda e: e.set_edit_text("a"), [("text", "a"), ("pos", 1)]),
+        )
+        for label, write, expected in cases:
+            with self.subTest(case=label):
+                e = RecordingEdit()
+                write(e)
+                self.assertEqual(e.calls, expected)
+
+    def test_edit_pos_signal(self) -> None:
+        """Send "edit_pos" with the old and the new position for each cursor move.
+
+        A text change sends it before "postchange", and a write that keeps the position sends nothing.
+        """
+        cm = urwid.CommandMap()
+        cm.bind(Command.UNDO, "ctrl _")
+        e = urwid.Edit("", "hello", edit_pos=5, undo_limit=10)
+        e._command_map = cm
+        seen: list[object] = []
+        urwid.connect_signal(e, "edit_pos", lambda _w, old, new: seen.append((old, new)))
+        urwid.connect_signal(e, "postchange", lambda w, _old: seen.append(("postchange", w.edit_pos)))
+        steps = (
+            ("left", lambda: e.keypress((20,), "left"), [(5, 4)]),
+            ("typed", lambda: e.keypress((20,), "x"), [(4, 5), ("postchange", 5)]),
+            ("undo", lambda: e.keypress((20,), "ctrl _"), [(5, 4), ("postchange", 4)]),
+            ("same position", lambda: e.set_edit_pos(4), []),
+            ("clipped by a shorter text", lambda: e.set_edit_text("hi"), [(4, 2), ("postchange", 2)]),
+            ("offset kept by a longer text", lambda: e.set_edit_text("hiya"), [("postchange", 2)]),
+            ("explicit position", lambda: e.set_edit_text("hey", edit_pos=0), [(2, 0), ("postchange", 0)]),
+            ("property", lambda: setattr(e, "edit_pos", 9), [(0, 3)]),
+            ("mouse", lambda: e.mouse_event((20,), "mouse press", 1, 1, 0, True), [(3, 1)]),
+        )
+        for label, step, expected in steps:
+            with self.subTest(step=label):
+                seen.clear()
+                step()
+                self.assertEqual(seen, expected)
+
     def test_keypress_cursor_after_set_edit_text_override_moves_it(self) -> None:
         """An editing key leaves the cursor at the edit when a set_edit_text() override moves it after the base call."""
 
