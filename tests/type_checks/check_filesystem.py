@@ -1,4 +1,4 @@
-"""Type checker fixture for PathCompleter, DirectoryReader and FileEntry.
+"""Type checker fixture for PathCompleter, DirectoryReader, FileEntry and FileChooser.
 
 mypy and Pyrefly check this module; nothing in it runs.
 """
@@ -35,3 +35,21 @@ if typing.TYPE_CHECKING:
         assert_type(DirectoryReader.name_key("a1"), tuple[str | int, ...])
         DirectoryReader(root_dir=path, show=urwid.FileKind.FILE | urwid.FileKind.DIRECTORY, patterns=["*.py"])
         DirectoryReader(show=lambda entry: not entry.hidden)
+
+    def chooser_api(start: pathlib.Path) -> None:
+        """Accept the documented options, and type the properties."""
+        chooser = urwid.FileChooser(
+            start,
+            select=urwid.FileKind.FILE,
+            patterns=("*.txt",),
+            must_exist=False,
+            sort_key=by_length,
+            columns=("name", "size"),
+            multiple=True,
+        )
+        assert_type(chooser.selection, tuple[pathlib.Path, ...])
+        assert_type(chooser.current_dir, str)
+        assert_type(chooser.accept(), bool)
+        assert_type(chooser.path_edit, urwid.Edit)
+        assert_type(chooser.table, urwid.Table)
+        urwid.FileChooser(columns=("owner",))  # type: ignore[arg-type]

@@ -91,6 +91,12 @@ File Chooser Classes
 
 .. currentmodule:: urwid
 
+FileChooser
+~~~~~~~~~~~
+
+.. autoclass:: FileChooser
+   :exclude-members: base_widget, focus, pack, render, rows, selectable, sizing
+
 PathCompleter
 ~~~~~~~~~~~~~
 
