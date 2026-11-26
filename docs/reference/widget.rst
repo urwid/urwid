@@ -53,6 +53,8 @@ Edit
 ~~~~
 
 .. autoclass:: Edit
+   :inherited-members:
+   :exclude-members: base_widget, enter_selectable, focus, focus_position, pack, request_focus
 
 IntEdit
 ~~~~~~~
