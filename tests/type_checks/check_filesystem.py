@@ -35,4 +35,3 @@ if typing.TYPE_CHECKING:
         assert_type(DirectoryReader.name_key("a1"), tuple[str | int, ...])
         DirectoryReader(root_dir=path, show=urwid.FileKind.FILE | urwid.FileKind.DIRECTORY, patterns=["*.py"])
         DirectoryReader(show=lambda entry: not entry.hidden)
-
