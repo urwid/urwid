@@ -329,6 +329,7 @@ class TestFieldAndList(ChooserTestCase):
         self.assertTrue(chooser.accept())
         self.assertEqual([(pathlib.Path(self.path("sub", "file")),)], self.accepted)
 
+    @unittest.skipIf(sys.platform == "win32", "Windows file names cannot hold control characters")
     def test_non_editable_name_round_trip(self) -> None:
         self.make("tab\tname.txt", "other.txt")
         chooser = self.chooser()
@@ -592,7 +593,13 @@ class TestAccept(ChooserTestCase):
             ("new.txt", None),
             ("new.py", "cannot be selected"),
             ("nodir" + SEP + "new.txt", "the parent directory does not exist"),
-            ("file.txt" + SEP + "new.txt", "cannot be read: " + os.strerror(errno.ENOTDIR)),
+            # POSIX reports a path through a file as not a directory, Windows as not found
+            (
+                "file.txt" + SEP + "new.txt",
+                "the parent directory does not exist"
+                if sys.platform == "win32"
+                else "cannot be read: " + os.strerror(errno.ENOTDIR),
+            ),
             ("newdir" + SEP, "is not a file name"),
             (".hidden.txt", None),
         )
