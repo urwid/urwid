@@ -122,6 +122,8 @@ content.
      - ``'flow'``
    * - :class:`BigText`
      - ``'fixed'``
+   * - :class:`FileChooser`
+     - ``'box'`` and ``'flow'``
    * - :class:`SolidFill`, :class:`BarGraph`, :class:`GraphVScale`,
        :class:`Terminal`, :class:`TerminalOutput`
      - ``'box'``
@@ -176,8 +178,8 @@ Included Widgets
 Basic widgets, controls and graphic widgets are the content with which users
 interact. They may also be used as part of custom widgets you create.
 Controls are the widgets a user operates to make a choice: :class:`Button`,
-:class:`CheckBox`, :class:`RadioButton`, :class:`DropDown` and
-:class:`ActionMenu`.
+:class:`CheckBox`, :class:`RadioButton`, :class:`DropDown`,
+:class:`ActionMenu` and :class:`FileChooser`.
 The terminal widgets are box widgets that emulate a terminal.
 :class:`Terminal` runs a child process and shows its output.
 It emulates a VT420 as xterm does, and answers a device attributes query as
