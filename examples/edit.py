@@ -188,7 +188,6 @@ def lexer_for(path: pathlib.Path | None) -> Lexer | None:
     """Return the ``pygments`` lexer for the name of *path*, plain text when none fits; ``None`` without pygments."""
     try:
         from pygments import lexers, util  # pylint: disable=import-outside-toplevel
-        from pygments.lexers.special import TextLexer  # pylint: disable=import-outside-toplevel
     except ImportError:
         return None
     if path is not None:
@@ -196,7 +195,7 @@ def lexer_for(path: pathlib.Path | None) -> Lexer | None:
             return lexers.get_lexer_for_filename(path.name)
         except util.ClassNotFound:
             pass
-    return TextLexer()
+    return lexers.get_lexer_by_name("text")
 
 
 class BarMenu(urwid.ActionMenu):
