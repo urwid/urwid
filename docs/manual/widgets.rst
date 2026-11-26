@@ -579,8 +579,50 @@ several match.  Relative text is taken from its ``base_dir``::
 
     edit = urwid.Edit("File: ", text_completer=urwid.PathCompleter(base_dir=project_dir))
 
-It lists through a :class:`~urwid.widget.DirectoryReader`, which decides
-``root_dir``, hidden entries and the kinds shown.
+It lists through a :class:`~urwid.widget.DirectoryReader`, the same policy a
+:class:`FileChooser` uses, so ``root_dir``, hidden entries and the kinds shown
+are decided in one place.
+
+File Chooser Widgets
+--------------------
+
+:class:`FileChooser` is a path field above a sortable :class:`Table` of one
+directory, for an Open or Save As dialog.  The application puts it into a
+dialog with its own buttons and calls :meth:`FileChooser.accept` from the OK
+button; :kbd:`enter` in the field and the activation of a file row accept as
+well::
+
+    chooser = urwid.FileChooser(start_dir, must_exist=False, patterns=("*.txt",))
+
+    def accepted(chooser, paths):
+        if paths[0].exists():
+            ask_overwrite(paths[0])
+            return True  # veto: the dialog stays open until the answer
+        save(paths[0])
+        return False
+
+    urwid.connect_signal(chooser, "accept", accepted)
+    urwid.connect_signal(chooser, "refused", lambda chooser, path, reason: show_message(f"{path}: {reason}"))
+
+The field and the list follow each other: moving in the list writes the path
+of the focused row into the field, and typing focuses the row that matches and
+shows a directory typed with its separator, without rewriting the text.
+:kbd:`tab` completes the field and gives the focus to the list when nothing
+completes.  In the list, :kbd:`enter` or :kbd:`right` enters a directory,
+:kbd:`left` goes to the parent, and a printable key goes back to the field.
+A line separates the field from the list, and ``field_attr`` gives the field
+the look of an input box; ``divider=None`` leaves the line out.
+
+A directory is entered, never accepted, unless it is the directory shown:
+with ``select=urwid.FileKind.DIRECTORY`` the list starts with a ``.`` row, and
+an empty field accepts the directory shown.  ``multiple=True`` adds a mark
+column: :kbd:`insert` and :kbd:`space` mark the focused row, the marks are kept
+across directories, and :attr:`FileChooser.selection` holds them.
+
+``root_dir`` limits what is listed, completed and accepted to that directory,
+judged on resolved paths, so a symbolic link or ``..`` does not lead out of it.
+It is not a sandbox: an accepted path can be replaced before the application
+opens it, so the application opens it as it would any path a user typed.
 
 .. _decoration-widgets:
 

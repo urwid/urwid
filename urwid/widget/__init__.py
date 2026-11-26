@@ -41,6 +41,7 @@ from .deque_walker import SimpleDequeWalker, SimpleFocusDequeWalker
 from .divider import Divider
 from .drop_down import DropDown
 from .edit import Edit, EditError, IntEdit
+from .file_chooser import FileChooser
 from .filesystem import DirectoryReader, FileEntry, FileKind, PathCompleter
 from .filler import Filler, FillerError, FillerWarning, calculate_top_bottom_filler
 from .filtered_walker import FilteredListWalker
@@ -132,6 +133,7 @@ __all__ = (
     "DropDown",
     "Edit",
     "EditError",
+    "FileChooser",
     "FileEntry",
     "FileKind",
     "Filler",
