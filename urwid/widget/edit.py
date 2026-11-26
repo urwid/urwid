@@ -89,13 +89,25 @@ class Edit(WidgetWrap[Text]):
       It receives the old and the new value as arguments.
     * ``"completion_cycle"`` is sent when a completion cycle starts, moves or ends, see :attr:`text_completer`.
       It receives the new value of :attr:`completion_cycle` as an argument.
+    * ``"edit_pos"`` is sent when :attr:`edit_pos` changes, see :meth:`set_edit_pos`.
+      It receives the old and the new position as arguments.
+      A text change sends it before ``"postchange"`` when it moves the cursor,
+      and does not send it when the cursor keeps its offset.
     """
 
     _sizing = frozenset([Sizing.FLOW])
     _selectable = True
     ignore_focus = False
     # (this variable is picked up by the MetaSignals metaclass)
-    signals: typing.ClassVar[list[str]] = ["change", "postchange", "submit", "cancel", "validation", "completion_cycle"]
+    signals: typing.ClassVar[list[str]] = [
+        "change",
+        "postchange",
+        "submit",
+        "cancel",
+        "validation",
+        "completion_cycle",
+        "edit_pos",
+    ]
 
     def valid_char(self, ch: str) -> bool:
         """
@@ -968,6 +980,12 @@ class Edit(WidgetWrap[Text]):
 
         Clips pos to [0, len(edit_text)], then moves a position inside a grapheme cluster back to
         the cluster start, so that the cursor never splits what is drawn as one character.
+        Sends ``"edit_pos"`` when the position differs from the previous one.
+
+        A key, the mouse and :meth:`set_edit_text` move the cursor through this method,
+        so a subclass that has to follow the cursor overrides it or connects to ``"edit_pos"``.
+        The :attr:`edit_pos` property calls this base method directly, so it bypasses an override
+        and still sends ``"edit_pos"``.
 
         :param pos: cursor position
 
@@ -991,10 +1009,12 @@ class Edit(WidgetWrap[Text]):
         pos = _grapheme_boundary(self._edit_text, min(max(pos, 0), len(self._edit_text)), forward=False)
         self.highlight = None
         self.pref_col_maxcol = None, None
-        self._edit_pos = pos
+        old_pos, self._edit_pos = self._edit_pos, pos
         self._invalidate()
         if not self._completion_hold and (self._edit_text, pos) != self._completion_applied:
             self._end_completion()
+        if pos != old_pos:
+            self._emit("edit_pos", old_pos, pos)
 
     edit_pos = property(
         lambda self: self._edit_pos,
@@ -1060,10 +1080,9 @@ class Edit(WidgetWrap[Text]):
         try:
             self._edit_text = text
             self._sync_wrapped()
-            self.edit_pos = min(self.edit_pos, len(text)) if edit_pos is None else edit_pos
-            if edit_pos is None and pending_edit_pos is not None:
-                # an editing key moves the cursor through set_edit_pos(), so that an override sees every move
-                self.set_edit_pos(pending_edit_pos)
+            if edit_pos is None:
+                edit_pos = min(self._edit_pos, len(text)) if pending_edit_pos is None else pending_edit_pos
+            self.set_edit_pos(edit_pos)
 
             self._emit("postchange", old_text)
             self._run_validator()

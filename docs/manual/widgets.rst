@@ -533,6 +533,10 @@ can share one list.
 
 The tour.py_ example program shows such an edit.
 
+An application that shows the cursor position of an :class:`Edit` connects to
+its ``"edit_pos"`` signal, which every cursor move sends with the old and the new
+position: keys, the mouse, a new text and the ``edit_pos`` property alike.
+
 .. _decoration-widgets:
 
 Decoration Widgets
