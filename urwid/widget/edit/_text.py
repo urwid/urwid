@@ -31,7 +31,6 @@ class _EditText(_EditCompletionState):
     _edit_depth: int = 0  # pylint reads the augmented assignments of _EditUndo as no-member without a value
     _edit_pos: int
     _kill_last: tuple[int, str | bytes] | None
-    _mask: str | None
     _max_length: int | None
     _pending_edit_pos: int | None
     _placeholder: _TagMarkup | None
@@ -150,7 +149,10 @@ class _EditText(_EditCompletionState):
 
     def _sync_wrapped(self) -> None:
         """Synchronize the wrapped Text widget with current caption+edit_text state."""
-        text, attrib = self.get_text()
+        if type(self).get_text is _EditText.get_text:
+            text, attrib = self._caption_and_text(), self._attrib
+        else:
+            text, attrib = self.get_text()
         self._w._text = text  # pylint: disable=protected-access
         self._w._attrib = attrib  # pylint: disable=protected-access
         self._w._invalidate()
@@ -161,6 +163,11 @@ class _EditText(_EditCompletionState):
         See :meth:`Text.get_text` for details.
 
         Text returned includes the caption and edit_text, possibly masked.
+        The attributes are those of the caption, followed by :attr:`edit_attrib` or the runs of :attr:`highlighter`.
+        The caption attributes are padded to the caption length only when edit runs follow them.
+        The edit runs cover the string after the caption,
+        so an override that changes the length of that string returns matching runs itself.
+        Layout and cursor methods call an override of this method for the displayed string.
 
         >>> from urwid import Edit
         >>> Edit("What? ", "oh, nothing.").get_text()
@@ -169,11 +176,36 @@ class _EditText(_EditCompletionState):
         ('user@host:~$ ls', [('bright', 13)])
         >>> Edit("password:", "seekrit", mask="*").get_text()
         ('password:*******', [])
-        """
-        if self._mask is None:
-            return self._caption + self._edit_text, self._attrib  # type: ignore[operator]  # type normalised
 
-        return self._caption + (self._mask * len(self._edit_text)), self._attrib  # type: ignore[operator]
+        :raises ValueError: the text of the markup :attr:`highlighter` returned differs from :attr:`edit_text`.
+        """
+        text = self._caption_and_text()
+        if not (runs := self._edit_runs()):
+            return text, self._attrib
+        return text, [*self._padded_caption_attrib(), *runs]
+
+    def _displayed_text(self) -> str | bytes:
+        """Return the caption and edit text as :meth:`get_text` shows them.
+
+        An override of :meth:`get_text` is called, because it may show the text differently.
+        The method of this class is not called, so that no attributes are built and the highlighter is not called.
+        """
+        if type(self).get_text is not _EditText.get_text:
+            return self.get_text()[0]
+        return self._caption_and_text()
+
+    def _caption_and_text(self) -> str | bytes:
+        """Return the caption followed by the edit text, masked when :attr:`mask` is set."""
+        if self._mask is None:
+            return self._caption + self._edit_text  # type: ignore[operator]  # type normalised
+        return self._caption + (self._mask * len(self._edit_text))  # type: ignore[operator]
+
+    def _padded_caption_attrib(self) -> list[tuple[Hashable, int]]:
+        """Return the caption attributes, with a run of ``None`` up to the end of the caption."""
+        caption_attrib = self._attrib.copy()
+        if (uncovered := len(self._caption) - sum(run for _attr, run in caption_attrib)) > 0:
+            caption_attrib.append((None, uncovered))
+        return caption_attrib
 
     @property
     def text(self) -> str | bytes:
@@ -353,6 +385,8 @@ class _EditText(_EditCompletionState):
         self.highlight = None
         self._emit("change", text)
         old_text = self._edit_text
+        if text != old_text:
+            self._highlight_text_changed()
         hold, self._completion_hold = self._completion_hold, True
         try:
             self._edit_text = text
