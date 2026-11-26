@@ -41,6 +41,7 @@ from .deque_walker import SimpleDequeWalker, SimpleFocusDequeWalker
 from .divider import Divider
 from .drop_down import DropDown
 from .edit import Edit, EditError, IntEdit
+from .filesystem import DirectoryReader, FileEntry, FileKind, PathCompleter
 from .filler import Filler, FillerError, FillerWarning, calculate_top_bottom_filler
 from .filtered_walker import FilteredListWalker
 from .frame import Frame, FrameError
@@ -126,10 +127,13 @@ __all__ = (
     "Columns",
     "ColumnsError",
     "ColumnsWarning",
+    "DirectoryReader",
     "Divider",
     "DropDown",
     "Edit",
     "EditError",
+    "FileEntry",
+    "FileKind",
     "Filler",
     "FillerError",
     "FillerWarning",
@@ -162,6 +166,7 @@ __all__ = (
     "PaddingError",
     "PaddingWarning",
     "ParentNode",
+    "PathCompleter",
     "Pile",
     "PileError",
     "PileWarning",

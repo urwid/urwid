@@ -572,6 +572,16 @@ an ``"edit_pos"`` handler raises after the new text is stored, so that no
 and the runs colour parts of the text, so they cannot be combined with
 ``validation_attr`` or ``validation_focus_attr``, which colour the whole text.
 
+A :class:`PathCompleter` is a ``text_completer`` for a path: :kbd:`tab`
+completes the component around the cursor from the entries of its directory,
+adding a separator after a directory, and cycles through the names when
+several match.  Relative text is taken from its ``base_dir``::
+
+    edit = urwid.Edit("File: ", text_completer=urwid.PathCompleter(base_dir=project_dir))
+
+It lists through a :class:`~urwid.widget.DirectoryReader`, which decides
+``root_dir``, hidden entries and the kinds shown.
+
 .. _decoration-widgets:
 
 Decoration Widgets
