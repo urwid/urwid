@@ -1346,6 +1346,48 @@ class EditValidatorTest(unittest.TestCase):
         self.assertEqual(e.edit_text, "fixed")
         self.assertEqual(e.validation, ())
 
+    def test_result_for_a_replaced_state_is_discarded(self) -> None:
+        """A validator that changes the text or replaces itself leaves the result its nested change stored."""
+
+        def change_text(e: urwid.Edit, text: str) -> str | None:
+            if text == "b":
+                e.set_edit_text("c")
+                return "bad"
+            return None
+
+        def replace_validator(e: urwid.Edit, text: str) -> str | None:
+            if text == "b":
+                e.validator = replacement
+                return "bad"
+            return None
+
+        def replace_validator_wrong_type(e: urwid.Edit, text: str) -> int | None:
+            if text == "b":
+                e.validator = replacement
+                return 1
+            return None
+
+        def replacement(_text: str) -> None:
+            return None
+
+        for label, validator, assign_last, edit_text, installed in (
+            ("text changed", change_text, False, "c", None),
+            ("validator replaced", replace_validator, False, "b", replacement),
+            ("validator replaced on assignment", replace_validator_wrong_type, True, "b", replacement),
+        ):
+            with self.subTest(label):
+                e = urwid.Edit("", "b" if assign_last else "")
+                seen: list[tuple[urwid.ValidationMessage, ...]] = []
+                urwid.connect_signal(e, "validation", lambda _w, _old, new, seen=seen: seen.append(new))
+                e.validator = lambda text, e=e, validator=validator: validator(e, text)
+                if not assign_last:
+                    e.set_edit_text("b")
+                self.assertEqual(e.edit_text, edit_text)
+                self.assertEqual(e.validation, ())
+                self.assertEqual(seen, [])
+                if installed is not None:
+                    self.assertIs(e.validator, installed)
+
     def test_subclass_validate_is_not_called(self) -> None:
         """A subclass's own validate(), which may need attributes set after __init__, is never called by Edit."""
 
