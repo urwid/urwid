@@ -136,6 +136,21 @@ class LayoutTest(unittest.TestCase):
         self.assertEqual((9, 1), menu.pack())
         self.assertEqual([b"Actions >"], menu.render(()).text)
 
+    def test_empty_indicator_adds_no_column(self) -> None:
+        class BarMenu(urwid.ActionMenu):
+            menu_indicator = urwid.Text("")
+
+        menu = BarMenu(" File ", ["Open", urwid.MenuItem("Recent", submenu=["a.txt"])])
+        self.assertEqual((6, 1), menu.pack())
+        self.assertEqual([b" File "], menu.render(()).text)
+        target = screen(menu)
+        keys(target, (20, 6), "enter")
+        # the submenu row has no indicator and no column for one
+        self.assertEqual(
+            ["┌───────┐           ", "│Open   │           ", "│Recent │           ", "└───────┘           "],
+            lines(target, (20, 6))[2:6],
+        )
+
     def test_border_with_tee_separators(self) -> None:
         """D1: the list fits, so it has no scroll bar column; separators join the box sides."""
         menu = urwid.ActionMenu("Actions", MARKED, focus_map="focus", disabled_map="disabled")

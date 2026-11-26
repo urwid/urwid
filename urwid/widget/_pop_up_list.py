@@ -51,6 +51,18 @@ if typing.TYPE_CHECKING:
 _Choice = typing.TypeVar("_Choice")
 
 
+def _with_indicator(widget: AbstractWidget, indicator: Text) -> tuple[Columns, int]:
+    """Return `widget` with `indicator` one column after it.
+
+    An empty indicator adds nothing, not even the column between them.
+
+    :returns: the row, and the number of columns it adds to the width of `widget`.
+    """
+    if not (width := indicator.pack()[0]):
+        return Columns([widget]), 0
+    return Columns([widget, (width, indicator)], dividechars=1), 1 + width
+
+
 @dataclasses.dataclass(frozen=True, slots=True, weakref_slot=True)
 class _BarSettings:
     """Settings of the scroll bar of a pop-up list.
