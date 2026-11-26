@@ -27,7 +27,9 @@ import typing
 from urwid import signals
 from urwid.command_map import Command
 
-from .constants import Align, WHSettings
+from .attr_map import AttrMap
+from .constants import BOX_SYMBOLS, Align, WHSettings
+from .divider import Divider
 from .edit import Edit
 from .filesystem import _SEPARATORS, DirectoryReader, FileEntry, FileKind, PathCompleter
 from .pile import Pile
@@ -144,12 +146,15 @@ class FileChooser(WidgetWrap[Pile]):
         multiple: bool = False,
         mark_keys: Iterable[str] = ("insert", " "),
         caption: _TagMarkup = "",
+        divider: str | None = BOX_SYMBOLS.LIGHT.HORIZONTAL,
         attr: _AttrMapLike | None = None,
         focus_attr: _AttrMapLike | None = None,
         unfocused_focus_attr: _AttrMapLike | None = None,
         dim_attr: _AttrMapLike | None = None,
         mark_attr: _AttrMapLike | None = None,
         error_attr: _AttrMapLike | None = None,
+        field_attr: _AttrMapLike | None = None,
+        field_focus_attr: _AttrMapLike | None = None,
         header_attr: _AttrMapLike | None = None,
         header_focus_attr: _AttrMapLike | None = None,
     ) -> None:
@@ -171,6 +176,7 @@ class FileChooser(WidgetWrap[Pile]):
         :param multiple: allow marking several entries, see :attr:`selection`
         :param mark_keys: the keys that mark the focused row in the list while *multiple* is set
         :param caption: the caption of the path field
+        :param divider: the character of the line between the field and the list; ``None`` draws no line
         :param attr: attribute of the rows
         :param focus_attr: attribute of the focused row
         :param unfocused_focus_attr: attribute of the focused row while the field has the focus,
@@ -178,6 +184,8 @@ class FileChooser(WidgetWrap[Pile]):
         :param dim_attr: attribute of a file that cannot be accepted, and of an entry outside the root directory
         :param mark_attr: attribute of a marked entry
         :param error_attr: attribute of the status row
+        :param field_attr: attribute of the path field
+        :param field_focus_attr: attribute of the path field while it has the focus
         :param header_attr: attribute of the column labels
         :param header_focus_attr: attribute of the focused column label
         :raises ValueError: *start_path* is outside the root directory.
@@ -236,7 +244,12 @@ class FileChooser(WidgetWrap[Pile]):
         signals.connect_signal(self.table, "focus changed", FileChooser._row_focused, weak_args=[self])
         signals.connect_signal(self.table, "activate", FileChooser._activated, weak_args=[self])
         signals.connect_signal(self.table, "header activated", FileChooser._header_activated, weak_args=[self])
-        super().__init__(Pile([(WHSettings.PACK, self.path_edit), (WHSettings.WEIGHT, 1, self.table)]))
+        field = AttrMap(self.path_edit, field_attr, field_focus_attr)
+        super().__init__(Pile([(WHSettings.PACK, field), (WHSettings.WEIGHT, 1, self.table)]))
+        if divider is not None:
+            self._w.contents.insert(1, (Divider(divider), self._w.options(WHSettings.PACK)))
+        # the Pile position of the list, after the optional line
+        self._list_position = len(self._w.contents) - 1
         self._w.select_navigation = True
         self._start(start_path)
 
@@ -695,7 +708,7 @@ class FileChooser(WidgetWrap[Pile]):
     def keypress(self, size: tuple[()] | tuple[int] | tuple[int, int], key: str) -> str | None:
         """Route *key* between the field and the list, as the class describes."""
         command = self._command_map[key]
-        if self._w.focus is self.path_edit:
+        if self._w.focus_position == 0:
             completing = key in {"tab", "shift tab"} or command in _COMPLETION_COMMANDS
             self._completing = completing
             try:
@@ -708,7 +721,7 @@ class FileChooser(WidgetWrap[Pile]):
                 self.accept()
                 return None
             if (key == "tab" or command == Command.DOWN) and any(row.selectable() for row in self.table.body):
-                self._w.focus_position = 1
+                self._w.focus_position = self._list_position
                 return None
             return unhandled
         if self._multiple and key in self._mark_keys and self.table.header_column is None:
@@ -719,7 +732,7 @@ class FileChooser(WidgetWrap[Pile]):
             self._w.focus_position = 0
             return self.path_edit.keypress((size[0],) if size else (0,), key)
         unhandled = super().keypress(size, key)
-        if unhandled is not None and self.table.header_column is None and self._w.focus is self.table:
+        if unhandled is not None and self.table.header_column is None and self._w.focus_position == self._list_position:
             if command == Command.LEFT and self._enter_parent():
                 return None
             row = self.table.focus
@@ -743,7 +756,7 @@ class FileChooser(WidgetWrap[Pile]):
         focus: bool,
     ) -> bool | None:
         """Pass the event on; a second press of button 1 on the focused row activates it."""
-        rows_focused = self._w.focus is self.table and self.table.header_column is None
+        rows_focused = self._w.focus_position == self._list_position and self.table.header_column is None
         before = typing.cast("_ChooserRow | None", self.table.focus) if rows_focused else None
         if before is not None:
             before.pressed = False
@@ -759,4 +772,4 @@ class FileChooser(WidgetWrap[Pile]):
         has_rows = any(row.selectable() for row in self.table.body)
         if has_rows:
             self.table.header_column = None
-        self._w.focus_position = 1 if reverse and has_rows else 0
+        self._w.focus_position = self._list_position if reverse and has_rows else 0

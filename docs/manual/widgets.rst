@@ -610,6 +610,8 @@ shows a directory typed with its separator, without rewriting the text.
 :kbd:`tab` completes the field and gives the focus to the list when nothing
 completes.  In the list, :kbd:`enter` or :kbd:`right` enters a directory,
 :kbd:`left` goes to the parent, and a printable key goes back to the field.
+A line separates the field from the list, and ``field_attr`` gives the field
+the look of an input box; ``divider=None`` leaves the line out.
 
 A directory is entered, never accepted, unless it is the directory shown:
 with ``select=urwid.FileKind.DIRECTORY`` the list starts with a ``.`` row, and

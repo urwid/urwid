@@ -23,6 +23,8 @@ SEP = os.sep
 SIZE = (60, 12)
 HAS_SYMLINKS = hasattr(os, "symlink") and sys.platform != "win32"
 FileKind = urwid.FileKind
+# positions in the chooser's Pile: the field, the line under it, the list
+FIELD, LIST = 0, 2
 
 
 class ChooserTestCase(unittest.TestCase):
@@ -87,12 +89,12 @@ class ChooserTestCase(unittest.TestCase):
     def type_text(chooser: urwid.FileChooser, text: str) -> list[str]:
         """Clear the field as the application would, then type *text*."""
         chooser.path_edit.set_edit_text("")
-        chooser._w.focus_position = 0
+        chooser._w.focus_position = FIELD
         return press(chooser, SIZE, *text)
 
     def focus_list(self, chooser: urwid.FileChooser, name: str) -> None:
         """Give the list the focus and move it to the row *name* with the keyboard."""
-        chooser._w.focus_position = 1
+        chooser._w.focus_position = LIST
         names = self.names(chooser)
         self.assertIn(name, names)
         while self.focused(chooser) != name:
@@ -109,8 +111,23 @@ class TestLayout(ChooserTestCase):
         self.assertEqual(["dir", "zdir", "a.txt", "b.txt"], self.names(chooser))
         self.assertEqual(os.path.join(self.path(""), ""), self.field(chooser)[0])
         lines = render_text(chooser, SIZE, strip=True)
-        self.assertIn("dir" + SEP, lines[2])
+        self.assertEqual("\u2500" * SIZE[0], lines[1])
+        self.assertIn("dir" + SEP, lines[3])
+        self.assertTrue(lines[2].startswith("Name ^"))
+
+    def test_without_divider(self) -> None:
+        self.make("a.txt")
+        chooser = self.chooser(divider=None)
+        lines = render_text(chooser, SIZE, strip=True)
         self.assertTrue(lines[1].startswith("Name ^"))
+        chooser._w.focus_position = 1
+        press(chooser, SIZE, "x")
+        self.assertEqual(0, chooser._w.focus_position)
+
+    def test_field_attributes(self) -> None:
+        chooser = self.chooser(field_attr="field", field_focus_attr="field focus")
+        self.assertIn("field focus", urwid.testing.attrs_for_text(chooser, SIZE, self.path(""), focus=True))
+        self.assertIn("field", urwid.testing.attrs_for_text(chooser, SIZE, self.path(""), focus=False))
 
     def test_dimmed_rows(self) -> None:
         # the directory is rejected by select as well, but it is entered, so it is not dimmed
@@ -124,7 +141,7 @@ class TestLayout(ChooserTestCase):
     def test_row_named_by_field_is_marked_while_field_has_focus(self) -> None:
         self.make("a.txt", "b.txt")
         chooser = self.chooser("b.txt", unfocused_focus_attr="marked")
-        self.assertIs(chooser.path_edit, chooser._w.focus)
+        self.assertEqual(FIELD, chooser._w.focus_position)
         self.assertIn("marked", urwid.testing.attrs_for_text(chooser, SIZE, "b.txt", focus=True))
 
     def test_directory_mode_has_dot_row(self) -> None:
@@ -348,19 +365,19 @@ class TestKeys(ChooserTestCase):
         )
         for key, expected, unhandled in cases:
             with self.subTest(key=key):
-                chooser._w.focus_position = 1
+                chooser._w.focus_position = LIST
                 self.assertEqual(unhandled, press(chooser, SIZE, key))
-                self.assertIs(chooser.path_edit, chooser._w.focus)
+                self.assertEqual(FIELD, chooser._w.focus_position)
                 self.assertEqual(expected, self.field(chooser)[0])
 
     def test_printable_key_on_header_goes_to_field(self) -> None:
         self.make("a.txt")
         chooser = self.chooser()
-        chooser._w.focus_position = 1
+        chooser._w.focus_position = LIST
         press(chooser, SIZE, "up")
         self.assertIsNotNone(chooser.table.header_column)
         self.assertEqual([], press(chooser, SIZE, "x"))
-        self.assertIs(chooser.path_edit, chooser._w.focus)
+        self.assertEqual(FIELD, chooser._w.focus_position)
         self.assertIsNone(chooser.table.header_column)
         self.assertTrue(self.field(chooser)[0].endswith("x"))
 
@@ -376,7 +393,7 @@ class TestKeys(ChooserTestCase):
     def test_left_right_on_header_change_no_directory(self) -> None:
         self.make("sub/a.txt")
         chooser = self.chooser("sub")
-        chooser._w.focus_position = 1
+        chooser._w.focus_position = LIST
         press(chooser, SIZE, "up")
         self.assertEqual(0, chooser.table.header_column)
         self.assertEqual(["left"], press(chooser, SIZE, "left"))
@@ -388,13 +405,13 @@ class TestKeys(ChooserTestCase):
     def test_click_twice_activates_header_click_does_not(self) -> None:
         self.make("a.txt", "b.txt")
         chooser = self.chooser()
-        chooser._w.focus_position = 1
-        click(chooser, SIZE, 2, 3)
+        chooser._w.focus_position = LIST
+        click(chooser, SIZE, 2, 4)
         self.assertEqual("b.txt", self.focused(chooser))
         self.assertEqual([], self.accepted)
-        click(chooser, SIZE, 2, 3)
+        click(chooser, SIZE, 2, 4)
         self.assertEqual([(pathlib.Path(self.path("b.txt")),)], self.accepted)
-        click(chooser, SIZE, 2, 1)
+        click(chooser, SIZE, 2, 2)
         self.assertEqual(1, len(self.accepted))
 
     def test_click_with_header_focused_does_not_activate(self) -> None:
@@ -403,7 +420,7 @@ class TestKeys(ChooserTestCase):
         self.focus_list(chooser, "a.txt")
         press(chooser, SIZE, "up")
         self.assertIsNotNone(chooser.table.header_column)
-        click(chooser, SIZE, 2, 2)
+        click(chooser, SIZE, 2, 3)
         self.assertEqual([], self.accepted)
         self.assertIsNone(chooser.table.header_column)
 
@@ -417,7 +434,7 @@ class TestKeys(ChooserTestCase):
                 if typed == "be":
                     press(chooser, SIZE, "tab")  # completes to beta.txt
                 self.assertEqual([], press(chooser, SIZE, "tab"))
-                self.assertIs(chooser.table, chooser._w.focus)
+                self.assertEqual(LIST, chooser._w.focus_position)
                 self.assertEqual("beta.txt", self.focused(chooser))
                 self.assertEqual("beta.txt", self.field(chooser)[0])
                 press(chooser, SIZE, "enter")
@@ -428,7 +445,7 @@ class TestKeys(ChooserTestCase):
         chooser = self.chooser()
         self.type_text(chooser, "b")
         self.assertEqual([], press(chooser, SIZE, "down"))
-        self.assertIs(chooser.table, chooser._w.focus)
+        self.assertEqual(LIST, chooser._w.focus_position)
         self.assertEqual("b.txt", self.focused(chooser))
 
     def test_entry_from_outside_keeps_rows_and_field(self) -> None:
@@ -439,12 +456,12 @@ class TestKeys(ChooserTestCase):
         parent = urwid.Pile([urwid.Edit(), chooser, urwid.Edit()], focus_item=2)
         parent.select_navigation = True
         press(parent, (60, 16), "shift tab")
-        self.assertIs(chooser.table, chooser._w.focus)
+        self.assertEqual(LIST, chooser._w.focus_position)
         self.assertEqual("b.txt", self.focused(chooser))
         self.assertEqual(before, self.field(chooser))
         parent.focus_position = 0
         press(parent, (60, 16), "tab")
-        self.assertIs(chooser.path_edit, chooser._w.focus)
+        self.assertEqual(FIELD, chooser._w.focus_position)
         self.assertEqual("b.txt", self.focused(chooser))
         self.assertEqual(before, self.field(chooser))
 
@@ -458,9 +475,9 @@ class TestKeys(ChooserTestCase):
                     chooser = urwid.FileChooser(self.root / "empty", root_dir=self.root / "empty")
                 self.assertEqual([None], self.names(chooser))
                 self.assertEqual(["tab", "down"], press(chooser, SIZE, "tab", "down"))
-                self.assertIs(chooser.path_edit, chooser._w.focus)
+                self.assertEqual(FIELD, chooser._w.focus_position)
                 chooser.enter_selectable(reverse=True)
-                self.assertIs(chooser.path_edit, chooser._w.focus)
+                self.assertEqual(FIELD, chooser._w.focus_position)
 
 
 class TestAccept(ChooserTestCase):
@@ -630,7 +647,7 @@ class TestAccept(ChooserTestCase):
                 elif route == "activation":
                     press(chooser, SIZE, "enter")
                 else:
-                    chooser._w.focus_position = 0
+                    chooser._w.focus_position = FIELD
                     press(chooser, SIZE, "enter")
                 self.assertEqual("does not exist", self.refused[-1][1])
         press(chooser, SIZE, "backspace", "t")
