@@ -89,6 +89,8 @@ PALETTE: typing.Final = [
     ("button focus", "white", "dark blue", "standout", "white", "#06c"),
     ("row focus", "white", "dark blue", "standout", "white", "#06c"),
     ("row marked", "black", "light cyan", "underline", "black", "#9cf"),
+    ("field", "black", "light cyan", "underline", "black", "#cef"),
+    ("field focus", "black", "white", "underline,bold", "black", "white"),
     ("dim", "dark gray", "light gray", "", "g50", "g85"),
     ("mark", "yellow", "light gray", "bold", "#a60", "g85"),
     ("error", "dark red", "light gray", "bold", "#a00", "g85"),
@@ -493,6 +495,9 @@ class EditorApp:
         chooser = urwid.FileChooser(
             start,
             must_exist=must_exist,
+            caption="File: ",
+            field_attr="field",
+            field_focus_attr="field focus",
             focus_attr="row focus",
             unfocused_focus_attr="row marked",
             dim_attr="dim",
