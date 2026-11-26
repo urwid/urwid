@@ -613,8 +613,14 @@ class Edit(WidgetWrap[Text]):
         """Store and return the result of :attr:`validator` as :attr:`validation`.
 
         This is what :meth:`validate` runs.
+        A validator that changed the text or replaced itself has its result discarded unchecked.
+        The nested :meth:`set_edit_text` or :attr:`validator` assignment already stored the current result.
         """
-        validation = () if self._validator is None else _validation_messages(self._validator(self._edit_text))
+        validator, text = self._validator, self._edit_text
+        result = None if validator is None else validator(text)
+        if self._validator is not validator or self._edit_text != text:
+            return self._validation
+        validation = _validation_messages(result)
         if validation != self._validation:
             old_validation, self._validation = self._validation, validation
             self._invalidate()
