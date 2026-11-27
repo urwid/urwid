@@ -952,6 +952,18 @@ class ItemsSetterTest(unittest.TestCase):
         keys(target, (20, 8), "p")
         self.assertEqual(sent, [("open", None), ("close", None), ("action", "paste")])
 
+    def test_rebuilt_list_stays_where_open_at_put_it(self) -> None:
+        """A list opened with open_at() is rebuilt below the same cell, not at the launcher's edge."""
+        target, menus = file_list()
+        target.render((34, 9), focus=True)
+        menus[1].open_at(4, 0)
+        self.assertEqual("phot│(O)pen   │", lines(target, (34, 9))[3][:15])
+        last = menus[1].items[-1]
+        assert last is not None
+        menus[1].items = [*menus[1].items[:-1], dataclasses.replace(last, enabled=False)]
+        self.assertIsNotNone(menus[1].pop_up_widget)
+        self.assertEqual("phot│(O)pen   │", lines(target, (34, 9))[3][:15])
+
     def test_list_closes_when_nothing_can_be_chosen(self) -> None:
         menu = urwid.ActionMenu("Edit", self.ENABLED, focus_map="focus", disabled_map="disabled")
         sent = record(menu)
