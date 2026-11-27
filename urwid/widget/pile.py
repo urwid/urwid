@@ -22,6 +22,7 @@ from .container import (
     _apply_focus_request,
     _ContainerElementSizingFlag,
     _focus_request_scope,
+    _FocusListContainer,
     _invalidate_on_focus_change,
     _UnfocusedFocusAttrMixin,
     _WeakCallback,
@@ -65,7 +66,7 @@ class PileWarning(WidgetWarning):
 
 
 class Pile(
-    Widget,
+    _FocusListContainer,
     SelectNavigationListContentsMixin[
         tuple[
             AbstractFlowWidget | AbstractFixedWidget,
@@ -358,16 +359,6 @@ class Pile(
         # connected last, so that filling the contents during construction sends no signal
         self._contents.set_focus_moved_callback(_WeakCallback(self, type(self)._emit, "focus changed"))
 
-    def _repr_words(self) -> list[str]:
-        """Return the base repr words followed by the number of items in the contents."""
-        if len(self.contents) > 1:
-            contents_string = f"({len(self.contents)} items)"
-        elif self.contents:
-            contents_string = "(1 item)"
-        else:
-            contents_string = "()"
-        return [*super()._repr_words(), contents_string]
-
     def _repr_attrs(self) -> dict[str, typing.Any]:
         """Return the constructor arguments that differ from their defaults, for the repr.
 
@@ -406,10 +397,6 @@ class Pile(
         yield "select_navigation", self.select_navigation, False
         yield "unfocused_focus_attr", self._unfocused_focus_attr, None
         yield "unfocused_focus_attr_func", self._unfocused_focus_attr_func, None
-
-    def __len__(self) -> int:
-        """Return the number of widgets in the pile."""
-        return len(self._contents)
 
     def _contents_modified(self) -> None:
         """Invalidate this widget whenever the contents has been changed."""
@@ -626,34 +613,6 @@ class Pile(
                 self.focus_position = i
                 return
         raise ValueError(f"Widget not found in Pile contents: {item!r}")
-
-    @property
-    def focus_position(self) -> int:
-        """Index of child widget in focus.
-
-        Raises :exc:`IndexError` if read when Pile is empty, or when set to an invalid index.
-
-        :raises IndexError: the Pile is empty.
-        """
-        if (focus := self.contents.focus) is not None:
-            return focus
-
-        raise IndexError("No focus_position, Pile is empty")
-
-    @focus_position.setter
-    def focus_position(self, position: int) -> None:
-        """
-        Set the widget in focus.
-
-        :param position: index of child widget to be made focus
-        :raises IndexError: *position* is not an index of a child widget.
-        """
-        try:
-            if position < 0 or position >= len(self.contents):
-                raise IndexError(f"No Pile child widget at position {position}")
-        except TypeError as exc:
-            raise IndexError(f"No Pile child widget at position {position}").with_traceback(exc.__traceback__) from exc
-        self.contents.focus = position
 
     def get_pref_col(
         self,
@@ -1228,7 +1187,7 @@ class Pile(
     def _update_pref_col_from_focus(self, w_size: tuple[()] | tuple[int] | tuple[int, int]) -> None:
         """Update self.pref_col from the focus widget."""
         if (get_pref_col := getattr(self.focus, "get_pref_col", None)) is not None:  # noqa: SIM102
-            if (pref_col := get_pref_col(w_size)) is not None:  # pylint: disable=not-callable
+            if (pref_col := get_pref_col(w_size)) is not None:
                 self.pref_col = pref_col
 
     def move_cursor_to_coords(
