@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import dataclasses
 import gc
 import sys
 import typing
@@ -915,6 +916,57 @@ class ReadOnlyTest(unittest.TestCase):
         menu.open_pop_up()
         self.assertIsNone(menu.pop_up_widget)
         self.assertNotIn("disabled", {attr for attr, _cs, _text in next(iter(menu.render((10,)).content()))})
+
+
+class ItemsSetterTest(unittest.TestCase):
+    ITEMS = (MenuItem("Cut", "cut", key="t", enabled=False), MenuItem("Copy", "copy", key="c", enabled=False))
+    ENABLED = tuple(dataclasses.replace(item, enabled=True) for item in ITEMS)
+
+    def test_enabling_restyles_the_label_launcher(self) -> None:
+        menu = urwid.ActionMenu("Edit", self.ITEMS, attr_map="option", focus_map="focus", disabled_map="disabled")
+        self.assertFalse(menu.selectable())
+        menu.items = self.ENABLED
+        self.assertTrue(menu.selectable())
+        self.assertEqual(menu.items[1], MenuItem("Copy", "copy", key="c"))
+        fresh = urwid.ActionMenu("Edit", menu.items, attr_map="option", focus_map="focus", disabled_map="disabled")
+        for focus in (False, True):
+            with self.subTest(focus=focus):
+                self.assertEqual(
+                    list(fresh.render((9,), focus=focus).content()), list(menu.render((9,), focus=focus).content())
+                )
+        menu.items = self.ITEMS
+        self.assertFalse(menu.selectable())
+        self.assertEqual(
+            {"disabled"}, {attr for attr, _cs, _text in next(iter(menu.render((9,), focus=True).content()))}
+        )
+
+    def test_open_list_is_rebuilt(self) -> None:
+        """An open list shows the new items at once, without a close and an open signal."""
+        menu = urwid.ActionMenu("Edit", self.ENABLED)
+        target = screen(menu)
+        sent = record(menu)
+        keys(target, (20, 8), "enter")
+        self.assertIn("Cut", "".join(lines(target, (20, 8))))
+        menu.items = [MenuItem("Paste", "paste", key="p")]
+        self.assertNotIn("Cut", "".join(lines(target, (20, 8))))
+        keys(target, (20, 8), "p")
+        self.assertEqual(sent, [("open", None), ("close", None), ("action", "paste")])
+
+    def test_list_closes_when_nothing_can_be_chosen(self) -> None:
+        menu = urwid.ActionMenu("Edit", self.ENABLED, focus_map="focus", disabled_map="disabled")
+        sent = record(menu)
+        menu.open_pop_up()
+        menu.items = self.ITEMS
+        self.assertIsNone(menu.pop_up_widget)
+        self.assertEqual(sent, [("open", None), ("close", None)])
+        self.assertEqual({"disabled"}, {attr for attr, _cs, _text in next(iter(menu.render((9,)).content()))})
+
+    def test_invalid_items_are_refused(self) -> None:
+        menu = urwid.ActionMenu("Edit", self.ITEMS)
+        for items in ([], [None], [MenuItem("A", key="a"), MenuItem("B", key="a")]):
+            with self.subTest(items=items), self.assertRaises(ValueError):
+                menu.items = items
+            self.assertEqual(menu.items, self.ITEMS)
 
 
 if __name__ == "__main__":

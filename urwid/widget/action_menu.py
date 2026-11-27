@@ -72,6 +72,7 @@ class MenuItem:
     value: typing.Any = None
     _: dataclasses.KW_ONLY
     #: A disabled item is drawn with the menu's ``disabled_map``, and it cannot be focused or chosen.
+    #: An item cannot change; assigning :attr:`ActionMenu.items` with a changed copy enables or disables it.
     enabled: bool = True
     #: Key that chooses the item while its list is open.
     key: str | None = None
@@ -676,20 +677,20 @@ class ActionMenu(_MenuOwner):
         self._fixed_width: int | None = None
         # Focus of the render in progress, see render().
         self._render_focus = False
+        # Attribute, focus and disabled maps of the default launcher, applied again when `_usable` changes.
+        self._launcher_maps: tuple[_AttrMapLike, _AttrMapLike, _AttrMapLike] | None = None
         if label is not None and launcher is None:
             launcher, added = _with_indicator(SelectableIcon(label, 0, wrap=WrapMode.ELLIPSIS), self.menu_indicator)
             self._fixed_width = Text(label).pack()[0] + added
+            self._launcher_maps = (
+                attr_map if launcher_attr_map is None else launcher_attr_map,
+                focus_map if launcher_focus_map is None else launcher_focus_map,
+                disabled_map if launcher_disabled_map is None else launcher_disabled_map,
+            )
             if self._usable:
-                launcher = AttrMap(
-                    launcher,
-                    attr_map if launcher_attr_map is None else launcher_attr_map,
-                    focus_map if launcher_focus_map is None else launcher_focus_map,
-                )
+                launcher = AttrMap(launcher, self._launcher_maps[0], self._launcher_maps[1])
             else:
-                launcher = AttrMap(
-                    launcher,
-                    disabled_map if launcher_disabled_map is None else launcher_disabled_map,
-                )
+                launcher = AttrMap(launcher, self._launcher_maps[2])
         elif label is not None or launcher is None:
             raise ValueError("ActionMenu needs either a label or a launcher widget, not both")
         own_launcher = launcher if self._fixed_width is not None and isinstance(launcher, AttrMap) else None
@@ -699,8 +700,43 @@ class ActionMenu(_MenuOwner):
 
     @property
     def items(self) -> tuple[MenuItem | None, ...]:
-        """Items of the menu in list order, ``None`` for a separator."""
+        """Items of the menu in list order, ``None`` for a separator.
+
+        Assigning it takes entries as the `items` argument does, and replaces the whole list.
+        An item cannot change, so it is enabled or disabled by assigning a copy made with :func:`dataclasses.replace`.
+
+        An open list is built again from the new items, focused on the first item that can be chosen.
+        With no such item left it closes, and the default launcher is drawn with its disabled map
+        until an item can be chosen again.
+
+        >>> import dataclasses
+        >>> menu = ActionMenu("Edit", [MenuItem("Copy", "copy", enabled=False)])
+        >>> menu.selectable()
+        False
+        >>> menu.items = [dataclasses.replace(menu.items[0], enabled=True)]
+        >>> menu.selectable()
+        True
+
+        :raises ValueError: on assignment, there is no item, or two items have the same key.
+            The menu keeps its items.
+        """
         return self._items
+
+    @items.setter
+    def items(self, items: Iterable[_MenuEntry]) -> None:
+        self._items = _menu_entries(items)
+        usable = any(_is_usable(item) for item in self._items)
+        if self.pop_up_widget is not None:
+            if usable:
+                super().open_pop_up()  # builds the list again, keeping the place open_at() gave it
+            else:
+                self.close_pop_up()
+        if usable != self._usable and self._own_launcher is not None and self._launcher_maps is not None:
+            attr, focus, disabled = self._launcher_maps
+            self._own_launcher.set_attr_map(attr if usable else disabled)
+            self._own_launcher.set_focus_map(focus if usable else None)
+        self._usable = usable
+        self._invalidate()
 
     def selectable(self) -> bool:
         """Return whether the launcher takes keys: the default one only while there is an item to choose."""
