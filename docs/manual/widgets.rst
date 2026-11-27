@@ -160,10 +160,14 @@ content.
        around; see :ref:`listbox-contents`
    * - :class:`ScrollBar`
      - ``'box'``, and ``'flow'`` as well around a ``ListBox(..., flow=True)``
+       or a ``Scrollable(..., flow=True)``
+   * - :class:`Scrollable`
+     - ``'box'``, and ``'flow'`` as well with ``flow=True`` around a flow
+       widget; see `Scrollable Widget`_
    * - :class:`Frame`
      - ``'box'``, and ``'flow'`` as well with ``flow=True`` when its body
        also supports ``'flow'``; it accepts a flow size whenever its body does
-   * - :class:`OverlayStack`, :class:`PopUpTarget`, :class:`Scrollable`
+   * - :class:`OverlayStack`, :class:`PopUpTarget`
      - ``'box'``
 
 .. _basic-grafic-widgets:
@@ -1557,10 +1561,11 @@ the first and the last scrollbar row hold markers
 that scroll one step when clicked; a marker whose end of the content is visible is drawn with ``marker_dim_attr``.
 ``attr`` and ``thumb_attr`` set the display attributes of the bar and the thumb,
 and ``focus_attr`` and ``thumb_focus_attr`` replace them when the scrollbar is rendered in focus.
-The widget reports BOX sizing, and FLOW as well around a :class:`ListBox` with :attr:`ListBox.flow` set,
-also when the ListBox is wrapped in a decoration such as :class:`AttrMap`.
+The widget reports BOX sizing, and FLOW as well around a :class:`ListBox` with :attr:`ListBox.flow` set
+or a :class:`Scrollable` with :attr:`Scrollable.flow` set,
+also when it is wrapped in a decoration such as :class:`AttrMap`.
 The wrapped widget must support BOX.
-Around a :class:`ListBox` it also accepts a flow size: it then takes the rows of the list,
+Around a :class:`ListBox` or a :class:`Scrollable` it also accepts a flow size: it then takes the rows of the content,
 draws no scrollbar with ``visible=None``, and fills the scrollbar with the thumb with ``visible=True``.
 In case of other widget types, they should be wrapped to support BOX sizing.
 
@@ -1586,6 +1591,17 @@ The :class:`Scrollable` widget is used to make  any FLOW or FIXED widget compati
 target widget render and scrolling along full-size / columns defined sized widget.
 
 Keyboard positioning keys and mouse wheel is used for scrolling if not handled by the wrapped widget.
+
+A :class:`Scrollable` around a flow widget also accepts a flow size: it then shows all the rows of the wrapped widget.
+By default it reports BOX sizing only, so containers lay it out as a box widget.
+With ``flow=True`` it reports FLOW as well, and :class:`ScrollBar` around it does too.
+A text that a container shows in full when the screen has room, and scrolls when it does not,
+is then ``ScrollBar(Scrollable(Text(...), flow=True))``:
+as a ``'pack'`` item of a :class:`Pile` it takes the rows of the text,
+and as a weighted item it takes the rows left over and scrolls the text in them.
+While it has the focus it takes the scrolling keys, also when the whole text is shown,
+so :kbd:`Up` and :kbd:`Down` do not move the focus of the container past it.
+``flow=True`` needs a flow widget: a fixed widget has no rows for a given number of columns.
 
 .. note::
     :class:`Scrollable` do not recognize if selectable wrapped widget part visible or not

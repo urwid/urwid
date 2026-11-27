@@ -33,7 +33,7 @@ from urwid.util import is_mouse_press
 
 from .constants import BOX_SYMBOLS, SHADE_SYMBOLS, MouseButton, Sizing
 from .listbox import ListBox
-from .widget import AbstractBoxWidget, AbstractWidget
+from .widget import AbstractBoxWidget, AbstractWidget, _InvalidatingAttribute
 from .widget_decoration import WidgetDecoration, WidgetError
 
 if typing.TYPE_CHECKING:
@@ -271,11 +271,37 @@ def orig_iter(w: AbstractWidget) -> Iterator[AbstractWidget]:
 
 
 class Scrollable(WidgetDecoration[WrappedScrollWidget]):
-    """Box widget decoration that makes a fixed or flow widget vertically scrollable."""
+    """Widget decoration that makes a fixed or flow widget vertically scrollable.
+
+    It is a box widget, and a flow widget as well with :attr:`flow` set.
+    """
+
+    #: Whether this Scrollable reports FLOW sizing as well, around a FLOW widget; see :meth:`sizing`.
+    flow = _InvalidatingAttribute[bool](default=False)
 
     def sizing(self) -> frozenset[Sizing]:
-        """Return that this widget is always a box widget."""
+        """Return BOX, and FLOW as well when :attr:`flow` is set and the wrapped widget is a FLOW widget."""
+        if self.flow and Sizing.FLOW in self._original_widget.sizing():
+            return frozenset((Sizing.BOX, Sizing.FLOW))
         return frozenset((Sizing.BOX,))
+
+    def rows(self, size: tuple[int], focus: bool = False) -> int:
+        """Return the rows of the wrapped widget at the width of *size*.
+
+        A flow render shows all of them.
+
+        :raises ScrollableError: the wrapped widget is not a FLOW widget.
+        """
+        ow = self._original_widget
+        if Sizing.FLOW not in ow.sizing():
+            raise ScrollableError(f"Not a flow widget: {ow!r}")
+        return typing.cast("AbstractFlowWidget", ow).rows(size, focus)
+
+    def _box_size(self, size: tuple[int] | tuple[int, int], focus: bool) -> tuple[int, int]:
+        """Return *size* as a box size, giving a flow size the rows of the wrapped widget."""
+        if len(size) == 1:
+            return (size[0], self.rows(size, focus))
+        return size
 
     def selectable(self) -> bool:
         """Return whether the widget accepts the input focus.
@@ -290,8 +316,9 @@ class Scrollable(WidgetDecoration[WrappedScrollWidget]):
         force_forward_keypress: bool = False,
         *,
         delegate_selectable: bool = False,
+        flow: bool = False,
     ) -> None:
-        """Box widget that makes a fixed or flow widget vertically scrollable.
+        """Make a fixed or flow widget vertically scrollable.
 
         .. note::
             Focusable widgets are handled, including switching focus, but possibly not intuitively,
@@ -307,11 +334,17 @@ class Scrollable(WidgetDecoration[WrappedScrollWidget]):
         :param force_forward_keypress: pass every key to *widget* first, even when it shows no cursor.
         :param delegate_selectable: take the input focus only when *widget* is selectable.
             A widget that is not, such as a :class:`Text`, then cannot be scrolled by keys.
+        :param flow: report FLOW sizing as well, so that a container can lay the Scrollable out
+            with the rows of *widget*; see :meth:`sizing`.
 
         :raises ValueError: *widget* is neither a FIXED nor a FLOW widget.
+        :raises ValueError: *flow* is set and *widget* is not a FLOW widget.
         """
-        if not widget.sizing() & frozenset((Sizing.FIXED, Sizing.FLOW)):
+        widget_sizing = widget.sizing()
+        if not widget_sizing & frozenset((Sizing.FIXED, Sizing.FLOW)):
             raise ValueError(f"Not a fixed or flow widget: {widget!r}")
+        if flow and Sizing.FLOW not in widget_sizing:
+            raise ValueError(f"Not a flow widget, which flow=True needs: {widget!r}")
 
         self._trim_top = 0
         self._scroll_action: str | None = None
@@ -322,15 +355,22 @@ class Scrollable(WidgetDecoration[WrappedScrollWidget]):
         # whether selectable() asks the wrapped widget instead of reporting True
         self.delegate_selectable = delegate_selectable
         super().__init__(widget)
+        self.flow = flow
 
     def render(
         self,
-        size: tuple[int, int],  # type: ignore[override]
+        size: tuple[int] | tuple[int, int],  # type: ignore[override]
         focus: bool = False,
     ) -> CompositeCanvas:
-        """Render the wrapped widget, trimmed to the current scroll position."""
+        """Render the wrapped widget, trimmed to the current scroll position.
+
+        A flow *size* renders all the rows of the wrapped widget, so it never needs scrolling.
+
+        :raises ScrollableError: *size* is a flow size and the wrapped widget is not a FLOW widget.
+        """
         from urwid import canvas
 
+        size = self._box_size(size, focus)
         maxcol, maxrow = size
 
         def automove_cursor() -> None:
@@ -452,10 +492,14 @@ class Scrollable(WidgetDecoration[WrappedScrollWidget]):
 
     def keypress(
         self,
-        size: tuple[int, int],  # type: ignore[override]
+        size: tuple[int] | tuple[int, int],  # type: ignore[override]
         key: str,
     ) -> str | None:
-        """Handle scrolling keys, forwarding everything else to the wrapped widget when appropriate."""
+        """Handle scrolling keys, forwarding everything else to the wrapped widget when appropriate.
+
+        A scrolling key is taken while the content fits too, at a flow *size* as at a box size.
+        It then moves nothing.
+        """
         from urwid.command_map import Command
 
         # Maybe offer key to original widget
@@ -497,7 +541,7 @@ class Scrollable(WidgetDecoration[WrappedScrollWidget]):
 
     def mouse_event(
         self,
-        size: tuple[int, int],  # type: ignore[override]
+        size: tuple[int] | tuple[int, int],  # type: ignore[override]
         event: str,
         button: int,
         col: int,
@@ -508,7 +552,10 @@ class Scrollable(WidgetDecoration[WrappedScrollWidget]):
         ow = self._original_widget
         if hasattr(ow, "mouse_event"):
             ow_size = self._get_original_widget_size(size)
-            row += self._trim_top
+            # render() keeps the position while the content fits, but draws the content from its first row.
+            # A flow size always fits the content.
+            if len(size) == 2 and self.rows_max(size, focus) > size[1]:
+                row += self._trim_top
             return ow.mouse_event(
                 ow_size,  # type: ignore[arg-type]
                 event,
@@ -568,7 +615,7 @@ class Scrollable(WidgetDecoration[WrappedScrollWidget]):
 
     def _get_original_widget_size(
         self,
-        size: tuple[int, int],
+        size: tuple[int] | tuple[int, int],
     ) -> tuple[int] | tuple[()]:
         """
         Return the size to render the wrapped widget with.
@@ -694,20 +741,22 @@ class ScrollBar(WidgetDecoration[WrappedScrollableWidget]):
     Symbols: typing.ClassVar[type[ScrollbarSymbols]] = ScrollbarSymbols
 
     def sizing(self) -> frozenset[Sizing]:
-        """Return BOX, and FLOW as well for a wrapped :class:`ListBox` with :attr:`ListBox.flow` set.
+        """Return BOX, and FLOW as well for a wrapped :class:`ListBox` or :class:`Scrollable` with ``flow`` set.
 
-        The ListBox may be wrapped in decorations such as :class:`AttrMap`, as long as they report FLOW too.
+        The ListBox or the Scrollable may be wrapped in decorations such as :class:`AttrMap`,
+        as long as they report FLOW too.
         """
-        # Only the opt-in of the ListBox counts: a wrapped widget that reports FLOW on its own is laid out as BOX.
-        # The flag is tested by truth, as ListBox.sizing() tests it.
+        # Only the opt-in of the ListBox or the Scrollable counts:
+        # a wrapped widget that reports FLOW on its own is laid out as BOX.
+        # The flag is tested by truth, as ListBox.sizing() and Scrollable.sizing() test it.
         # Containers call sizing() on every layout, so a box-only wrapped widget is answered before any walk,
         # and the walk tests a class rather than the SupportsScroll protocol, which is slow for a widget it misses.
         ow = self._original_widget
         if Sizing.FLOW not in ow.sizing():
             return frozenset((Sizing.BOX,))
 
-        lbox = next((w for w in orig_iter(ow) if isinstance(w, ListBox)), None)
-        if lbox is not None and lbox.flow:
+        base = next((w for w in orig_iter(ow) if isinstance(w, (ListBox, Scrollable))), None)
+        if base is not None and base.flow:
             return frozenset((Sizing.BOX, Sizing.FLOW))
         return frozenset((Sizing.BOX,))
 
@@ -715,8 +764,10 @@ class ScrollBar(WidgetDecoration[WrappedScrollableWidget]):
         """Return the rows of the wrapped widget at the width it is rendered at.
 
         With :attr:`visible` ``True`` the scrollbar always takes its columns, so the wrapped widget gets the rest.
+        Otherwise a flow render draws no scrollbar, so the wrapped widget is measured at the full width.
 
-        :raises AttributeError: the wrapped widget has no ``rows()``, as a :class:`Scrollable` has none.
+        :raises AttributeError: the wrapped widget has no ``rows()``.
+        :raises ScrollableError: the wrapped widget is a :class:`Scrollable` around a widget that is not a FLOW widget.
         """
         (maxcol,) = size
         bar_width = self._scrollbar_width if self._visible is True else 0
