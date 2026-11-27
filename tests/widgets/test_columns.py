@@ -950,6 +950,17 @@ class ColumnsTest(unittest.TestCase):
         with self.assertRaises(urwid.ColumnsError):
             urwid.Columns.options(urwid.GIVEN, 1.5)
 
+    def test_box_widget_not_bool_rejected(self) -> None:
+        """A box_widget flag that is not a bool is rejected by options(), as the contents reject it."""
+        for width_type in (urwid.PACK, urwid.GIVEN, urwid.WEIGHT):
+            amount = None if width_type == urwid.PACK else 1
+            with self.subTest(width_type=width_type):
+                with self.assertRaises(urwid.ColumnsError):
+                    urwid.Columns.options(width_type, amount, 1)
+                columns = urwid.Columns([])
+                with self.assertRaises(urwid.ColumnsError):
+                    columns.contents.append((urwid.Text("a"), (width_type, amount, 1)))
+
     def test_pack_not_enough_info(self):
         """Test special case for not official fixed pack and render support."""
         widget = urwid.Columns(
@@ -1489,10 +1500,13 @@ class ColumnsTest(unittest.TestCase):
         self.assertIn(b"< Cancel >", canvas.text[0])
 
     def test_non_finite_width_amount_rejected(self) -> None:
-        """Infinite, NaN, and beyond-float-range amounts are rejected on every way into the contents."""
-        for amount in (math.inf, math.nan, 10**400):
+        """Negative, infinite, NaN, and beyond-float-range amounts are rejected by options() and into the contents."""
+        for amount in (-1, math.inf, math.nan, 10**400):
             for width_type in (urwid.WEIGHT, urwid.GIVEN):
                 with self.subTest(amount=amount, width_type=width_type):
+                    with self.assertRaises(urwid.ColumnsError):
+                        urwid.Columns.options(width_type, amount)
+
                     item = (width_type, amount, urwid.Text("a"))
                     with self.assertRaises(urwid.ColumnsError):
                         urwid.Columns([item])

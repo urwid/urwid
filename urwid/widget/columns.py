@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import math
 import sys
 import typing
 import warnings
@@ -15,7 +14,7 @@ from urwid.command_map import Command
 from urwid.split_repr import remove_defaults
 from urwid.util import is_mouse_press
 
-from .constants import Align, MouseButton, Sizing, WHSettings
+from .constants import Align, MouseButton, Sizing, WHSettings, _is_valid_amount
 from .container import (
     _SELECT_COMMANDS,
     SelectNavigationListContentsMixin,
@@ -529,14 +528,13 @@ class Columns(
                 if any(
                     (
                         t not in {WHSettings.PACK, WHSettings.GIVEN, WHSettings.WEIGHT},
-                        (n is not None and (not isinstance(n, (int, float)) or n < 0 or not math.isfinite(n))),
+                        n is not None and not _is_valid_amount(n),
                         t == WHSettings.GIVEN and not isinstance(n, int),
                         not isinstance(b, bool),
                     )
                 ):
                     invalid_items.append(item)
-        # OverflowError: math.isfinite() of an int too large for a float
-        except (TypeError, ValueError, OverflowError) as exc:
+        except (TypeError, ValueError) as exc:
             raise ColumnsError(f"added content invalid {exc}").with_traceback(exc.__traceback__) from exc
 
         if invalid_items:
@@ -647,19 +645,23 @@ class Columns(
             *width_amount* as a weight value.
 
         :param width_type: ``'pack'``, ``'given'`` or ``'weight'``
-        :param width_amount: ``None`` for ``'pack'``, a number of screen columns
-            for ``'given'`` or a weight value (number) for ``'weight'``
+        :param width_amount: ``None`` for ``'pack'``, a number of screen columns (an int of at least 0) for ``'given'``,
+            or a weight (a finite number of at least 0) for ``'weight'``
         :param box_widget: set to `True` if this widget is to be treated as a box
             widget when the Columns widget itself is treated as a flow widget.
-        :raises ColumnsError: *width_type* and *width_amount* are not a valid combination.
+        :raises ColumnsError: *width_type* and *width_amount* are not a valid combination,
+            or *box_widget* is not a bool.
         """
-        if width_type == WHSettings.PACK:
-            return (WHSettings.PACK, None, box_widget)
-        if width_type == WHSettings.GIVEN and isinstance(width_amount, int):
-            return (WHSettings.GIVEN, width_amount, box_widget)
-        if width_type == WHSettings.WEIGHT and width_amount is not None:
-            return (WHSettings.WEIGHT, width_amount, box_widget)
-        raise ColumnsError(f"invalid combination: width_type={width_type!r}, width_amount={width_amount!r}")
+        if isinstance(box_widget, bool):
+            if width_type == WHSettings.PACK:
+                return (WHSettings.PACK, None, box_widget)
+            if width_type == WHSettings.GIVEN and _is_valid_amount(width_amount) and isinstance(width_amount, int):
+                return (WHSettings.GIVEN, width_amount, box_widget)
+            if width_type == WHSettings.WEIGHT and _is_valid_amount(width_amount):
+                return (WHSettings.WEIGHT, width_amount, box_widget)
+        raise ColumnsError(
+            f"invalid combination: width_type={width_type!r}, width_amount={width_amount!r}, box_widget={box_widget!r}",
+        )
 
     def _invalidate(self) -> None:
         """Drop the cached column widths and the cached canvases."""
