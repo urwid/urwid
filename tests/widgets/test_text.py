@@ -120,6 +120,23 @@ class TextTest(unittest.TestCase):
         widget.set_text([("a", "AB"), ("b", "CD")])
         self.assertEqual(("ABCD", [("a", 2), ("b", 2)]), widget.get_text())
 
+    def test_get_markup_round_trips_through_set_text(self) -> None:
+        """The flat markup gives back the same text and attribute runs, nested and empty runs included."""
+        for name, markup, expected in (
+            ("empty", "", []),
+            ("plain", "plain", ["plain"]),
+            ("bytes", b"ab", [b"ab"]),
+            ("trailing plain", [("a", "one"), "two"], [("a", "one"), "two"]),
+            ("plain between", [("a", "one"), "two", ("b", "three")], [("a", "one"), (None, "two"), ("b", "three")]),
+            ("empty run", [("a", "AB"), ("b", ""), "CD"], [("a", "AB"), ("b", ""), "CD"]),
+            ("nested", ("a", ["one", ("b", "two")]), [("a", "one"), (urwid.LayeredAttr("b", "a"), "two")]),
+        ):
+            with self.subTest(name):
+                widget = urwid.Text(markup)
+
+                self.assertEqual(expected, widget.get_markup())
+                self.assertEqual(widget.get_text(), urwid.Text(widget.get_markup()).get_text())
+
     def test_pack_does_not_wrap_after_tab(self) -> None:
         """A line holding a tab packs to its unwrapped width, not to a layout wrapped after the tab stop."""
         for widget, expected in (

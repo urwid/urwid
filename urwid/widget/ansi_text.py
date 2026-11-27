@@ -23,6 +23,7 @@ from __future__ import annotations
 import typing
 
 from urwid.ansi_parser import AnsiParser, ParsedLine
+from urwid.util import rle_segments
 
 from .constants import Align, WrapMode
 from .text import Text
@@ -126,21 +127,22 @@ class ANSIText(WidgetWrap[Text]):
 
     def _set_parsed(self, parsed: ParsedLine) -> None:
         self._parsed = parsed
-        self._w.set_text(self._build_markup(parsed))
+        self._w.set_text(rle_segments(parsed.text, parsed.attrib))
         self._invalidate()
-
-    @staticmethod
-    def _build_markup(parsed: ParsedLine) -> list[tuple[Hashable, str]]:
-        markup: list[tuple[Hashable, str]] = []
-        pos = 0
-        for attr, run in parsed.attrib:
-            markup.append((attr, parsed.text[pos : pos + run]))
-            pos += run
-        return markup
 
     def get_text(self) -> tuple[str | bytes, list[tuple[Hashable, int]]]:
         """Return (*text*, *display attributes*), see :meth:`urwid.Text.get_text`."""
         return self._w.get_text()
+
+    def get_markup(self) -> list[tuple[Hashable, str | bytes] | str | bytes]:
+        r"""Return the resolved, escape-free content as flat markup.
+
+        See :meth:`urwid.Text.get_markup`.
+
+        >>> ANSIText("plain \x1b[1mbold\x1b[0m").get_markup()
+        [(None, 'plain '), (AttrSpec('inherit,bold', 'inherit'), 'bold')]
+        """
+        return self._w.get_markup()
 
     @property
     def text(self) -> str | bytes:

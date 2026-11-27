@@ -9,7 +9,7 @@ from urwid import text_layout
 from urwid.canvas import apply_text_layout
 from urwid.split_repr import remove_defaults
 from urwid.str_util import calc_width
-from urwid.util import decompose_tagmarkup
+from urwid.util import decompose_tagmarkup, rle_len, rle_segments
 
 from .constants import Align, Sizing, WrapMode
 from .widget import Widget, WidgetError
@@ -152,6 +152,28 @@ class Text(Widget):
         ('onetwo', [('a', 3), (LayeredAttr('b', 'a'), 3)])
         """
         return self._text, self._attrib
+
+    def get_markup(self) -> list[tuple[Hashable, str | bytes] | str | bytes]:
+        """Return the content as flat markup.
+
+        Passed to :meth:`set_text`, the result gives back the same :meth:`get_text`.
+        Nested markup comes back flattened, each run carrying its :class:`~urwid.LayeredAttr`.
+
+        :returns: one ``(display attribute, text)`` pair per attribute run of :meth:`get_text`,
+            followed by the text after the last run as a plain string when there is any;
+            an empty list for empty text without attribute runs.
+
+        >>> Text([("a", "one"), "two", ("b", "three"), "four"]).get_markup()
+        [('a', 'one'), (None, 'two'), ('b', 'three'), 'four']
+        >>> Text(("a", ["one", ("b", "two")])).get_markup()
+        [('a', 'one'), (LayeredAttr('b', 'a'), 'two')]
+        """
+        text, attrib = self.get_text()
+        segments = rle_segments(text, attrib)
+        if rle_len(attrib) < len(text):
+            # the text after the last run is plain markup, so set_text() gives back the same attribute runs
+            return [*segments[:-1], segments[-1][1]]
+        return [*segments]
 
     @property
     def text(self) -> str | bytes:

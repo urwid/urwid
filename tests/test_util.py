@@ -428,6 +428,12 @@ class RleTest(unittest.TestCase):
         self.assertListEqual([], util.rle_subseg(rle, 25, 30))
         self.assertListEqual([], util.rle_subseg(rle, 5, 5))
 
+    def test_rle_segments(self) -> None:
+        self.assertListEqual([], util.rle_segments("", []))
+        self.assertListEqual([(None, "abc")], util.rle_segments("abc", []))
+        self.assertListEqual([("A", "ab"), ("B", ""), (None, "c")], util.rle_segments("abc", [("A", 2), ("B", 0)]))
+        self.assertListEqual([("A", b"a"), ("B", b"bc")], util.rle_segments(b"abc", [("A", 1), ("B", 2)]))
+
     def test_rle_len(self):
         self.assertEqual(0, util.rle_len([]))
         self.assertEqual(25, util.rle_len([("A", 10), ("B", 15)]))
