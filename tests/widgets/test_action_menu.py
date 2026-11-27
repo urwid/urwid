@@ -815,19 +815,38 @@ class ReadOnlyTest(unittest.TestCase):
         self.assertEqual({"disabled"}, {attr for attr, _cs, _text in next(iter(menu.render((9,)).content()))})
 
     def test_launcher_attributes(self) -> None:
-        """The label launcher takes the list's maps unless the ``launcher_*`` maps override them."""
+        """The label launcher takes the list's maps unless the ``launcher_*`` maps override them.
+
+        While its list is open, it keeps its focus map although the focus is in the list,
+        and it takes its own map again once the list closes.
+        """
         items = [MenuItem("Open")]
-        for name, kwargs, focus, expected in (
-            ("attr_map", {"attr_map": "option", "focus_map": "focus"}, False, {"option"}),
-            ("focus_map", {"attr_map": "option", "focus_map": "focus"}, True, {"focus"}),
-            ("focused without focus_map", {"attr_map": "option"}, True, {"option"}),
-            ("override", {"attr_map": "option", "launcher_attr_map": "own"}, False, {"own"}),
-            ("focused takes launcher_attr_map", {"launcher_attr_map": "own"}, True, {"own"}),
-            ("focus override", {"focus_map": "focus", "launcher_focus_map": "own focus"}, True, {"own focus"}),
+        for name, kwargs, focus, opened, expected in (
+            ("attr_map", {"attr_map": "option", "focus_map": "focus"}, False, False, {"option"}),
+            ("focus_map", {"attr_map": "option", "focus_map": "focus"}, True, False, {"focus"}),
+            ("focused without focus_map", {"attr_map": "option"}, True, False, {"option"}),
+            ("override", {"attr_map": "option", "launcher_attr_map": "own"}, False, False, {"own"}),
+            ("focused takes launcher_attr_map", {"launcher_attr_map": "own"}, True, False, {"own"}),
+            ("focus override", {"focus_map": "focus", "launcher_focus_map": "own focus"}, True, False, {"own focus"}),
+            ("open takes focus_map", {"attr_map": "option", "focus_map": "focus"}, False, True, {"focus"}),
+            (
+                "open takes launcher_focus_map",
+                {"focus_map": "focus", "launcher_focus_map": "own"},
+                False,
+                True,
+                {"own"},
+            ),
+            ("open without focus_map", {"attr_map": "option"}, False, True, {"option"}),
         ):
             with self.subTest(name):
-                canvas = urwid.ActionMenu("Actions", items, **kwargs).render((9,), focus=focus)
+                menu = urwid.ActionMenu("Actions", items, **kwargs)
+                if opened:
+                    menu.open_pop_up()
+                canvas = menu.render((9,), focus=focus)
                 self.assertEqual(expected, {attr for attr, _cs, _text in next(iter(canvas.content()))})
+                menu.close_pop_up()
+                fresh = urwid.ActionMenu("Actions", items, **kwargs).render((9,), focus=focus)
+                self.assertEqual(list(fresh.content()), list(menu.render((9,), focus=focus).content()))
 
         menu = urwid.ActionMenu(
             "Actions",
@@ -837,9 +856,49 @@ class ReadOnlyTest(unittest.TestCase):
         )
         self.assertEqual({"own disabled"}, {attr for attr, _cs, _text in next(iter(menu.render((9,)).content()))})
 
+    def test_launcher_map_survives_reopening_and_handlers(self) -> None:
+        """The launcher takes its own map back after a second opening, and after a handler that reverses the change."""
+
+        def launcher_attributes(menu: urwid.ActionMenu) -> set[object]:
+            return {attr for attr, _cs, _text in next(iter(menu.render((9,)).content()))}
+
+        def open_twice(menu: urwid.ActionMenu) -> None:
+            menu.open_pop_up()
+            menu.open_at(0, 0)
+            self.assertEqual({"focus"}, launcher_attributes(menu))
+            menu.close_pop_up()
+
+        def close_on_open(menu: urwid.ActionMenu) -> None:
+            urwid.connect_signal(menu, "open", lambda opened: opened.close_pop_up())
+            menu.open_pop_up()
+            self.assertIsNone(menu.pop_up_widget)
+
+        def open_on_close(menu: urwid.ActionMenu) -> None:
+            menu.open_pop_up()
+            key = urwid.connect_signal(menu, "close", lambda closed: closed.open_pop_up())
+            menu.close_pop_up()
+            self.assertIsNotNone(menu.pop_up_widget)
+            self.assertEqual({"focus"}, launcher_attributes(menu))
+            urwid.disconnect_signal_by_key(menu, "close", key)
+            menu.close_pop_up()
+
+        for action in (open_twice, close_on_open, open_on_close):
+            with self.subTest(action.__name__):
+                menu = urwid.ActionMenu("Actions", [MenuItem("Open")], attr_map="option", focus_map="focus")
+                action(menu)
+                self.assertEqual({"option"}, launcher_attributes(menu))
+                menu.open_pop_up()
+                menu.close_pop_up()
+                self.assertEqual({"option"}, launcher_attributes(menu))
+
     def test_given_launcher_is_not_restyled(self) -> None:
+        """A launcher widget from the application keeps its own maps, also while the list is open."""
         menu = urwid.ActionMenu(None, [MenuItem("Open")], launcher=urwid.Text("x"), attr_map="option", focus_map="f")
         self.assertEqual({None}, {attr for attr, _cs, _text in next(iter(menu.render((3,), focus=True).content()))})
+        launcher = urwid.AttrMap(urwid.SelectableIcon("x"), "own", "own focus")
+        menu = urwid.ActionMenu(None, [MenuItem("Open")], launcher=launcher, focus_map="f")
+        menu.open_pop_up()
+        self.assertEqual({"own"}, {attr for attr, _cs, _text in next(iter(menu.render((3,)).content()))})
 
     def test_launcher_attr_map_is_not_hashable(self) -> None:
         with self.assertRaises(urwid.AttrMapError):
