@@ -30,6 +30,7 @@ class _EditText(_EditCompletionState):
     _completion_hold: bool
     _edit_depth: int = 0  # pylint reads the augmented assignments of _EditUndo as no-member without a value
     _edit_pos: int
+    _highlight: tuple[int, int] | None
     _kill_last: tuple[int, str | bytes] | None
     _max_length: int | None
     _pending_edit_pos: int | None
@@ -37,10 +38,10 @@ class _EditText(_EditCompletionState):
     _placeholder_grow: bool | None
     _placeholder_ta: tuple[str | bytes, list[tuple[Hashable, int]]] | None
     _redo_stack: deque[tuple[str | bytes, int]]
+    _select_anchor: int | None
     _undo_before: tuple[str | bytes, int] | None
     _undo_run: tuple[str, str | bytes, int] | None
     _undo_stack: deque[tuple[str | bytes, int]]
-    highlight: tuple[int, int] | None
     multiline: bool
     pref_col_maxcol: tuple[None, None] | tuple[int | Literal[Align.LEFT, Align.RIGHT], int]
 
@@ -356,7 +357,7 @@ class _EditText(_EditCompletionState):
         :raises TypeError: :attr:`validator` returned something else than the types it lists;
             the text is changed already.
 
-        Called from elsewhere than a key, :meth:`undo` or :meth:`redo`, it clears the undo history,
+        Called from elsewhere than a key, :meth:`editing`, :meth:`undo` or :meth:`redo`, it clears the undo history,
         see :attr:`undo_limit`.
 
         >>> from urwid import Edit
@@ -382,6 +383,7 @@ class _EditText(_EditCompletionState):
             self._redo_stack.clear()
             self._undo_before = self._undo_run = None
             self._kill_last = None
+        self._select_anchor = None
         self.highlight = None
         self._emit("change", text)
         old_text = self._edit_text
@@ -445,6 +447,69 @@ class _EditText(_EditCompletionState):
         Property controlling the edit text for this widget.
         """,
     )
+
+    @property
+    def highlight(self) -> tuple[int, int] | None:
+        """The selected range of :attr:`edit_text` as ``(start, stop)`` offsets with ``start < stop``, or ``None``.
+
+        Typing, :meth:`insert_text` and the delete keys replace or delete the range.
+        A cursor move and a new text clear it.
+        Setting it does not move the cursor.
+        :attr:`select_attr` draws it, and :attr:`mouse_select` lets a mouse drag set it.
+        It is unrelated to :attr:`highlighter`, which colours the text by its content.
+
+        On assignment the offsets are put in order and clipped to the text.
+        An empty range is stored as ``None``.
+        Otherwise *start* moves back and *stop* forward to grapheme cluster boundaries.
+        A changed value redraws the widget and sends ``"highlight"`` with the old and the new value.
+
+        >>> from urwid import Edit
+        >>> e = Edit("", "hello world")
+        >>> e.highlight = (11, 6)
+        >>> e.highlight
+        (6, 11)
+        >>> e.highlight = (3, 3)
+        >>> e.highlight is None
+        True
+
+        :raises ValueError: on assignment, the value is a sequence of other than two offsets.
+        :raises TypeError: on assignment, the value is not ``None`` and not a sequence of integers.
+        """
+        return self._highlight
+
+    @highlight.setter
+    def highlight(self, highlight: tuple[int, int] | None) -> None:
+        if highlight is not None:
+            start, stop = sorted(min(max(offset, 0), len(self._edit_text)) for offset in highlight)
+            if start == stop:  # dropped before widening, which would turn it into the cluster around it
+                highlight = None
+            else:
+                highlight = (
+                    _grapheme_boundary(self._edit_text, start, forward=False),
+                    _grapheme_boundary(self._edit_text, stop, forward=True),
+                )
+        if highlight == self._highlight:
+            return
+        old, self._highlight = self._highlight, highlight
+        self._invalidate()
+        self._emit("highlight", old, highlight)
+
+    @property
+    def selected_text(self) -> str:
+        """Return the text in the :attr:`highlight` range, or an empty text when nothing is selected.
+
+        With :attr:`mask` set it is the real text, not the mask characters drawn for it.
+
+        >>> from urwid import Edit
+        >>> e = Edit("", "hello world")
+        >>> e.highlight = (0, 5)
+        >>> e.selected_text
+        'hello'
+        """
+        if self._highlight is None:
+            return self._edit_text[:0]
+        start, stop = self._highlight
+        return self._edit_text[start:stop]
 
     def insert_text(self, text: str) -> None:
         """Insert text at the cursor position and update cursor.

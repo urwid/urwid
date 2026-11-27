@@ -60,6 +60,9 @@ class Edit(_EditKeys):
       It receives the old and the new position as arguments.
       A text change sends it before ``"postchange"`` when it moves the cursor,
       and does not send it when the cursor keeps its offset.
+    * ``"highlight"`` is sent when :attr:`highlight`, the selected range, changes.
+      It receives the old and the new range as arguments.
+      A mouse drag with :attr:`mouse_select` sends it once, when the button is released, not for each step.
     """
 
     _sizing = frozenset([Sizing.FLOW])
@@ -75,6 +78,7 @@ class Edit(_EditKeys):
         "validation",
         "completion_cycle",
         "edit_pos",
+        "highlight",
     ]
 
     def __init__(
@@ -100,6 +104,8 @@ class Edit(_EditKeys):
         text_completer: Callable[[str, int], Sequence[tuple[str, int]]] | None = None,
         undo_limit: int = 0,
         kill_buffer: MutableSequence[str | bytes] | None = None,
+        mouse_select: bool = False,
+        select_attr: Hashable | None = None,
     ) -> None:
         """Create the Edit widget.
 
@@ -128,6 +134,8 @@ class Edit(_EditKeys):
         :param undo_limit: the number of changes :meth:`undo` can take back, see :attr:`undo_limit`
         :param kill_buffer: list that the word and line delete commands put the deleted text into,
             see :attr:`kill_buffer`
+        :param mouse_select: ``True``: a drag with mouse button 1 selects text, see :attr:`mouse_select`
+        :param select_attr: attribute the :attr:`highlight` range is drawn with, see :attr:`select_attr`
         :raises ValueError: *max_length* is negative, or *edit_text* is longer than it.
             *undo_limit* is negative.
             *highlighter* is set together with *validation_attr* or *validation_focus_attr*.
@@ -168,7 +176,11 @@ class Edit(_EditKeys):
         self._edit_text = ""
         self._max_length: int | None = None
         self.max_length = max_length
-        self.highlight: tuple[int, int] | None = None
+        self._highlight: tuple[int, int] | None = None
+        self.mouse_select = mouse_select
+        self._select_attr = select_attr
+        # edit offset of the button 1 press on this widget until its release; with mouse_select, where the drag started
+        self._select_anchor: int | None = None
         self._mask: str | None = None
         self._shift_view_to_cursor = False
         self.pref_col_maxcol: tuple[None, None] | tuple[int | Literal[Align.LEFT, Align.RIGHT], int] = (None, None)
@@ -292,7 +304,7 @@ class IntEdit(Edit):
         >>> print(e.edit_text)
         2
         """
-        with self._editing():  # the strip belongs to the undo step of the key
+        with self.editing():  # the strip belongs to the undo step of the key
             max_digits = sys.get_int_max_str_digits()  # 0 means no limit
             if max_digits and self.valid_char(key) and len(self.insert_text_result(key)[0]) > max_digits:
                 return key

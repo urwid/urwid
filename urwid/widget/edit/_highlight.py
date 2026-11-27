@@ -46,7 +46,7 @@ class _EditHighlight(WidgetWrap[Text]):
         They are not drawn while :attr:`edit_text` is empty or :attr:`mask` is set.
         Assigning them invalidates the widget and sends no signal.
         A copy is returned and a copy is stored.
-        They are unrelated to :attr:`highlight`, the selected range.
+        They are unrelated to :attr:`highlight`, the selected range, which :attr:`select_attr` draws over them.
 
         They colour parts of the text.
         :attr:`validation_attr` and :attr:`validation_focus_attr` colour the whole text,
@@ -92,7 +92,7 @@ class _EditHighlight(WidgetWrap[Text]):
         It colours parts of the text.
         :attr:`validation_attr` and :attr:`validation_focus_attr` colour the whole text,
         so they cannot be set together with a highlighter.
-        It is unrelated to :attr:`highlight`, the selected range.
+        It is unrelated to :attr:`highlight`, the selected range, which :attr:`select_attr` draws over its runs.
 
         >>> from urwid import Edit
         >>> e = Edit("$ ", "ls -l", highlighter=lambda text: [("command", text[:2]), text[2:]])

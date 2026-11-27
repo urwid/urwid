@@ -100,10 +100,10 @@ class _EditUndo(_EditText):
     def undo_limit(self) -> int:
         """The number of changes :meth:`undo` can take back, 0 for no undo history.
 
-        A change is what a key does to the text, through :meth:`keypress`.
+        A change is what a key does to the text, through :meth:`keypress`, or what the body of :meth:`editing` does.
         Consecutive typed characters are one change, and so is a run of :kbd:`backspace` or of :kbd:`delete`.
-        A change from elsewhere, through :meth:`set_edit_text` or :meth:`insert_text`, clears the history,
-        so that a reused edit does not bring back an earlier value.
+        A change from elsewhere, through :meth:`set_edit_text` or :meth:`insert_text` outside :meth:`editing`,
+        clears the history, so that a reused edit does not bring back an earlier value.
         Lowering the limit drops the oldest changes, and 0 clears the history.
         The ``'undo'`` and ``'redo'`` commands, which no key is mapped to by default, call :meth:`undo` and
         :meth:`redo`.
@@ -192,12 +192,27 @@ class _EditUndo(_EditText):
         return self._edit_text != current[0]
 
     @contextlib.contextmanager
-    def _editing(self) -> Generator[None]:
-        """Run the body as one editing transaction, which records one undo step when it changed the text.
+    def editing(self) -> Generator[None]:
+        """Run the body as one change of the undo history, see :attr:`undo_limit`.
 
+        The text the body sets through :meth:`set_edit_text` or :meth:`insert_text` is one step that :meth:`undo`
+        takes back, instead of a change from elsewhere that clears the history.
+        An application uses it for an edit of its own, such as a cut from a menu.
         Transactions nest, and the outermost one records the step.
         A subclass whose :meth:`keypress` changes the text after calling this class's method holds it around its
         whole body, so that its change belongs to the step of the key.
+
+        >>> from urwid import Edit
+        >>> e = Edit("", "hello world", undo_limit=10)
+        >>> e.highlight = (5, 11)
+        >>> with e.editing():
+        ...     e.insert_text("")
+        >>> print(e.edit_text)
+        hello
+        >>> e.undo()
+        True
+        >>> print(e.edit_text)
+        hello world
         """
         if not self._edit_depth:
             self._undo_before = (self._edit_text, self._edit_pos)
@@ -220,3 +235,7 @@ class _EditUndo(_EditText):
                         self._undo_stack.append(before)
                     self._redo_stack.clear()
                     self._undo_run = None if kind is None else (kind, self._edit_text, self._edit_pos)
+
+    def _editing(self) -> contextlib.AbstractContextManager[None]:
+        """Return :meth:`editing`, under the protected name that subclasses written for urwid 5.1 and 5.2 call."""
+        return self.editing()

@@ -1,4 +1,4 @@
-"""Type checker fixture for the placeholder, validator, completer, undo and kill buffer options of Edit.
+"""Type checker fixture for the placeholder, validator, completer, undo, kill buffer and selection options of Edit.
 
 mypy and Pyrefly check this module; nothing in it runs.
 """
@@ -53,3 +53,14 @@ if typing.TYPE_CHECKING:
         assert_type(edit.kill_buffer, MutableSequence[str | bytes] | None)
         edit.undo_limit = 0
         edit.kill_buffer = None
+
+    def selection_options() -> None:
+        """Accept the selection options, and type the selected range and text."""
+        edit = urwid.Edit("> ", "hello", mouse_select=True, select_attr="selected")
+        assert_type(edit.highlight, tuple[int, int] | None)
+        assert_type(edit.select_attr, Hashable | None)
+        assert_type(edit.selected_text, str)
+        edit.select_attr = None
+        edit.mouse_select = False
+        edit.highlight = (0, 2)
+        edit.highlight = None
