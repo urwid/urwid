@@ -298,6 +298,100 @@ class TestScrollable(unittest.TestCase):
         self.assertEqual(3, widget.rows_max((10, 2)))
         self.assertEqual(3, widget.rows_max())  # cached value, no size given
 
+    def test_mouse_event_row(self) -> None:
+        """A click reaches the row drawn under it.
+
+        The row is moved by the scroll position, but not while the content fits.
+        """
+        size = (5, 3)
+        for position, expected in ((1, [(0, 1)]), (-1, [(0, 2)])):  # -1 shows the last 3 of the 5 rows
+            with self.subTest(position=position):
+                content = ColumnRecorder("\n".join("abcde"))
+                widget = urwid.Scrollable(content)
+                widget.set_scrollpos(position)
+                widget.render(size)
+                urwid.testing.click(widget, size, 0, 0)
+                self.assertEqual(expected, content.seen)
+
+                # The position is kept while the content fits, and the content is drawn from its first row.
+                content.set_text("a\nb")
+                self.assertEqual(["a    ", "b    ", "     "], urwid.testing.render_text(widget, size))
+                content.seen.clear()
+                urwid.testing.click(widget, size, 0, 1)
+                self.assertEqual([(0, 1)], content.seen)
+
+
+class TestScrollableFlow(unittest.TestCase):
+    """Scrollable at a flow size, and its FLOW sizing with flow set."""
+
+    TEXT = "one two three four five six"
+
+    def test_sizing(self) -> None:
+        """FLOW is reported with flow set around a FLOW widget, and BOX only otherwise."""
+        box = frozenset((urwid.BOX,))
+        for name, widget, expected in (
+            ("flow text", urwid.Scrollable(urwid.Text("a"), flow=True), frozenset((urwid.BOX, urwid.FLOW))),
+            ("box text", urwid.Scrollable(urwid.Text("a")), box),
+            ("flow set to a false value", urwid.Scrollable(urwid.Text("a"), flow=0), box),  # type: ignore[arg-type]
+        ):
+            with self.subTest(name):
+                self.assertEqual(expected, widget.sizing())
+
+        widget = urwid.Scrollable(urwid.Text("a"))
+        widget.flow = True
+        self.assertEqual(frozenset((urwid.BOX, urwid.FLOW)), widget.sizing())
+
+    def test_flow_needs_a_flow_widget(self) -> None:
+        """flow=True needs a FLOW widget.
+
+        It is refused around a FIXED-only widget, and FLOW is not reported once one replaces the content.
+        """
+        with self.assertRaises(ValueError):
+            urwid.Scrollable(urwid.BigText("1", urwid.HalfBlock5x4Font()), flow=True)
+
+        widget = urwid.Scrollable(urwid.Text("a"), flow=True)
+        widget.original_widget = urwid.BigText("1", urwid.HalfBlock5x4Font())
+        self.assertEqual(frozenset((urwid.BOX,)), widget.sizing())
+        with self.assertRaises(ScrollableError):
+            widget.rows((10,))
+
+    def test_rows_and_render(self) -> None:
+        """A flow render shows all the rows of the content, with or without flow set."""
+        for flow in (True, False):
+            with self.subTest(flow=flow):
+                widget = urwid.Scrollable(urwid.Text(self.TEXT), flow=flow)
+                self.assertEqual(3, widget.rows((10,)))
+                self.assertEqual(
+                    ["one two   ", "three four", "five six  "],
+                    urwid.testing.render_text(widget, (10,)),
+                )
+                urwid.testing.check_flow_sizing(widget, cols=10)
+
+    def test_check_sizing(self) -> None:
+        """Every sizing mode renders the size it reports, around a Text and around an Edit."""
+        urwid.testing.check_sizing(urwid.Scrollable(urwid.Text(self.TEXT), flow=True), cols=10, rows=2)
+        urwid.testing.check_sizing(urwid.Scrollable(urwid.Edit("> ", self.TEXT), flow=True), cols=10, rows=2)
+
+    def test_box_size_still_scrolls(self) -> None:
+        """With flow set, a box size smaller than the content scrolls by keys as without it."""
+        widget = urwid.Scrollable(urwid.Text(self.TEXT), flow=True)
+        size = (10, 2)
+        self.assertEqual(["one two   ", "three four"], urwid.testing.render_text(widget, size))
+        self.assertEqual([], urwid.testing.press(widget, size, "down"))
+        self.assertEqual(["three four", "five six  "], urwid.testing.render_text(widget, size))
+        self.assertEqual(["one two   ", "three four", "five six  "], urwid.testing.render_text(widget, (10,)))
+        self.assertEqual(["three four", "five six  "], urwid.testing.render_text(widget, size))
+
+    def test_mouse_event_at_a_flow_size(self) -> None:
+        """A click at a flow size reaches the row drawn under it, whatever the scroll position."""
+        content = ColumnRecorder(self.TEXT)
+        widget = urwid.Scrollable(content, flow=True)
+        widget.set_scrollpos(2)
+        widget.render((10, 1))
+        widget.render((10,))
+        urwid.testing.click(widget, (10,), 0, 1)
+        self.assertEqual([(0, 1)], content.seen)
+
 
 class TestScrollBarScrollable(unittest.TestCase):
     def test_degenerate_sizes(self):
@@ -1445,6 +1539,12 @@ class TestScrollBarFlowSize(unittest.TestCase):
             ("box list", urwid.ListBox([urwid.Text("a")]), box),
             ("wrapping flow list", urwid.ListBox(wrapping, flow=True), box),
             ("scrollable", urwid.Scrollable(urwid.Text("a")), box),
+            ("flow scrollable", urwid.Scrollable(urwid.Text("a"), flow=True), frozenset((urwid.BOX, urwid.FLOW))),
+            (
+                "flow scrollable in an AttrMap",
+                urwid.AttrMap(urwid.Scrollable(urwid.Text("a"), flow=True), "text"),
+                frozenset((urwid.BOX, urwid.FLOW)),
+            ),
             ("FLOW reported on its own", OwnFlowListBox([urwid.Text("a")]), box),
         ):
             with self.subTest(name):
@@ -1521,6 +1621,64 @@ class TestScrollBarFlowSize(unittest.TestCase):
         self.assertTrue(urwid.testing.click(widget, (10,), 1, 1))
         self.assertEqual(1, lbox.focus_position)
         self.assertTrue(checkbox.state)
+
+    def test_scrollable(self) -> None:
+        """Around a Scrollable with flow set, a flow render shows the whole text.
+
+        The text is measured at the width it gets beside the scrollbar, when one is drawn.
+
+        With ``visible=None`` no scrollbar is drawn, so the text is measured at the full width and no row is left blank.
+        """
+        for visible, expected in (
+            (None, ["one two   ", "three four", "five six  "]),
+            (False, ["one two   ", "three four", "five six  "]),
+            (True, ["one two  █", "three    █", "four five█", "six      █"]),
+        ):
+            with self.subTest(visible=visible):
+                widget = urwid.ScrollBar(urwid.Scrollable(urwid.Text(self.TEXT), flow=True), visible=visible)
+                self.assertEqual(len(expected), widget.rows((10,)))
+                self.assertEqual(expected, urwid.testing.render_text(widget, (10,)))
+
+    def test_scrollable_check_sizing(self) -> None:
+        """Around a Scrollable with flow set, every sizing mode renders the size it reports."""
+        for side, visible in itertools.product(("right", "left"), (None, True, False)):
+            with self.subTest(side=side, visible=visible):
+                scrollable = urwid.Scrollable(urwid.Text(self.TEXT), flow=True)
+                urwid.testing.check_sizing(urwid.ScrollBar(scrollable, side=side, visible=visible), cols=10, rows=2)
+
+    def test_scrollable_box_size_still_scrolls(self) -> None:
+        """Around a Scrollable with flow set, a box size smaller than the content draws the scrollbar and scrolls."""
+        widget = urwid.ScrollBar(urwid.Scrollable(urwid.Text(self.TEXT), flow=True))
+        size = (10, 2)
+        self.assertEqual(["one two  █", "three     "], urwid.testing.render_text(widget, size))
+        self.assertEqual([], urwid.testing.press(widget, size, "end"))
+        self.assertEqual(["four five ", "six      █"], urwid.testing.render_text(widget, size))
+
+    def test_scrollable_in_a_pile(self) -> None:
+        """A Pile gives the whole text its rows, or scrolls it when too short.
+
+        A pack item takes the rows of the whole text, and a weighted item in a box Pile too short for it scrolls it.
+        """
+        pile = urwid.Pile(
+            [
+                (urwid.PACK, urwid.ScrollBar(urwid.Scrollable(urwid.Text(self.TEXT), flow=True))),
+                urwid.Text("end"),
+            ]
+        )
+        self.assertEqual(
+            ["one two   ", "three four", "five six  ", "end       "],
+            urwid.testing.render_text(pile, (10,)),
+        )
+        weighted = urwid.Pile(
+            [
+                urwid.ScrollBar(urwid.Scrollable(urwid.Text(self.TEXT), flow=True)),
+                (urwid.PACK, urwid.Text("end")),
+            ]
+        )
+        self.assertEqual(
+            ["one two  █", "three     ", "end       "],
+            urwid.testing.render_text(weighted, (10, 3)),
+        )
 
 
 class TestScrollableAttrMap(unittest.TestCase):
