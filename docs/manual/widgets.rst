@@ -606,7 +606,7 @@ that :meth:`Edit.undo` takes back.  A drag released over another widget is
 not seen by the edit: the range it shows stays unselected until the edit loses
 focus, gets a key, or is pressed again.  While the application has mouse
 tracking on, the terminal's own selection needs its modifier key, usually
-:kbd:`shift`.
+:kbd:`shift`.  The edit.py_ example program uses ``mouse_select``.
 
 A :class:`PathCompleter` is a ``text_completer`` for a path: :kbd:`tab`
 completes the component around the cursor from the entries of its directory,
@@ -670,7 +670,11 @@ together with other widgets:
   choice, and a question before Save As replaces an existing file;
 * a classic menu bar of :class:`ActionMenu` launchers, opened with
   :kbd:`meta f`, :kbd:`meta e` or :kbd:`f10`, with :kbd:`left` and
-  :kbd:`right` moving between the open menus.
+  :kbd:`right` moving between the open menus;
+* text selected with a mouse drag and drawn with ``select_attr``, and Cut and
+  Copy items, enabled while text is selected, that put it on the terminal's
+  clipboard through :meth:`display.raw.Screen.copy_to_clipboard` on terminals
+  that accept OSC 52 clipboard writes.
 
 .. _edit.py: https://github.com/urwid/urwid/blob/master/examples/edit.py
 

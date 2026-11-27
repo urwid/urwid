@@ -50,7 +50,9 @@ Source: :doc:`code/edit`
 
 A file editor with syntax highlighting through the highlighter of Edit, Open and Save As dialogs built on
 FileChooser that veto ``"accept"`` to stay open while the choice is checked, a question before Save As replaces a
-file, and a classic menu bar of ActionMenu launchers
+file, and a classic menu bar of ActionMenu launchers.
+A mouse drag selects text and draws the selection; Cut and Copy put it on the terminal's clipboard,
+on terminals that accept OSC 52 clipboard writes.
 
 
 less.py
