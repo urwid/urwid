@@ -15,6 +15,7 @@ from .constants import Align, Sizing, WHSettings
 from .container import (
     _SELECT_COMMANDS,
     SelectNavigationListContentsMixin,
+    _FocusListContainer,
     _UnfocusedFocusAttrMixin,
     _WeakCallback,
 )
@@ -57,6 +58,7 @@ GridFlowContentsItem = tuple[AbstractFlowWidget, GridFlowOptions]
 
 
 class GridFlow(
+    _FocusListContainer,
     WidgetWrap["Pile | Divider"],  # quoted: pylint cannot infer a base subscripted with a "|" union
     SelectNavigationListContentsMixin[GridFlowContentsItem],
     _UnfocusedFocusAttrMixin,
@@ -187,16 +189,6 @@ class GridFlow(
         )
         super().__init__(self.generate_display_widget((maxcol,)))
 
-    def _repr_words(self) -> list[str]:
-        """Return the base repr words followed by the number of items in the contents."""
-        if len(self.contents) > 1:
-            contents_string = f"({len(self.contents)} items)"
-        elif self.contents:
-            contents_string = "(1 item)"
-        else:
-            contents_string = "()"
-        return [*super()._repr_words(), contents_string]
-
     def _repr_attrs(self) -> dict[str, typing.Any]:
         """Return the constructor arguments that differ from their defaults, for the repr.
 
@@ -226,10 +218,6 @@ class GridFlow(
         yield "select_navigation", self.select_navigation, False
         yield "unfocused_focus_attr", self._unfocused_focus_attr, None
         yield "unfocused_focus_attr_func", self._unfocused_focus_attr_func, None
-
-    def __len__(self) -> int:
-        """Return the number of cells."""
-        return len(self._contents)
 
     def _invalidate(self) -> None:
         """Drop the cached display widget and the cached canvases."""
@@ -369,36 +357,6 @@ class GridFlow(
         if not self.contents:
             return None
         return self.contents[self.focus_position][0]
-
-    @property
-    def focus_position(self) -> int:
-        """Index of child widget in focus.
-
-        Raises :exc:`IndexError` if read when GridFlow is empty, or when set to an invalid index.
-
-        :raises IndexError: the GridFlow is empty.
-        """
-        if (focus := self.contents.focus) is not None:
-            return focus
-
-        raise IndexError("No focus_position, GridFlow is empty")
-
-    @focus_position.setter
-    def focus_position(self, position: int) -> None:
-        """
-        Set the widget in focus.
-
-        :param position: index of child widget to be made focus
-        :raises IndexError: *position* is not an index of a child widget.
-        """
-        try:
-            if position < 0 or position >= len(self.contents):
-                raise IndexError(f"No GridFlow child widget at position {position}")
-        except TypeError as exc:
-            raise IndexError(f"No GridFlow child widget at position {position}").with_traceback(
-                exc.__traceback__
-            ) from exc
-        self.contents.focus = position
 
     def _layout(self, size: tuple[int] | tuple[()]) -> tuple[int, tuple[int, ...]]:
         """Return the number of screen columns to lay the cells out in, and the width of each cell.

@@ -33,15 +33,15 @@ from .attr_map import _attr_map_dict
 from .constants import MouseButton, Sizing, VAlign, WrapMode
 from .container import (
     WidgetContainerListContentsMixin,
-    WidgetContainerMixin,
     _focus_request_scope,
+    _FocusListContainer,
     _invalidate_on_focus_change,
     _UnfocusedFocusAttrMixin,
     _WeakCallback,
 )
 from .monitored_list import MonitoredFocusList
 from .text import Text
-from .widget import AbstractWidget, Widget, WidgetError, _select_enter_child
+from .widget import AbstractWidget, WidgetError, _select_enter_child
 
 if typing.TYPE_CHECKING:
     from collections.abc import Collection, Hashable, Iterable, Sequence
@@ -129,8 +129,7 @@ class _BarView(typing.NamedTuple):
 
 
 class Tabs(
-    Widget,
-    WidgetContainerMixin[int],
+    _FocusListContainer,
     WidgetContainerListContentsMixin[tuple[AbstractWidget, AbstractWidget]],
     _UnfocusedFocusAttrMixin,
 ):
@@ -309,7 +308,8 @@ class Tabs(
     def _repr_words(self) -> list[str]:
         """Return the base repr words followed by the number of tabs."""
         count = len(self._contents)
-        return [*super()._repr_words(), f"({count} tab{'' if count == 1 else 's'})"]
+        # the tab count replaces the item count that _FocusListContainer adds
+        return [*super(_FocusListContainer, self)._repr_words(), f"({count} tab{'' if count == 1 else 's'})"]
 
     def _repr_attrs(self) -> dict[str, typing.Any]:
         """Return the constructor arguments that differ from their defaults, for the repr.
@@ -411,29 +411,6 @@ class Tabs(
         if not self._contents:
             return None
         return self._contents[self.focus_position][0]
-
-    @property
-    def focus_position(self) -> int:
-        """Index of the selected tab.
-
-        :raises IndexError: there are no tabs.
-        """
-        if (focus := self._contents.focus) is not None:
-            return focus
-        raise IndexError("No focus_position, Tabs is empty")
-
-    @focus_position.setter
-    def focus_position(self, position: int) -> None:
-        """Select the tab at *position*.
-
-        :raises IndexError: *position* is not an index of a tab.
-        """
-        try:
-            if position < 0 or position >= len(self._contents):
-                raise IndexError(f"No Tabs child widget at position {position}")
-        except TypeError as exc:
-            raise IndexError(f"No Tabs child widget at position {position}").with_traceback(exc.__traceback__) from exc
-        self._contents.focus = position
 
     @property
     def bar_position(self) -> VAlign:

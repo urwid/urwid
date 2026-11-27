@@ -24,6 +24,7 @@ if typing.TYPE_CHECKING:
     from urwid.command_map import CommandMap
 
     from .attr_map import _AttrMapLike
+    from .monitored_list import MonitoredFocusList
 
     # A function that gives the map marking a container's focus child while the container renders without focus.
     _UnfocusedFocusAttrFunc: typing.TypeAlias = Callable[[AbstractWidget], _AttrMapLike | None]
@@ -263,6 +264,62 @@ class WidgetContainerListContentsMixin(typing.Generic[_ContentsItem]):
     @focus_position.setter
     def focus_position(self, position: int) -> None:
         """Index of child widget in focus."""
+
+
+class _FocusListContainer(  # pylint: disable=abstract-method
+    Widget,
+    WidgetContainerMixin[int],
+    WidgetContainerListContentsMixin[typing.Any],
+):
+    """Base of a container whose ``contents`` is a :class:`MonitoredFocusList`.
+
+    It gives the container its :attr:`focus_position` and the item count in its repr.
+    """
+
+    if typing.TYPE_CHECKING:
+        # Each container defines its own contents property, with its own item type.
+
+        @property
+        def contents(self) -> MonitoredFocusList[typing.Any]: ...
+
+        @contents.setter
+        def contents(self, new_contents: Sequence[typing.Any]) -> None: ...
+
+    @property
+    def focus_position(self) -> int:
+        """Index of the child widget in focus.
+
+        :raises IndexError: read when the container is empty, or set to a position that is not an index of a child.
+        """
+        if (focus := self.contents.focus) is not None:
+            return focus
+
+        raise IndexError(f"No focus_position, {type(self).__name__} is empty")
+
+    @focus_position.setter
+    def focus_position(self, position: int) -> None:
+        """Set the child widget in focus by its index.
+
+        :raises IndexError: *position* is not an index of a child widget.
+        """
+        try:
+            if position < 0 or position >= len(self.contents):
+                raise IndexError(f"No {type(self).__name__} child widget at position {position}")
+        except TypeError as exc:
+            raise IndexError(f"No {type(self).__name__} child widget at position {position}").with_traceback(
+                exc.__traceback__
+            ) from exc
+        self.contents.focus = position
+
+    def _repr_words(self) -> list[str]:
+        """Return the base repr words followed by the number of items in the contents."""
+        if len(self.contents) > 1:
+            contents_string = f"({len(self.contents)} items)"
+        elif self.contents:
+            contents_string = "(1 item)"
+        else:
+            contents_string = "()"
+        return [*super()._repr_words(), contents_string]
 
 
 class _WeakCallback:

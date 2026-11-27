@@ -269,15 +269,21 @@ Columns
 
 .. autoclass:: Columns
 
+   .. autoproperty:: focus_position
+
 Pile
 ~~~~
 
 .. autoclass:: Pile
 
+   .. autoproperty:: focus_position
+
 GridFlow
 ~~~~~~~~
 
 .. autoclass:: GridFlow
+
+   .. autoproperty:: focus_position
 
 Table
 ~~~~~
@@ -303,6 +309,8 @@ Tabs
 ~~~~
 
 .. autoclass:: Tabs
+
+   .. autoproperty:: focus_position
 
 .. autoclass:: urwid.widget.tabs.TabsSymbols
 

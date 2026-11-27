@@ -22,6 +22,7 @@ from .container import (
     _apply_focus_request,
     _ContainerElementSizingFlag,
     _focus_request_scope,
+    _FocusListContainer,
     _invalidate_on_focus_change,
     _UnfocusedFocusAttrMixin,
     _WeakCallback,
@@ -85,7 +86,7 @@ class ColumnsWarning(WidgetWarning):
 
 
 class Columns(
-    Widget,
+    _FocusListContainer,
     SelectNavigationListContentsMixin[
         tuple[
             AbstractFlowWidget | AbstractFixedWidget,
@@ -439,16 +440,6 @@ class Columns(
         # connected last, so that filling the contents during construction sends no signal
         self._contents.set_focus_moved_callback(_WeakCallback(self, type(self)._emit, "focus changed"))
 
-    def _repr_words(self) -> list[str]:
-        """Return the base repr words followed by the number of items in the contents."""
-        if len(self.contents) > 1:
-            contents_string = f"({len(self.contents)} items)"
-        elif self.contents:
-            contents_string = "(1 item)"
-        else:
-            contents_string = "()"
-        return [*super()._repr_words(), contents_string]
-
     def _repr_attrs(self) -> dict[str, typing.Any]:
         """Return the constructor arguments that differ from their defaults, for the repr.
 
@@ -497,10 +488,6 @@ class Columns(
         yield "unfocused_focus_attr", self._unfocused_focus_attr, None
         yield "unfocused_focus_attr_func", self._unfocused_focus_attr_func, None
         yield "shrink_pack", self.shrink_pack, False
-
-    def __len__(self) -> int:
-        """Return the number of columns."""
-        return len(self._contents)
 
     def _contents_modified(self) -> None:
         """Invalidate this widget whenever the contents has been changed."""
@@ -743,36 +730,6 @@ class Columns(
         if not self.contents:
             return None
         return self.contents[self.focus_position][0]
-
-    @property
-    def focus_position(self) -> int:
-        """Return the index of the child widget in focus.
-
-        Raises :exc:`IndexError` if read when Columns is empty, or when set to an invalid index.
-
-        :raises IndexError: the Columns is empty.
-        """
-        if (focus := self.contents.focus) is not None:
-            return focus
-
-        raise IndexError("No focus_position, Columns is empty")
-
-    @focus_position.setter
-    def focus_position(self, position: int) -> None:
-        """
-        Set the widget in focus.
-
-        :param position: index of child widget to be made focus
-        :raises IndexError: *position* is not an index of a child widget.
-        """
-        try:
-            if position < 0 or position >= len(self.contents):
-                raise IndexError(f"No Columns child widget at position {position}")
-        except TypeError as exc:
-            raise IndexError(f"No Columns child widget at position {position}").with_traceback(
-                exc.__traceback__
-            ) from exc
-        self.contents.focus = position
 
     def column_widths(self, size: tuple[int] | tuple[int, int], focus: bool = False) -> list[int]:
         """
