@@ -39,7 +39,7 @@ from .widget import WidgetWrap
 from .wimp import SelectableIcon
 
 if typing.TYPE_CHECKING:
-    from collections.abc import Callable, Collection, Iterable, Sequence
+    from collections.abc import Callable, Collection, Hashable, Iterable, Sequence
     from typing import Literal, Self
 
     from urwid.canvas import Canvas, CompositeCanvas
@@ -172,6 +172,55 @@ class _MenuOwner(PopUpLauncher[typing.Any]):
     _style: _MenuStyle
     #: Whether the list is a child menu, which the key back towards its parent closes.
     _is_submenu: typing.ClassVar[bool] = False
+
+    def __init__(
+        self,
+        launcher: typing.Any,
+        own_launcher: AttrMap[typing.Any] | None,
+        *,
+        signal_open_close: bool = False,
+    ) -> None:
+        """Wrap `launcher`.
+
+        :param launcher: widget that opens the list.
+        :param own_launcher: the part of `launcher` the menu draws itself, ``None`` for none.
+        :param signal_open_close: send ``"open"`` and ``"close"``, see :class:`PopUpLauncher <urwid.PopUpLauncher>`.
+        """
+        super().__init__(
+            launcher,
+            close_on_menu=True,
+            close_on_click_outside=True,
+            signal_open_close=signal_open_close,
+        )
+        # Drawn with its focus map while the list is open.
+        self._own_launcher = own_launcher
+        # The map `_own_launcher` had before the list opened, put back when it closes; None while not swapped.
+        self._closed_attr_map: dict[Hashable, Hashable] | None = None
+
+    def open_pop_up(self) -> None:
+        """Open the list with the launcher the menu draws itself in its focus map.
+
+        The focus moves into the list, so without the swap the launcher would look unfocused under its own list.
+        The swap comes first, so an ``"open"`` handler already sees the launcher as it is while the list is open.
+        """
+        if (
+            self._closed_attr_map is None
+            and self._own_launcher is not None
+            and (focus_map := self._own_launcher.get_focus_map())
+        ):
+            self._closed_attr_map = self._own_launcher.get_attr_map()
+            self._own_launcher.set_attr_map(focus_map)
+        super().open_pop_up()
+
+    def close_pop_up(self) -> None:
+        """Close the list with the launcher in the map it had before the list opened.
+
+        The map comes back first, so a ``"close"`` handler already sees the launcher as it is while the list is closed.
+        """
+        if self._own_launcher is not None and self._closed_attr_map is not None:
+            self._own_launcher.set_attr_map(self._closed_attr_map)
+            self._closed_attr_map = None
+        super().close_pop_up()
 
     def _choose(self, item: MenuItem) -> None:
         """Close the list on a choice of `item`, and pass the choice on."""
@@ -338,9 +387,8 @@ class _SubmenuRow(_MenuOwner):
         parent_list: weakref.ref[_MenuList],
     ) -> None:
         content = _labelled_row(SelectableIcon(item.label, 0, wrap=WrapMode.ELLIPSIS), item, style, parent_layout)
-        super().__init__(AttrMap(content, None, style.focus_map), close_on_menu=True, close_on_click_outside=True)
-        # The row's own attribute map, put back when the child menu closes.
-        self._row_attr_map = self.original_widget.get_attr_map()
+        row = AttrMap(content, None, style.focus_map)
+        super().__init__(row, row)
         self._items = _submenu(item)
         self._style = style
         self._parent_choose = weakref.WeakMethod(parent_choose)
@@ -377,17 +425,6 @@ class _SubmenuRow(_MenuOwner):
             return False
         self.open_pop_up()
         return True
-
-    def open_pop_up(self) -> None:
-        """Open the child menu and draw this row with the focus attribute while it is open."""
-        super().open_pop_up()
-        if self._style.focus_map is not None:
-            self.original_widget.set_attr_map(self.original_widget.get_focus_map())
-
-    def close_pop_up(self) -> None:
-        """Close the child menu and draw this row as usual again."""
-        super().close_pop_up()
-        self.original_widget.set_attr_map(self._row_attr_map)
 
     def _back_command(self) -> Command:
         """Return the arrow that points from the child list back to the parent list, as it was drawn last."""
@@ -588,12 +625,12 @@ class ActionMenu(_MenuOwner):
         :param attr_map: display attribute of the lists, and of the default launcher while it is not focused
             unless `launcher_attr_map` is given, as for :class:`AttrMap <urwid.AttrMap>`.
         :param focus_map: display attribute of the focused item, of a submenu row while its child is open,
-            and of the default launcher while it is focused unless `launcher_focus_map` is given.
+            and of the default launcher while it is focused or its list is open, unless `launcher_focus_map` is given.
         :param disabled_map: display attribute of a disabled item, and of the default launcher with no item that
             can be chosen, unless `launcher_disabled_map` is given.
         :param launcher_attr_map: display attribute of the default launcher while it is not focused;
             ``None`` for `attr_map`.
-        :param launcher_focus_map: display attribute of the default launcher while it is focused;
+        :param launcher_focus_map: display attribute of the default launcher while it is focused or its list is open;
             ``None`` for `focus_map`.
         :param launcher_disabled_map: display attribute of the default launcher with no item that can be chosen;
             ``None`` for `disabled_map`.
@@ -655,7 +692,8 @@ class ActionMenu(_MenuOwner):
                 )
         elif label is not None or launcher is None:
             raise ValueError("ActionMenu needs either a label or a launcher widget, not both")
-        super().__init__(launcher, close_on_menu=True, close_on_click_outside=True, signal_open_close=True)
+        own_launcher = launcher if self._fixed_width is not None and isinstance(launcher, AttrMap) else None
+        super().__init__(launcher, own_launcher, signal_open_close=True)
         if on_action is not None:
             connect_signal(self, "action", on_action, user_data)
 
