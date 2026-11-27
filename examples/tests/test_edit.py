@@ -17,7 +17,7 @@ import urwid.testing
 if typing.TYPE_CHECKING:
     import types
 
-EXAMPLE: typing.Final = pathlib.Path(__file__).resolve().parent.parent / "examples" / "edit.py"
+EXAMPLE: typing.Final = pathlib.Path(__file__).resolve().parent.parent / "edit.py"
 SIZE: typing.Final = (80, 24)
 TEXTS: typing.Final = {
     "no final newline": "def f():\n    return 1",
@@ -52,12 +52,15 @@ def joined(markup: typing.Any) -> str:
 
 
 class TestFileRoundTrip(unittest.TestCase):
+    """Reading and writing a document keeps its bytes."""
+
     def setUp(self) -> None:
         """Create a temporary directory."""
         self.root = pathlib.Path(tempfile.mkdtemp())
         self.addCleanup(shutil.rmtree, self.root)
 
     def test_bytes_written_equal_bytes_read(self) -> None:
+        """An unchanged document is written back byte for byte, whatever its line endings."""
         cases = {
             "lf": b"one\ntwo\n",
             "crlf": b"one\r\ntwo\r\n",
@@ -78,6 +81,7 @@ class TestFileRoundTrip(unittest.TestCase):
                 self.assertEqual(data, target.read_bytes())
 
     def test_mixed_endings_written_in_first_convention(self) -> None:
+        """Mixed line endings are reported and written with the first one."""
         source = self.root / "mixed.txt"
         source.write_bytes(b"a\r\nb\nc\r")
         document = edit.read_document(source)
@@ -87,12 +91,14 @@ class TestFileRoundTrip(unittest.TestCase):
         self.assertEqual(b"a\r\nb\r\nc\r\n", source.read_bytes())
 
     def test_invalid_utf8_refused(self) -> None:
+        """A file that is not UTF-8 is refused."""
         source = self.root / "latin1.txt"
         source.write_bytes(b"caf\xe9\n")
         with self.assertRaises(UnicodeDecodeError):
             edit.read_document(source)
 
     def test_exclusive_write_refuses_existing_file(self) -> None:
+        """An exclusive write leaves an existing file as it was."""
         target = self.root / "exists.txt"
         target.write_bytes(b"keep")
         with self.assertRaises(FileExistsError):
@@ -101,12 +107,15 @@ class TestFileRoundTrip(unittest.TestCase):
 
 
 class TestHighlighter(unittest.TestCase):
+    """The pygments highlighter."""
+
     def setUp(self) -> None:
         """Skip without pygments."""
         if edit.lexer_for(None) is None:
             self.skipTest("pygments is not installed")
 
     def test_markup_joins_back_to_the_text(self) -> None:
+        """The markup holds exactly the text it highlights."""
         lexer = edit.lexer_for(pathlib.Path("sample.py"))
         highlighter = edit.Highlighter(lexer)
         for label, text in TEXTS.items():
@@ -115,6 +124,7 @@ class TestHighlighter(unittest.TestCase):
                 self.assertEqual(text, joined(markup))
 
     def test_edit_accepts_the_markup(self) -> None:
+        """Edit renders with the highlighter's markup."""
         highlighter = edit.Highlighter(edit.lexer_for(pathlib.Path("sample.py")))
         for label, text in TEXTS.items():
             with self.subTest(label=label):
@@ -123,12 +133,15 @@ class TestHighlighter(unittest.TestCase):
                 widget.render((40,))
 
     def test_keywords_are_coloured(self) -> None:
+        """Keywords and strings get their palette entries."""
         markup = edit.Highlighter(edit.lexer_for(pathlib.Path("sample.py")))("def f(): return 'x'")
         self.assertIn(("keyword", "def"), markup)
         self.assertIn(("string", "'x'"), markup)
 
 
 class TestMenuRouting(unittest.TestCase):
+    """Keys that open, move between and close the menus of the menu bar."""
+
     def setUp(self) -> None:
         """Build the application without a loop, under a pop-up target as MainLoop(pop_ups=True) puts it."""
         self.app = edit.EditorApp()
@@ -152,6 +165,7 @@ class TestMenuRouting(unittest.TestCase):
         self.assertEqual([] if owner is None else [owner], self.open_menus())
 
     def test_alt_shortcuts_and_f10(self) -> None:
+        """Meta f, meta e and f10 open their menu, and esc closes it."""
         self.send("meta e")
         self.check(self.edit_menu)
         self.send("meta f")
@@ -162,6 +176,7 @@ class TestMenuRouting(unittest.TestCase):
         self.check(self.file_menu)
 
     def test_arrows_move_the_open_list(self) -> None:
+        """Left and right in an open list open the neighbouring menu."""
         self.send("meta f")
         self.send("right")
         self.check(self.edit_menu)
@@ -169,6 +184,7 @@ class TestMenuRouting(unittest.TestCase):
         self.check(self.file_menu)
 
     def test_launcher_keys(self) -> None:
+        """Enter, space and down open the focused launcher's menu."""
         self.app.frame.focus_position = "header"
         for key in ("enter", " ", "down"):
             with self.subTest(key=key):
@@ -178,12 +194,14 @@ class TestMenuRouting(unittest.TestCase):
                 self.check(None)
 
     def test_shortcuts_do_nothing_with_a_dialog_open(self) -> None:
+        """The menu shortcuts are ignored while a dialog is open."""
         self.app.message("hello")
         self.top.render(SIZE, focus=True)
         self.send("meta f")
         self.check(None)
 
     def test_escape_gives_the_focus_back_to_the_text(self) -> None:
+        """Esc closes the menu, then a second esc returns to the text."""
         self.send("meta f")
         self.send("esc")
         self.assertEqual("header", self.app.frame.focus_position)
@@ -191,12 +209,15 @@ class TestMenuRouting(unittest.TestCase):
         self.assertEqual("body", self.app.frame.focus_position)
 
     def test_action_returns_focus_to_the_text(self) -> None:
+        """Choosing an action returns the focus to the text."""
         self.send("meta e")
         self.send("u")
         self.assertEqual("body", self.app.frame.focus_position)
 
 
 class TestDialogs(unittest.TestCase):
+    """The Open and Save As dialogs and their messages."""
+
     def setUp(self) -> None:
         """Create a temporary directory and an application editing a new file in it."""
         self.root = pathlib.Path(tempfile.mkdtemp()).resolve()
@@ -209,9 +230,12 @@ class TestDialogs(unittest.TestCase):
         return ["".join(urwid.testing.render_text(level, (60, 8))) for level in self.app.stack.levels]
 
     def test_save_as_new_name(self) -> None:
-        chooser = self.app.file_dialog(
-            "Save as", must_exist=False, on_accept=lambda path: self.app.write(path, exclusive=True)
-        )
+        """Save As to a new name writes the file and closes the dialog."""
+
+        def write(path: pathlib.Path) -> None:
+            self.app.write(path, exclusive=True)
+
+        chooser = self.app.file_dialog("Save as", must_exist=False, on_accept=write)
         chooser.path_edit.set_edit_text("saved.txt")
         chooser.accept()
         self.assertEqual(b"text\n", (self.root / "saved.txt").read_bytes())
@@ -219,6 +243,7 @@ class TestDialogs(unittest.TestCase):
         self.assertFalse(self.app.modified)
 
     def test_save_as_existing_asks_first(self) -> None:
+        """Save As over an existing file writes it only after Yes."""
         target = self.root / "old.txt"
         for answer, expected in (("No", b"keep"), ("Yes", b"text\n")):
             with self.subTest(answer=answer):
@@ -233,6 +258,7 @@ class TestDialogs(unittest.TestCase):
                 self.app.close_dialogs()
 
     def test_write_error_is_shown_over_the_chooser(self) -> None:
+        """A failed write is shown over the chooser, which stays open."""
         with mock.patch.object(edit, "write_document", side_effect=PermissionError(13, "Permission denied")):
             self.app.save_as_dialog()
             chooser = self.app.stack.levels[-1].body
@@ -243,12 +269,14 @@ class TestDialogs(unittest.TestCase):
         self.assertTrue(self.app.modified)
 
     def test_name_created_meanwhile_asks_first(self) -> None:
+        """A name created since it was chosen leads to the overwrite question."""
         with mock.patch.object(edit, "write_document", side_effect=FileExistsError(17, "File exists")):
             self.app.save()
         self.assertEqual(1, self.app.stack.depth)
         self.assertIn("created meanwhile", self.messages()[-1])
 
     def test_failed_open_is_shown(self) -> None:
+        """A file that cannot be opened is reported over the chooser."""
         (self.root / "latin1.txt").write_bytes(b"caf\xe9")
         self.app.open_dialog()
         chooser = self.app.stack.levels[-1].body
@@ -258,6 +286,7 @@ class TestDialogs(unittest.TestCase):
         self.assertIn("Cannot open", self.messages()[-1])
 
     def test_missing_directory_starts_in_the_working_directory(self) -> None:
+        """A missing directory of the file starts the chooser in the working directory."""
         app = edit.EditorApp(self.root / "nodir" / "x.txt")
         with mock.patch("pathlib.Path.cwd", return_value=self.root):
             app.save_as_dialog()
@@ -265,7 +294,10 @@ class TestDialogs(unittest.TestCase):
 
 
 class TestEditMenu(unittest.TestCase):
+    """The Edit menu."""
+
     def test_undo_and_redo(self) -> None:
+        """Undo and Redo from the Edit menu."""
         app = edit.EditorApp()
         top = urwid.PopUpTarget(app.stack)
         for key in ("a", "b", "meta e", "u"):
@@ -281,7 +313,10 @@ class TestEditMenu(unittest.TestCase):
 
 
 class TestStatus(unittest.TestCase):
+    """The status line."""
+
     def test_cursor_column_counts_screen_columns(self) -> None:
+        """The cursor column counts screen columns, so a wide character counts twice."""
         app = edit.EditorApp()
         app.edit.set_edit_text("a\n中文x", edit_pos=5)
         self.assertTrue(app.status.text.endswith("2:6"))
