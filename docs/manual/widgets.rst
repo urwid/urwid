@@ -542,7 +542,8 @@ An :class:`Edit` created with ``undo_limit`` keeps that many changes made by
 keys, which the ``'undo'`` and ``'redo'`` commands take back and make again;
 :meth:`CommandMap.bind_readline` maps :kbd:`ctrl _` to ``'undo'``.  Setting
 the text from the application clears this history, so that a reused edit does
-not bring back an earlier value.  An :class:`Edit` given a ``kill_buffer``
+not bring back an earlier value; a change the application makes inside
+``with edit.editing():`` is one step of the history instead.  An :class:`Edit` given a ``kill_buffer``
 list puts the text the word and line delete commands remove into it, and the ``'yank'``
 command (:kbd:`ctrl y` in the preset) inserts the newest entry; several edits
 can share one list.
@@ -587,6 +588,25 @@ an ``"edit_pos"`` handler raises after the new text is stored, so that no
 ``"postchange"`` is sent for it.  A highlighter
 and the runs colour parts of the text, so they cannot be combined with
 ``validation_attr`` or ``validation_focus_attr``, which colour the whole text.
+
+An :class:`Edit` created with ``mouse_select=True`` selects text with a drag
+of the left mouse button: the character pressed and the character released on
+are both selected, as in a terminal's own selection.  The range is
+:attr:`Edit.highlight`, which typing and the delete keys replace or delete, and
+:attr:`Edit.selected_text` is its text.  ``select_attr`` is the display
+attribute it is drawn with, placed over the colours of a ``highlighter``.  The
+``"highlight"`` signal is sent once the drag ends, not for each step of it::
+
+    edit = urwid.Edit("> ", mouse_select=True, select_attr="selected")
+    urwid.connect_signal(edit, "highlight", lambda _edit, _old, new: status.set_text(str(new)))
+
+Copy is :attr:`Edit.selected_text`, and :meth:`Edit.insert_text` replaces the
+range; ``insert_text("")`` deletes it, inside :meth:`Edit.editing` for a cut
+that :meth:`Edit.undo` takes back.  A drag released over another widget is
+not seen by the edit: the range it shows stays unselected until the edit loses
+focus, gets a key, or is pressed again.  While the application has mouse
+tracking on, the terminal's own selection needs its modifier key, usually
+:kbd:`shift`.
 
 A :class:`PathCompleter` is a ``text_completer`` for a path: :kbd:`tab`
 completes the component around the cursor from the entries of its directory,

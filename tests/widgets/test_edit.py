@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import contextlib
 import itertools
 import re
 import sys
@@ -12,6 +13,9 @@ import urwid.testing
 from urwid.command_map import Command
 from urwid.numedit import FloatEdit, NumEdit
 from urwid.util import set_temporary_encoding
+
+if typing.TYPE_CHECKING:
+    from collections.abc import Generator
 
 # regional indicators U and S: the two together form one flag cluster
 RI_U = "\U0001f1fa"
@@ -824,6 +828,38 @@ class EditTest(unittest.TestCase):
     def test_mouse_event_other_button(self) -> None:
         e = urwid.Edit("", "words here")
         self.assertFalse(e.mouse_event((20,), "mouse press", 2, 2, 0, True))
+
+    def test_mouse_drag_and_release_need_a_press_on_the_edit(self) -> None:
+        """A button 1 drag or release moves the cursor only after a press on the same Edit, whatever the modifiers."""
+        cases = (
+            ("press here", [("mouse press", 1, 2, 0)], 6, True),
+            ("press with a modifier", [("ctrl mouse press", 1, 2, 0)], 6, True),
+            ("no press", [], 0, False),
+            ("press of another button", [("mouse press", 3, 2, 0)], 0, False),
+            ("press, then focus lost", [("mouse press", 1, 2, 0), "unfocused render"], 2, False),
+            ("press already released", [("mouse press", 1, 2, 0), ("mouse release", 1, 4, 0)], 4, False),
+        )
+        events = ("mouse drag", "mouse release", "meta mouse drag", "double mouse release")
+        for (label, before, expected_pos, handled), event in itertools.product(cases, events):
+            with self.subTest(case=label, event=event):
+                e = urwid.Edit("", "words here", edit_pos=0)
+                for step in before:
+                    if step == "unfocused render":
+                        e.render((20,), focus=False)
+                    else:
+                        e.mouse_event((20,), *step, True)
+                self.assertEqual(e.mouse_event((20,), event, 1, 6, 0, True), handled)
+                self.assertEqual(e.edit_pos, expected_pos)
+
+    def test_mouse_drag_and_release_after_a_press_on_a_sibling(self) -> None:
+        """A press on one Edit of a Pile, dragged and released over another, leaves the cursor of the other alone."""
+        top, bottom = urwid.Edit("", "top text", edit_pos=0), urwid.Edit("", "bottom", edit_pos=0)
+        pile = urwid.Pile([top, bottom])
+        pile.mouse_event((20,), "mouse press", 1, 3, 1, True)
+        pile.render((20,), focus=True)
+        pile.mouse_event((20,), "mouse drag", 1, 4, 0, True)
+        pile.mouse_event((20,), "mouse release", 1, 5, 0, True)
+        self.assertEqual((top.edit_pos, bottom.edit_pos, pile.focus), (0, 3, bottom))
 
     def test_render(self) -> None:
         e = urwid.Edit("? ", "yes")
@@ -2399,6 +2435,52 @@ class EditUndoTest(unittest.TestCase):
                 self.assertEqual(self.history(e), ([], []))
                 self.assertFalse(e.undo())
 
+    def test_editing_records_one_step(self) -> None:
+        """A cut made inside editing() is one step that undo() and redo() take back and make again."""
+        e = urwid.Edit("", "", undo_limit=10)
+        type_keys(e, *"hello world")
+        e.highlight = (5, 11)
+        with e.editing():
+            e.insert_text("")
+            e.insert_text("!")
+        self.assertEqual((e.edit_text, e.edit_pos), ("hello!", 6))
+        self.assertTrue(e.undo())
+        self.assertEqual((e.edit_text, e.edit_pos), ("hello world", 11))
+        self.assertTrue(e.redo())
+        self.assertEqual(e.edit_text, "hello!")
+        self.assertTrue(e.undo())
+        self.assertTrue(e.undo())
+        self.assertEqual(e.edit_text, "")
+
+    def test_editing_override_and_protected_name(self) -> None:
+        """A key enters an override of editing(), and the protected _editing() still records one step."""
+        entered: list[str] = []
+
+        class LoggingEdit(urwid.Edit):
+            """An Edit that records each editing transaction."""
+
+            @contextlib.contextmanager
+            def editing(self) -> Generator[None]:
+                entered.append(self.edit_text)
+                with super().editing():
+                    yield
+
+        e = LoggingEdit("", "", undo_limit=10)
+        e.keypress((20,), "a")
+        self.assertEqual(entered, [""])
+        with e._editing():
+            e.insert_text("b")
+        self.assertEqual((entered, e.edit_text), (["", "a"], "ab"))
+        self.assertTrue(e.undo())
+        self.assertEqual(e.edit_text, "a")
+
+    def test_editing_without_a_change_records_nothing(self) -> None:
+        e = urwid.Edit("", "", undo_limit=10)
+        type_keys(e, "a")
+        with e.editing():
+            e.set_edit_pos(0)
+        self.assertEqual(self.history(e), ([("", 0)], []))
+
     def test_submit_and_cancel_handler(self) -> None:
         """A submit or cancel handler that clears the field clears the history, masked or not.
 
@@ -2673,6 +2755,276 @@ class EditKillBufferTest(unittest.TestCase):
         for text in ("", "one ", "one two"):
             e.undo()
             self.assertEqual(e.edit_text, text)
+
+
+def drag(
+    e: urwid.Edit,
+    press: tuple[int, int],
+    *moves: tuple[int, int],
+    release: tuple[int, int] | None = None,
+    release_button: int = 1,
+    size: tuple[int] = (20,),
+) -> None:
+    """Send a button 1 press, drag reports and an optional release to *e*, each at a ``(col, row)``."""
+    e.mouse_event(size, "mouse press", 1, *press, True)
+    for move in moves:
+        e.mouse_event(size, "mouse drag", 1, *move, True)
+    if release is not None:
+        e.mouse_event(size, "mouse release", release_button, *release, True)
+
+
+def first_row(canv: urwid.Canvas) -> list[tuple[typing.Hashable, bytes]]:
+    """Return the ``(attribute, text)`` runs of the first row of *canv*."""
+    return [(attr, text) for attr, _cs, text in next(iter(canv.content()))]
+
+
+def record_highlight(e: urwid.Edit) -> list[tuple[tuple[int, int] | None, tuple[int, int] | None]]:
+    """Return a list that collects the ``(old, new)`` pairs of the "highlight" signals of *e*."""
+    seen: list[tuple[tuple[int, int] | None, tuple[int, int] | None]] = []
+    urwid.connect_signal(e, "highlight", lambda _w, old, new: seen.append((old, new)))
+    return seen
+
+
+class EditSelectionTest(unittest.TestCase):
+    def test_setter_normalises(self) -> None:
+        """The range is ordered, clipped, widened to clusters, and an empty one is None."""
+        cases = (
+            ("ordered", "hello world", (11, 6), (6, 11)),
+            ("clipped", "hello", (-3, 99), (0, 5)),
+            ("empty", "hello", (2, 2), None),
+            ("empty after clipping", "hello", (7, 9), None),
+            ("widened to a cluster", "aéb", (2, 3), (1, 3)),
+            ("empty inside a cluster", "aéb", (2, 2), None),
+            ("none", "hello", None, None),
+        )
+        for label, text, value, expected in cases:
+            with self.subTest(case=label):
+                e = urwid.Edit("", text)
+                e.highlight = value
+                self.assertEqual(e.highlight, expected)
+
+    def test_setter_rejects_other_values(self) -> None:
+        e = urwid.Edit("", "hello")
+        for value, error in (((1, 2, 3), ValueError), (3, TypeError)):
+            with self.subTest(value=value), self.assertRaises(error):
+                e.highlight = value  # type: ignore[assignment]
+
+    def test_signal(self) -> None:
+        """ "highlight" is sent for each change of the range, by the setter and by every clear."""
+        e = urwid.Edit("", "hello world", undo_limit=10)
+        seen = record_highlight(e)
+        steps = (
+            ("set", lambda: setattr(e, "highlight", (0, 5)), [(None, (0, 5))]),
+            ("same value", lambda: setattr(e, "highlight", (5, 0)), []),
+            ("cursor move", lambda: e.set_edit_pos(1), [((0, 5), None)]),
+            ("set again", lambda: setattr(e, "highlight", (6, 11)), [(None, (6, 11))]),
+            ("typed over", lambda: e.keypress((20,), "X"), [((6, 11), None)]),
+            ("nothing to clear", lambda: e.set_edit_text("new"), []),
+        )
+        for label, step, expected in steps:
+            with self.subTest(step=label):
+                seen.clear()
+                step()
+                self.assertEqual(seen, expected)
+
+    def test_selected_text(self) -> None:
+        e = urwid.Edit("", "hello world", mask="*")
+        self.assertEqual(e.selected_text, "")
+        e.highlight = (6, 11)
+        self.assertEqual(e.selected_text, "world")
+        self.assertEqual(urwid.Edit(b"", b"bytes").selected_text, b"")
+
+    def test_copy_cut_and_replace(self) -> None:
+        """Copy is selected_text, replace is insert_text(), delete is insert_text("")."""
+        e = urwid.Edit("", "hello world")
+        e.highlight = (0, 6)
+        copied = e.selected_text
+        e.insert_text("")
+        self.assertEqual((copied, e.edit_text, e.edit_pos, e.highlight), ("hello ", "world", 0, None))
+        e.highlight = (0, 5)
+        e.insert_text("earth")
+        self.assertEqual((e.edit_text, e.highlight), ("earth", None))
+
+    def test_select_attr_draws_the_range(self) -> None:
+        """The range is layered over the runs under it, with the bare attribute where there is none."""
+        e = urwid.Edit(("cap", "> "), "ls -l", highlighter=lambda text: [("cmd", text[:2]), text[2:]])
+        e.highlight = (1, 4)
+        self.assertEqual(
+            first_row(e.render((10,))),
+            [("cap", b"> "), ("cmd", b"ls"), (None, b" -l   ")],
+        )
+        e.select_attr = "sel"
+        self.assertEqual(
+            first_row(e.render((10,))),
+            [
+                ("cap", b"> "),
+                ("cmd", b"l"),
+                (urwid.LayeredAttr("sel", "cmd"), b"s"),
+                ("sel", b" -"),
+                (None, b"l   "),
+            ],
+        )
+
+    def test_select_attr_over_mask_and_not_over_placeholder(self) -> None:
+        e = urwid.Edit("", "secret", mask="*", select_attr="sel", placeholder="hint")
+        e.highlight = (0, 3)
+        self.assertEqual(
+            first_row(e.render((8,))),
+            [("sel", b"***"), (None, b"***  ")],
+        )
+        e.set_edit_text("")
+        self.assertEqual([attr for attr, _text in first_row(e.render((8,)))], [None])
+
+
+class EditMouseSelectTest(unittest.TestCase):
+    def test_drag_selects_both_end_characters(self) -> None:
+        """A forward and a backward drag select the same range, with one signal at the release."""
+        cases = (
+            ("forward", (3, 0), (9, 0), 1),
+            ("backward, X10 release", (9, 0), (3, 0), 0),
+            ("press and release only", (3, 0), (9, 0), 1),
+        )
+        for label, press, release, button in cases:
+            with self.subTest(case=label):
+                e = urwid.Edit("> ", "hello world", mouse_select=True)
+                seen = record_highlight(e)
+                moves = () if label == "press and release only" else ((5, 0), (7, 0))
+                drag(e, press, *moves, release=release, release_button=button)
+                self.assertEqual((seen, e.selected_text), ([(None, (1, 8))], "ello wo"))
+                self.assertEqual(e.edit_pos, 7 if press < release else 1)
+
+    def test_click_selects_nothing_and_clears(self) -> None:
+        e = urwid.Edit("", "hello world", mouse_select=True)
+        drag(e, (1, 0), release=(4, 0))
+        seen = record_highlight(e)
+        drag(e, (6, 0), release=(6, 0))
+        self.assertEqual((seen, e.highlight, e.edit_pos), ([((1, 5), None)], None, 6))
+
+    def test_unfinished_drag_is_drawn_only(self) -> None:
+        e = urwid.Edit("", "hello", mouse_select=True, select_attr="sel")
+        seen = record_highlight(e)
+        drag(e, (1, 0), (3, 0))
+        self.assertEqual((seen, e.highlight, e.edit_pos), ([], None, 3))
+        self.assertEqual(
+            first_row(e.render((10,), focus=True)),
+            [(None, b"h"), ("sel", b"ell"), (None, b"o     ")],
+        )
+
+    def test_rows_and_line_ends(self) -> None:
+        cases = (
+            ("across rows", (1, 0), (0, 1), (1, 4)),
+            ("row below the text", (0, 0), (1, 5), (0, 5)),
+            ("row above the text", (1, 1), (0, -2), (0, 5)),
+            ("right of a line", (0, 0), (10, 0), (0, 2)),
+            ("right of the text", (0, 1), (10, 1), (3, 5)),
+        )
+        for label, press, release, expected in cases:
+            with self.subTest(case=label):
+                e = urwid.Edit("", "ab\ncd", multiline=True, mouse_select=True)
+                drag(e, press, release, release=release)
+                self.assertEqual(e.highlight, expected)
+
+    def test_wrapped_rows(self) -> None:
+        e = urwid.Edit("", "one two three", mouse_select=True)
+        drag(e, (4, 0), release=(2, 1), size=(8,))
+        self.assertEqual(e.selected_text, "two thr")
+
+    def test_clusters(self) -> None:
+        """A wide character released on its second cell, and a base with a combining mark, are selected whole."""
+        cases = (
+            ("wide", "a中b", (2, 0), "a中"),
+            ("combining", "aé", (1, 0), "aé"),
+            ("flag", f"a{RI_U}{RI_S}", (2, 0), f"a{RI_U}{RI_S}"),
+        )
+        for label, text, release, expected in cases:
+            with self.subTest(case=label):
+                e = urwid.Edit("", text, mouse_select=True)
+                drag(e, (0, 0), release=release)
+                self.assertEqual(e.selected_text, expected)
+
+    def test_clip_wrap_extends_as_the_view_scrolls(self) -> None:
+        e = urwid.Edit("", "0123456789abcdef", wrap="clip", mouse_select=True, edit_pos=0)
+        e.render((5,), focus=True)
+        drag(e, (1, 0), size=(5,))
+        for _report in range(3):  # a report one column past the edge, as at the edge of the screen
+            e.mouse_event((5,), "mouse drag", 1, 5, 0, True)
+            e.render((5,), focus=True)
+        e.mouse_event((5,), "mouse release", 1, 4, 0, True)
+        self.assertEqual(e.selected_text, "1234567")
+
+    def test_mask(self) -> None:
+        e = urwid.Edit("", "secret", mask="*", mouse_select=True)
+        drag(e, (0, 0), release=(2, 0))
+        self.assertEqual(e.selected_text, "sec")
+
+    def test_drag_dropped_with_nothing_selected(self) -> None:
+        """A key, a new text, a press and an unfocused render each drop an unfinished drag."""
+        steps = (
+            ("key", lambda e: e.keypress((20,), "X"), "heXllo"),
+            ("new text", lambda e: e.set_edit_text("other"), "other"),
+            ("unfocused render", lambda e: e.render((20,), focus=False), "hello"),
+        )
+        for label, step, text in steps:
+            with self.subTest(case=label):
+                e = urwid.Edit("", "hello", mouse_select=True)
+                seen = record_highlight(e)
+                drag(e, (0, 0), (2, 0))
+                step(e)
+                e.mouse_event((20,), "mouse release", 0, 4, 0, True)
+                self.assertEqual((seen, e.highlight, e.edit_text), ([], None, text))
+
+    def test_press_starts_a_new_drag(self) -> None:
+        e = urwid.Edit("", "hello world", mouse_select=True)
+        drag(e, (0, 0), (3, 0))
+        drag(e, (6, 0), release=(10, 0))
+        self.assertEqual(e.selected_text, "world")
+
+    def test_focus_loss_drops_the_cached_range(self) -> None:
+        e = urwid.Edit("", "hello", mouse_select=True, select_attr="sel")
+        drag(e, (0, 0), (2, 0))
+        self.assertEqual([attr for attr, _text in first_row(e.render((10,), focus=True))], ["sel", None])
+        e.render((10,), focus=False)
+        self.assertEqual([attr for attr, _text in first_row(e.render((10,), focus=True))], [None])
+
+    def test_release_over_a_sibling(self) -> None:
+        """A drag released over another widget of a Pile selects nothing and keeps the range drawn."""
+        e = urwid.Edit("", "hello", mouse_select=True, select_attr="sel")
+        other = urwid.Edit("", "other")
+        pile = urwid.Pile([e, other])
+        pile.mouse_event((10,), "mouse press", 1, 0, 0, True)
+        pile.mouse_event((10,), "mouse drag", 1, 2, 0, True)
+        pile.mouse_event((10,), "mouse drag", 1, 2, 1, True)
+        pile.mouse_event((10,), "mouse release", 1, 2, 1, True)
+        self.assertIs(pile.focus, e)
+        self.assertIsNone(e.highlight)
+        self.assertEqual(
+            [attr for attr, _text in first_row(pile.render((10,), focus=True))],
+            ["sel", None],
+        )
+
+    def test_other_events_as_without_mouse_select(self) -> None:
+        """Other buttons, the wheel and a release with no drag behave as on a plain Edit."""
+        events = (
+            ("mouse press", 3, 2, 0),
+            ("mouse press", 4, 2, 0),
+            ("mouse drag", 1, 3, 0),
+            ("mouse release", 1, 4, 0),
+            ("mouse release", 0, 1, 0),
+        )
+        for event in events:
+            with self.subTest(event=event):
+                plain = urwid.Edit("", "hello world")
+                selecting = urwid.Edit("", "hello world", mouse_select=True)
+                self.assertEqual(
+                    selecting.mouse_event((20,), *event, True),
+                    plain.mouse_event((20,), *event, True),
+                )
+                self.assertEqual((selecting.edit_pos, selecting.highlight), (plain.edit_pos, None))
+
+    def test_default_is_off(self) -> None:
+        e = urwid.Edit("", "hello world")
+        drag(e, (1, 0), (3, 0), release=(5, 0))
+        self.assertEqual((e.edit_pos, e.highlight, e.mouse_select, e.select_attr), (5, None, False, None))
 
 
 class IntEditTest(unittest.TestCase):

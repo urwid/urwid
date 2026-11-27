@@ -138,7 +138,7 @@ class NumEdit(Edit):
         >>> e.edit_text
         '1'
         """
-        with self._editing():  # the trim belongs to the undo step of the key
+        with self.editing():  # the trim belongs to the undo step of the key
             unhandled = super().keypress(size, key)
 
             # a restored state is kept as it was shown

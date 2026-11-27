@@ -105,6 +105,8 @@ class _EditKeys(_EditRender):
 
         A key that completes steps the completion cycle, and any other key ends it, see :attr:`text_completer`.
 
+        A key ends an unfinished :attr:`mouse_select` drag with nothing selected, see :meth:`mouse_event`.
+
         A key that changes the text is one step of the undo history, see :attr:`undo_limit`.
         A subclass that changes the text after this method returns makes a change from elsewhere, which clears the
         history; it makes the change in an override of :meth:`set_edit_text` or :meth:`insert_text` instead.
@@ -129,7 +131,10 @@ class _EditKeys(_EditRender):
         :raises Exception: what :meth:`set_edit_text` raises for a completion, see :attr:`text_completer`.
             What it raises for the text of ``'undo'``, ``'redo'`` or ``'yank'``, see :meth:`undo`.
         """
-        with self._editing():
+        if self._select_anchor is not None:  # a key ends an unfinished mouse_select drag, with nothing selected
+            self._select_anchor = None
+            self._invalidate()
+        with self.editing():
             return self.__keypress(size, key)
 
     def __keypress(self, size: tuple[int], key: str) -> str | None:

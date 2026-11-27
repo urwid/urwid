@@ -336,3 +336,11 @@ In the rare event that your user is using a terminal that can send these events
 you can use them to track their mouse dragging from one character cell to the
 next across the screen. Be aware that you might see *x* and/or *y* coordinates
 one position off the screen if the user drags their mouse to the edge.
+
+A drag and its release go to the widget under the pointer, not to the one the
+press went to, so a widget that follows a drag does not see a release over
+another widget. An :class:`Edit` ignores a drag or a release that comes without
+a press of button 1 on it, so a press made over another widget does not move
+its cursor. The curses screen receives no drag reports from a terminal,
+only the press and the release. :class:`Edit` with ``mouse_select=True`` selects
+from the press and the release alone in that case.

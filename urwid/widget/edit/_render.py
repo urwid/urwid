@@ -8,6 +8,7 @@ import typing
 from urwid import text_layout
 from urwid.canvas import CompositeCanvas, apply_text_layout
 from urwid.str_util import calc_width, move_next_char
+from urwid.util import LayeredAttr, rle_len
 
 from ..constants import Align, MouseButton, WrapMode
 from ._undo import _EditUndo
@@ -22,9 +23,31 @@ if typing.TYPE_CHECKING:
 class _EditRender(_EditUndo):
     """Layout, cursor coordinates, mouse and rendering of :class:`Edit`."""
 
+    _select_attr: Hashable | None
     _shift_view_to_cursor: bool
 
+    #: Whether a drag with mouse button 1 selects text into :attr:`highlight`, see :meth:`mouse_event`.
+    mouse_select: bool
+
     ignore_focus = False
+
+    @property
+    def select_attr(self) -> Hashable | None:
+        """Display attribute the :attr:`highlight` range is drawn with, or ``None`` to draw it like the rest.
+
+        It is placed over the attribute of each run under the range, as by :meth:`LayeredAttr.layer`.
+        An attribute that inherits the foreground keeps the colours of :attr:`highlighter` under it,
+        and one with its own foreground replaces them.
+        It also draws the unfinished range of a :attr:`mouse_select` drag, and a range the application sets.
+        It is not drawn over the :attr:`placeholder`; over a masked text it is drawn over the mask characters.
+        Setting it redraws the widget.
+        """
+        return self._select_attr
+
+    @select_attr.setter
+    def select_attr(self, select_attr: Hashable | None) -> None:
+        self._select_attr = select_attr
+        self._invalidate()
 
     def get_pref_col(self, size: tuple[int]) -> int:
         r"""Return the preferred column for the cursor, or the current cursor x value.
@@ -112,7 +135,40 @@ class _EditRender(_EditUndo):
         focus: bool,
     ) -> bool | None:
         """
-        Move the cursor to the location clicked for button 1.
+        Move the cursor to the location clicked for button 1, and select text with :attr:`mouse_select`.
+
+        Flow, with the value returned::
+
+            press of any button, with any modifiers
+            +- not button 1 ........................................ False
+            +- not on a row of the text ............................ False, nothing recorded
+            +- otherwise: move the cursor, record the press ........ True
+            drag or release
+            +- no press recorded, or the event of another button ... False
+            +- without mouse_select
+            |  +- drag: move the cursor ............................ whether it moved
+            |  +- release: forget the press, move the cursor ....... whether it moved, False for button 0
+            +- with mouse_select: move the cursor, rows clipped to the text
+               +- drag ............................................. True
+               +- release: forget the press, set highlight ......... True
+
+        A drag or a release is handled only after a press of button 1 on this widget.
+        A drag or a release of a press made over another widget does nothing.
+        Modifier keys and a double or triple click do not change how an event is handled.
+
+        With :attr:`mouse_select`, a drag selects from the character pressed to the character under the pointer,
+        both included:
+
+        - a press of button 1 on a row of the text moves the cursor, which clears :attr:`highlight`,
+          and starts the drag;
+        - each drag report moves the cursor, and the range so far is drawn while :attr:`highlight` stays ``None``;
+          a row above or below the text is taken as the first or the last row;
+        - the release, of button 1 or of :attr:`MouseButton.UNKNOWN`, moves the cursor and sets :attr:`highlight`.
+
+        A press and a release on the same character select nothing.
+        A release over another widget is not seen.
+        The drag is then dropped, with nothing selected, by the next key, a new text, the next press,
+        or a render without focus.
 
         >>> from urwid import Edit
         >>> size = (20,)
@@ -121,11 +177,58 @@ class _EditRender(_EditUndo):
         True
         >>> e.edit_pos
         2
+        >>> e = Edit("", "words here", mouse_select=True)
+        >>> e.mouse_event(size, "mouse press", 1, 1, 0, True)
+        True
+        >>> e.mouse_event(size, "mouse release", 1, 3, 0, True)
+        True
+        >>> e.selected_text
+        'ord'
+
+        :returns: whether the event was handled, as the flow above shows.
         """
         self._kill_last = None  # a click may have moved the focus away and back
-        if button == MouseButton.LEFT:
-            return self.move_cursor_to_coords(size, col, row)
-        return False
+        release = event.endswith("mouse release")
+        if event.endswith("mouse press"):
+            if button != MouseButton.LEFT:
+                return False
+            if self._select_anchor is not None:  # an earlier press released over another widget
+                self._select_anchor = None
+                self._invalidate()
+            if not self.move_cursor_to_coords(size, col, row):
+                return False
+            self._select_anchor = self._edit_pos
+            return True
+        if self._select_anchor is None or not (
+            (event.endswith("mouse drag") and button == MouseButton.LEFT)
+            or (release and button in {MouseButton.LEFT, MouseButton.UNKNOWN})
+        ):
+            return False  # the press was over another widget, or the event belongs to another button
+        if not self.mouse_select:
+            if release:
+                self._select_anchor = None
+            return button == MouseButton.LEFT and self.move_cursor_to_coords(size, col, row)
+        (maxcol,) = size
+        top_y = self.position_coords(maxcol, 0)[1]
+        self.move_cursor_to_coords(size, col, min(max(row, top_y), len(self.get_line_translation(maxcol)) - 1))
+        if release:
+            selected, self._select_anchor = self._drag_range(), None
+            self.highlight = selected
+        return True
+
+    def _drag_range(self) -> tuple[int, int] | None:
+        """Return the range the unfinished :attr:`mouse_select` drag selects, or ``None`` when it selects nothing.
+
+        It runs from the smaller of the press offset and the cursor to after the character at the larger one.
+        A newline at the larger one and the end of the text are not taken in.
+        """
+        anchor, pos, text = self._select_anchor, self._edit_pos, self._edit_text
+        if anchor is None or anchor == pos:
+            return None
+        start, last = sorted((anchor, pos))
+        if last == len(text) or text[last : last + 1] in {"\n", b"\n"}:
+            return start, last
+        return start, move_next_char(text, last, len(text))
 
     def render(
         self,
@@ -145,6 +248,11 @@ class _EditRender(_EditUndo):
         (5, 0)
         """
         self._shift_view_to_cursor = focus
+        if not focus and self._select_anchor is not None:
+            # stands in for a release over another widget, which this widget never sees;
+            # the invalidation drops the focused canvas that shows the unfinished range
+            self._select_anchor = None
+            self._invalidate()
 
         (maxcol,) = size
         if (placeholder := self._placeholder_layout(maxcol)) is not None:
@@ -152,6 +260,9 @@ class _EditRender(_EditUndo):
         else:
             text, attr = self.get_text()
             trans = self.get_line_translation(maxcol, (text, attr))
+            selected = self._drag_range() if self.mouse_select and self._select_anchor is not None else self._highlight
+            if self._select_attr is not None and selected is not None:
+                attr = self._layer_selection(attr, len(text), *(len(self.caption) + offset for offset in selected))
         canv: TextCanvas | CompositeCanvas = apply_text_layout(text, attr, trans, maxcol)
 
         if focus:
@@ -168,12 +279,35 @@ class _EditRender(_EditUndo):
             if attr_map is not None:
                 canv = CompositeCanvas(canv)
                 canv.fill_attr_apply(attr_map)
-
-        # .. will need to FIXME if I want highlight to work again
-        # if self.highlight:
-        #    hstart, hstop = self.highlight_coords()
-        #    d.coords['highlight'] = [ hstart, hstop ]
         return canv
+
+    def _layer_selection(
+        self,
+        attr: list[tuple[Hashable, int]],
+        length: int,
+        start: int,
+        stop: int,
+    ) -> list[tuple[Hashable, int]]:
+        """Return *attr* with :attr:`select_attr` placed over the runs from *start* to *stop*.
+
+        :param attr: run-length encoded attributes of the displayed text, which may stop before its end
+        :param length: length of the displayed text
+        :param start: first offset of the range in the displayed text
+        :param stop: offset after the range in the displayed text
+        """
+        runs: list[tuple[Hashable, int]] = []
+        pos = 0
+        for run_attr, run in (*attr, (None, max(length - rle_len(attr), 0))):
+            end = pos + run
+            for piece_start, piece_end, piece_attr in (
+                (pos, min(end, start), run_attr),
+                (max(pos, start), min(end, stop), LayeredAttr.layer(self._select_attr, run_attr)),
+                (max(pos, stop), end, run_attr),
+            ):
+                if piece_end > piece_start:
+                    runs.append((piece_attr, piece_end - piece_start))
+            pos = end
+        return runs
 
     def rows(self, size: tuple[int], focus: bool = False) -> int:
         r"""Return the number of rows the rendered edit requires, including a :attr:`placeholder` that grows it.
