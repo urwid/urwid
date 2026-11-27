@@ -506,6 +506,16 @@ A menu with no item that can be chosen opens nothing.  Its label launcher is
 then not selectable and is drawn with ``disabled_map``; a launcher widget
 keeps all its keys and buttons.
 
+A :class:`MenuItem` cannot change.  An application that enables or disables
+items as its state changes assigns new items to :attr:`ActionMenu.items`,
+with copies made by :func:`dataclasses.replace`; an open list shows them at
+once::
+
+    menu.items = [
+        item if item is None else dataclasses.replace(item, enabled=has_selection)
+        for item in menu.items
+    ]
+
 .. important::
     The list is a pop-up, so :class:`ActionMenu` needs
     ``MainLoop(..., pop_ups=True)`` or another :class:`PopUpTarget` above it.
