@@ -27,11 +27,17 @@
 #     "pygments>=2.20",
 # ]
 # ///
-"""Example: a text editor with a menu bar, Open and Save As dialogs, and syntax highlighting.
+"""Example: a text editor with a menu bar, Open and Save As dialogs, syntax highlighting and mouse selection.
 
 The screen has a menu bar on the top row, the text in the middle and a status line on the bottom row.
 The menus open with :kbd:`meta f` and :kbd:`meta e`, with :kbd:`f10`, or from the focused bar with :kbd:`enter`.
 The whole file is read into one multiline :class:`urwid.Edit`.
+A drag with the left mouse button selects text.
+:menuselection:`Edit --> Copy` and :menuselection:`Edit --> Cut` are enabled while there is a selection.
+They put it on the terminal's clipboard, which works in a terminal that accepts OSC 52 clipboard writes.
+Not every terminal does: Konsole copies the text, the terminal of PyCharm does not.
+The program cannot tell which case it was, because the terminal sends no reply.
+The terminal's own selection needs its modifier key, usually :kbd:`shift`, while the editor runs.
 
 The program reads and writes only the files chosen in its dialogs, as UTF-8.
 A file with one kind of line ending is written back byte for byte when unchanged:
@@ -82,6 +88,7 @@ PALETTE: typing.Final = [
     ("menu key focus", "yellow", "dark blue", "bold,underline,standout", "#fc6", "#06c"),
     ("menu disabled", "dark gray", "light gray", "", "g50", "g85"),
     ("text", "light gray", "black", "", "g85", "g11"),
+    ("selected", "inherit", "dark blue", "standout", "inherit", "#036"),
     ("status", "black", "dark cyan", "standout", "black", "#6ac"),
     ("dialog", "black", "light gray", "", "black", "g85"),
     ("dialog shadow", "black", "black", "", "black", "black"),
@@ -295,19 +302,27 @@ class Dialog(urwid.WidgetWrap[urwid.AttrMap[urwid.LineBox[urwid.Pile]]]):
 class EditorApp:
     """The editor: its widgets, the open file and the actions of its menus."""
 
-    def __init__(self, path: pathlib.Path | None = None) -> None:
-        """Build the screen, then open *path* when given.
+    def __init__(self, path: pathlib.Path | None = None, *, screen: urwid.display.raw.Screen) -> None:
+        """Build the widgets for *screen*, then open *path* when given.
 
         :raises OSError: *path* exists and cannot be read.
         :raises UnicodeDecodeError: *path* is not valid UTF-8.
         """
+        #: The screen whose clipboard Copy and Cut write to.
+        self.screen = screen
         self.path: pathlib.Path | None = None
         #: Whether :attr:`path` was read from or written to; a new name is created exclusively on its first save.
         self.on_disk = False
         self.document = Document("")
         self.modified = False
         self.lexer: Lexer | None = None
-        self.edit = urwid.Edit(multiline=True, allow_tab=True, undo_limit=200)
+        self.edit = urwid.Edit(
+            multiline=True,
+            allow_tab=True,
+            undo_limit=200,
+            mouse_select=True,
+            select_attr="selected",
+        )
         self.status = urwid.Text("")
         available = lexer_for(None) is not None
         highlight = urwid.MenuItem(
@@ -328,10 +343,19 @@ class EditorApp:
         )
         edit_menu = BarMenu(
             "Edit",
-            [urwid.MenuItem("Undo", "undo", key="u"), urwid.MenuItem("Redo", "redo", key="r"), None, highlight],
+            [
+                urwid.MenuItem("Undo", "undo", key="u"),
+                urwid.MenuItem("Redo", "redo", key="r"),
+                None,
+                urwid.MenuItem("Cut", "cut", key="t", enabled=False),
+                urwid.MenuItem("Copy", "copy", key="c", enabled=False),
+                None,
+                highlight,
+            ],
         )
         for menu in (file_menu, edit_menu):
             urwid.connect_signal(menu, "action", self.on_action)
+        self.edit_menu = edit_menu
         self.menu_bar = MenuBar([file_menu, edit_menu])
         body = urwid.AttrMap(urwid.ListBox([self.edit]), "text")
         self.frame = urwid.Frame(
@@ -343,6 +367,7 @@ class EditorApp:
         self.stack = urwid.OverlayStack(self.frame)
         urwid.connect_signal(self.edit, "postchange", self.on_text_changed)
         urwid.connect_signal(self.edit, "edit_pos", self.on_cursor_moved)
+        urwid.connect_signal(self.edit, "highlight", self.on_selection_changed)
         if path is not None:
             self.load(path, missing_ok=True)
         self.update_status()
@@ -383,8 +408,23 @@ class EditorApp:
         """Show the new cursor position."""
         self.update_status()
 
+    def on_selection_changed(
+        self,
+        _edit: urwid.Edit,
+        _old: tuple[int, int] | None,
+        new: tuple[int, int] | None,
+    ) -> None:
+        """Enable Cut and Copy while there is a selection, and show its size."""
+        self.edit_menu.items = [
+            dataclasses.replace(item, enabled=new is not None)
+            if item is not None and item.value in {"cut", "copy"}
+            else item
+            for item in self.edit_menu.items
+        ]
+        self.update_status()
+
     def update_status(self) -> None:
-        """Show the file name, the modified mark, the line endings, the lexer and the cursor as line:column."""
+        """Show the file name, the modified mark, the line endings, the lexer, the cursor and the selection size."""
         text, pos = self.edit.edit_text, self.edit.edit_pos
         start = text.rfind("\n", 0, pos) + 1
         line = text.count("\n", 0, pos) + 1
@@ -395,6 +435,7 @@ class EditorApp:
             NEWLINE_NAMES[self.document.newline] + (" mixed" if self.document.mixed else ""),
             (self.lexer.name if self.lexer is not None else "plain") + ("" if self.edit.highlighter else " (off)"),
             f"{line}:{column}",
+            *([f"{len(self.edit.selected_text)} selected"] if self.edit.highlight else []),
         ]
         self.status.set_text("  ".join(parts))
 
@@ -416,6 +457,12 @@ class EditorApp:
                 self.edit.undo()
             case "redo":
                 self.edit.redo()
+            case "copy":
+                self.screen.copy_to_clipboard(self.edit.selected_text)
+            case "cut":
+                self.screen.copy_to_clipboard(self.edit.selected_text)
+                with self.edit.editing():  # one step of the undo history
+                    self.edit.insert_text("")
             case "highlight":
                 self.toggle_highlight()
             case _:
@@ -598,12 +645,13 @@ def parse_args(argv: Sequence[str] | None = None) -> argparse.Namespace:
 def main(argv: Sequence[str] | None = None) -> int:
     """Run the editor and return the exit status."""
     args = parse_args(argv)
+    screen = urwid.display.raw.Screen()
     try:
-        app = EditorApp(args.file)
+        app = EditorApp(args.file, screen=screen)
     except (OSError, UnicodeDecodeError) as exc:
         print(f"Cannot open {args.file}: {exc}", file=sys.stderr)
         return 2
-    urwid.MainLoop(app.stack, PALETTE, pop_ups=True, unhandled_input=app.unhandled_input).run()
+    urwid.MainLoop(app.stack, PALETTE, screen, pop_ups=True, unhandled_input=app.unhandled_input).run()
     return 0
 
 

@@ -1,4 +1,4 @@
-"""Tests of the examples/edit.py editor: file round trips, the highlighter and the menu bar routing."""
+"""Tests of the examples/edit.py editor: file round trips, the highlighter, the menus and the selection."""
 
 from __future__ import annotations
 
@@ -144,7 +144,7 @@ class TestMenuRouting(unittest.TestCase):
 
     def setUp(self) -> None:
         """Build the application without a loop, under a pop-up target as MainLoop(pop_ups=True) puts it."""
-        self.app = edit.EditorApp()
+        self.app = edit.EditorApp(screen=mock.Mock(spec=urwid.display.raw.Screen))
         self.top = urwid.PopUpTarget(self.app.stack)
         self.top.render(SIZE, focus=True)
         self.file_menu, self.edit_menu = self.app.menu_bar.menus
@@ -222,7 +222,7 @@ class TestDialogs(unittest.TestCase):
         """Create a temporary directory and an application editing a new file in it."""
         self.root = pathlib.Path(tempfile.mkdtemp()).resolve()
         self.addCleanup(shutil.rmtree, self.root)
-        self.app = edit.EditorApp(self.root / "new.txt")
+        self.app = edit.EditorApp(self.root / "new.txt", screen=mock.Mock(spec=urwid.display.raw.Screen))
         self.app.edit.set_edit_text("text\n")
 
     def messages(self) -> list[str]:
@@ -287,7 +287,7 @@ class TestDialogs(unittest.TestCase):
 
     def test_missing_directory_starts_in_the_working_directory(self) -> None:
         """A missing directory of the file starts the chooser in the working directory."""
-        app = edit.EditorApp(self.root / "nodir" / "x.txt")
+        app = edit.EditorApp(self.root / "nodir" / "x.txt", screen=mock.Mock(spec=urwid.display.raw.Screen))
         with mock.patch("pathlib.Path.cwd", return_value=self.root):
             app.save_as_dialog()
         self.assertEqual(1, app.stack.depth)
@@ -298,7 +298,7 @@ class TestEditMenu(unittest.TestCase):
 
     def test_undo_and_redo(self) -> None:
         """Undo and Redo from the Edit menu."""
-        app = edit.EditorApp()
+        app = edit.EditorApp(screen=mock.Mock(spec=urwid.display.raw.Screen))
         top = urwid.PopUpTarget(app.stack)
         for key in ("a", "b", "meta e", "u"):
             if top.keypress(SIZE, key) is not None:
@@ -312,12 +312,71 @@ class TestEditMenu(unittest.TestCase):
         self.assertEqual("ab", app.edit.edit_text)
 
 
+class TestSelection(unittest.TestCase):
+    """Mouse selection, and Cut and Copy from the Edit menu."""
+
+    def setUp(self) -> None:
+        """Build the application with a mock screen, and select "llo w" of "hello world" with a drag."""
+        self.screen = mock.Mock(spec=urwid.display.raw.Screen)
+        self.app = edit.EditorApp(screen=self.screen)
+        self.app.edit.set_edit_text("hello world")
+        self.app.edit.undo_limit = 10
+        self.top = urwid.PopUpTarget(self.app.stack)
+        self.top.render(SIZE, focus=True)
+        _file_menu, self.edit_menu = self.app.menu_bar.menus
+
+    def send(self, *keys: str) -> None:
+        """Send *keys* as MainLoop does: to the top widget, then what comes back to unhandled_input."""
+        for key in keys:
+            if self.top.keypress(SIZE, key) is not None:
+                self.app.unhandled_input(key)
+            self.top.render(SIZE, focus=True)
+
+    def select(self) -> None:
+        """Drag over "llo w" on the first text row."""
+        for event, col in (("mouse press", 2), ("mouse drag", 4), ("mouse release", 6)):
+            self.top.mouse_event(SIZE, event, 1, col, 1, True)
+            self.top.render(SIZE, focus=True)
+
+    def enabled(self) -> dict[str, bool]:
+        """Return whether Cut and Copy are enabled."""
+        return {item.value: item.enabled for item in self.edit_menu.items if item and item.value in {"cut", "copy"}}
+
+    def test_cut_and_copy_follow_the_selection(self) -> None:
+        """Cut and Copy are enabled and the status counts the characters while text is selected."""
+        self.assertEqual(self.enabled(), {"cut": False, "copy": False})
+        self.select()
+        self.assertEqual((self.app.edit.selected_text, self.enabled()), ("llo w", {"cut": True, "copy": True}))
+        self.assertTrue(self.app.status.text.endswith("5 selected"))
+        self.app.edit.set_edit_pos(0)
+        self.assertEqual(self.enabled(), {"cut": False, "copy": False})
+        self.assertFalse(self.app.status.text.endswith("selected"))
+
+    def test_copy(self) -> None:
+        """Copy puts the selected text on the clipboard and leaves the text alone."""
+        self.select()
+        self.send("meta e", "c")
+        self.screen.copy_to_clipboard.assert_called_once_with("llo w")
+        self.assertEqual(self.app.edit.edit_text, "hello world")
+
+    def test_cut_is_one_undo_step(self) -> None:
+        """Cut puts the text on the clipboard and removes it, as one step that Undo and Redo take."""
+        self.select()
+        self.send("meta e", "t")
+        self.screen.copy_to_clipboard.assert_called_once_with("llo w")
+        self.assertEqual((self.app.edit.edit_text, self.enabled()), ("heorld", {"cut": False, "copy": False}))
+        self.send("meta e", "u")
+        self.assertEqual(self.app.edit.edit_text, "hello world")
+        self.send("meta e", "r")
+        self.assertEqual(self.app.edit.edit_text, "heorld")
+
+
 class TestStatus(unittest.TestCase):
     """The status line."""
 
     def test_cursor_column_counts_screen_columns(self) -> None:
         """The cursor column counts screen columns, so a wide character counts twice."""
-        app = edit.EditorApp()
+        app = edit.EditorApp(screen=mock.Mock(spec=urwid.display.raw.Screen))
         app.edit.set_edit_text("a\n中文x", edit_pos=5)
         self.assertTrue(app.status.text.endswith("2:6"))
 
