@@ -43,6 +43,7 @@ Repository = "https://github.com/urwid/urwid"
 dev = [
   { include-group = "build" },
   { include-group = "documentation" },
+  { include-group = "examples" },
   { include-group = "lint" },
   { include-group = "mypy" },
   { include-group = "pre-commit" },
@@ -56,6 +57,11 @@ build = [
 ]
 documentation = [
   "sphinx",
+]
+# The example programs' tests, run apart from urwid's: an example may need packages urwid does not.
+examples = [
+  "pygments",
+  { include-group = "pytest" },
 ]
 lint = [
   "pyproject-fmt",
@@ -84,7 +90,6 @@ pyright = [
   "types-pyserial",
 ]
 pytest = [
-  "pygments",
   "pytest",
   "pytest-asyncio",
   "pytest-cov",

@@ -1,0 +1,2 @@
+windowsize --usehints $TERMWINDOWID 72 18
+key --window $TERMWINDOWID 6 2 g

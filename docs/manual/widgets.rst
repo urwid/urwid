@@ -626,8 +626,17 @@ judged on resolved paths, so a symbolic link or ``..`` does not lead out of it.
 It is not a sandbox: an accepted path can be replaced before the application
 opens it, so the application opens it as it would any path a user typed.
 
-The edit.py_ example program uses the chooser for its Open and Save As
-dialogs, and asks before replacing an existing file by vetoing ``"accept"``.
+The edit.py_ example program is a file editor that shows the chooser working
+together with other widgets:
+
+* syntax highlighting of the text through the ``highlighter`` of
+  :class:`Edit`, with tokens from pygments;
+* Open and Save As dialogs built on the chooser, for browsing to the file;
+* a dialog that vetoes ``"accept"`` to stay open while the program checks the
+  choice, and a question before Save As replaces an existing file;
+* a classic menu bar of :class:`ActionMenu` launchers, opened with
+  :kbd:`meta f`, :kbd:`meta e` or :kbd:`f10`, with :kbd:`left` and
+  :kbd:`right` moving between the open menus.
 
 .. _edit.py: https://github.com/urwid/urwid/blob/master/examples/edit.py
 
