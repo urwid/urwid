@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import itertools
-import math
 import sys
 import typing
 import warnings
@@ -15,7 +14,7 @@ from urwid.command_map import Command
 from urwid.split_repr import remove_defaults
 from urwid.util import is_mouse_press
 
-from .constants import Align, MouseButton, Sizing, WHSettings
+from .constants import Align, MouseButton, Sizing, WHSettings, _is_valid_amount
 from .container import (
     _SELECT_COMMANDS,
     SelectNavigationListContentsMixin,
@@ -446,14 +445,13 @@ class Pile(
                 if any(
                     (
                         t not in {WHSettings.PACK, WHSettings.GIVEN, WHSettings.WEIGHT},
-                        (n is not None and (not isinstance(n, (int, float)) or n < 0 or not math.isfinite(n))),
+                        n is not None and not _is_valid_amount(n),
                         t == WHSettings.GIVEN and not isinstance(n, int),
                     )
                 ):
                     invalid_items.append(item)
 
-        # OverflowError: math.isfinite() of an int too large for a float
-        except (TypeError, ValueError, OverflowError) as exc:
+        except (TypeError, ValueError) as exc:
             raise PileError(f"added content invalid: {exc}").with_traceback(exc.__traceback__) from exc
 
         if invalid_items:
@@ -574,15 +572,15 @@ class Pile(
         Return a new options tuple for use in a Pile's :attr:`contents` list.
 
         :param height_type: ``'pack'``, ``'given'`` or ``'weight'``
-        :param height_amount: ``None`` for ``'pack'``, a number of rows for
-            ``'given'`` or a weight value (number) for ``'weight'``
+        :param height_amount: ``None`` for ``'pack'``, a number of rows (an int of at least 0) for ``'given'``,
+            or a weight (a finite number of at least 0) for ``'weight'``
         :raises PileError: *height_type* and *height_amount* are not a valid combination.
         """
         if height_type == WHSettings.PACK:
             return (WHSettings.PACK, None)
-        if height_type == WHSettings.GIVEN and isinstance(height_amount, int):
+        if height_type == WHSettings.GIVEN and _is_valid_amount(height_amount) and isinstance(height_amount, int):
             return (WHSettings.GIVEN, height_amount)
-        if height_type == WHSettings.WEIGHT and height_amount is not None:
+        if height_type == WHSettings.WEIGHT and _is_valid_amount(height_amount):
             return (WHSettings.WEIGHT, height_amount)
         raise PileError(f"invalid combination: height_type={height_type!r}, height_amount={height_amount!r}")
 

@@ -733,14 +733,19 @@ class PileTest(unittest.TestCase):
         p.render((5, 4))
 
     def test_non_finite_size_rejected(self) -> None:
-        """Reject a size that is infinite, NaN or too large for a float, as it cannot be converted to rows."""
+        """Reject a size that is not a finite number of at least 0."""
         for kind, amount in (
+            ("weight", -1),
+            ("given", -1),
             ("weight", math.inf),
             ("weight", math.nan),
             ("weight", 10**400),  # too large for a float
             ("given", math.inf),
+            ("given", 10**400),  # too large for a float
         ):
             with self.subTest(kind=kind, amount=amount):
+                with self.assertRaises(urwid.PileError):
+                    urwid.Pile.options(kind, amount)
                 with self.assertRaises(urwid.PileError):
                     urwid.Pile([(kind, amount, urwid.SolidFill())])
                 pile = urwid.Pile([])

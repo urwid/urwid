@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import dataclasses
 import enum
+import math
 import typing
 
 if typing.TYPE_CHECKING:
@@ -274,6 +275,17 @@ def simplify_valign(
             raise TypeError(valign_amount)
         return (WHSettings.RELATIVE, valign_amount)
     return VAlign(valign_type)
+
+
+def _is_valid_amount(amount: object) -> typing.TypeGuard[int | float]:
+    """Return whether *amount* is a finite number of at least 0.
+
+    That is a valid ``'weight'`` amount of a container option; a ``'given'`` amount must also be an int.
+    """
+    try:
+        return isinstance(amount, (int, float)) and amount >= 0 and math.isfinite(amount)
+    except OverflowError:  # math.isfinite() of an int too large for a float
+        return False
 
 
 @typing.overload
