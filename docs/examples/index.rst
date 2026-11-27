@@ -48,7 +48,23 @@ Source: :doc:`code/edit`
 .. image:: edit3.png
    :scale: 50%
 
-A text editor with a menu bar, Open and Save As dialogs built on FileChooser, and syntax highlighting
+A file editor with syntax highlighting through the highlighter of Edit, Open and Save As dialogs built on
+FileChooser that veto ``"accept"`` to stay open while the choice is checked, a question before Save As replaces a
+file, and a classic menu bar of ActionMenu launchers
+
+
+less.py
+-------
+
+Source: :doc:`code/less`
+
+.. image:: less1.png
+   :scale: 50%
+.. image:: less2.png
+   :scale: 50%
+
+A pager with a custom list walker that reads a text file only as far as it is shown, so even a huge file opens at
+once; a line number followed by ``g`` goes to that line
 
 
 browse.py
@@ -168,6 +184,7 @@ demonstrate the BigText widget
    code/tour
    code/graph
    code/edit
+   code/less
    code/browse
    code/subproc
    code/calc
