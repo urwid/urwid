@@ -22,8 +22,8 @@ from __future__ import annotations
 
 import typing
 
+from urwid import util
 from urwid.ansi_parser import AnsiParser, ParsedLine
-from urwid.util import rle_segments
 
 from .constants import Align, WrapMode
 from .text import Text
@@ -127,7 +127,7 @@ class ANSIText(WidgetWrap[Text]):
 
     def _set_parsed(self, parsed: ParsedLine) -> None:
         self._parsed = parsed
-        self._w.set_text(rle_segments(parsed.text, parsed.attrib))
+        self._w.set_text(util.rle_segments(parsed.text, parsed.attrib))
         self._invalidate()
 
     def get_text(self) -> tuple[str | bytes, list[tuple[Hashable, int]]]:
