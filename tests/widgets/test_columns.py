@@ -1535,12 +1535,30 @@ class ColumnsTest(unittest.TestCase):
         self.assertEqual(1, len(urwid.Columns([(urwid.WEIGHT, 1.5, urwid.Text("a"))]).contents))
 
     def test_huge_finite_weights(self) -> None:
-        """Weights whose sum exceeds the float range still divide the width between them."""
+        """Weights scaled down to keep a float from overflowing still divide the width between them."""
         columns = urwid.Columns(
             [urwid.Text("a"), (urwid.WEIGHT, 1e308, urwid.Text("b")), (urwid.WEIGHT, 1e308, urwid.Text("c"))]
         )
         self.assertEqual([1, 10, 9], columns.column_widths((20,)))
         self.assertEqual(20, columns.render((20,)).cols())
+
+        # the weight that scaling takes to 0.0 is still nonzero, so its column keeps the floor of a weighted column
+        columns = urwid.Columns(
+            [(urwid.WEIGHT, 1e-20, urwid.Text("a")), (urwid.WEIGHT, 1.7e308, urwid.Text("b"))],
+            min_width=0,
+            shrink_pack=True,
+        )
+        self.assertEqual([1, 9], columns.column_widths((10,)))
+        self.assertEqual(10, columns.render((10,)).cols())
+
+    def test_integer_weights_divided_exactly(self) -> None:
+        """Round the share of an integer weight from its exact value, not from a float quotient."""
+        # 10 * w / (w + w2) is just under 4.5, which a float quotient rounds to 4.5
+        columns = urwid.Columns(
+            [(urwid.WEIGHT, 127047204232940595, urwid.Text("a")), (urwid.WEIGHT, 155279916284705177, urwid.Text("b"))]
+        )
+        self.assertEqual([4, 6], columns.column_widths((10,)))
+        self.assertEqual(10, columns.render((10,)).cols())
 
     def test_all_zero_weights(self) -> None:
         """Columns whose weights are all zero keep their minimum width instead of dividing by a zero total."""

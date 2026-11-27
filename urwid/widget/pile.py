@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import itertools
-import sys
 import typing
 import warnings
 from typing import Literal
@@ -23,6 +22,7 @@ from .container import (
     _focus_request_scope,
     _FocusListContainer,
     _invalidate_on_focus_change,
+    _share_by_weight,
     _UnfocusedFocusAttrMixin,
     _WeakCallback,
 )
@@ -1003,22 +1003,10 @@ class Pile(
                 if remaining > 0:
                     break
 
-        remaining = max(remaining, 0)
-
-        if weighted and (max_weight := max(weighted.values())) > sys.float_info.max / (
-            len(weighted) * max(remaining, 1)
-        ):
-            # remaining * sum_weight could overflow a float: scale weights to at most 1, keeping their ratios
-            weighted = {idx: weight / max_weight for idx, weight in weighted.items()}
-
-        sum_weight = sum(weighted.values())
-
         # in index order, so the heights do not depend on which row has the focus
-        for idx in weighted:
-            rows = int(float(remaining) * weighted[idx] / sum_weight + 0.5) if remaining else 0
+        shares = _share_by_weight(max(remaining, 0), ((weight, idx) for idx, weight in weighted.items()))
+        for idx, rows in shares.items():
             heights[idx] = rows
-            remaining -= rows
-            sum_weight -= weighted[idx]
 
         # the focus row needs a row to be seen: take it from the nearest weighted row that has one,
         # the row above when two are equally near

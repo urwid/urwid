@@ -322,6 +322,15 @@ class TableLayoutTest(unittest.TestCase):
         layout = TableLayout([Column(width=(WEIGHT, sys.float_info.max)), Column(width=(WEIGHT, sys.float_info.max))])
         self.assertEqual((5, 4), layout.widths(10))
 
+    def test_integer_weights_divided_exactly(self) -> None:
+        """Round the share of an integer weight from its exact value, not from a float quotient."""
+        # 10 * w / (w + w2) is just under 4.5, which a float quotient rounds to 4.5
+        layout = TableLayout(
+            [Column(width=(WEIGHT, 127047204232940595)), Column(width=(WEIGHT, 155279916284705177))],
+            dividechars=0,
+        )
+        self.assertEqual((4, 6), layout.widths(10))
+
     def test_overflow(self) -> None:
         """Weighted columns go to their minimum, PACK columns shrink by their slack, given widths are kept."""
         layout = TableLayout(
