@@ -145,8 +145,14 @@ class ANSITextTest(unittest.TestCase):
             ansi = urwid.ANSIText(sample)
             plain = urwid.Text(sample)
             self.assertEqual(plain.get_text(), ansi.get_text())
+            self.assertEqual(plain.get_markup(), ansi.get_markup())
             self.assertEqual(plain.pack(), ansi.pack())
             self.assertEqual(plain.render((10,)).text, ansi.render((10,)).text)
+
+    def test_get_markup_round_trips_through_text(self) -> None:
+        widget = urwid.ANSIText("\x1b[31mred\x1b[0m and \n\x1b[1mbold\x1b[0m")
+
+        self.assertEqual(widget.get_text(), urwid.Text(widget.get_markup()).get_text())
 
     def test_set_ansi_text_reparses_and_invalidates(self) -> None:
         widget = urwid.ANSIText("first\nline")

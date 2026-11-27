@@ -491,6 +491,24 @@ def rle_subseg(
     return sub_segment
 
 
+def rle_segments(
+    text: str | bytes,
+    rle: Iterable[tuple[_HashableT, int]],
+) -> list[tuple[_HashableT | None, str | bytes]]:
+    """Return *text* cut into one ``(value, text)`` pair per run of *rle*.
+
+    Text after the last run ends the list as a ``(None, text)`` pair, the value :func:`rle_get_at` gives there.
+    """
+    segments: list[tuple[_HashableT | None, str | bytes]] = []
+    pos = 0
+    for value, run in rle:
+        segments.append((value, text[pos : pos + run]))
+        pos += run
+    if pos < len(text):
+        segments.append((None, text[pos:]))
+    return segments
+
+
 def rle_len(
     rle: Iterable[tuple[Hashable, int]],
 ) -> int:
