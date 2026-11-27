@@ -6,6 +6,7 @@ import abc
 import contextlib
 import enum
 import inspect
+import sys
 import typing
 import warnings
 import weakref
@@ -18,7 +19,7 @@ from .constants import Sizing, WHSettings
 from .widget import _FOCUS_REQUEST, AbstractWidget, Widget, WidgetWarning, _FocusRequest, _select_enter_child
 
 if typing.TYPE_CHECKING:
-    from collections.abc import Callable, Generator, Hashable, Iterable, Iterator, MutableSequence, Sequence
+    from collections.abc import Callable, Generator, Hashable, Iterable, Iterator, Mapping, MutableSequence, Sequence
 
     from urwid.canvas import Canvas
     from urwid.command_map import CommandMap
@@ -154,6 +155,58 @@ def _apply_focus_request(
     if focus_position == focus_before and focus_position != position and child.selectable():
         container.focus_position = position
     container.request_focus()
+
+
+def _share_by_weight(
+    space: int,
+    weighted: Iterable[tuple[int | float, int]],
+    *,
+    minimums: Mapping[int, int] | None = None,
+    by_weight: bool = False,
+) -> dict[int, int]:
+    """Divide *space* between the items of *weighted* in proportion to their weights.
+
+    Each share is rounded half up from what the items before it left.
+    When every weight is an int, the weights are divided exactly,
+    and the shares add up to *space* unless a minimum raises one of them.
+    Otherwise, and when the weights are scaled down to keep a float from overflowing, they are divided through floats.
+
+    :param space: the screen columns or rows to divide, at least 0.
+    :param weighted: ``(weight, index)`` of each item, in the order the weights are summed
+        and, unless *by_weight* is set, the shares are taken.
+    :param minimums: the smallest share of each item, by index; no minimum when not given.
+    :param by_weight: take the shares from the smallest weight up, ties in index order.
+    :returns: the share of each item, by index; empty when the weights add up to 0.
+    """
+    weighted = list(weighted)
+    if weighted and (max_weight := max(weight for weight, _index in weighted)) > sys.float_info.max / (
+        len(weighted) * max(space, 1)
+    ):
+        # space * weight could overflow a float: scale the weights to at most 1, keeping their ratios
+        weighted = [(weight / max_weight, index) for weight, index in weighted]
+    # added up in the given order: a float sum depends on it, and the shares follow from the sum
+    total = sum(weight for weight, _index in weighted)
+    if by_weight:
+        weighted.sort()
+    shares: dict[int, int] = {}
+    if not total:
+        return shares
+    # an int total means every weight is an int
+    exact = isinstance(total, int)
+    for weight, index in weighted:
+        if not (space and total):
+            share = 0
+        elif exact:
+            # a float quotient within a rounding error of .5 can round to the wrong side
+            share = int((2 * space * weight + total) // (2 * total))
+        else:
+            share = int(space * weight / total + 0.5)
+        if minimums is not None:
+            share = max(share, minimums[index])
+        shares[index] = share
+        space -= share
+        total -= weight
+    return shares
 
 
 class WidgetContainerMixin(WidgetContainerMixinProto[_KT_contra]):

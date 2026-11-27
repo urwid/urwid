@@ -781,6 +781,15 @@ class PileTest(unittest.TestCase):
                 self.assertEqual(expected, pile.get_rows_sizes((10, 50))[1])
                 self.assertEqual(50, pile.render((10, 50)).rows())
 
+    def test_integer_weights_divided_exactly(self) -> None:
+        """Round the share of an integer weight from its exact value, not from a float quotient."""
+        # 10 * w / (w + w2) is just under 4.5, which a float quotient rounds to 4.5
+        pile = urwid.Pile(
+            [("weight", weight, urwid.SolidFill()) for weight in (127047204232940595, 155279916284705177)]
+        )
+        self.assertEqual((4, 6), pile.get_rows_sizes((10, 10))[1])
+        self.assertEqual(10, pile.render((10, 10)).rows())
+
     def test_weighted_heights_independent_of_focus(self) -> None:
         """Divide rows between weighted rows in index order, whichever row has the focus."""
         for weights, maxrow, expected in (

@@ -23,7 +23,7 @@ from urwid.command_map import Command
 from .attr_map import AttrMap, AttrMapError, _attr_map_dict
 from .columns import Columns, _shrink_by_slack
 from .constants import Align, Sizing, WHSettings, WrapMode
-from .container import WidgetContainerMixin, _WeakCallback
+from .container import WidgetContainerMixin, _share_by_weight, _WeakCallback
 from .list_walker import SimpleFocusListWalker
 from .listbox import ListBox
 
@@ -596,23 +596,16 @@ class TableLayout:
         # The layout accepts min_width PACK on a PACK column only.
         minimums = {index: typing.cast("int", self._columns[index].min_width) for index in weighted}
         grow = extra + sum(minimums.values())
-        weights = [(self._amounts[index], index) for index in weighted]
-        if max(weight for weight, _index in weights) > sys.float_info.max / (len(weights) * max(grow, 1)):
-            # grow * weight could overflow a float: scale the weights to at most 1, keeping their ratios
-            max_weight = max(weight for weight, _index in weights)
-            weights = [(weight / max_weight, index) for weight, index in weights]
-        ordered = sorted(weights)
-        wtotal = sum(weight for weight, _index in ordered)
-        for position, (weight, index) in enumerate(ordered):
-            if position == len(ordered) - 1:
-                width = max(grow, minimums[index])
-            else:
-                width = max(int(grow * weight / wtotal + 0.5), minimums[index])
+        shares = _share_by_weight(
+            grow,
+            sorted((self._amounts[index], index) for index in weighted),
+            minimums=minimums,
+            by_weight=True,
+        )
+        for index, width in shares.items():
             widths[index] = width
-            grow -= width
-            wtotal -= weight
         # pinning to a minimum can leave the total above the room: take it back from the widest weighted columns
-        excess = -grow
+        excess = sum(shares.values()) - grow
         while excess > 0:
             widest = max((index for index in weighted if widths[index] > minimums[index]), key=lambda i: widths[i])
             widths[widest] -= 1

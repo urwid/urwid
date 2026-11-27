@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import sys
 import typing
 import warnings
 from typing import Literal
@@ -23,6 +22,7 @@ from .container import (
     _focus_request_scope,
     _FocusListContainer,
     _invalidate_on_focus_change,
+    _share_by_weight,
     _UnfocusedFocusAttrMixin,
     _WeakCallback,
 )
@@ -862,22 +862,12 @@ class Columns(
                 _shrink_by_slack(widths, kept, -shared)
                 shared = 0
 
-        grow = shared + sum(widths[i] for _weight, i in weighted)
-        if weighted and (max_weight := max(weight for weight, _i in weighted)) > sys.float_info.max / (
-            len(weighted) * max(grow, 1)
-        ):
-            # grow * wtotal could overflow a float: scale weights to at most 1, keeping their ratios
-            weighted = [(weight / max_weight, i) for weight, i in weighted]
-
-        wtotal = sum(weight for weight, _i in weighted)
-        if shared and wtotal:
+        if shared:
             # divide up the remaining space between weighted cols
-            for weight, i in sorted(weighted):
-                width = max(int(grow * weight / wtotal + 0.5), floor if weight else min_width)
-
+            grow = shared + sum(widths[i] for _weight, i in weighted)
+            minimums = {i: floor if weight else min_width for weight, i in weighted}
+            for i, width in _share_by_weight(grow, weighted, minimums=minimums, by_weight=True).items():
                 widths[i] = width
-                grow -= width
-                wtotal -= weight
 
         self._cache_maxcol = maxcol
         self._cache_column_widths = widths
